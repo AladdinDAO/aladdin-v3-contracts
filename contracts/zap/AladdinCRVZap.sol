@@ -24,7 +24,7 @@ contract AladdinCRVZap is IZap {
   // The address of CVX token.
   address private constant CVX = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
   // The address of USDT token.
-  address private constant USDT = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+  address private constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
   // The address of 3CRV token.
   address private constant THREE_CRV = 0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490;
 
@@ -50,7 +50,7 @@ contract AladdinCRVZap is IZap {
     address _toToken,
     uint256 _minOut
   ) external payable override returns (uint256) {
-    if (_fromToken == TRI_POOL && _toToken == address(0)) {
+    if (_fromToken == THREE_CRV && _toToken == address(0)) {
       // 3CRV => USDT/USDT/DAI => ETH
       return _swap3CRVToETH(_amountIn, _minOut);
     } else if (_fromToken == CVX && _toToken == address(0)) {
@@ -131,7 +131,7 @@ contract AladdinCRVZap is IZap {
     uint256 _cvxAmount = ICurveV2Pool(CURVE_CVX_ETH_POOL).get_dy(0, 1, _ethAmount);
     require(_cvxAmount >= _minOut, "AladdinCRVZap: insufficient output");
 
-    _cvxAmount = ICurveV2Pool(CURVE_CVX_ETH_POOL).exchange_underlying(0, 1, _ethAmount, 0);
+    _cvxAmount = ICurveV2Pool(CURVE_CVX_ETH_POOL).exchange_underlying{ value: _ethAmount }(0, 1, _ethAmount, 0);
     return _cvxAmount;
   }
 
@@ -168,9 +168,9 @@ contract AladdinCRVZap is IZap {
     address _spender,
     uint256 _amount
   ) internal {
-    if (IERC20(_token).allowance(address(this), _spender) < _amount) {
-      IERC20(_token).safeApprove(_spender, 0);
-      IERC20(_token).safeApprove(_spender, _amount);
-    }
+    IERC20(_token).safeApprove(_spender, 0);
+    IERC20(_token).safeApprove(_spender, _amount);
   }
+
+  receive() external payable {}
 }

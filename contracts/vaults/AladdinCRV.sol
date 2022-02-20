@@ -21,7 +21,7 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
 
   uint256 private constant FEE_DENOMINATOR = 1e9;
   uint256 private constant MAX_WITHDRAW_FEE = 1e8; // 10%
-  uint256 private constant MAX_PLATFORM_FEE = 1e8; // 20%
+  uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
 
   // The address of cvxCRV token.
@@ -38,8 +38,6 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
   address private constant CVX_MINING = 0x3c75BFe6FbfDa3A94E7E7E8c2216AFc684dE5343;
   // The address of Convex 3CRV Rewards Contract.
   address private constant THREE_CRV_REWARDS = 0x7091dbb7fcbA54569eF1387Ac89Eb2a5C9F6d2EA;
-  // The address of Convex CRV => cvxCRV Contract.
-  address private constant CRV_DEPOSITOR = 0x8014595F2AB54cD7c604B00E9fb932176fDc86Ae;
 
   /// @dev The address of ZAP contract, will be used to swap tokens.
   address public zap;
@@ -75,9 +73,6 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
     withdrawFeePercentage = _withdrawFeePercentage;
     platformFeePercentage = _platformFeePercentage;
     harvestBountyPercentage = _harvestBountyPercentage;
-
-    _approve(CVXCRV, CVXCRV_STAKING);
-    _approve(CVX, CRV_DEPOSITOR);
   }
 
   /********************************** View Functions **********************************/
@@ -219,11 +214,11 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
       uint256 _harvestBounty = harvestBountyPercentage;
       if (_platformFee > 0) {
         _platformFee = (_platformFee * _stakeAmount) / FEE_DENOMINATOR;
-        _stakeAmount = _stakeAmount - _platformFee;
+        _stakeAmount = _stakeAmount - _platformFee; // never overflow here
       }
       if (_harvestBounty > 0) {
         _harvestBounty = (_harvestBounty * _stakeAmount) / FEE_DENOMINATOR;
-        _stakeAmount = _stakeAmount - _harvestBounty;
+        _stakeAmount = _stakeAmount - _harvestBounty; // never overflow here
       }
       // This is the amount of underlying after staking harvested rewards.
       uint256 _underlying = totalUnderlying() + _stakeAmount;
@@ -232,6 +227,8 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
       // This is the share for harvest bounty.
       _harvestBounty = (_harvestBounty * _totalSupply) / _underlying;
 
+      IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, 0);
+      IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, _amount);
       IConvexBasicRewards(CVXCRV_STAKING).stake(_amount);
       _mint(platform, _platformFee);
       _mint(_recipient, _harvestBounty);
@@ -304,6 +301,9 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
     require(_amount > 0, "AladdinCRV: zero amount deposit");
     uint256 _underlying = totalUnderlying();
     uint256 _totalSupply = totalSupply();
+
+    IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, 0);
+    IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, _amount);
     IConvexBasicRewards(CVXCRV_STAKING).stake(_amount);
 
     uint256 _shares;
@@ -337,7 +337,7 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
       // the harvests. The fee stays staked and is therefore
       // redistributed to all remaining participants.
       uint256 _withdrawFee = (_withdrawable * withdrawFeePercentage) / FEE_DENOMINATOR;
-      _withdrawable = _withdrawable - _withdrawFee;
+      _withdrawable = _withdrawable - _withdrawFee; // never overflow here
       IConvexBasicRewards(CVXCRV_STAKING).withdraw(_withdrawable, false);
     }
     return _withdrawable;
@@ -383,11 +383,6 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
     );
     require(success, "AladdinCRV: zap failed");
     return abi.decode(data, (uint256));
-  }
-
-  function _approve(address _token, address _spender) internal {
-    IERC20Upgradeable(_token).safeApprove(_spender, 0);
-    IERC20Upgradeable(_token).safeApprove(_spender, uint256(-1));
   }
 
   receive() external payable {}

@@ -239,7 +239,7 @@ contract AladdinConvexVaultZap is Ownable, IZap {
   }
 
   function _wrapTokenIfNeeded(address _token, uint256 _amount) internal {
-    if (IERC20(_token).balanceOf(address(this)) < _amount) {
+    if (_token == WETH && IERC20(_token).balanceOf(address(this)) < _amount) {
       IWETH(WETH).deposit{ value: _amount }();
     }
   }
@@ -260,4 +260,6 @@ contract AladdinConvexVaultZap is Ownable, IZap {
       IERC20(_token).safeApprove(_spender, _amount);
     }
   }
+
+  receive() external payable {}
 }

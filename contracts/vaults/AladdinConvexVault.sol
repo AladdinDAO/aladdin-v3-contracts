@@ -22,38 +22,51 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   struct PoolInfo {
+    // The amount of total deposited token.
     uint128 totalUnderlying;
+    // The amount of total deposited shares.
     uint128 totalShare;
+    // The accumulated acrv reward per share, with 1e18 precision.
     uint256 accRewardPerShare;
+    // The pool id in Convex Booster.
     uint256 convexPoolId;
+    // The address of deposited token.
     address lpToken;
+    // The address of Convex reward contract.
     address crvRewards;
+    // The withdraw fee percentage, with 1e9 precision.
     uint256 withdrawFeePercentage;
+    // The platform fee percentage, with 1e9 precision.
     uint256 platformFeePercentage;
+    // The harvest bounty percentage, with 1e9 precision.
     uint256 harvestBountyPercentage;
+    // Whether deposit for the pool is paused.
     bool pauseDeposit;
+    // Whether withdraw for the pool is paused.
     bool pauseWithdraw;
+    // The list of addresses of convex reward tokens.
     address[] convexRewardTokens;
   }
 
   struct UserInfo {
+    // The amount of shares the user deposited.
     uint128 shares;
+    // The amount of current accrued rewards.
     uint128 rewards;
+    // The reward per share already paid for the user, with 1e18 precision.
     uint256 rewardPerSharePaid;
   }
 
   uint256 private constant PRECISION = 1e18;
   uint256 private constant FEE_DENOMINATOR = 1e9;
   uint256 private constant MAX_WITHDRAW_FEE = 1e8; // 10%
-  uint256 private constant MAX_PLATFORM_FEE = 1e8; // 20%
+  uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
 
   // The address of cvxCRV token.
   address private constant CVXCRV = 0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7;
   // The address of CRV token.
   address private constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
-  // The address of CVX token.
-  address private constant CVX = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
   // The address of WETH token.
   address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
   // The address of Convex Booster Contract
@@ -63,7 +76,9 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
   // The address of Convex CRV => cvxCRV Contract.
   address private constant CRV_DEPOSITOR = 0x8014595F2AB54cD7c604B00E9fb932176fDc86Ae;
 
+  /// @dev The list of all supported pool.
   PoolInfo[] public poolInfo;
+  /// @dev Mapping from pool id to account address to user share info.
   mapping(uint256 => mapping(address => UserInfo)) public userInfo;
 
   /// @dev The address of AladdinCRV token.
@@ -89,9 +104,6 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     aladdinCRV = _aladdinCRV;
     zap = _zap;
     platform = _platform;
-
-    _approve(CVXCRV, _aladdinCRV, uint256(-1));
-    _approve(CVX, CRV_DEPOSITOR, uint256(-1));
   }
 
   /********************************** View Functions **********************************/
@@ -131,6 +143,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
   /// @return share - The amount of share after deposit.
   function deposit(uint256 _pid, uint256 _amount) public override nonReentrant returns (uint256 share) {
     require(_amount > 0, "AladdinConvexVault: zero amount deposit");
+    require(_pid < poolInfo.length, "AladdinConvexVault: invalid pool");
 
     // 1. update rewards
     PoolInfo storage _pool = poolInfo[_pid];
@@ -187,6 +200,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     ClaimOption _option
   ) public override nonReentrant returns (uint256 withdrawn, uint256 claimed) {
     require(_shares > 0, "AladdinConvexVault: zero share withdraw");
+    require(_pid < poolInfo.length, "AladdinConvexVault: invalid pool");
 
     // 1. update rewards
     PoolInfo storage _pool = poolInfo[_pid];
@@ -251,6 +265,8 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     uint256 _minOut,
     ClaimOption _option
   ) public override nonReentrant returns (uint256 claimed) {
+    require(_pid < poolInfo.length, "AladdinConvexVault: invalid pool");
+
     PoolInfo storage _pool = poolInfo[_pid];
     require(!_pool.pauseWithdraw, "AladdinConvexVault: pool paused");
     _updateRewards(_pid, msg.sender);
@@ -296,6 +312,8 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     address _recipient,
     uint256 _minimumOut
   ) external override nonReentrant returns (uint256 harvested) {
+    require(_pid < poolInfo.length, "AladdinConvexVault: invalid pool");
+
     PoolInfo storage _pool = poolInfo[_pid];
     // 1. claim rewards
     IConvexBasicRewards(_pool.crvRewards).getReward();
@@ -316,9 +334,10 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
       IZap(zap).zap{ value: _amount }(WETH, _amount, CRV, 0);
     }
     _amount = IERC20Upgradeable(CRV).balanceOf(address(this));
+    _amount = _swapCRVToCvxCRV(_amount, _minimumOut);
 
     _token = aladdinCRV; // gas saving
-    _amount = _swapCRVToCvxCRV(_amount, _minimumOut);
+    _approve(CVXCRV, _token, _amount);
     uint256 _rewards = IAladdinCRV(_token).deposit(address(this), _amount);
 
     // 3. distribute rewards to platform and _recipient
@@ -397,6 +416,10 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
 
   /// @dev Add new Convex pool.
   /// @param _convexPid - The Convex pool id.
+  /// @param _rewardTokens - The list of addresses of reward tokens.
+  /// @param _withdrawFeePercentage - The withdraw fee percentage of the pool.
+  /// @param _platformFeePercentage - The platform fee percentage of the pool.
+  /// @param _harvestBountyPercentage - The harvest bounty percentage of the pool.
   function addPool(
     uint256 _convexPid,
     address[] memory _rewardTokens,
@@ -438,6 +461,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
   /// @param _rewardTokens - The address list of new reward tokens.
   function updatePoolRewardTokens(uint256 _pid, address[] memory _rewardTokens) external onlyOwner {
     require(_pid < poolInfo.length, "AladdinConvexVault: invalid pool");
+
     delete poolInfo[_pid].convexRewardTokens;
     poolInfo[_pid].convexRewardTokens = _rewardTokens;
 
@@ -529,10 +553,8 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     address _spender,
     uint256 _amount
   ) internal {
-    if (IERC20Upgradeable(_token).allowance(address(this), _spender) < _amount) {
-      IERC20Upgradeable(_token).safeApprove(_spender, 0);
-      IERC20Upgradeable(_token).safeApprove(_spender, _amount);
-    }
+    IERC20Upgradeable(_token).safeApprove(_spender, 0);
+    IERC20Upgradeable(_token).safeApprove(_spender, _amount);
   }
 
   receive() external payable {}

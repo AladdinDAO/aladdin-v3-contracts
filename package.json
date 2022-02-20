@@ -7,7 +7,7 @@
     "test": "npx hardhat test",
     "solhint": "./node_modules/.bin/solhint -f table 'contracts/**/*.sol'",
     "prettier:solidity": "./node_modules/.bin/prettier --write 'contracts/**/*.sol'",
-    "prettier": "./node_modules/.bin/prettier --write 'test/**/*.ts' 'tasks/**/*.ts' 'scripts/**/*.ts' *.ts",
+    "prettier": "./node_modules/.bin/prettier --write 'test/**/*.ts' 'scripts/**/*.ts' *.ts",
     "coverage": "hardhat coverage"
   },
   "devDependencies": {
