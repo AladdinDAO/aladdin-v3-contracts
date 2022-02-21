@@ -115,9 +115,9 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
   /// @return share - The amount of aCRV received.
   function deposit(address _recipient, uint256 _amount) public override nonReentrant returns (uint256 share) {
     require(_amount > 0, "AladdinCRV: zero amount deposit");
-    uint256 _before = IERC20Upgradeable(CVXCRV).balanceOf(_recipient);
+    uint256 _before = IERC20Upgradeable(CVXCRV).balanceOf(address(this));
     IERC20Upgradeable(CVXCRV).safeTransferFrom(msg.sender, address(this), _amount);
-    _amount = IERC20Upgradeable(CVXCRV).balanceOf(_recipient).sub(_before);
+    _amount = IERC20Upgradeable(CVXCRV).balanceOf(address(this)).sub(_before);
     return _deposit(_recipient, _amount);
   }
 
@@ -125,7 +125,7 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
   /// @param _recipient The address who will receive the aCRV token.
   /// @return share - The amount of aCRV received.
   function depositAll(address _recipient) external override returns (uint256 share) {
-    uint256 _balance = IERC20Upgradeable(CVXCRV).balanceOf(_recipient);
+    uint256 _balance = IERC20Upgradeable(CVXCRV).balanceOf(msg.sender);
     return deposit(_recipient, _balance);
   }
 
@@ -134,11 +134,11 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
   /// @param _amount - The amount of CRV to deposit.
   /// @return share - The amount of aCRV received.
   function depositWithCRV(address _recipient, uint256 _amount) public override nonReentrant returns (uint256 share) {
-    uint256 _before = IERC20Upgradeable(CRV).balanceOf(_recipient);
+    uint256 _before = IERC20Upgradeable(CRV).balanceOf(address(this));
     IERC20Upgradeable(CRV).safeTransferFrom(msg.sender, address(this), _amount);
-    _amount = IERC20Upgradeable(CRV).balanceOf(_recipient).sub(_before);
+    _amount = IERC20Upgradeable(CRV).balanceOf(address(this)).sub(_before);
 
-    _zapToken(_amount, CRV, _amount, CVXCRV);
+    _amount = _zapToken(_amount, CRV, _amount, CVXCRV);
     return _deposit(_recipient, _amount);
   }
 
@@ -146,7 +146,7 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
   /// @param _recipient The address who will receive the aCRV token.
   /// @return share - The amount of aCRV received.
   function depositAllWithCRV(address _recipient) external override returns (uint256 share) {
-    uint256 _balance = IERC20Upgradeable(CRV).balanceOf(_recipient);
+    uint256 _balance = IERC20Upgradeable(CRV).balanceOf(msg.sender);
     return depositWithCRV(_recipient, _balance);
   }
 
@@ -352,6 +352,8 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
     if (_option == WithdrawOption.WithdrawAndStake) {
       // simply stake the cvxCRV for _recipient
       require(_amount >= _minimumOut, "AladdinCRV: insufficient output");
+      IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, 0);
+      IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, _amount);
       require(IConvexBasicRewards(CVXCRV_STAKING).stakeFor(_recipient, _amount), "AladdinCRV: stakeFor failed");
     } else if (_option == WithdrawOption.WithdrawAsCRV) {
       _amount = _zapToken(_amount, CVXCRV, _minimumOut, CRV);

@@ -322,16 +322,17 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     address[] memory _rewardsToken = _pool.convexRewardTokens;
     uint256 _amount = address(this).balance;
     address _token;
+    address _zap = zap;
     for (uint256 i = 0; i < _rewardsToken.length; i++) {
       _token = _rewardsToken[i];
       if (_token != CRV) {
         uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
-        IERC20Upgradeable(_token).safeTransfer(zap, _balance);
-        _amount = _amount.add(IZap(zap).zap(_token, _balance, WETH, 0));
+        IERC20Upgradeable(_token).safeTransfer(_zap, _balance);
+        _amount = _amount.add(IZap(_zap).zap(_token, _balance, WETH, 0));
       }
     }
     if (_amount > 0) {
-      IZap(zap).zap{ value: _amount }(WETH, _amount, CRV, 0);
+      IZap(_zap).zap{ value: _amount }(WETH, _amount, CRV, 0);
     }
     _amount = IERC20Upgradeable(CRV).balanceOf(address(this));
     _amount = _swapCRVToCvxCRV(_amount, _minimumOut);
