@@ -227,7 +227,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     _pool.totalUnderlying = _toU128(_totalUnderlying - _withdrawable);
     _userInfo.shares = _toU128(uint256(_userInfo.shares) - _shares);
 
-    IConvexBasicRewards(_pool.crvRewards).withdraw(_withdrawable, false);
+    IConvexBasicRewards(_pool.crvRewards).withdrawAndUnwrap(_withdrawable, false);
     IERC20Upgradeable(_pool.lpToken).safeTransfer(msg.sender, _withdrawable);
     emit Withdraw(_pid, msg.sender, _shares);
 
