@@ -10,4 +10,6 @@ interface IConvexCRVDepositor {
   ) external;
 
   function deposit(uint256 _amount, bool _lock) external;
+
+  function lockIncentive() external view returns (uint256);
 }

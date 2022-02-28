@@ -157,8 +157,18 @@ contract AladdinCRVZap is IZap {
       _amountOut = ICurveFactoryPool(CURVE_CVXCRV_CRV_POOL).exchange(0, 1, _amountIn, 0, address(this));
     } else {
       _approve(CRV, CRV_DEPOSITOR, _amountIn);
-      IConvexCRVDepositor(CRV_DEPOSITOR).deposit(_amountIn, false, address(0));
-      _amountOut = _amountIn;
+      uint256 _lockIncentive = IConvexCRVDepositor(CRV_DEPOSITOR).lockIncentive();
+      // if use `lock = false`, will possible take fee
+      // if use `lock = true`, some incentive will be given
+      _amountOut = IERC20(CVXCRV).balanceOf(address(this));
+      if (_lockIncentive == 0) {
+        // no lock incentive, use `lock = false`
+        IConvexCRVDepositor(CRV_DEPOSITOR).deposit(_amountIn, false, address(0));
+      } else {
+        // no lock incentive, use `lock = true`
+        IConvexCRVDepositor(CRV_DEPOSITOR).deposit(_amountIn, true, address(0));
+      }
+      _amountOut = IERC20(CVXCRV).balanceOf(address(this)) - _amountOut; // never overflow here
     }
     return _amountOut;
   }

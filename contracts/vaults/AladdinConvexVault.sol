@@ -173,6 +173,9 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     _pool.totalShare = _toU128(_totalShare.add(_shares));
     _pool.totalUnderlying = _toU128(_totalUnderlying.add(_amount));
 
+    UserInfo storage _userInfo = userInfo[_pid][msg.sender];
+    _userInfo.shares = _toU128(_shares + _userInfo.shares);
+
     emit Deposit(_pid, msg.sender, _amount);
     return _shares;
   }
@@ -222,6 +225,8 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
 
     _pool.totalShare = _toU128(_totalShare - _shares);
     _pool.totalUnderlying = _toU128(_totalUnderlying - _withdrawable);
+    _userInfo.shares = _toU128(uint256(_userInfo.shares) - _shares);
+
     IConvexBasicRewards(_pool.crvRewards).withdraw(_withdrawable, false);
     IERC20Upgradeable(_pool.lpToken).safeTransfer(msg.sender, _withdrawable);
     emit Withdraw(_pid, msg.sender, _shares);
@@ -513,6 +518,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     if (_option == ClaimOption.Claim) {
       require(_amount >= _minOut, "AladdinConvexVault: insufficient output");
       IERC20Upgradeable(aladdinCRV).safeTransfer(msg.sender, _amount);
+      return _amount;
     } else if (_option == ClaimOption.ClaimAsCvxCRV) {
       _withdrawOption = IAladdinCRV.WithdrawOption.Withdraw;
     } else if (_option == ClaimOption.ClaimAsCRV) {
@@ -534,6 +540,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
 
   function _swapCRVToCvxCRV(uint256 _amountIn, uint256 _minOut) internal returns (uint256) {
     // CRV swap to CVXCRV or stake to CVXCRV
+    // CRV swap to CVXCRV or stake to CVXCRV
     uint256 _amountOut = ICurveFactoryPool(CURVE_CVXCRV_CRV_POOL).get_dy(0, 1, _amountIn);
     bool useCurve = _amountOut > _amountIn;
     require(_amountOut >= _minOut || _amountIn >= _minOut, "AladdinCRVZap: insufficient output");
@@ -543,8 +550,18 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
       _amountOut = ICurveFactoryPool(CURVE_CVXCRV_CRV_POOL).exchange(0, 1, _amountIn, 0, address(this));
     } else {
       _approve(CRV, CRV_DEPOSITOR, _amountIn);
-      IConvexCRVDepositor(CRV_DEPOSITOR).deposit(_amountIn, false, address(0));
-      _amountOut = _amountIn;
+      uint256 _lockIncentive = IConvexCRVDepositor(CRV_DEPOSITOR).lockIncentive();
+      // if use `lock = false`, will possible take fee
+      // if use `lock = true`, some incentive will be given
+      _amountOut = IERC20Upgradeable(CVXCRV).balanceOf(address(this));
+      if (_lockIncentive == 0) {
+        // no lock incentive, use `lock = false`
+        IConvexCRVDepositor(CRV_DEPOSITOR).deposit(_amountIn, false, address(0));
+      } else {
+        // no lock incentive, use `lock = true`
+        IConvexCRVDepositor(CRV_DEPOSITOR).deposit(_amountIn, true, address(0));
+      }
+      _amountOut = IERC20Upgradeable(CVXCRV).balanceOf(address(this)) - _amountOut; // never overflow here
     }
     return _amountOut;
   }
