@@ -295,8 +295,12 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
       if (poolInfo[_pid].pauseWithdraw) continue; // skip paused pool
 
       UserInfo storage _userInfo = userInfo[_pid][msg.sender];
+      // update if user has share
       if (_userInfo.shares > 0) {
         _updateRewards(_pid, msg.sender);
+      }
+      // withdraw if user has reward
+      if (_userInfo.rewards > 0) {
         _rewards = _rewards.add(_userInfo.rewards);
         _userInfo.rewards = 0;
       }
