@@ -182,5 +182,6 @@ contract AladdinCRVZap is IZap {
     IERC20(_token).safeApprove(_spender, _amount);
   }
 
+  // solhint-disable-next-line no-empty-blocks
   receive() external payable {}
 }

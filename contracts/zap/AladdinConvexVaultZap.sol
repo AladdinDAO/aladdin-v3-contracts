@@ -261,5 +261,6 @@ contract AladdinConvexVaultZap is Ownable, IZap {
     }
   }
 
+  // solhint-disable-next-line no-empty-blocks
   receive() external payable {}
 }
