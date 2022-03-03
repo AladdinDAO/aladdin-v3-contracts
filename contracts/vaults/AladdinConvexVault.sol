@@ -216,9 +216,15 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
 
     uint256 _totalShare = _pool.totalShare;
     uint256 _totalUnderlying = _pool.totalUnderlying;
-    uint256 _withdrawable = _shares.mul(_totalUnderlying) / _totalShare;
-    {
+    uint256 _withdrawable;
+    if (_shares == _totalShare) {
+      // If user is last to withdraw, don't take withdraw fee.
+      // And there may still have some pending rewards, we just simple ignore it now.
+      // If we want the reward later, we can upgrade the contract.
+      _withdrawable = _totalUnderlying;
+    } else {
       // take withdraw fee here
+      _withdrawable = _shares.mul(_totalUnderlying) / _totalShare;
       uint256 _fee = _withdrawable.mul(_pool.withdrawFeePercentage) / FEE_DENOMINATOR;
       _withdrawable = _withdrawable - _fee; // never overflow
     }
