@@ -192,48 +192,7 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
   /// @param _recipient - The address of account to receive harvest bounty.
   /// @param _minimumOut - The minimum amount of cvxCRV should get.
   function harvest(address _recipient, uint256 _minimumOut) public override nonReentrant returns (uint256) {
-    IConvexBasicRewards(CVXCRV_STAKING).getReward();
-    // 1. CVX => ETH
-    uint256 _amount = _zapToken(IERC20Upgradeable(CVX).balanceOf(address(this)), CVX, 0, address(0));
-    // 2. 3CRV => USDT => ETH
-    _amount += _zapToken(IERC20Upgradeable(THREE_CRV).balanceOf(address(this)), THREE_CRV, 0, address(0));
-    // 3. ETH => CRV
-    _amount = _zapToken(_amount, address(0), 0, CRV);
-    // 3. CRV => cvxCRV (stake or swap)
-    _zapToken(_amount, CRV, _amount, CVXCRV);
-
-    _amount = IERC20Upgradeable(CVXCRV).balanceOf(address(this));
-    require(_amount >= _minimumOut, "AladdinCRV: insufficient rewards");
-
-    emit Harvest(msg.sender, _amount);
-
-    uint256 _totalSupply = totalSupply();
-    if (_amount > 0 && _totalSupply > 0) {
-      uint256 _stakeAmount = _amount;
-      uint256 _platformFee = platformFeePercentage;
-      uint256 _harvestBounty = harvestBountyPercentage;
-      if (_platformFee > 0) {
-        _platformFee = (_platformFee * _stakeAmount) / FEE_DENOMINATOR;
-        _stakeAmount = _stakeAmount - _platformFee; // never overflow here
-      }
-      if (_harvestBounty > 0) {
-        _harvestBounty = (_harvestBounty * _stakeAmount) / FEE_DENOMINATOR;
-        _stakeAmount = _stakeAmount - _harvestBounty; // never overflow here
-      }
-      // This is the amount of underlying after staking harvested rewards.
-      uint256 _underlying = totalUnderlying() + _stakeAmount;
-      // This is the share for platform fee.
-      _platformFee = (_platformFee * _totalSupply) / _underlying;
-      // This is the share for harvest bounty.
-      _harvestBounty = (_harvestBounty * _totalSupply) / _underlying;
-
-      IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, 0);
-      IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, _amount);
-      IConvexBasicRewards(CVXCRV_STAKING).stake(_amount);
-      _mint(platform, _platformFee);
-      _mint(_recipient, _harvestBounty);
-    }
-    return _amount;
+    return _harvest(_recipient, _minimumOut);
   }
 
   /********************************** Restricted Functions **********************************/
@@ -327,7 +286,7 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
     if (totalSupply() == 0) {
       // If user is last to withdraw, harvest before exit
       // The first parameter is actually not used.
-      harvest(msg.sender, 0);
+      _harvest(msg.sender, 0);
       IConvexBasicRewards(CVXCRV_STAKING).withdraw(totalUnderlying(), false);
       _withdrawable = IERC20Upgradeable(CVXCRV).balanceOf(address(this));
     } else {
@@ -369,6 +328,51 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
       IERC20Upgradeable(CVX).safeTransfer(_recipient, _amount);
     } else {
       revert("AladdinCRV: unsupported option");
+    }
+    return _amount;
+  }
+
+  function _harvest(address _recipient, uint256 _minimumOut) internal returns (uint256) {
+    IConvexBasicRewards(CVXCRV_STAKING).getReward();
+    // 1. CVX => ETH
+    uint256 _amount = _zapToken(IERC20Upgradeable(CVX).balanceOf(address(this)), CVX, 0, address(0));
+    // 2. 3CRV => USDT => ETH
+    _amount += _zapToken(IERC20Upgradeable(THREE_CRV).balanceOf(address(this)), THREE_CRV, 0, address(0));
+    // 3. ETH => CRV
+    _amount = _zapToken(_amount, address(0), 0, CRV);
+    // 3. CRV => cvxCRV (stake or swap)
+    _zapToken(_amount, CRV, _amount, CVXCRV);
+
+    _amount = IERC20Upgradeable(CVXCRV).balanceOf(address(this));
+    require(_amount >= _minimumOut, "AladdinCRV: insufficient rewards");
+
+    emit Harvest(msg.sender, _amount);
+
+    uint256 _totalSupply = totalSupply();
+    if (_amount > 0 && _totalSupply > 0) {
+      uint256 _stakeAmount = _amount;
+      uint256 _platformFee = platformFeePercentage;
+      uint256 _harvestBounty = harvestBountyPercentage;
+      if (_platformFee > 0) {
+        _platformFee = (_platformFee * _stakeAmount) / FEE_DENOMINATOR;
+        _stakeAmount = _stakeAmount - _platformFee; // never overflow here
+      }
+      if (_harvestBounty > 0) {
+        _harvestBounty = (_harvestBounty * _stakeAmount) / FEE_DENOMINATOR;
+        _stakeAmount = _stakeAmount - _harvestBounty; // never overflow here
+      }
+      // This is the amount of underlying after staking harvested rewards.
+      uint256 _underlying = totalUnderlying() + _stakeAmount;
+      // This is the share for platform fee.
+      _platformFee = (_platformFee * _totalSupply) / _underlying;
+      // This is the share for harvest bounty.
+      _harvestBounty = (_harvestBounty * _totalSupply) / _underlying;
+
+      IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, 0);
+      IERC20Upgradeable(CVXCRV).safeApprove(CVXCRV_STAKING, _amount);
+      IConvexBasicRewards(CVXCRV_STAKING).stake(_amount);
+      _mint(platform, _platformFee);
+      _mint(_recipient, _harvestBounty);
     }
     return _amount;
   }
