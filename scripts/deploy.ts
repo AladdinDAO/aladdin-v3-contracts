@@ -1,5 +1,6 @@
 /* eslint-disable node/no-missing-import */
 import { ethers } from "hardhat";
+import { encodePoolHint } from "../test/utils";
 import { AladdinConvexVault, AladdinConvexVaultZap, AladdinCRV, AladdinCRVZap, ProxyAdmin } from "../typechain";
 
 const config: {
@@ -9,40 +10,49 @@ const config: {
   vaultZap?: string;
   proxyAdmin?: string;
 } = {
-  acrv: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
-  vault: "0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8",
-  proxyAdmin: "0x71Fb0cc62139766383C0F09F1E31375023592841",
-  acrvZap: "0x12b1326459d72F2Ab081116bf27ca46cD97762A0",
-  vaultZap: "0x5EB30ce188B0abb89A942cED6Cbe114F4d852082",
+  acrv: undefined,
+  vault: undefined,
+  proxyAdmin: undefined,
+  acrvZap: undefined,
+  vaultZap: undefined,
 };
 
-const PLATFORM = "0x07dA2d30E26802ED65a52859a50872cfA615bD0A";
-const WITHDRAW_FEE_PERCENTAGE = 1e7; // 1%
-const PLATFORM_FEE_PERCENTAGE = 2e8; // 20%
-const HARVEST_BOUNTY_PERCENTAGE = 5e7; // 5%
+// TODO: change it on mainnet deploy
+const PLATFORM = "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F";
+const VAULT_WITHDRAW_FEE_PERCENTAGE = 1e6; // 0.1%
+const VAULT_PLATFORM_FEE_PERCENTAGE = 1e7; // 1%
+const VAULT_HARVEST_BOUNTY_PERCENTAGE = 1e7; // 1%
+const ACRV_WITHDRAW_FEE_PERCENTAGE = 5e6; // 0.5%
+const ACRV_PLATFORM_FEE_PERCENTAGE = 2.5e7; // 2.5%
+const ACRV_HARVEST_BOUNTY_PERCENTAGE = 2.5e7; // 2.5%
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const CRV = "0xD533a949740bb3306d119CC777fa900bA034cd52";
 const CVX = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
 const LDO = "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32";
-const SPELL = "0x090185f2135308BaD17527004364eBcC2D37e5F6";
 const FXS = "0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0";
-const ALCX = "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF";
+// const ALCX = "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF";
+// const SPELL = "0x090185f2135308BaD17527004364eBcC2D37e5F6";
 
 const VAULTS: [number, string[]][] = [
   [25, [CRV, CVX, LDO]], // steth
   [32, [CRV, CVX, FXS]], // frax
-  [36, [CRV, CVX, ALCX]], // alusd
   [38, [CRV, CVX]], // tricrypto2
+  [41, [CRV, CVX]], // cvxcrv
+  [61, [CRV, CVX]], // crveth
+  [64, [CRV, CVX]], // cvxeth
+  [72, [CVX, CRV, FXS]], // cvxfxs
+
+  /*
+  [36, [CRV, CVX, ALCX]], // alusd
   [40, [CRV, CVX, SPELL]], // mim
   [41, [CRV, CVX]], // cvxcrv
   [49, [CRV, CVX]], // aleth
   [52, [CRV, CVX]], // mim-ust
   [59, [CRV, CVX]], // ust-wormhole
-  [61, [CRV, CVX]], // crveth
-  [64, [CRV, CVX]], // cvxeth
   [66, [CRV, CVX]], // spelleth
   [67, [CRV, CVX]], // teth
   [68, [CRV, CVX]], // yfieth
-  [69, [CRV, CVX]], // fxseth
+  [69, [CRV, CVX]], // fxseth */
 ];
 
 let proxyAdmin: ProxyAdmin;
@@ -57,13 +67,19 @@ async function addVaults() {
     const tx = await vault.addPool(
       pid,
       rewards,
-      WITHDRAW_FEE_PERCENTAGE,
-      PLATFORM_FEE_PERCENTAGE,
-      HARVEST_BOUNTY_PERCENTAGE
+      VAULT_WITHDRAW_FEE_PERCENTAGE,
+      VAULT_PLATFORM_FEE_PERCENTAGE,
+      VAULT_HARVEST_BOUNTY_PERCENTAGE
     );
     await tx.wait();
     console.log("Added with tx:", tx.hash);
   }
+}
+async function setupRoutes() {
+  await vaultZap.updateRoute(WETH, CRV, [encodePoolHint("0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511", 4, 0, 1)]);
+  await vaultZap.updateRoute(CVX, WETH, [encodePoolHint("0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4", 4, 1, 0)]);
+  await vaultZap.updateRoute(LDO, WETH, [encodePoolHint("0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a", 0, 0, 1)]);
+  await vaultZap.updateRoute(FXS, WETH, [encodePoolHint("0xCD8286b48936cDAC20518247dBD310ab681A9fBf", 1, 0, 1)]);
 }
 
 async function main() {
@@ -111,9 +127,9 @@ async function main() {
     const data = acrvImpl.interface.encodeFunctionData("initialize", [
       acrvZap.address,
       PLATFORM,
-      WITHDRAW_FEE_PERCENTAGE,
-      PLATFORM_FEE_PERCENTAGE,
-      HARVEST_BOUNTY_PERCENTAGE,
+      ACRV_WITHDRAW_FEE_PERCENTAGE,
+      ACRV_PLATFORM_FEE_PERCENTAGE,
+      ACRV_HARVEST_BOUNTY_PERCENTAGE,
     ]);
     const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
     const proxy = await TransparentUpgradeableProxy.deploy(acrvImpl.address, proxyAdmin.address, data);
@@ -139,6 +155,7 @@ async function main() {
   }
 
   await addVaults();
+  await setupRoutes();
 }
 
 // We recommend this pattern to be able to use async/await everywhere
