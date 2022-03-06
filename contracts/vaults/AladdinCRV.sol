@@ -383,6 +383,8 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
     uint256 _minimumOut,
     address _toToken
   ) internal returns (uint256) {
+    if (_amount == 0) return 0;
+
     // solhint-disable-next-line avoid-low-level-calls
     (bool success, bytes memory data) = zap.delegatecall(
       abi.encodeWithSignature("zap(address,uint256,address,uint256)", _fromToken, _amount, _toToken, _minimumOut)
