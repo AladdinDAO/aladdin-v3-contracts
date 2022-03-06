@@ -19,10 +19,7 @@ const config: {
 
 // TODO: change it on mainnet deploy
 const PLATFORM = "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F";
-const VAULT_WITHDRAW_FEE_PERCENTAGE = 1e6; // 0.1%
-const VAULT_PLATFORM_FEE_PERCENTAGE = 1e7; // 1%
-const VAULT_HARVEST_BOUNTY_PERCENTAGE = 1e7; // 1%
-const ACRV_WITHDRAW_FEE_PERCENTAGE = 5e6; // 0.5%
+const ACRV_WITHDRAW_FEE_PERCENTAGE = 2.5e6; // 0.25%
 const ACRV_PLATFORM_FEE_PERCENTAGE = 2.5e7; // 2.5%
 const ACRV_HARVEST_BOUNTY_PERCENTAGE = 2.5e7; // 2.5%
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -33,14 +30,28 @@ const FXS = "0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0";
 // const ALCX = "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF";
 // const SPELL = "0x090185f2135308BaD17527004364eBcC2D37e5F6";
 
-const VAULTS: [number, string[]][] = [
-  [25, [CRV, CVX, LDO]], // steth
-  [32, [CRV, CVX, FXS]], // frax
-  [38, [CRV, CVX]], // tricrypto2
-  [41, [CRV, CVX]], // cvxcrv
-  [61, [CRV, CVX]], // crveth
-  [64, [CRV, CVX]], // cvxeth
-  [72, [CVX, CRV, FXS]], // cvxfxs
+const VAULTS: {
+  name: string;
+  convexId: number;
+  rewards: string[];
+  withdrawFee: number;
+  harvestBounty: number;
+  platformFee: number;
+}[] = [
+  // steth, 0.04% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
+  { name: "steth", convexId: 25, rewards: [CRV, CVX, LDO], withdrawFee: 4e5, harvestBounty: 5e6, platformFee: 5e6 },
+  // frax, 0.04% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
+  { name: "frax", convexId: 32, rewards: [CRV, CVX, FXS], withdrawFee: 4e5, harvestBounty: 5e6, platformFee: 5e6 },
+  // tricrypto2, 0.08% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
+  { name: "tricrypto2", convexId: 38, rewards: [CRV, CVX], withdrawFee: 8e5, harvestBounty: 5e6, platformFee: 5e6 },
+  // cvxcrv, 0.30% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
+  { name: "cvxcrv", convexId: 41, rewards: [CRV, CVX], withdrawFee: 30e5, harvestBounty: 5e6, platformFee: 5e6 },
+  // crveth, 0.28% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
+  { name: "crveth", convexId: 61, rewards: [CRV, CVX], withdrawFee: 28e5, harvestBounty: 5e6, platformFee: 5e6 },
+  // cvxeth, 0.27% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
+  { name: "cvxeth", convexId: 64, rewards: [CRV, CVX], withdrawFee: 27e5, harvestBounty: 5e6, platformFee: 5e6 },
+  // cvxfxs, 0.31% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
+  { name: "cvxfxs", convexId: 72, rewards: [CVX, CRV, FXS], withdrawFee: 31e5, harvestBounty: 5e6, platformFee: 5e6 },
 
   /*
   [36, [CRV, CVX, ALCX]], // alusd
@@ -62,15 +73,9 @@ let vault: AladdinConvexVault;
 let vaultZap: AladdinConvexVaultZap;
 
 async function addVaults() {
-  for (const [pid, rewards] of VAULTS) {
-    console.log("Adding pool with pid:", pid, "rewards:", rewards.join("/"));
-    const tx = await vault.addPool(
-      pid,
-      rewards,
-      VAULT_WITHDRAW_FEE_PERCENTAGE,
-      VAULT_PLATFORM_FEE_PERCENTAGE,
-      VAULT_HARVEST_BOUNTY_PERCENTAGE
-    );
+  for (const { convexId, rewards, withdrawFee, harvestBounty, platformFee } of VAULTS) {
+    console.log("Adding pool with pid:", convexId, "rewards:", rewards.join("/"));
+    const tx = await vault.addPool(convexId, rewards, withdrawFee, platformFee, harvestBounty);
     await tx.wait();
     console.log("Added with tx:", tx.hash);
   }
