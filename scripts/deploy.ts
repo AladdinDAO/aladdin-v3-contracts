@@ -10,11 +10,11 @@ const config: {
   vaultZap?: string;
   proxyAdmin?: string;
 } = {
-  acrv: undefined,
-  vault: undefined,
-  proxyAdmin: undefined,
-  acrvZap: undefined,
-  vaultZap: undefined,
+  acrv: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
+  vault: "0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8",
+  proxyAdmin: "0x12b1326459d72F2Ab081116bf27ca46cD97762A0",
+  acrvZap: "0x5EB30ce188B0abb89A942cED6Cbe114F4d852082",
+  vaultZap: "0x71Fb0cc62139766383C0F09F1E31375023592841",
 };
 
 const PLATFORM = "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F";
@@ -75,15 +75,26 @@ async function addVaults() {
   for (const { convexId, rewards, withdrawFee, harvestBounty, platformFee } of VAULTS) {
     console.log("Adding pool with pid:", convexId, "rewards:", rewards.join("/"));
     const tx = await vault.addPool(convexId, rewards, withdrawFee, platformFee, harvestBounty);
+    console.log("wait for tx:", tx.hash);
     await tx.wait();
     console.log("Added with tx:", tx.hash);
   }
 }
 async function setupRoutes() {
-  await vaultZap.updateRoute(WETH, CRV, [encodePoolHint("0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511", 4, 0, 1)]);
-  await vaultZap.updateRoute(CVX, WETH, [encodePoolHint("0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4", 4, 1, 0)]);
-  await vaultZap.updateRoute(LDO, WETH, [encodePoolHint("0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a", 0, 0, 1)]);
-  await vaultZap.updateRoute(FXS, WETH, [encodePoolHint("0xCD8286b48936cDAC20518247dBD310ab681A9fBf", 1, 0, 1)]);
+  let tx = await vaultZap.updateRoute(WETH, CRV, [
+    encodePoolHint("0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511", 4, 0, 1),
+  ]);
+  console.log("wait for tx:", tx.hash);
+  await tx.wait();
+  tx = await vaultZap.updateRoute(CVX, WETH, [encodePoolHint("0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4", 4, 1, 0)]);
+  console.log("wait for tx:", tx.hash);
+  await tx.wait();
+  tx = await vaultZap.updateRoute(LDO, WETH, [encodePoolHint("0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a", 0, 0, 1)]);
+  console.log("wait for tx:", tx.hash);
+  await tx.wait();
+  tx = await vaultZap.updateRoute(FXS, WETH, [encodePoolHint("0xCD8286b48936cDAC20518247dBD310ab681A9fBf", 1, 0, 1)]);
+  console.log("wait for tx:", tx.hash);
+  await tx.wait();
 }
 
 async function main() {
