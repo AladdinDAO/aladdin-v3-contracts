@@ -339,8 +339,9 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
     // 2. 3CRV => USDT => ETH
     _amount += _zapToken(IERC20Upgradeable(THREE_CRV).balanceOf(address(this)), THREE_CRV, 0, address(0));
     // 3. ETH => CRV
-    _amount = _zapToken(_amount, address(0), 0, CRV);
+    _zapToken(_amount, address(0), 0, CRV);
     // 3. CRV => cvxCRV (stake or swap)
+    _amount = IERC20Upgradeable(CRV).balanceOf(address(this));
     _zapToken(_amount, CRV, _amount, CVXCRV);
 
     _amount = IERC20Upgradeable(CVXCRV).balanceOf(address(this));
