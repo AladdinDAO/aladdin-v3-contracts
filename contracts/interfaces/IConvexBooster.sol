@@ -22,4 +22,6 @@ interface IConvexBooster {
     uint256 _amount,
     bool _stake
   ) external returns (bool);
+
+  function earmarkRewards(uint256 _pid) external returns (bool);
 }

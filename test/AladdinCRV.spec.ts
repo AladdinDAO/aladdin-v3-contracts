@@ -73,7 +73,7 @@ describe("AladdinCRV.spec", async () => {
     await acrv.connect(cvxCRVSigner).withdraw(DEPLOYER, DEPOSIT_AMOUNT, 0, 0);
     const after = await cvxCRV.balanceOf(DEPLOYER);
     const withdrawFee = rewards.add(DEPOSIT_AMOUNT).mul(WITHDRAW_FEE_PERCENTAGE).div(1e9);
-    expect(after.sub(before)).to.eq(rewards.add(DEPOSIT_AMOUNT).sub(withdrawFee));
+    expect(after.sub(before)).to.eq(rewards.add(DEPOSIT_AMOUNT).sub(withdrawFee).add(1));
   });
 
   it("should succeed deposit with CVXCRV withdraw as CVXCRV and stake", async () => {
@@ -99,7 +99,7 @@ describe("AladdinCRV.spec", async () => {
     await acrv.connect(cvxCRVSigner).withdraw(DEPLOYER, DEPOSIT_AMOUNT, 0, 1);
     const after = await staking.balanceOf(DEPLOYER);
     const withdrawFee = rewards.add(DEPOSIT_AMOUNT).mul(WITHDRAW_FEE_PERCENTAGE).div(1e9);
-    expect(after.sub(before)).to.eq(rewards.add(DEPOSIT_AMOUNT).sub(withdrawFee));
+    expect(after.sub(before)).to.eq(rewards.add(DEPOSIT_AMOUNT).sub(withdrawFee).add(1));
   });
 
   it("should succeed deposit with CVXCRV withdraw as CRV", async () => {

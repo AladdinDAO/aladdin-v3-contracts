@@ -9,10 +9,9 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "../interfaces/IZap.sol";
 import "../interfaces/IConvexCRVDepositor.sol";
-import "../interfaces/ICurve3Pool.sol";
-import "../interfaces/ICurveFactoryPool.sol";
-import "../interfaces/ICurveTriCrypto.sol";
-import "../interfaces/ICurveV2Pool.sol";
+import "../interfaces/ICurveBasePool.sol";
+import "../interfaces/ICurveFactoryPlainPool.sol";
+import "../interfaces/ICurveCryptoPool.sol";
 import "../interfaces/IUniswapV2Pair.sol";
 import "../interfaces/IUniswapV3Pool.sol";
 import "../interfaces/IUniswapV3Router.sol";
@@ -182,14 +181,14 @@ contract AladdinConvexVaultZap is Ownable, IZap {
     uint256 _indexOut,
     uint256 _amountIn
   ) internal returns (uint256) {
-    address _tokenIn = ICurve3Pool(_pool).coins(_indexIn);
-    address _tokenOut = ICurve3Pool(_pool).coins(_indexOut);
+    address _tokenIn = ICurveBasePool(_pool).coins(_indexIn);
+    address _tokenOut = ICurveBasePool(_pool).coins(_indexOut);
 
     _wrapTokenIfNeeded(_tokenIn, _amountIn);
     _approve(_tokenIn, _pool, _amountIn);
 
     uint256 _before = IERC20(_tokenOut).balanceOf(address(this));
-    ICurve3Pool(_pool).exchange(int128(_indexIn), int128(_indexOut), _amountIn, 0);
+    ICurveBasePool(_pool).exchange(int128(_indexIn), int128(_indexOut), _amountIn, 0);
     return IERC20(_tokenOut).balanceOf(address(this)) - _before;
   }
 
@@ -199,14 +198,14 @@ contract AladdinConvexVaultZap is Ownable, IZap {
     uint256 _indexOut,
     uint256 _amountIn
   ) internal returns (uint256) {
-    address _tokenIn = ICurveTriCrypto(_pool).coins(_indexIn);
-    address _tokenOut = ICurveTriCrypto(_pool).coins(_indexOut);
+    address _tokenIn = ICurveTriCryptoPool(_pool).coins(_indexIn);
+    address _tokenOut = ICurveTriCryptoPool(_pool).coins(_indexOut);
 
     _wrapTokenIfNeeded(_tokenIn, _amountIn);
     _approve(_tokenIn, _pool, _amountIn);
 
     uint256 _before = IERC20(_tokenOut).balanceOf(address(this));
-    ICurveTriCrypto(_pool).exchange(_indexIn, _indexOut, _amountIn, 0, false);
+    ICurveTriCryptoPool(_pool).exchange(_indexIn, _indexOut, _amountIn, 0, false);
     return IERC20(_tokenOut).balanceOf(address(this)) - _before;
   }
 
@@ -216,12 +215,12 @@ contract AladdinConvexVaultZap is Ownable, IZap {
     uint256 _indexOut,
     uint256 _amountIn
   ) internal returns (uint256) {
-    address _tokenIn = ICurveV2Pool(_pool).coins(_indexIn);
+    address _tokenIn = ICurveCryptoPool(_pool).coins(_indexIn);
 
     _wrapTokenIfNeeded(_tokenIn, _amountIn);
     _approve(_tokenIn, _pool, _amountIn);
 
-    return ICurveV2Pool(_pool).exchange(_indexIn, _indexOut, _amountIn, 0, false);
+    return ICurveCryptoPool(_pool).exchange(_indexIn, _indexOut, _amountIn, 0);
   }
 
   function _swapCurveFactoryPool(
@@ -230,12 +229,12 @@ contract AladdinConvexVaultZap is Ownable, IZap {
     uint256 _indexOut,
     uint256 _amountIn
   ) internal returns (uint256) {
-    address _tokenIn = ICurveFactoryPool(_pool).coins(_indexIn);
+    address _tokenIn = ICurveFactoryPlainPool(_pool).coins(_indexIn);
 
     _wrapTokenIfNeeded(_tokenIn, _amountIn);
     _approve(_tokenIn, _pool, _amountIn);
 
-    return ICurveFactoryPool(_pool).exchange(int128(_indexIn), int128(_indexOut), _amountIn, 0, address(this));
+    return ICurveFactoryPlainPool(_pool).exchange(int128(_indexIn), int128(_indexOut), _amountIn, 0, address(this));
   }
 
   function _wrapTokenIfNeeded(address _token, uint256 _amount) internal {

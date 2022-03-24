@@ -34,6 +34,32 @@ interface IAladdinConvexVault {
 
   function depositAll(uint256 _pid) external returns (uint256);
 
+  function zapAndDeposit(
+    uint256 _pid,
+    address _token,
+    uint256 _amount,
+    uint256 _minAmount
+  ) external payable returns (uint256);
+
+  function zapAllAndDeposit(
+    uint256 _pid,
+    address _token,
+    uint256 _minAmount
+  ) external payable returns (uint256);
+
+  function withdrawAndZap(
+    uint256 _pid,
+    uint256 _shares,
+    address _token,
+    uint256 _minOut
+  ) external returns (uint256);
+
+  function withdrawAllAndZap(
+    uint256 _pid,
+    address _token,
+    uint256 _minOut
+  ) external returns (uint256);
+
   function withdrawAndClaim(
     uint256 _pid,
     uint256 _shares,
