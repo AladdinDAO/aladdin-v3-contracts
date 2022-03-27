@@ -3204,4 +3204,113 @@ describe("AladdinZap.spec", async () => {
   //   + CurveMetaPool: ust
   //   + CurveMetaPoolUnderlying: ust
   //   + CurveFactoryBTCMetaPoolUnderlying: ibbtc
+
+  describe("ETH/stETH [LidoStake]", async () => {
+    const STETH = "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84";
+    const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const WETH_HOLDER = "0xE78388b4CE79068e89Bf8aA7f218eF6b9AB0e9d0";
+
+    it("should succeed, when wrap ETH to stETH", async () => {
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, STETH]);
+      const deployer = await ethers.getSigner(DEPLOYER);
+      const amountIn = ethers.utils.parseEther("10");
+      const amountOut = ethers.utils.parseEther("9.999999999999999999"); // steth has some rounding error
+
+      const steth = await ethers.getContractAt("IERC20", STETH, deployer);
+      const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
+      const zap = await AladdinZap.deploy();
+      await zap.initialize();
+      await zap.updateRoute(WETH, STETH, [encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity)]);
+      await zap.deployed();
+      const output = await zap.callStatic.zap(constants.AddressZero, amountIn, STETH, amountOut, {
+        value: amountIn,
+      });
+      const before = await steth.balanceOf(deployer.address);
+      await zap.zap(constants.AddressZero, amountIn, STETH, amountOut, {
+        value: amountIn,
+      });
+      const after = await steth.balanceOf(deployer.address);
+      expect(output).to.eq(amountOut);
+      expect(after.sub(before).add(1)).to.eq(amountOut); // steth has some rounding error
+    });
+
+    it("should succeed, when wrap WETH to stETH", async () => {
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, STETH, WETH, WETH_HOLDER]);
+      const deployer = await ethers.getSigner(DEPLOYER);
+      const signer = await ethers.getSigner(WETH_HOLDER);
+      const amountIn = ethers.utils.parseEther("10");
+      const amountOut = ethers.utils.parseEther("9.999999999999999999"); // steth has some rounding error
+
+      const steth = await ethers.getContractAt("IERC20", STETH, signer);
+      const weth = await ethers.getContractAt("IERC20", WETH, signer);
+      const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
+      const zap = await AladdinZap.deploy();
+      await zap.initialize();
+      await zap.updateRoute(WETH, STETH, [encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity)]);
+      await zap.deployed();
+      await weth.transfer(zap.address, amountIn);
+      const output = await zap.callStatic.zap(WETH, amountIn, STETH, amountOut);
+      const before = await steth.balanceOf(deployer.address);
+      await zap.zap(WETH, amountIn, STETH, amountOut);
+      const after = await steth.balanceOf(deployer.address);
+      expect(output).to.eq(amountOut);
+      expect(after.sub(before).add(1)).to.eq(amountOut); // steth has some rounding error
+    });
+  });
+
+  describe("stETH/wstETH [LidoWrap]", async () => {
+    const STETH = "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84";
+    const STETH_HOLDER = "0x06920C9fC643De77B99cB7670A944AD31eaAA260";
+    const WSTETH = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0";
+    const WSTETH_HOLDER = "0xD655F6507D86203F3970AA4448d9b7873B7942a9";
+
+    it("should succeed, when wrap stETH to wstETH", async () => {
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, STETH, STETH_HOLDER]);
+      const deployer = await ethers.getSigner(DEPLOYER);
+      const signer = await ethers.getSigner(STETH_HOLDER);
+      const amountIn = ethers.utils.parseEther("10");
+      const amountOut = ethers.utils.parseEther("9.419555176735992187");
+
+      const steth = await ethers.getContractAt("IERC20", STETH, signer);
+      const wsteth = await ethers.getContractAt("IERC20", WSTETH, signer);
+      const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
+      const zap = await AladdinZap.deploy();
+      await zap.initialize();
+      await zap.updateRoute(STETH, WSTETH, [encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity)]);
+      await zap.deployed();
+      await steth.transfer(zap.address, amountIn);
+      const output = await zap.callStatic.zap(STETH, amountIn, WSTETH, amountOut);
+      const before = await wsteth.balanceOf(deployer.address);
+      await zap.zap(STETH, amountIn, WSTETH, amountOut);
+      const after = await wsteth.balanceOf(deployer.address);
+      expect(output).to.eq(amountOut);
+      expect(after.sub(before)).to.eq(amountOut);
+    });
+
+    it("should succeed, when unwrap wstETH to stETH", async () => {
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, WSTETH, WSTETH_HOLDER]);
+      const deployer = await ethers.getSigner(DEPLOYER);
+      const signer = await ethers.getSigner(WSTETH_HOLDER);
+      await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
+      const amountIn = ethers.utils.parseEther("9.419555176735992187");
+      const amountOut = ethers.utils.parseEther("9.999999999999999999"); // steth has some rounding error
+
+      const steth = await ethers.getContractAt("IERC20", STETH, signer);
+      const wsteth = await ethers.getContractAt("IERC20", WSTETH, signer);
+      const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
+      const zap = await AladdinZap.deploy();
+      await zap.initialize();
+      await zap.updateRoute(WSTETH, STETH, [
+        encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.RemoveLiquidity),
+      ]);
+      await zap.deployed();
+      await wsteth.transfer(zap.address, amountIn);
+      const output = await zap.callStatic.zap(WSTETH, amountIn, STETH, amountOut);
+      const before = await steth.balanceOf(deployer.address);
+      await zap.zap(WSTETH, amountIn, STETH, amountOut);
+      const after = await steth.balanceOf(deployer.address);
+      expect(output).to.eq(amountOut);
+      expect(after.sub(before).add(1)).to.eq(amountOut); // steth has some rounding error
+    });
+  });
 });

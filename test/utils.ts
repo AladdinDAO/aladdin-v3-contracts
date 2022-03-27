@@ -24,6 +24,8 @@ export enum PoolType {
   CurveFactoryMetaPool,
   CurveFactoryUSDMetaPoolUnderlying,
   CurveFactoryBTCMetaPoolUnderlying,
+  LidoStake, // eth to stETH
+  LidoWrap, // stETH to wstETH or wstETH to stETH
 }
 
 export enum Action {

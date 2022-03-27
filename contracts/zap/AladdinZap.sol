@@ -5,6 +5,7 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../interfaces/IZap.sol";
@@ -19,16 +20,19 @@ import "../interfaces/ICurveFactoryMetaPool.sol";
 import "../interfaces/ICurveFactoryPlainPool.sol";
 import "../interfaces/ICurveMetaPool.sol";
 import "../interfaces/ICurveYPool.sol";
+import "../interfaces/ILidoStETH.sol";
+import "../interfaces/ILidoWstETH.sol";
 import "../interfaces/IUniswapV2Pair.sol";
 import "../interfaces/IUniswapV3Pool.sol";
 import "../interfaces/IUniswapV3Router.sol";
 import "../interfaces/IWETH.sol";
 
-// solhint-disable reason-string
+// solhint-disable reason-string, const-name-snakecase
 
 /// @dev This is a general zap contract for Transmuter and AladdinCVXLocker.
 contract AladdinZap is OwnableUpgradeable, IZap {
   using SafeERC20Upgradeable for IERC20Upgradeable;
+  using SafeMathUpgradeable for uint256;
 
   event UpdateRoute(address indexed _fromToken, address indexed _toToken, uint256[] route);
 
@@ -52,6 +56,8 @@ contract AladdinZap is OwnableUpgradeable, IZap {
   address private constant RENBTC = 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D;
   address private constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
   address private constant SBTC = 0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6;
+  address private constant stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
+  address private constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
   /// @dev The pool type used in this zap contract, a maximum of 256 items
   enum PoolType {
@@ -72,7 +78,9 @@ contract AladdinZap is OwnableUpgradeable, IZap {
     CurveFactoryPlainPool,
     CurveFactoryMetaPool,
     CurveFactoryUSDMetaPoolUnderlying,
-    CurveFactoryBTCMetaPoolUnderlying
+    CurveFactoryBTCMetaPoolUnderlying,
+    LidoStake, // eth to stETH
+    LidoWrap // stETH to wstETH or wstETH to stETH
   }
 
   /// @dev This is the list of routes
@@ -83,6 +91,8 @@ contract AladdinZap is OwnableUpgradeable, IZap {
   /// If poolType is PoolType.CurveMetaCryptoPool, pool address is zap contract
   /// If poolType is PoolType.CurveYPoolUnderlying: pool address is deposit contract
   /// If poolType is PoolType.CurveMetaPoolUnderlying: pool address is deposit contract
+  /// If poolType is PoolType.LidoStake: only action = 1 is valid
+  /// If poolType is PoolType.LidoWrap: only action = 1 or is valid
   /// Otherwise, pool address is swap contract
   ///
   /// tokens + 1 is the number of tokens of the pool
@@ -186,6 +196,12 @@ contract AladdinZap is OwnableUpgradeable, IZap {
       return _swapUniswapV3Pool(_pool, _indexIn, _indexOut, _amountIn);
     } else if (_poolType == PoolType.BalancerV2) {
       return _swapBalancerPool(_pool, _indexIn, _indexOut, _amountIn);
+    } else if (_poolType == PoolType.LidoStake) {
+      require(_pool == stETH, "AladdinZap: pool not stETH");
+      return _wrapLidoSTETH(_amountIn, _action);
+    } else if (_poolType == PoolType.LidoWrap) {
+      require(_pool == wstETH, "AladdinZap: pool not wstETH");
+      return _wrapLidoWSTETH(_amountIn, _action);
     } else {
       // all other is curve pool
       if (_action == 0) {
@@ -465,6 +481,25 @@ contract AladdinZap is OwnableUpgradeable, IZap {
       ICurveBasePool(_pool).remove_liquidity_one_coin(_amountIn, int128(_indexOut), 0);
     }
     return _getBalance(_tokenOut) - _before;
+  }
+
+  function _wrapLidoSTETH(uint256 _amountIn, uint256 _action) internal returns (uint256) {
+    require(_action == 1, "AladdinZap: not wrap action");
+    _unwrapIfNeeded(_amountIn);
+    uint256 _before = IERC20Upgradeable(stETH).balanceOf(address(this));
+    ILidoStETH(stETH).submit{ value: _amountIn }(address(0));
+    return IERC20Upgradeable(stETH).balanceOf(address(this)).sub(_before);
+  }
+
+  function _wrapLidoWSTETH(uint256 _amountIn, uint256 _action) internal returns (uint256) {
+    if (_action == 1) {
+      _approve(stETH, wstETH, _amountIn);
+      return ILidoWstETH(wstETH).wrap(_amountIn);
+    } else if (_action == 2) {
+      return ILidoWstETH(wstETH).unwrap(_amountIn);
+    } else {
+      revert("AladdinZap: invalid action");
+    }
   }
 
   function _getBalance(address _token) internal view returns (uint256) {

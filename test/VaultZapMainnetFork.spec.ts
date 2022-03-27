@@ -1352,12 +1352,45 @@ describe("VaultZapMainnetFork.spec", async () => {
     context("deposit", async () => {
       beforeEach(async () => {
         await zap.updatePoolTokens([CURVE_ROCKETETH_POOL], [CURVE_ROCKETETH_TOKEN]);
+        await zap.updateRoute(WETH, CURVE_ROCKETETH_TOKEN, [
+          encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity),
+          encodePoolHintV2(wstETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity),
+          encodePoolHintV2(CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
+        ]);
         await zap.updateRoute(rETH, CURVE_ROCKETETH_TOKEN, [
           encodePoolHintV2(CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
         ]);
         await zap.updateRoute(wstETH, CURVE_ROCKETETH_TOKEN, [
           encodePoolHintV2(CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
         ]);
+      });
+
+      it("should succeed, when deposit with ETH", async () => {
+        const amountIn = ethers.utils.parseUnits("10", 18);
+        const sharesOut = ethers.utils.parseEther("9.651685607011282724");
+        const signer = await ethers.getSigner(WETH_HOLDER);
+        await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
+
+        const shares = await vault
+          .connect(signer)
+          .callStatic.zapAndDeposit(pid, constants.AddressZero, amountIn, 0, { value: amountIn });
+        expect(shares).to.eq(sharesOut);
+        await vault.connect(signer).zapAndDeposit(pid, constants.AddressZero, amountIn, 0, { value: amountIn });
+        expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
+      });
+
+      it("should succeed, when deposit with WETH", async () => {
+        const amountIn = ethers.utils.parseUnits("10", 18);
+        const sharesOut = ethers.utils.parseEther("9.651685607011282724");
+        const signer = await ethers.getSigner(WETH_HOLDER);
+        await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
+
+        const weth = await ethers.getContractAt("IERC20", WETH, signer);
+        await weth.approve(vault.address, constants.MaxUint256);
+        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, weth.address, amountIn, 0);
+        expect(shares).to.eq(sharesOut);
+        await vault.connect(signer).zapAndDeposit(pid, weth.address, amountIn, 0);
+        expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
 
       it("should succeed, when deposit with rETH", async () => {
@@ -1407,6 +1440,11 @@ describe("VaultZapMainnetFork.spec", async () => {
         await zap.updateRoute(CURVE_ROCKETETH_TOKEN, wstETH, [
           encodePoolHintV2(CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.RemoveLiquidity),
         ]);
+        await zap.updateRoute(CURVE_ROCKETETH_TOKEN, WETH, [
+          encodePoolHintV2(CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.RemoveLiquidity),
+          encodePoolHintV2(wstETH, PoolType.LidoWrap, 2, 0, 0, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
+        ]);
       });
 
       it("should succeed, when harvest", async () => {
@@ -1433,6 +1471,24 @@ describe("VaultZapMainnetFork.spec", async () => {
         await vault.connect(signer).withdrawAllAndZap(pid, wstETH, amountOut);
         const after = await wsteth.balanceOf(signer.address);
         expect(after.sub(before)).to.eq(amountOut);
+      });
+
+      it("should succeed, when withdraw to WETH", async () => {
+        const amountOut = ethers.utils.parseUnits("10.346276029769897345", 18);
+        const weth = await ethers.getContractAt("IERC20", WETH);
+        const before = await weth.balanceOf(signer.address);
+        await vault.connect(signer).withdrawAllAndZap(pid, WETH, amountOut);
+        const after = await weth.balanceOf(signer.address);
+        expect(after.sub(before)).to.eq(amountOut);
+      });
+
+      it("should succeed, when withdraw to ETH", async () => {
+        const amountOut = ethers.utils.parseUnits("10.346276029769897345", 18);
+        const before = await ethers.provider.getBalance(signer.address);
+        const tx = await vault.connect(signer).withdrawAllAndZap(pid, constants.AddressZero, amountOut);
+        const receipt = await tx.wait();
+        const after = await ethers.provider.getBalance(signer.address);
+        expect(after.sub(before)).to.eq(amountOut.sub(receipt.gasUsed.mul(receipt.effectiveGasPrice)));
       });
     });
   });
