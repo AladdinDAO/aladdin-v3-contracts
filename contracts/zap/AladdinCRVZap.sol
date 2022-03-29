@@ -7,10 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "../interfaces/IZap.sol";
 import "../interfaces/IConvexCRVDepositor.sol";
-import "../interfaces/ICurve3Pool.sol";
-import "../interfaces/ICurveFactoryPool.sol";
-import "../interfaces/ICurveTriCrypto.sol";
-import "../interfaces/ICurveV2Pool.sol";
+import "../interfaces/ICurveBasePool.sol";
+import "../interfaces/ICurveFactoryPlainPool.sol";
+import "../interfaces/ICurveCryptoPool.sol";
 
 // solhint-disable reason-string
 /// @dev This Zap Contract is for AladdinCRV Contract, can be called by delegatecall
@@ -80,81 +79,81 @@ contract AladdinCRVZap is IZap {
 
   function _swap3CRVToETH(uint256 _amountIn, uint256 _minOut) internal returns (uint256) {
     // 3CRV => USDT => ETH
-    uint256 _usdtAmount = ICurve3Pool(TRI_POOL).calc_withdraw_one_coin(_amountIn, 2);
-    uint256 _ethAmount = ICurveTriCrypto(TRICRYPTO_POOL).get_dy(0, 2, _usdtAmount);
+    uint256 _usdtAmount = ICurveBasePool(TRI_POOL).calc_withdraw_one_coin(_amountIn, 2);
+    uint256 _ethAmount = ICurveTriCryptoPool(TRICRYPTO_POOL).get_dy(0, 2, _usdtAmount);
     require(_ethAmount >= _minOut, "AladdinCRVZap: insufficient output");
 
     _approve(THREE_CRV, TRI_POOL, _amountIn);
     uint256 _before = IERC20(USDT).balanceOf(address(this));
-    ICurve3Pool(TRI_POOL).remove_liquidity_one_coin(_amountIn, 2, 0);
+    ICurveBasePool(TRI_POOL).remove_liquidity_one_coin(_amountIn, 2, 0);
     _usdtAmount = IERC20(USDT).balanceOf(address(this)) - _before;
 
     _approve(USDT, TRICRYPTO_POOL, _usdtAmount);
     _before = address(this).balance;
-    ICurveTriCrypto(TRICRYPTO_POOL).exchange(0, 2, _usdtAmount, 0, true);
+    ICurveTriCryptoPool(TRICRYPTO_POOL).exchange(0, 2, _usdtAmount, 0, true);
     _ethAmount = address(this).balance - _before;
     return _ethAmount;
   }
 
   function _swapCVXToETH(uint256 _amountIn, uint256 _minOut) internal returns (uint256) {
     // CVX => ETH
-    uint256 _ethAmount = ICurveV2Pool(CURVE_CVX_ETH_POOL).get_dy(1, 0, _amountIn);
+    uint256 _ethAmount = ICurveCryptoPool(CURVE_CVX_ETH_POOL).get_dy(1, 0, _amountIn);
     require(_ethAmount >= _minOut, "AladdinCRVZap: insufficient output");
 
     _approve(CVX, CURVE_CVX_ETH_POOL, _amountIn);
-    _ethAmount = ICurveV2Pool(CURVE_CVX_ETH_POOL).exchange_underlying(1, 0, _amountIn, 0);
+    _ethAmount = ICurveCryptoPool(CURVE_CVX_ETH_POOL).exchange_underlying(1, 0, _amountIn, 0);
     return _ethAmount;
   }
 
   function _swapETHToCRV(uint256 _amountIn, uint256 _minOut) internal returns (uint256) {
     // ETH => CRV
-    uint256 _crvAmount = ICurveV2Pool(CURVE_CRV_ETH_POOL).get_dy(0, 1, _amountIn);
+    uint256 _crvAmount = ICurveCryptoPool(CURVE_CRV_ETH_POOL).get_dy(0, 1, _amountIn);
     require(_crvAmount >= _minOut, "AladdinCRVZap: insufficient output");
 
-    _crvAmount = ICurveV2Pool(CURVE_CRV_ETH_POOL).exchange_underlying{ value: _amountIn }(0, 1, _amountIn, 0);
+    _crvAmount = ICurveCryptoPool(CURVE_CRV_ETH_POOL).exchange_underlying{ value: _amountIn }(0, 1, _amountIn, 0);
     return _crvAmount;
   }
 
   function _swapCvxCRVToCRV(uint256 _amountIn, uint256 _minOut) internal returns (uint256) {
     // CVXCRV => CRV
-    uint256 _crvAmount = ICurveFactoryPool(CURVE_CVXCRV_CRV_POOL).get_dy(1, 0, _amountIn);
+    uint256 _crvAmount = ICurveFactoryPlainPool(CURVE_CVXCRV_CRV_POOL).get_dy(1, 0, _amountIn);
     require(_crvAmount >= _minOut, "AladdinCRVZap: insufficient output");
 
     _approve(CVXCRV, CURVE_CVXCRV_CRV_POOL, _amountIn);
-    _crvAmount = ICurveFactoryPool(CURVE_CVXCRV_CRV_POOL).exchange(1, 0, _amountIn, 0, address(this));
+    _crvAmount = ICurveFactoryPlainPool(CURVE_CVXCRV_CRV_POOL).exchange(1, 0, _amountIn, 0, address(this));
     return _crvAmount;
   }
 
   function _swapCvxCRVToCVX(uint256 _amountIn, uint256 _minOut) internal returns (uint256) {
     // CVXCRV => CRV => ETH => CVX
     uint256 _ethAmount = _swapCvxCRVToETH(_amountIn, 0);
-    uint256 _cvxAmount = ICurveV2Pool(CURVE_CVX_ETH_POOL).get_dy(0, 1, _ethAmount);
+    uint256 _cvxAmount = ICurveCryptoPool(CURVE_CVX_ETH_POOL).get_dy(0, 1, _ethAmount);
     require(_cvxAmount >= _minOut, "AladdinCRVZap: insufficient output");
 
-    _cvxAmount = ICurveV2Pool(CURVE_CVX_ETH_POOL).exchange_underlying{ value: _ethAmount }(0, 1, _ethAmount, 0);
+    _cvxAmount = ICurveCryptoPool(CURVE_CVX_ETH_POOL).exchange_underlying{ value: _ethAmount }(0, 1, _ethAmount, 0);
     return _cvxAmount;
   }
 
   function _swapCvxCRVToETH(uint256 _amountIn, uint256 _minOut) internal returns (uint256) {
     // CVXCRV => CRV => ETH
     uint256 _crvAmount = _swapCvxCRVToCRV(_amountIn, 0);
-    uint256 _ethAmount = ICurveV2Pool(CURVE_CRV_ETH_POOL).get_dy(1, 0, _crvAmount);
+    uint256 _ethAmount = ICurveCryptoPool(CURVE_CRV_ETH_POOL).get_dy(1, 0, _crvAmount);
     require(_ethAmount >= _minOut, "AladdinCRVZap: insufficient output");
 
     _approve(CRV, CURVE_CRV_ETH_POOL, _crvAmount);
-    _ethAmount = ICurveV2Pool(CURVE_CRV_ETH_POOL).exchange_underlying(1, 0, _crvAmount, 0);
+    _ethAmount = ICurveCryptoPool(CURVE_CRV_ETH_POOL).exchange_underlying(1, 0, _crvAmount, 0);
     return _ethAmount;
   }
 
   function _swapCRVToCvxCRV(uint256 _amountIn, uint256 _minOut) internal returns (uint256) {
     // CRV swap to CVXCRV or stake to CVXCRV
-    uint256 _amountOut = ICurveFactoryPool(CURVE_CVXCRV_CRV_POOL).get_dy(0, 1, _amountIn);
+    uint256 _amountOut = ICurveFactoryPlainPool(CURVE_CVXCRV_CRV_POOL).get_dy(0, 1, _amountIn);
     bool useCurve = _amountOut > _amountIn;
     require(_amountOut >= _minOut || _amountIn >= _minOut, "AladdinCRVZap: insufficient output");
 
     if (useCurve) {
       _approve(CRV, CURVE_CVXCRV_CRV_POOL, _amountIn);
-      _amountOut = ICurveFactoryPool(CURVE_CVXCRV_CRV_POOL).exchange(0, 1, _amountIn, 0, address(this));
+      _amountOut = ICurveFactoryPlainPool(CURVE_CVXCRV_CRV_POOL).exchange(0, 1, _amountIn, 0, address(this));
     } else {
       _approve(CRV, CRV_DEPOSITOR, _amountIn);
       uint256 _lockIncentive = IConvexCRVDepositor(CRV_DEPOSITOR).lockIncentive();

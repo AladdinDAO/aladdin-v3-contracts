@@ -4,7 +4,7 @@ import { constants } from "ethers";
 import { ethers } from "hardhat";
 import { AladdinCRV, IERC20 } from "../typechain";
 // eslint-disable-next-line camelcase
-import { request_fork } from "./utils";
+import { Action, encodePoolHintV2, PoolType, request_fork } from "./utils";
 
 const FORK_BLOCK_NUMBER = 14243290;
 const CVX = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
@@ -14,6 +14,15 @@ const CVXCRV = "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7";
 const CVXCRV_HOLDER = "0xE4360E6e45F5b122586BCA3b9d7b222EA69C5568";
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const CVXCRV_STAKING = "0x3Fe65692bfCD0e6CF84cB1E7d24108E434A7587e";
+
+const CURVE_TRICRV_POOL = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
+const CURVE_TRICRV_TOKEN = "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490";
+const CURVE_TRICRYPTO_POOL = "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46";
+const CURVE_CVXETH_POOL = "0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4";
+const CURVE_CRVETH_POOL = "0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511";
+const CURVE_CVXCRV_POOL = "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8";
+const USDT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 const PLATFORM = "0x07dA2d30E26802ED65a52859a50872cfA615bD0A";
 const WITHDRAW_FEE_PERCENTAGE = 1e7; // 1%
@@ -32,8 +41,42 @@ describe("AladdinCRV.spec", async () => {
     const proxyAdmin = await ProxyAdmin.deploy();
     await proxyAdmin.deployed();
 
-    const AladdinCRVZap = await ethers.getContractFactory("AladdinCRVZap", deployer);
-    const zap = await AladdinCRVZap.deploy();
+    const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
+    const zap = await AladdinZap.deploy();
+    await zap.initialize();
+
+    // 3CRV => USDT => WETH
+    await zap.updateRoute(CURVE_TRICRV_TOKEN, WETH, [
+      encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.RemoveLiquidity),
+      encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 2, Action.Swap),
+    ]);
+    // CVX => WETH
+    await zap.updateRoute(CVX, WETH, [
+      encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+    ]);
+    // WETH => CRV
+    await zap.updateRoute(WETH, CRV, [
+      encodePoolHintV2(CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ]);
+    // cvxCRV => CRV
+    await zap.updateRoute(CVXCRV, CRV, [
+      encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+    ]);
+    // cvxCRV => CRV => WETH => CVX
+    await zap.updateRoute(CVXCRV, CVX, [
+      encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ]);
+    // cvxCRV => CRV => WETH
+    await zap.updateRoute(CVXCRV, WETH, [
+      encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+    ]);
+    // CRV => CVXCRV
+    await zap.updateRoute(CRV, CVXCRV, [
+      encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 1, Action.Swap),
+    ]);
 
     const AladdinCRV = await ethers.getContractFactory("AladdinCRV", deployer);
     const acrvImpl = await AladdinCRV.deploy();
@@ -73,7 +116,7 @@ describe("AladdinCRV.spec", async () => {
     await acrv.connect(cvxCRVSigner).withdraw(DEPLOYER, DEPOSIT_AMOUNT, 0, 0);
     const after = await cvxCRV.balanceOf(DEPLOYER);
     const withdrawFee = rewards.add(DEPOSIT_AMOUNT).mul(WITHDRAW_FEE_PERCENTAGE).div(1e9);
-    expect(after.sub(before)).to.eq(rewards.add(DEPOSIT_AMOUNT).sub(withdrawFee));
+    expect(after.sub(before)).to.eq(rewards.add(DEPOSIT_AMOUNT).sub(withdrawFee).add(1));
   });
 
   it("should succeed deposit with CVXCRV withdraw as CVXCRV and stake", async () => {
@@ -99,7 +142,7 @@ describe("AladdinCRV.spec", async () => {
     await acrv.connect(cvxCRVSigner).withdraw(DEPLOYER, DEPOSIT_AMOUNT, 0, 1);
     const after = await staking.balanceOf(DEPLOYER);
     const withdrawFee = rewards.add(DEPOSIT_AMOUNT).mul(WITHDRAW_FEE_PERCENTAGE).div(1e9);
-    expect(after.sub(before)).to.eq(rewards.add(DEPOSIT_AMOUNT).sub(withdrawFee));
+    expect(after.sub(before)).to.eq(rewards.add(DEPOSIT_AMOUNT).sub(withdrawFee).add(1));
   });
 
   it("should succeed deposit with CVXCRV withdraw as CRV", async () => {

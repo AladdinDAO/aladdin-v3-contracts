@@ -54,8 +54,8 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     mainnetfork: {
-      url: "http://47.244.201.190:8545",
-      chainId: 31337,
+      url: "http://47.242.234.5:10547",
+      chainId: 10547,
       gas: 6700000,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },

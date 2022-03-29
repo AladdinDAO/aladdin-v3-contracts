@@ -15,6 +15,7 @@ interface IAladdinConvexVault {
   event Deposit(uint256 indexed _pid, address indexed _sender, uint256 _amount);
   event Withdraw(uint256 indexed _pid, address indexed _sender, uint256 _shares);
   event Claim(address indexed _sender, uint256 _reward, ClaimOption _option);
+  event Harvest(address indexed _caller, uint256 _reward, uint256 _platformFee, uint256 _harvestBounty);
 
   event UpdateWithdrawalFeePercentage(uint256 indexed _pid, uint256 _feePercentage);
   event UpdatePlatformFeePercentage(uint256 indexed _pid, uint256 _feePercentage);
@@ -33,6 +34,32 @@ interface IAladdinConvexVault {
   function deposit(uint256 _pid, uint256 _amount) external returns (uint256);
 
   function depositAll(uint256 _pid) external returns (uint256);
+
+  function zapAndDeposit(
+    uint256 _pid,
+    address _token,
+    uint256 _amount,
+    uint256 _minAmount
+  ) external payable returns (uint256);
+
+  function zapAllAndDeposit(
+    uint256 _pid,
+    address _token,
+    uint256 _minAmount
+  ) external payable returns (uint256);
+
+  function withdrawAndZap(
+    uint256 _pid,
+    uint256 _shares,
+    address _token,
+    uint256 _minOut
+  ) external returns (uint256);
+
+  function withdrawAllAndZap(
+    uint256 _pid,
+    address _token,
+    uint256 _minOut
+  ) external returns (uint256);
 
   function withdrawAndClaim(
     uint256 _pid,

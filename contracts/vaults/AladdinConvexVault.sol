@@ -13,7 +13,7 @@ import "../interfaces/IAladdinCRV.sol";
 import "../interfaces/IConvexBooster.sol";
 import "../interfaces/IConvexBasicRewards.sol";
 import "../interfaces/IConvexCRVDepositor.sol";
-import "../interfaces/ICurveFactoryPool.sol";
+import "../interfaces/ICurveFactoryPlainPool.sol";
 import "../interfaces/IZap.sol";
 
 // solhint-disable no-empty-blocks, reason-string
@@ -141,7 +141,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
   /// @param _pid - The pool id.
   /// @param _amount - The amount of token to deposit.
   /// @return share - The amount of share after deposit.
-  function deposit(uint256 _pid, uint256 _amount) public override nonReentrant returns (uint256 share) {
+  function deposit(uint256 _pid, uint256 _amount) public override returns (uint256 share) {
     require(_amount > 0, "AladdinConvexVault: zero amount deposit");
     require(_pid < poolInfo.length, "AladdinConvexVault: invalid pool");
 
@@ -159,25 +159,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     }
 
     // 3. deposit
-    _approve(_lpToken, BOOSTER, _amount);
-    IConvexBooster(BOOSTER).deposit(_pool.convexPoolId, _amount, true);
-
-    uint256 _totalShare = _pool.totalShare;
-    uint256 _totalUnderlying = _pool.totalUnderlying;
-    uint256 _shares;
-    if (_totalShare == 0) {
-      _shares = _amount;
-    } else {
-      _shares = _amount.mul(_totalShare) / _totalUnderlying;
-    }
-    _pool.totalShare = _toU128(_totalShare.add(_shares));
-    _pool.totalUnderlying = _toU128(_totalUnderlying.add(_amount));
-
-    UserInfo storage _userInfo = userInfo[_pid][msg.sender];
-    _userInfo.shares = _toU128(_shares + _userInfo.shares);
-
-    emit Deposit(_pid, msg.sender, _amount);
-    return _shares;
+    return _deposit(_pid, _amount);
   }
 
   /// @dev Deposit all token of the caller to specific pool.
@@ -187,6 +169,69 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     PoolInfo storage _pool = poolInfo[_pid];
     uint256 _balance = IERC20Upgradeable(_pool.lpToken).balanceOf(msg.sender);
     return deposit(_pid, _balance);
+  }
+
+  /// @dev Deposit some token to specific pool with zap.
+  /// @param _pid - The pool id.
+  /// @param _token - The address of token to deposit.
+  /// @param _amount - The amount of token to deposit.
+  /// @param _minAmount - The minimum amount of share to deposit.
+  /// @return share - The amount of share after deposit.
+  function zapAndDeposit(
+    uint256 _pid,
+    address _token,
+    uint256 _amount,
+    uint256 _minAmount
+  ) public payable override returns (uint256 share) {
+    require(_amount > 0, "AladdinConvexVault: zero amount deposit");
+    require(_pid < poolInfo.length, "AladdinConvexVault: invalid pool");
+
+    PoolInfo storage _pool = poolInfo[_pid];
+    require(!_pool.pauseDeposit, "AladdinConvexVault: pool paused");
+
+    address _lpToken = _pool.lpToken;
+    if (_lpToken == _token) {
+      return deposit(_pid, _amount);
+    }
+
+    // 1. update rewards
+    _updateRewards(_pid, msg.sender);
+
+    // transfer token to zap contract.
+    address _zap = zap;
+    uint256 _before;
+    if (_token != address(0)) {
+      require(msg.value == 0, "AladdinConvexVault: nonzero msg.value");
+      _before = IERC20Upgradeable(_token).balanceOf(_zap);
+      IERC20Upgradeable(_token).safeTransferFrom(msg.sender, _zap, _amount);
+      _amount = IERC20Upgradeable(_token).balanceOf(_zap) - _before;
+    } else {
+      require(msg.value == _amount, "AladdinConvexVault: invalid amount");
+    }
+
+    // zap token to lp token using zap contract.
+    _before = IERC20Upgradeable(_lpToken).balanceOf(address(this));
+    IZap(_zap).zap{ value: msg.value }(_token, _amount, _lpToken, _minAmount);
+    _amount = IERC20Upgradeable(_lpToken).balanceOf(address(this)) - _before;
+
+    share = _deposit(_pid, _amount);
+
+    require(share >= _minAmount, "AladdinConvexVault: insufficient share");
+    return share;
+  }
+
+  /// @dev Deposit all token to specific pool with zap.
+  /// @param _pid - The pool id.
+  /// @param _token - The address of token to deposit.
+  /// @param _minAmount - The minimum amount of share to deposit.
+  /// @return share - The amount of share after deposit.
+  function zapAllAndDeposit(
+    uint256 _pid,
+    address _token,
+    uint256 _minAmount
+  ) external payable override returns (uint256) {
+    uint256 _balance = IERC20Upgradeable(_token).balanceOf(msg.sender);
+    return zapAndDeposit(_pid, _token, _balance, _minAmount);
   }
 
   /// @dev Withdraw some token from specific pool and claim pending rewards.
@@ -264,6 +309,69 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
   ) external override returns (uint256 withdrawn, uint256 claimed) {
     UserInfo storage _userInfo = userInfo[_pid][msg.sender];
     return withdrawAndClaim(_pid, _userInfo.shares, _minOut, _option);
+  }
+
+  /// @dev Withdraw some token from specific pool and zap to token.
+  /// @param _pid - The pool id.
+  /// @param _shares - The share of token want to withdraw.
+  /// @param _token - The address of token zapping to.
+  /// @param _minOut - The minimum amount of token to receive.
+  /// @return withdrawn - The amount of token sent to caller.
+  function withdrawAndZap(
+    uint256 _pid,
+    uint256 _shares,
+    address _token,
+    uint256 _minOut
+  ) public override nonReentrant returns (uint256 withdrawn) {
+    require(_shares > 0, "AladdinConvexVault: zero share withdraw");
+    require(_pid < poolInfo.length, "AladdinConvexVault: invalid pool");
+
+    // 1. update rewards
+    PoolInfo storage _pool = poolInfo[_pid];
+    require(!_pool.pauseWithdraw, "AladdinConvexVault: pool paused");
+    _updateRewards(_pid, msg.sender);
+
+    // 2. withdraw and zap
+    address _lpToken = _pool.lpToken;
+    if (_token == _lpToken) {
+      return _withdraw(_pid, _shares, msg.sender);
+    } else {
+      address _zap = zap;
+      // withdraw to zap contract
+      uint256 _before = IERC20Upgradeable(_lpToken).balanceOf(_zap);
+      _withdraw(_pid, _shares, _zap);
+      uint256 _amount = IERC20Upgradeable(_lpToken).balanceOf(_zap) - _before;
+
+      // zap to desired token
+      if (_token == address(0)) {
+        _before = address(this).balance;
+        IZap(_zap).zap(_lpToken, _amount, _token, _minOut);
+        _amount = address(this).balance - _before;
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool _success, ) = msg.sender.call{ value: _amount }("");
+        require(_success, "AladdinConvexVault: transfer failed");
+      } else {
+        _before = IERC20Upgradeable(_token).balanceOf(address(this));
+        IZap(_zap).zap(_lpToken, _amount, _token, _minOut);
+        _amount = IERC20Upgradeable(_token).balanceOf(address(this)) - _before;
+        IERC20Upgradeable(_token).safeTransfer(msg.sender, _amount);
+      }
+      return _amount;
+    }
+  }
+
+  /// @dev Withdraw all token from specific pool and zap to token.
+  /// @param _pid - The pool id.
+  /// @param _token - The address of token zapping to.
+  /// @param _minOut - The minimum amount of token to receive.
+  /// @return withdrawn - The amount of token sent to caller.
+  function withdrawAllAndZap(
+    uint256 _pid,
+    address _token,
+    uint256 _minOut
+  ) external override returns (uint256 withdrawn) {
+    UserInfo storage _userInfo = userInfo[_pid][msg.sender];
+    return withdrawAndZap(_pid, _userInfo.shares, _token, _minOut);
   }
 
   /// @dev claim pending rewards from specific pool.
@@ -345,12 +453,12 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
         if (_balance > 0) {
           // saving gas
           IERC20Upgradeable(_token).safeTransfer(_zap, _balance);
-          _amount = _amount.add(IZap(_zap).zap(_token, _balance, WETH, 0));
+          _amount = _amount.add(IZap(_zap).zap(_token, _balance, address(0), 0));
         }
       }
     }
     if (_amount > 0) {
-      IZap(_zap).zap{ value: _amount }(WETH, _amount, CRV, 0);
+      IZap(_zap).zap{ value: _amount }(address(0), _amount, CRV, 0);
     }
     _amount = IERC20Upgradeable(CRV).balanceOf(address(this));
     _amount = _swapCRVToCvxCRV(_amount, _minimumOut);
@@ -375,6 +483,8 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
 
     // 4. update rewards info
     _pool.accRewardPerShare = _pool.accRewardPerShare.add(_rewards.mul(PRECISION) / _pool.totalShare);
+
+    emit Harvest(msg.sender, _rewards, _platformFee, _harvestBounty);
 
     return _amount;
   }
@@ -520,6 +630,67 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     _userInfo.rewardPerSharePaid = _pool.accRewardPerShare;
   }
 
+  function _deposit(uint256 _pid, uint256 _amount) internal nonReentrant returns (uint256) {
+    PoolInfo storage _pool = poolInfo[_pid];
+
+    _approve(_pool.lpToken, BOOSTER, _amount);
+    IConvexBooster(BOOSTER).deposit(_pool.convexPoolId, _amount, true);
+
+    uint256 _totalShare = _pool.totalShare;
+    uint256 _totalUnderlying = _pool.totalUnderlying;
+    uint256 _shares;
+    if (_totalShare == 0) {
+      _shares = _amount;
+    } else {
+      _shares = _amount.mul(_totalShare) / _totalUnderlying;
+    }
+    _pool.totalShare = _toU128(_totalShare.add(_shares));
+    _pool.totalUnderlying = _toU128(_totalUnderlying.add(_amount));
+
+    UserInfo storage _userInfo = userInfo[_pid][msg.sender];
+    _userInfo.shares = _toU128(_shares + _userInfo.shares);
+
+    emit Deposit(_pid, msg.sender, _amount);
+    return _shares;
+  }
+
+  function _withdraw(
+    uint256 _pid,
+    uint256 _shares,
+    address _recipient
+  ) internal returns (uint256) {
+    PoolInfo storage _pool = poolInfo[_pid];
+
+    // 2. withdraw lp token
+    UserInfo storage _userInfo = userInfo[_pid][msg.sender];
+    require(_shares <= _userInfo.shares, "AladdinConvexVault: shares not enough");
+
+    uint256 _totalShare = _pool.totalShare;
+    uint256 _totalUnderlying = _pool.totalUnderlying;
+    uint256 _withdrawable;
+    if (_shares == _totalShare) {
+      // If user is last to withdraw, don't take withdraw fee.
+      // And there may still have some pending rewards, we just simple ignore it now.
+      // If we want the reward later, we can upgrade the contract.
+      _withdrawable = _totalUnderlying;
+    } else {
+      // take withdraw fee here
+      _withdrawable = _shares.mul(_totalUnderlying) / _totalShare;
+      uint256 _fee = _withdrawable.mul(_pool.withdrawFeePercentage) / FEE_DENOMINATOR;
+      _withdrawable = _withdrawable - _fee; // never overflow
+    }
+
+    _pool.totalShare = _toU128(_totalShare - _shares);
+    _pool.totalUnderlying = _toU128(_totalUnderlying - _withdrawable);
+    _userInfo.shares = _toU128(uint256(_userInfo.shares) - _shares);
+
+    IConvexBasicRewards(_pool.crvRewards).withdrawAndUnwrap(_withdrawable, false);
+    IERC20Upgradeable(_pool.lpToken).safeTransfer(_recipient, _withdrawable);
+    emit Withdraw(_pid, msg.sender, _shares);
+
+    return _withdrawable;
+  }
+
   function _claim(
     uint256 _amount,
     uint256 _minOut,
@@ -554,13 +725,13 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
   function _swapCRVToCvxCRV(uint256 _amountIn, uint256 _minOut) internal returns (uint256) {
     // CRV swap to CVXCRV or stake to CVXCRV
     // CRV swap to CVXCRV or stake to CVXCRV
-    uint256 _amountOut = ICurveFactoryPool(CURVE_CVXCRV_CRV_POOL).get_dy(0, 1, _amountIn);
+    uint256 _amountOut = ICurveFactoryPlainPool(CURVE_CVXCRV_CRV_POOL).get_dy(0, 1, _amountIn);
     bool useCurve = _amountOut > _amountIn;
     require(_amountOut >= _minOut || _amountIn >= _minOut, "AladdinCRVZap: insufficient output");
 
     if (useCurve) {
       _approve(CRV, CURVE_CVXCRV_CRV_POOL, _amountIn);
-      _amountOut = ICurveFactoryPool(CURVE_CVXCRV_CRV_POOL).exchange(0, 1, _amountIn, 0, address(this));
+      _amountOut = ICurveFactoryPlainPool(CURVE_CVXCRV_CRV_POOL).exchange(0, 1, _amountIn, 0, address(this));
     } else {
       _approve(CRV, CRV_DEPOSITOR, _amountIn);
       uint256 _lockIncentive = IConvexCRVDepositor(CRV_DEPOSITOR).lockIncentive();

@@ -13,6 +13,7 @@ import "../interfaces/IConvexCRVDepositor.sol";
 import "../interfaces/IConvexVirtualBalanceRewardPool.sol";
 import "../interfaces/ICVXMining.sol";
 import "../interfaces/IEllipsisMerkleDistributor.sol";
+import "../interfaces/IZap.sol";
 
 // solhint-disable no-empty-blocks, reason-string
 contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable, IAladdinCRV {
@@ -386,12 +387,14 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
   ) internal returns (uint256) {
     if (_amount == 0) return 0;
 
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool success, bytes memory data) = zap.delegatecall(
-      abi.encodeWithSignature("zap(address,uint256,address,uint256)", _fromToken, _amount, _toToken, _minimumOut)
-    );
-    require(success, "AladdinCRV: zap failed");
-    return abi.decode(data, (uint256));
+    address _zap = zap;
+    // remove delegate call
+    if (_fromToken == address(0)) {
+      return IZap(_zap).zap{ value: _amount }(_fromToken, _amount, _toToken, _minimumOut);
+    } else {
+      IERC20Upgradeable(_fromToken).safeTransfer(_zap, _amount);
+      return IZap(_zap).zap(_fromToken, _amount, _toToken, _minimumOut);
+    }
   }
 
   receive() external payable {}

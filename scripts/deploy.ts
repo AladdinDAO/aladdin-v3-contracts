@@ -37,20 +37,26 @@ const VAULTS: {
   harvestBounty: number;
   platformFee: number;
 }[] = [
-  // steth, 0.05% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
-  { name: "steth", convexId: 25, rewards: [CRV, CVX, LDO], withdrawFee: 5e5, harvestBounty: 5e6, platformFee: 5e6 },
-  // frax, 0.05% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
-  { name: "frax", convexId: 32, rewards: [CRV, CVX, FXS], withdrawFee: 5e5, harvestBounty: 5e6, platformFee: 5e6 },
-  // tricrypto2, 0.10% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
-  { name: "tricrypto2", convexId: 38, rewards: [CRV, CVX], withdrawFee: 10e5, harvestBounty: 5e6, platformFee: 5e6 },
-  // cvxcrv, 0.30% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
-  { name: "cvxcrv", convexId: 41, rewards: [CRV, CVX], withdrawFee: 30e5, harvestBounty: 5e6, platformFee: 5e6 },
-  // crveth, 0.30% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
-  { name: "crveth", convexId: 61, rewards: [CRV, CVX], withdrawFee: 30e5, harvestBounty: 5e6, platformFee: 5e6 },
-  // cvxeth, 0.30% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
-  { name: "cvxeth", convexId: 64, rewards: [CRV, CVX], withdrawFee: 30e5, harvestBounty: 5e6, platformFee: 5e6 },
-  // cvxfxs, 0.30% withdraw fee, 0.5% harvest bounty, 0.5% platform fee
-  { name: "cvxfxs", convexId: 72, rewards: [CVX, CRV, FXS], withdrawFee: 30e5, harvestBounty: 5e6, platformFee: 5e6 },
+  // steth, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "steth", convexId: 25, rewards: [CRV, CVX, LDO], withdrawFee: 5e5, harvestBounty: 1e7, platformFee: 1e7 },
+  // frax, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "frax", convexId: 32, rewards: [CRV, CVX, FXS], withdrawFee: 5e5, harvestBounty: 1e7, platformFee: 1e7 },
+  // tricrypto2, 0.10% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "tricrypto2", convexId: 38, rewards: [CRV, CVX], withdrawFee: 10e5, harvestBounty: 1e7, platformFee: 1e7 },
+  // cvxcrv, 0.30% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "cvxcrv", convexId: 41, rewards: [CRV, CVX], withdrawFee: 30e5, harvestBounty: 1e7, platformFee: 1e7 },
+  // crveth, 0.30% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "crveth", convexId: 61, rewards: [CRV, CVX], withdrawFee: 30e5, harvestBounty: 1e7, platformFee: 1e7 },
+  // cvxeth, 0.30% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "cvxeth", convexId: 64, rewards: [CRV, CVX], withdrawFee: 30e5, harvestBounty: 1e7, platformFee: 1e7 },
+  // cvxfxs, 0.30% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "cvxfxs", convexId: 72, rewards: [CVX, CRV, FXS], withdrawFee: 30e5, harvestBounty: 1e7, platformFee: 1e7 },
+  // 3pool, 0.01% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "3pool", convexId: 9, rewards: [CVX, CRV], withdrawFee: 1e5, harvestBounty: 1e7, platformFee: 1e7 },
+  // ust-wormhole, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "ust-wormhole", convexId: 59, rewards: [CVX, CRV], withdrawFee: 5e5, harvestBounty: 1e7, platformFee: 1e7 },
+  // RocketPoolETH, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  { name: "RocketPoolETH", convexId: 73, rewards: [CVX, CRV], withdrawFee: 5e5, harvestBounty: 1e7, platformFee: 1e7 },
 
   /*
   [36, [CRV, CVX, ALCX]], // alusd
@@ -58,7 +64,6 @@ const VAULTS: {
   [41, [CRV, CVX]], // cvxcrv
   [49, [CRV, CVX]], // aleth
   [52, [CRV, CVX]], // mim-ust
-  [59, [CRV, CVX]], // ust-wormhole
   [66, [CRV, CVX]], // spelleth
   [67, [CRV, CVX]], // teth
   [68, [CRV, CVX]], // yfieth
