@@ -15,6 +15,7 @@ interface IAladdinConvexVault {
   event Deposit(uint256 indexed _pid, address indexed _sender, uint256 _amount);
   event Withdraw(uint256 indexed _pid, address indexed _sender, uint256 _shares);
   event Claim(address indexed _sender, uint256 _reward, ClaimOption _option);
+  event Harvest(address indexed _caller, uint256 _reward, uint256 _platformFee, uint256 _harvestBounty);
 
   event UpdateWithdrawalFeePercentage(uint256 indexed _pid, uint256 _feePercentage);
   event UpdatePlatformFeePercentage(uint256 indexed _pid, uint256 _feePercentage);

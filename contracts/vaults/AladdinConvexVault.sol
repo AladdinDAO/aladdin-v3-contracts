@@ -347,7 +347,9 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
         _before = address(this).balance;
         IZap(_zap).zap(_lpToken, _amount, _token, _minOut);
         _amount = address(this).balance - _before;
-        msg.sender.transfer(_amount);
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool _success, ) = msg.sender.call{ value: _amount }("");
+        require(_success, "AladdinConvexVault: transfer failed");
       } else {
         _before = IERC20Upgradeable(_token).balanceOf(address(this));
         IZap(_zap).zap(_lpToken, _amount, _token, _minOut);
@@ -481,6 +483,8 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
 
     // 4. update rewards info
     _pool.accRewardPerShare = _pool.accRewardPerShare.add(_rewards.mul(PRECISION) / _pool.totalShare);
+
+    emit Harvest(msg.sender, _rewards, _platformFee, _harvestBounty);
 
     return _amount;
   }
