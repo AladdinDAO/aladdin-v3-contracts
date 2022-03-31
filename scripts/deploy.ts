@@ -405,11 +405,15 @@ const ZAP_VAULT_ROUTES: {
     add: [
       {
         token: "CRV",
-        routes: [encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity)],
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
+        ],
       },
       {
         token: "CVXCRV",
-        routes: [encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity)],
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
+        ],
       },
     ],
     remove: [
