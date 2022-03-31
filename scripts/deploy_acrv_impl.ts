@@ -5,9 +5,9 @@ async function main() {
   const [deployer] = await ethers.getSigners();
 
   const AladdinCRV = await ethers.getContractFactory("AladdinCRV", deployer);
-  const acrvImpl = await AladdinCRV.deploy();
-  await acrvImpl.deployed();
-  console.log("Deploy AladdinCRV Impl at:", acrvImpl.address);
+  const impl = await AladdinCRV.deploy();
+  await impl.deployed();
+  console.log("Deploy AladdinCRV Impl at:", impl.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
