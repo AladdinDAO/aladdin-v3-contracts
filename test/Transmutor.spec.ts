@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { AldCVX, IERC20, Transmuter } from "../typechain";
+import { CLeverToken, IERC20, Transmuter } from "../typechain";
 import { Action, encodePoolHintV2, PoolType, request_fork } from "./utils";
 import { ethers } from "hardhat";
 import { expect } from "chai";
@@ -19,7 +19,7 @@ const CVXCRV = "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7";
 describe("VaultZapMainnetFork.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
-  let aldcvx: AldCVX;
+  let clevCVX: CLeverToken;
   let cvx: IERC20;
   let transmuter: Transmuter;
 
@@ -30,18 +30,19 @@ describe("VaultZapMainnetFork.spec", async () => {
 
     await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
 
-    const AldCVX = await ethers.getContractFactory("aldCVX", deployer);
-    aldcvx = (await AldCVX.deploy()) as AldCVX;
-    await aldcvx.deployed();
+    const CLeverToken = await ethers.getContractFactory("CLeverToken", deployer);
+    clevCVX = (await CLeverToken.deploy("CLever CVX", "clevCVX")) as CLeverToken;
+    await clevCVX.deployed();
 
     cvx = await ethers.getContractAt("IERC20", CVX, signer);
 
-    await aldcvx.updateMinters([deployer.address], true);
-    await aldcvx.updateCeiling(deployer.address, ethers.utils.parseEther("10000000"));
+    await clevCVX.updateMinters([deployer.address], true);
+    await clevCVX.updateCeiling(deployer.address, ethers.utils.parseEther("10000000"));
 
     const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
     const zap = await AladdinZap.deploy();
     await zap.deployed();
+    await zap.initialize();
 
     // 1. cvxcrv ==> crv with CurveFactoryPlainPool
     // 2. crv ==> eth with CurveCryptoPool
@@ -64,7 +65,7 @@ describe("VaultZapMainnetFork.spec", async () => {
     await transmuter.deployed();
     await transmuter.initialize(
       deployer.address,
-      aldcvx.address,
+      clevCVX.address,
       zap.address,
       PLATFORM,
       PLATFORM_FEE_PERCENTAGE,
@@ -80,19 +81,19 @@ describe("VaultZapMainnetFork.spec", async () => {
       await cvx.transfer(transmuter.address, ethers.utils.parseEther("1000"));
       expect(await transmuter.totalCVXInPool()).to.eq(ethers.utils.parseEther("1000"));
 
-      await aldcvx.mint(alice.address, ethers.utils.parseEther("2000"));
+      await clevCVX.mint(alice.address, ethers.utils.parseEther("2000"));
     });
 
-    it("should transmute all aldCVX to CVX, when having enouch CVX in pool", async () => {
+    it("should transmute all clevCVX to CVX, when having enouch CVX in pool", async () => {
       // deposit
-      await aldcvx.connect(alice).approve(transmuter.address, ethers.utils.parseEther("100"));
+      await clevCVX.connect(alice).approve(transmuter.address, ethers.utils.parseEther("100"));
       await transmuter.connect(alice).deposit(ethers.utils.parseEther("100"));
       let [unrealised, realised] = await transmuter.getUserInfo(alice.address);
       expect(realised).to.eq(ethers.utils.parseEther("100"));
       expect(unrealised).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("100"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("0"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100"));
 
       // claim
       const before = await cvx.balanceOf(alice.address);
@@ -100,7 +101,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       const after = await cvx.balanceOf(alice.address);
       expect(after.sub(before)).to.eq(ethers.utils.parseEther("100"));
       expect(await transmuter.totalCVXInPool()).to.eq(ethers.utils.parseEther("900"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
 
       // query
       [unrealised, realised] = await transmuter.getUserInfo(alice.address);
@@ -110,16 +111,16 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("0"));
     });
 
-    it("should transmute part aldCVX to CVX, when having insufficient CVX in pool", async () => {
+    it("should transmute part clevCVX to CVX, when having insufficient CVX in pool", async () => {
       // deposit
-      await aldcvx.connect(alice).approve(transmuter.address, ethers.utils.parseEther("2000"));
+      await clevCVX.connect(alice).approve(transmuter.address, ethers.utils.parseEther("2000"));
       await transmuter.connect(alice).deposit(ethers.utils.parseEther("1500"));
       let [unrealised, realised] = await transmuter.getUserInfo(alice.address);
       expect(realised).to.eq(ethers.utils.parseEther("1000"));
       expect(unrealised).to.eq(ethers.utils.parseEther("500"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("1000"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("500"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("1500"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("1500"));
 
       // claim
       let before = await cvx.balanceOf(alice.address);
@@ -127,7 +128,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       let after = await cvx.balanceOf(alice.address);
       expect(after.sub(before)).to.eq(ethers.utils.parseEther("1000"));
       expect(await transmuter.totalCVXInPool()).to.eq(ethers.utils.parseEther("0"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("500"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("500"));
 
       // query
       [unrealised, realised] = await transmuter.getUserInfo(alice.address);
@@ -137,28 +138,28 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("500"));
 
       // withdraw
-      before = await aldcvx.balanceOf(alice.address);
+      before = await clevCVX.balanceOf(alice.address);
       await transmuter.connect(alice).withdraw(alice.address, ethers.utils.parseEther("200"));
-      after = await aldcvx.balanceOf(alice.address);
+      after = await clevCVX.balanceOf(alice.address);
       expect(after.sub(before)).to.eq(ethers.utils.parseEther("200"));
       [unrealised, realised] = await transmuter.getUserInfo(alice.address);
       expect(realised).to.eq(ethers.utils.parseEther("0"));
       expect(unrealised).to.eq(ethers.utils.parseEther("300"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("300"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("300"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("300"));
 
       // withdraw all
-      before = await aldcvx.balanceOf(alice.address);
+      before = await clevCVX.balanceOf(alice.address);
       await transmuter.connect(alice).withdrawAll(alice.address);
-      after = await aldcvx.balanceOf(alice.address);
+      after = await clevCVX.balanceOf(alice.address);
       expect(after.sub(before)).to.eq(ethers.utils.parseEther("300"));
       [unrealised, realised] = await transmuter.getUserInfo(alice.address);
       expect(realised).to.eq(ethers.utils.parseEther("0"));
       expect(unrealised).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("0"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
     });
   });
 
@@ -173,13 +174,13 @@ describe("VaultZapMainnetFork.spec", async () => {
       await transmuter.updateStakePercentage(5e8);
       await cvx.approve(transmuter.address, constants.MaxUint256);
 
-      await aldcvx.mint(alice.address, ethers.utils.parseEther("2000"));
-      await aldcvx.mint(bob.address, ethers.utils.parseEther("2000"));
+      await clevCVX.mint(alice.address, ethers.utils.parseEther("2000"));
+      await clevCVX.mint(bob.address, ethers.utils.parseEther("2000"));
     });
 
     it("should distribute correctly, when only one user", async () => {
-      // deposit 100 aldCVX
-      await aldcvx.connect(alice).approve(transmuter.address, ethers.utils.parseEther("100"));
+      // deposit 100 clevCVX
+      await clevCVX.connect(alice).approve(transmuter.address, ethers.utils.parseEther("100"));
       await transmuter.connect(alice).deposit(ethers.utils.parseEther("100"));
       let [unrealised, realised] = await transmuter.getUserInfo(alice.address);
       expect(realised).to.closeToBn(ethers.utils.parseEther("0"), 0);
@@ -187,7 +188,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("100"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100"));
 
       // distribute 3 CVX
       await transmuter.distribute(signer.address, ethers.utils.parseEther("3"));
@@ -197,7 +198,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("3"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("97"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100"));
 
       // distribute another 6 CVX
       await transmuter.distribute(signer.address, ethers.utils.parseEther("6"));
@@ -207,7 +208,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("9"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("91"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100"));
 
       // claim 9 CVX and query
       let before = await cvx.balanceOf(alice.address);
@@ -220,10 +221,10 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("91"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("91"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100").sub(after.sub(before)));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("100").sub(after.sub(before)));
 
-      // deposit 9 aldCVX
-      await aldcvx.connect(alice).approve(transmuter.address, ethers.utils.parseEther("9"));
+      // deposit 9 clevCVX
+      await clevCVX.connect(alice).approve(transmuter.address, ethers.utils.parseEther("9"));
       await transmuter.connect(alice).deposit(ethers.utils.parseEther("9"));
       [unrealised, realised] = await transmuter.getUserInfo(alice.address);
       expect(realised).to.closeToBn(ethers.utils.parseEther("0"), 0);
@@ -241,8 +242,8 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("100"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("0"));
 
-      // deposit 10 aldCVX
-      await aldcvx.connect(alice).approve(transmuter.address, ethers.utils.parseEther("10"));
+      // deposit 10 clevCVX
+      await clevCVX.connect(alice).approve(transmuter.address, ethers.utils.parseEther("10"));
       await transmuter.connect(alice).deposit(ethers.utils.parseEther("10"));
       [unrealised, realised] = await transmuter.getUserInfo(alice.address);
       expect(realised).to.closeToBn(ethers.utils.parseEther("100"), 0);
@@ -271,7 +272,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("0"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
 
       // distribute another 100 CVX
       await transmuter.distribute(signer.address, ethers.utils.parseEther("100"));
@@ -281,7 +282,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("0"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
       // 50% should be deposited into CVXRewardPool
       expect(await transmuter.totalCVXInPool()).to.eq(ethers.utils.parseEther("100"));
       expect(await cvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("50"));
@@ -294,7 +295,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalRealised()).to.eq(ethers.utils.parseEther("0"));
       expect(await transmuter.totalUnrealised()).to.eq(ethers.utils.parseEther("0"));
-      expect(await aldcvx.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
+      expect(await clevCVX.balanceOf(transmuter.address)).to.eq(ethers.utils.parseEther("0"));
       // 50% should be deposited into CVXRewardPool
       expect(await transmuter.totalCVXInPool()).to.gt(ethers.utils.parseEther("100"));
       expect(await cvx.balanceOf(transmuter.address)).to.gt(ethers.utils.parseEther("50"));

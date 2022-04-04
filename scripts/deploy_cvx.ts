@@ -1,30 +1,33 @@
 /* eslint-disable node/no-missing-import */
 import { ethers } from "hardhat";
-import { AladdinCVXLocker, AladdinZap, AldCVX, ProxyAdmin, Transmuter } from "../typechain";
+import { Action, encodePoolHintV2, PoolType } from "../test/utils";
+import { AladdinZap, CLeverCVXLocker, CLeverToken, ProxyAdmin, Transmuter } from "../typechain";
 
 const config: {
   proxyAdmin?: string;
   aladdinZap?: string;
-  aldCVX?: string;
+  clevCVX?: string;
   transmuter?: string;
   cvxLocker?: string;
 } = {
-  proxyAdmin: "0x12b1326459d72F2Ab081116bf27ca46cD97762A0",
-  aladdinZap: "0x1104b4DF568fa7Af90B1Bed1D78A2F71e748dc8a",
-  aldCVX: "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
-  transmuter: "0x8f714C0aDd9608D3Df71da6d9751F267Fbc883bC",
-  cvxLocker: "0x38d009Db1A7357150e00942Dd6E5bEe5De7AFd78",
+  proxyAdmin: "0xA5C45440dc6CE020a21B374A753260FeA1A908DD",
+  aladdinZap: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
+  clevCVX: "0xf9Ee4aBCBA5823148850BA49d93238177accbB64",
+  transmuter: "0xc0d436ba02Ac6b793ada0a5Cedb658a6f7E0532d",
+  cvxLocker: "0xD7CfcdDeACB9c829aa240eb71dC6ae7e6C883d4B",
 };
 
 const PLATFORM = "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F";
 const PLATFORM_FEE_PERCENTAGE = 2.5e7; // 2.5%
 const HARVEST_BOUNTY_PERCENTAGE = 2.5e7; // 2.5%
+const CVX = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
+const CVXCRV = "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7";
 
 let proxyAdmin: ProxyAdmin;
 let aladdinZap: AladdinZap;
-let aldCVX: AldCVX;
+let clevCVX: CLeverToken;
 let transmuter: Transmuter;
-let cvxLocker: AladdinCVXLocker;
+let cvxLocker: CLeverCVXLocker;
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -56,14 +59,14 @@ async function main() {
     console.log("Deploy AladdinZap at:", proxy.address);
   }
 
-  if (config.aldCVX) {
-    aldCVX = (await ethers.getContractAt("aldCVX", config.aldCVX, deployer)) as AldCVX;
-    console.log("Found aldCVX at:", aldCVX.address);
+  if (config.clevCVX) {
+    clevCVX = (await ethers.getContractAt("CLeverToken", config.clevCVX, deployer)) as CLeverToken;
+    console.log("Found clevCVX at:", clevCVX.address);
   } else {
-    const AldCVX = await ethers.getContractFactory("aldCVX", deployer);
-    aldCVX = (await AldCVX.deploy()) as AldCVX;
-    await aldCVX.deployed();
-    console.log("Deploy aldCVX at:", aldCVX.address);
+    const CLeverToken = await ethers.getContractFactory("CLeverToken", deployer);
+    clevCVX = (await CLeverToken.deploy("CLever CVX", "clevCVX")) as CLeverToken;
+    await clevCVX.deployed();
+    console.log("Deploy clevCVX at:", clevCVX.address);
   }
 
   if (config.transmuter) {
@@ -77,7 +80,7 @@ async function main() {
 
     const data = impl.interface.encodeFunctionData("initialize", [
       deployer.address,
-      aldCVX.address,
+      clevCVX.address,
       aladdinZap.address,
       PLATFORM,
       PLATFORM_FEE_PERCENTAGE,
@@ -91,18 +94,19 @@ async function main() {
   }
 
   if (config.cvxLocker) {
-    cvxLocker = await ethers.getContractAt("AladdinCVXLocker", config.cvxLocker, deployer);
-    console.log("Found AladdinCVXLocker at:", cvxLocker.address);
+    cvxLocker = await ethers.getContractAt("CLeverCVXLocker", config.cvxLocker, deployer);
+    console.log("Found CLeverCVXLocker at:", cvxLocker.address);
   } else {
-    const AladdinCVXLocker = await ethers.getContractFactory("AladdinCVXLocker", deployer);
-    const impl = await AladdinCVXLocker.deploy();
+    const CLeverCVXLocker = await ethers.getContractFactory("CLeverCVXLocker", deployer);
+    const impl = await CLeverCVXLocker.deploy();
     await impl.deployed();
-    console.log("Deploy AladdinCVXLocker Impl at:", impl.address);
+    console.log("Deploy CLeverCVXLocker Impl at:", impl.address);
 
     const data = impl.interface.encodeFunctionData("initialize", [
       deployer.address,
-      aldCVX.address,
+      clevCVX.address,
       aladdinZap.address,
+      transmuter.address,
       PLATFORM,
       PLATFORM_FEE_PERCENTAGE,
       HARVEST_BOUNTY_PERCENTAGE,
@@ -110,24 +114,34 @@ async function main() {
     const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
     const proxy = await TransparentUpgradeableProxy.deploy(impl.address, proxyAdmin.address, data);
     await proxy.deployed();
-    cvxLocker = await ethers.getContractAt("AladdinCVXLocker", proxy.address, deployer);
-    console.log("Deploy AladdinCVXLocker at:", cvxLocker.address);
+    cvxLocker = await ethers.getContractAt("CLeverCVXLocker", proxy.address, deployer);
+    console.log("Deploy CLeverCVXLocker at:", cvxLocker.address);
   }
 
-  // await transmuter.updateWhitelists([cvxLocker.address], true);
+  // 1. cvxcrv ==> crv with CurveFactoryPlainPool
+  // 2. crv ==> eth with CurveCryptoPool
+  // 3. eth ==> cvx with UniswapV2
+  await aladdinZap.updateRoute(CVXCRV, CVX, [
+    encodePoolHintV2(
+      "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8",
+      PoolType.CurveFactoryPlainPool,
+      2,
+      1,
+      0,
+      Action.Swap
+    ),
+    encodePoolHintV2("0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511", PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+    encodePoolHintV2("0x05767d9EF41dC40689678fFca0608878fb3dE906", PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+  ]);
+
+  await cvxLocker.updateReserveRate(500000000);
+  await transmuter.updateWhitelists([cvxLocker.address], true);
 
   // for test only
-  // await aldCVX.updateMinters([deployer.address, transmuter.address], true);
-  // await aldCVX.updateCeiling(deployer.address, ethers.utils.parseEther("100000000"));
-  // await aldCVX.updateCeiling(transmuter.address, ethers.utils.parseEther("100000000"));
-  await aldCVX.mint("0x07dA2d30E26802ED65a52859a50872cfA615bD0A", ethers.utils.parseEther("1000"));
-  await aldCVX.mint("0x6c54956f6357Ea8B9108d4457325Fd91a34a631b", ethers.utils.parseEther("1000"));
-  await aldCVX.mint("0xb9a1649b31FC2De6bbE78672A3d6EbecFa69B56b", ethers.utils.parseEther("1000"));
-  await aldCVX.mint("0x450EeEb4D62C246FEB65476C3B8639ef4876D125", ethers.utils.parseEther("1000"));
-  await aldCVX.mint("0x866D12EE5DEd88fc4f585723Fd47B419C357a711", ethers.utils.parseEther("1000"));
-  await aldCVX.mint("0x7BCD36CEf6eb25BE0fcC107014fB9fA5C5AA8cdA", ethers.utils.parseEther("1000"));
-  await aldCVX.mint("0x6B20c929b3743698C200E53a5C7cF5515eb730C2", ethers.utils.parseEther("1000"));
-  await aldCVX.mint("0x5af776fc4321f55a9e518eef7db133fa7c833556", ethers.utils.parseEther("1000"));
+  await clevCVX.updateMinters([deployer.address, cvxLocker.address], true);
+  await clevCVX.updateCeiling(deployer.address, ethers.utils.parseEther("100000000"));
+  await clevCVX.updateCeiling(cvxLocker.address, ethers.utils.parseEther("100000000"));
+  await cvxLocker.updateStakePercentage(500000000);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

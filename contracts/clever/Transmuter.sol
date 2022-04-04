@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../interfaces/IConvexCVXRewardPool.sol";
 import "../interfaces/ITransmuter.sol";
-import "../interfaces/IALDCVX.sol";
+import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IZap.sol";
 
 // solhint-disable reason-string
@@ -45,7 +45,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   ///    user_unrealised * (total_unrealised_1 - reward_1) / total_unrealised_1 * (total_unrealised_2 - reward_2) / total_unrealised_2 * ...
   ///
   /// So we can maintain a variable `accUnrealisedFraction` which is a product of `(total_unrealised - reward) / total_unrealised`.
-  /// And keep track of this variable on each deposit/withdraw/claim, the unrealised aldCVX of the user should be
+  /// And keep track of this variable on each deposit/withdraw/claim, the unrealised clevCVX of the user should be
   ///                                accUnrealisedFractionPaid
   ///                   unrealised * -------------------------
   ///                                  accUnrealisedFraction
@@ -56,9 +56,9 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   /// More specifically, it is in range [0, 2^128), means the real number `fraction / 2^128`. If the value is 0, it
   /// means the value of the faction is 1.
   struct UserInfo {
-    // The total amount of aldCVX unrealised.
+    // The total amount of clevCVX unrealised.
     uint128 unrealised;
-    // The total amount of aldCVX realised.
+    // The total amount of clevCVX realised.
     uint128 realised;
     // The checkpoint for global `accUnrealisedFraction`, multipled by 1e9.
     uint192 accUnrealisedFractionPaid;
@@ -68,17 +68,17 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
 
   /// @dev The address of governor
   address public governor;
-  /// @dev The address of aldCVX
-  address public aldCVX;
-  /// @dev The total amount of aldCVX unrealised.
+  /// @dev The address of clevCVX
+  address public clevCVX;
+  /// @dev The total amount of clevCVX unrealised.
   uint128 public totalUnrealised;
-  /// @dev The total amount of aldCVX realised.
+  /// @dev The total amount of clevCVX realised.
   uint128 public totalRealised;
   /// @dev The accumulated unrealised fraction, multipled by 2^128.
   uint128 public accUnrealisedFraction;
   /// @dev The distriubed index, will be increased each time the function `distribute` is called.
   uint64 public distributeIndex;
-  /// @dev The distriubed index when all aldCVX is paied off.
+  /// @dev The distriubed index when all clevCVX is paied off.
   uint64 public lastPaidOffDistributeIndex;
   /// @dev Mapping from user address to user info.
   mapping(address => UserInfo) public userInfo;
@@ -110,7 +110,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
 
   function initialize(
     address _governor,
-    address _aldCVX,
+    address _clevCVX,
     address _zap,
     address _platform,
     uint256 _platformFeePercentage,
@@ -119,14 +119,14 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
     OwnableUpgradeable.__Ownable_init();
 
     require(_governor != address(0), "Transmuter: zero governor address");
-    require(_aldCVX != address(0), "Transmuter: zero aldCVX address");
+    require(_clevCVX != address(0), "Transmuter: zero clevCVX address");
     require(_zap != address(0), "Transmuter: zero zap address");
     require(_platform != address(0), "Transmuter: zero platform address");
     require(_platformFeePercentage <= MAX_PLATFORM_FEE, "Transmuter: fee too large");
     require(_harvestBountyPercentage <= MAX_HARVEST_BOUNTY, "Transmuter: fee too large");
 
     governor = _governor;
-    aldCVX = _aldCVX;
+    clevCVX = _clevCVX;
     zap = _zap;
     platform = _platform;
     platformFeePercentage = _platformFeePercentage;
@@ -135,10 +135,10 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
 
   /********************************** View Functions **********************************/
 
-  /// @dev Return the amount of aldCVX unrealised and realised of user.
+  /// @dev Return the amount of clevCVX unrealised and realised of user.
   /// @param _account The address of user.
-  /// @return unrealised The amount of aldCVX unrealised.
-  /// @return realised The amount of aldCVX realised and can be claimed.
+  /// @return unrealised The amount of clevCVX unrealised.
+  /// @return realised The amount of clevCVX realised and can be claimed.
   function getUserInfo(address _account) external view override returns (uint256 unrealised, uint256 realised) {
     UserInfo memory _info = userInfo[_account];
     if (_info.lastDistributeIndex < lastPaidOffDistributeIndex) {
@@ -168,32 +168,32 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
 
   /********************************** Mutated Functions **********************************/
 
-  /// @dev Deposit aldCVX in this contract to change for CVX.
-  /// @param _amount The amount of aldCVX to deposit.
+  /// @dev Deposit clevCVX in this contract to change for CVX.
+  /// @param _amount The amount of clevCVX to deposit.
   function deposit(uint256 _amount) external override {
-    require(_amount > 0, "Transmuter: deposit zero aldCVX");
+    require(_amount > 0, "Transmuter: deposit zero clevCVX");
 
     // transfer token into contract
-    IERC20Upgradeable(aldCVX).safeTransferFrom(msg.sender, address(this), _amount);
+    IERC20Upgradeable(clevCVX).safeTransferFrom(msg.sender, address(this), _amount);
 
     _deposit(msg.sender, _amount);
   }
 
-  /// @dev Deposit aldCVX in this contract to change for CVX for other user.
+  /// @dev Deposit clevCVX in this contract to change for CVX for other user.
   /// @param _account The address of user you deposit for.
-  /// @param _amount The amount of aldCVX to deposit.
+  /// @param _amount The amount of clevCVX to deposit.
   function depositFor(address _account, uint256 _amount) external override {
-    require(_amount > 0, "Transmuter: deposit zero aldCVX");
+    require(_amount > 0, "Transmuter: deposit zero clevCVX");
 
     // transfer token into contract
-    IERC20Upgradeable(aldCVX).safeTransferFrom(msg.sender, address(this), _amount);
+    IERC20Upgradeable(clevCVX).safeTransferFrom(msg.sender, address(this), _amount);
 
     _deposit(_account, _amount);
   }
 
-  /// @dev Withdraw unrealised aldCVX of the caller from this contract.
-  /// @param _recipient The address of user who will recieve the aldCVX.
-  /// @param _amount The amount of aldCVX to withdraw.
+  /// @dev Withdraw unrealised clevCVX of the caller from this contract.
+  /// @param _recipient The address of user who will recieve the clevCVX.
+  /// @param _amount The amount of clevCVX to withdraw.
   function withdraw(address _recipient, uint256 _amount) external override {
     require(_amount > 0, "Transmuter: withdraw zero CVX");
 
@@ -201,8 +201,8 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
     _withdraw(_recipient, _amount);
   }
 
-  /// @dev Withdraw all unrealised aldCVX of the caller from this contract.
-  /// @param _recipient The address of user who will recieve the aldCVX.
+  /// @dev Withdraw all unrealised clevCVX of the caller from this contract.
+  /// @param _recipient The address of user who will recieve the clevCVX.
   function withdrawAll(address _recipient) external override {
     _updateUserInfo(msg.sender);
 
@@ -217,8 +217,8 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
     _claim(_recipient);
   }
 
-  /// @dev Exit the contract, withdraw all unrealised aldCVX and realised CVX of the caller.
-  /// @param _recipient The address of user who will recieve the aldCVX and CVX.
+  /// @dev Exit the contract, withdraw all unrealised clevCVX and realised CVX of the caller.
+  /// @param _recipient The address of user who will recieve the clevCVX and CVX.
   function exit(address _recipient) external override {
     _updateUserInfo(msg.sender);
 
@@ -226,7 +226,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
     _claim(_recipient);
   }
 
-  /// @dev Distribute CVX from `origin` to pay aldCVX debt.
+  /// @dev Distribute CVX from `origin` to pay clevCVX debt.
   /// @param _origin The address of the user who will provide CVX.
   /// @param _amount The amount of CVX will be provided.
   function distribute(address _origin, uint256 _amount) external override onlyWhitelisted {
@@ -269,7 +269,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
         _distributeAmount = _distributeAmount - _harvestBounty; // never overflow here
         IERC20Upgradeable(CVX).safeTransfer(_recipient, _harvestBounty);
       }
-      // 4. distribute harvest CVX to pay aldCVX
+      // 4. distribute harvest CVX to pay clevCVX
       // @note: we may distribute all rest CVX to AladdinConvexLocker
       _distribute(address(this), _distributeAmount);
     }
@@ -388,9 +388,9 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   }
 
   /// @dev Internal function called by `deposit` and `depositFor`.
-  ///      assume that aldCVX is already transfered into this contract.
+  ///      assume that clevCVX is already transfered into this contract.
   /// @param _account The address of the user.
-  /// @param _amount The amount of aldCVX to deposit.
+  /// @param _amount The amount of clevCVX to deposit.
   function _deposit(address _account, uint256 _amount) internal {
     // 1. update user info
     _updateUserInfo(_account);
@@ -424,15 +424,15 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   }
 
   /// @dev Internal function called by `withdraw` and `withdrawAll`.
-  /// @param _recipient The address of user who will recieve the aldCVX.
-  /// @param _amount The amount of aldCVX to withdraw.
+  /// @param _recipient The address of user who will recieve the clevCVX.
+  /// @param _amount The amount of clevCVX to withdraw.
   function _withdraw(address _recipient, uint256 _amount) internal {
-    require(_amount <= userInfo[msg.sender].unrealised, "Transmuter: aldCVX not enough");
+    require(_amount <= userInfo[msg.sender].unrealised, "Transmuter: clevCVX not enough");
 
     userInfo[msg.sender].unrealised = uint128(uint256(userInfo[msg.sender].unrealised) - _amount); // never overflow here
     totalUnrealised = uint128(uint256(totalUnrealised) - _amount); // never overflow here
 
-    IERC20Upgradeable(aldCVX).safeTransfer(_recipient, _amount);
+    IERC20Upgradeable(clevCVX).safeTransfer(_recipient, _amount);
 
     emit Withdraw(msg.sender, _recipient, _amount);
   }
@@ -451,8 +451,8 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
       IConvexCVXRewardPool(CVX_REWARD_POOL).withdraw(_amount - _balanceInContract, false);
     }
     IERC20Upgradeable(CVX).safeTransfer(_recipient, _amount);
-    // burn realised aldCVX
-    IALDCVX(aldCVX).burn(_amount);
+    // burn realised clevCVX
+    ICLeverToken(clevCVX).burn(_amount);
 
     emit Claim(msg.sender, _recipient, _amount);
   }
@@ -469,7 +469,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
     uint256 _burnAmount;
     // 1. distribute CVX rewards
     if (_amount >= _totalUnrealised) {
-      // In this case, all unrealised aldCVX are paid off.
+      // In this case, all unrealised clevCVX are paid off.
       totalUnrealised = 0;
       totalRealised = _toU128(_totalUnrealised + _totalRealised);
 

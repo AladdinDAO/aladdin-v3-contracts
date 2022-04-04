@@ -7,10 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../interfaces/IALDCVX.sol";
+import "../interfaces/ICLeverToken.sol";
 
 // solhint-disable-next-line contract-name-camelcase
-contract aldCVX is Ownable, ERC20("Aladdin CVX", "aldCVX"), IALDCVX {
+contract CLeverToken is Ownable, ERC20, ICLeverToken {
   using SafeERC20 for ERC20;
   using SafeMath for uint256;
 
@@ -18,9 +18,9 @@ contract aldCVX is Ownable, ERC20("Aladdin CVX", "aldCVX"), IALDCVX {
   event UpdateCeiling(address indexed _minter, uint128 _ceiling);
 
   struct MinterInfo {
-    // The maximum amount of aldCVX can mint.
+    // The maximum amount of CLeverToken can mint.
     uint128 ceiling;
-    // The number of aldCVX minted so far.
+    // The number of CLeverToken minted so far.
     uint128 minted;
   }
 
@@ -30,9 +30,11 @@ contract aldCVX is Ownable, ERC20("Aladdin CVX", "aldCVX"), IALDCVX {
   mapping(address => MinterInfo) public minterInfo;
 
   modifier onlyMinter() {
-    require(isMinter[msg.sender], "aldCVX: only minter");
+    require(isMinter[msg.sender], "CLeverToken: only minter");
     _;
   }
+
+  constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) {}
 
   /********************************** Mutated Functions **********************************/
 
@@ -43,7 +45,7 @@ contract aldCVX is Ownable, ERC20("Aladdin CVX", "aldCVX"), IALDCVX {
     MinterInfo memory _info = minterInfo[msg.sender];
     uint256 _minted = _info.minted;
     uint256 _ceiling = _info.ceiling;
-    require(_minted.add(_amount) <= _ceiling, "aldCVX: reach mint ceiling");
+    require(_minted.add(_amount) <= _ceiling, "CLeverToken: reach mint ceiling");
     minterInfo[msg.sender].minted = uint128(_minted + _amount);
 
     _mint(_recipient, _amount);
@@ -59,7 +61,10 @@ contract aldCVX is Ownable, ERC20("Aladdin CVX", "aldCVX"), IALDCVX {
   /// @param _account the account to burn tokens.
   /// @param _amount the amount of tokens to burn.
   function burnFrom(address _account, uint256 _amount) external override {
-    uint256 _decreasedAllowance = allowance(_account, msg.sender).sub(_amount, "aldCVX: burn amount exceeds allowance");
+    uint256 _decreasedAllowance = allowance(_account, msg.sender).sub(
+      _amount,
+      "CLeverToken: burn amount exceeds allowance"
+    );
 
     _approve(_account, msg.sender, _decreasedAllowance);
     _burn(_account, _amount);
@@ -72,7 +77,7 @@ contract aldCVX is Ownable, ERC20("Aladdin CVX", "aldCVX"), IALDCVX {
   /// @param _status The status to update.
   function updateMinters(address[] memory _minters, bool _status) external onlyOwner {
     for (uint256 i = 0; i < _minters.length; i++) {
-      require(_minters[i] != address(0), "aldCVX: zero minter address");
+      require(_minters[i] != address(0), "CLeverToken: zero minter address");
       isMinter[_minters[i]] = _status;
 
       emit UpdateMinter(_minters[i], _status);
@@ -83,7 +88,7 @@ contract aldCVX is Ownable, ERC20("Aladdin CVX", "aldCVX"), IALDCVX {
   /// @param _minter the address of minter to set the ceiling.
   /// @param _ceiling the max amount of tokens the account is allowed to mint.
   function updateCeiling(address _minter, uint128 _ceiling) external onlyOwner {
-    require(isMinter[_minter], "aldCVX: not minter");
+    require(isMinter[_minter], "CLeverToken: not minter");
 
     minterInfo[_minter].ceiling = _ceiling;
 

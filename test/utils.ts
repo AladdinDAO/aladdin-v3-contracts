@@ -55,6 +55,26 @@ export async function request_fork(blockNumber: number, contracts: string[]) {
   }
 }
 
+Assertion.addMethod("closeToBn", function (expected: BigNumberish, delta: BigNumberish) {
+  const obj = this._obj;
+  this.assert(
+    BigNumber.from(expected).sub(obj).abs().lte(delta),
+    `expected ${obj} to be close to ${expected} +/- ${delta}`,
+    `expected ${obj} not to be close to ${expected} +/- ${delta}`,
+    expected,
+    obj
+  );
+});
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  export namespace Chai {
+    interface Assertion {
+      closeToBn(expected: BigNumberish, delta: BigNumberish): Assertion;
+    }
+  }
+}
+
 export function encodePoolHint(poolAddress: string, poolType: number, indexIn: number, indexOut: number) {
   let encoding = BigNumber.from(poolAddress);
   encoding = encoding.or(BigNumber.from(poolType).shl(160));

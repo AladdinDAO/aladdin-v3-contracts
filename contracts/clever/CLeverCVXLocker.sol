@@ -7,8 +7,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import "../interfaces/IALDCVX.sol";
-import "../interfaces/IAladdinCVXLocker.sol";
+import "../interfaces/ICLeverCVXLocker.sol";
+import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IConvexCVXLocker.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
 import "../interfaces/ITransmuter.sol";
@@ -17,7 +17,7 @@ import "../interfaces/IZap.sol";
 
 // solhint-disable not-rely-on-time, max-states-count, reason-string
 
-contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
+contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -63,7 +63,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   }
 
   struct UserInfo {
-    // The total number of aldCVX minted.
+    // The total number of clevCVX minted.
     uint128 totalDebt;
     // The amount of distributed reward.
     uint128 rewards;
@@ -93,14 +93,22 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
 
   /// @dev The address of governor
   address public governor;
-  /// @dev The address of aldCVX contract.
-  address public aldCVX;
-  /// @dev The total amount of CVX locked in CVXLockerV2.
-  uint128 public totalLockedGlobal;
+  /// @dev The address of clevCVX contract.
+  address public clevCVX;
+
+  /// @dev Assumptons:
+  ///  1. totalLockedGlobal + totalPendingUnlockGlobal is the total amount of CVX locked in CVXLockerV2.
+  ///  2. totalUnlockedGlobal is the total amount of CVX unlocked from CVXLockerV2 but still in contract.
+  ///  3. totalDebtGlobal is the total amount of clevCVX borrowed, will decrease when debt is repayed.
+  /// @dev The total amount of CVX locked in contract.
+  uint256 public totalLockedGlobal;
+  /// @dev The total amount of CVX going to unlocked.
+  uint256 public totalPendingUnlockGlobal;
   /// @dev The total amount of CVX unlocked in CVXLockerV2 and will never be locked again.
   uint256 public totalUnlockedGlobal;
-  /// @dev The total amount of aldCVX borrowed from this contract.
+  /// @dev The total amount of clevCVX borrowed from this contract.
   uint256 public totalDebtGlobal;
+
   /// @dev The reward per share of CVX accumulated, will be updated in each harvest, multipled by 1e18.
   uint256 public accRewardPerShare;
   /// @dev Mapping from user address to user info.
@@ -113,7 +121,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   uint256 public stakePercentage;
   /// @dev The minimum of amount of CVX to be staked.
   uint256 public stakeThreshold;
-  /// @dev The debt reserve rate to borrow aldCVX for each user.
+  /// @dev The debt reserve rate to borrow clevCVX for each user.
   uint256 public reserveRate;
   /// @dev The list of tokens which will swap manually.
   mapping(address => bool) public manualSwapRewardToken;
@@ -130,33 +138,37 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   address public platform;
 
   modifier onlyGovernorOrOwner() {
-    require(msg.sender == governor || msg.sender == owner(), "AladdinCVXLocker: only governor or owner");
+    require(msg.sender == governor || msg.sender == owner(), "CLeverCVXLocker: only governor or owner");
     _;
   }
 
   function initialize(
     address _governor,
-    address _aldCVX,
+    address _clevCVX,
     address _zap,
+    address _transmuter,
     address _platform,
     uint256 _platformFeePercentage,
     uint256 _harvestBountyPercentage
   ) external initializer {
     OwnableUpgradeable.__Ownable_init();
 
-    require(_governor != address(0), "AladdinCVXLocker: zero governor address");
-    require(_aldCVX != address(0), "AladdinCVXLocker: zero aldCVX address");
-    require(_zap != address(0), "AladdinCVXLocker: zero zap address");
-    require(_platform != address(0), "AladdinCVXLocker: zero platform address");
-    require(_platformFeePercentage <= MAX_PLATFORM_FEE, "AladdinCVXLocker: fee too large");
-    require(_harvestBountyPercentage <= MAX_HARVEST_BOUNTY, "AladdinCVXLocker: fee too large");
+    require(_governor != address(0), "CLeverCVXLocker: zero governor address");
+    require(_clevCVX != address(0), "CLeverCVXLocker: zero clevCVX address");
+    require(_zap != address(0), "CLeverCVXLocker: zero zap address");
+    require(_transmuter != address(0), "CLeverCVXLocker: zero transmuter address");
+    require(_platform != address(0), "CLeverCVXLocker: zero platform address");
+    require(_platformFeePercentage <= MAX_PLATFORM_FEE, "CLeverCVXLocker: fee too large");
+    require(_harvestBountyPercentage <= MAX_HARVEST_BOUNTY, "CLeverCVXLocker: fee too large");
 
     governor = _governor;
-    aldCVX = _aldCVX;
+    clevCVX = _clevCVX;
     zap = _zap;
+    transmuter = _transmuter;
     platform = _platform;
     platformFeePercentage = _platformFeePercentage;
     harvestBountyPercentage = _harvestBountyPercentage;
+    reserveRate = 500_000_000;
   }
 
   /********************************** View Functions **********************************/
@@ -166,7 +178,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   /// @return totalDeposited The amount of CVX deposited in this contract of the user.
   /// @return totalPendingUnlocked The amount of CVX pending to be unlocked.
   /// @return totalUnlocked The amount of CVX unlokced of the user and can be withdrawed.
-  /// @return totalBorrowed The amount of aldCVX borrowed by the user.
+  /// @return totalBorrowed The amount of clevCVX borrowed by the user.
   /// @return totalReward The amount of CVX reward accrued for the user.
   function getUserInfo(address _account)
     external
@@ -248,14 +260,14 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
     EpochUnlockInfo[] storage _pendingUnlockList = _info.pendingUnlockList;
     uint256 lengthPendingUnlocks;
     for (uint256 i = _nextUnlockIndex; i < _pendingUnlockList.length; i++) {
-      if (_pendingUnlockList[_nextUnlockIndex].unlockEpoch > _currentEpoch) {
+      if (_pendingUnlockList[i].unlockEpoch > _currentEpoch) {
         lengthPendingUnlocks += 1;
       }
     }
     pendingUnlocks = new EpochUnlockInfo[](lengthPendingUnlocks);
     lengthPendingUnlocks = 0;
     for (uint256 i = _nextUnlockIndex; i < _pendingUnlockList.length; i++) {
-      if (_pendingUnlockList[_nextUnlockIndex].unlockEpoch > _currentEpoch) {
+      if (_pendingUnlockList[i].unlockEpoch > _currentEpoch) {
         pendingUnlocks[lengthPendingUnlocks] = _pendingUnlockList[i];
         lengthPendingUnlocks += 1;
       }
@@ -276,7 +288,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   /// @dev Deposit CVX and lock into CVXLockerV2
   /// @param _amount The amount of CVX to lock.
   function deposit(uint256 _amount) external override {
-    require(_amount > 0, "AladdinCVXLocker: deposit zero CVX");
+    require(_amount > 0, "CLeverCVXLocker: deposit zero CVX");
     IERC20Upgradeable(CVX).safeTransferFrom(msg.sender, address(this), _amount);
 
     // 1. update reward info
@@ -296,7 +308,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
     _info.epochLocked[_reminder] = _amount + _info.epochLocked[_reminder]; // should never overflow
 
     // 4. update global info
-    totalLockedGlobal = uint128(_amount.add(totalLockedGlobal)); // direct cast shoule be safe
+    totalLockedGlobal = _amount.add(totalLockedGlobal); // direct cast shoule be safe
 
     emit Deposit(msg.sender, _amount);
   }
@@ -305,7 +317,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   ///      Notice that all pending unlocked CVX will not share future rewards.
   /// @param _amount The amount of CVX to unlock.
   function unlock(uint256 _amount) external override {
-    require(_amount > 0, "AladdinCVXLocker: unlock zero CVX");
+    require(_amount > 0, "CLeverCVXLocker: unlock zero CVX");
     // 1. update reward info
     _updateReward(msg.sender);
 
@@ -317,12 +329,14 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
     {
       uint256 _totalLocked = _info.totalLocked;
       uint256 _totalDebt = _info.totalDebt;
-      require(_amount <= _totalLocked, "AladdinCVXLocker: insufficient CVX to unlock");
+      require(_amount <= _totalLocked, "CLeverCVXLocker: insufficient CVX to unlock");
 
       _checkAccountHealth(_totalLocked, _totalDebt, _amount, 0);
       // if you choose unlock, all pending unlocked CVX will not share the reward.
       _info.totalLocked = uint112(_totalLocked - _amount); // should never overflow
-      // global info will be updated in `processUnlockableCVX`
+      // global unlock info will be updated in `processUnlockableCVX`
+      totalLockedGlobal -= _amount;
+      totalPendingUnlockGlobal += _amount;
     }
 
     emit Unlock(msg.sender, _amount);
@@ -339,20 +353,22 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
       if (_amount >= _locked) _unlocked = _locked;
       else _unlocked = _amount;
 
-      _info.epochLocked[_index] = _locked - _unlocked; // should never overflow
-      _amount = _amount - _unlocked; // should never overflow
-      pendingUnlocked[_nextEpoch] = pendingUnlocked[_nextEpoch] + _unlocked; // should never overflow
+      if (_unlocked > 0) {
+        _info.epochLocked[_index] = _locked - _unlocked; // should never overflow
+        _amount = _amount - _unlocked; // should never overflow
+        pendingUnlocked[_nextEpoch] = pendingUnlocked[_nextEpoch] + _unlocked; // should never overflow
 
-      if (
-        _pendingUnlockList.length == 0 || _pendingUnlockList[_pendingUnlockList.length - 1].unlockEpoch != _nextEpoch
-      ) {
-        _pendingUnlockList.push(
-          EpochUnlockInfo({ pendingUnlock: uint192(_unlocked), unlockEpoch: uint64(_nextEpoch) })
-        );
-      } else {
-        _pendingUnlockList[_pendingUnlockList.length - 1].pendingUnlock = uint192(
-          _unlocked + _pendingUnlockList[_pendingUnlockList.length - 1].pendingUnlock
-        );
+        if (
+          _pendingUnlockList.length == 0 || _pendingUnlockList[_pendingUnlockList.length - 1].unlockEpoch != _nextEpoch
+        ) {
+          _pendingUnlockList.push(
+            EpochUnlockInfo({ pendingUnlock: uint192(_unlocked), unlockEpoch: uint64(_nextEpoch) })
+          );
+        } else {
+          _pendingUnlockList[_pendingUnlockList.length - 1].pendingUnlock = uint192(
+            _unlocked + _pendingUnlockList[_pendingUnlockList.length - 1].pendingUnlock
+          );
+        }
       }
 
       if (_amount == 0) break;
@@ -387,11 +403,11 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
     emit Withdraw(msg.sender, _unlocked);
   }
 
-  /// @dev Repay aldCVX debt with CVX or aldCVX.
+  /// @dev Repay clevCVX debt with CVX or clevCVX.
   /// @param _cvxAmount The amount of CVX used to pay debt.
-  /// @param _aldCVXAmount The amount of aldCVX used to pay debt.
-  function repay(uint256 _cvxAmount, uint256 _aldCVXAmount) external override {
-    require(_cvxAmount > 0 || _aldCVXAmount > 0, "AladdinCVXLocker: repay zero amount");
+  /// @param _clevCVXAmount The amount of clevCVX used to pay debt.
+  function repay(uint256 _cvxAmount, uint256 _clevCVXAmount) external override {
+    require(_cvxAmount > 0 || _clevCVXAmount > 0, "CLeverCVXLocker: repay zero amount");
 
     // 1. update reward info
     _updateReward(msg.sender);
@@ -418,32 +434,32 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
       ITransmuter(_transmuter).distribute(address(this), _cvxAmount);
     }
 
-    // 4. check repay with aldCVX
-    if (_aldCVXAmount > 0 && _totalDebt > 0) {
-      if (_aldCVXAmount > _totalDebt) _aldCVXAmount = _totalDebt;
-      uint256 _fee = _aldCVXAmount.mul(repayFeePercentage) / FEE_DENOMINATOR;
-      _totalDebt = _totalDebt - _aldCVXAmount; // never overflow
-      _totalDebtGlobal = _totalDebtGlobal - _aldCVXAmount;
+    // 4. check repay with clevCVX
+    if (_clevCVXAmount > 0 && _totalDebt > 0) {
+      if (_clevCVXAmount > _totalDebt) _clevCVXAmount = _totalDebt;
+      uint256 _fee = _clevCVXAmount.mul(repayFeePercentage) / FEE_DENOMINATOR;
+      _totalDebt = _totalDebt - _clevCVXAmount; // never overflow
+      _totalDebtGlobal = _totalDebtGlobal - _clevCVXAmount;
 
       // burn debt token and tranfer fee to platform
       if (_fee > 0) {
-        IERC20Upgradeable(aldCVX).safeTransferFrom(msg.sender, platform, _fee);
+        IERC20Upgradeable(clevCVX).safeTransferFrom(msg.sender, platform, _fee);
       }
-      IALDCVX(aldCVX).burnFrom(msg.sender, _aldCVXAmount);
+      ICLeverToken(clevCVX).burnFrom(msg.sender, _clevCVXAmount);
     }
 
     _info.totalDebt = uint128(_totalDebt);
     totalDebtGlobal = _totalDebtGlobal;
 
-    emit Repay(msg.sender, _cvxAmount, _aldCVXAmount);
+    emit Repay(msg.sender, _cvxAmount, _clevCVXAmount);
   }
 
-  /// @dev Borrow aldCVX from this contract.
+  /// @dev Borrow clevCVX from this contract.
   ///      Notice the reward will be used first and it will not be treated as debt.
-  /// @param _amount The amount of aldCVX to borrow.
-  /// @param _depositToTransmuter Whether to deposit borrowed aldCVX to transmuter.
+  /// @param _amount The amount of clevCVX to borrow.
+  /// @param _depositToTransmuter Whether to deposit borrowed clevCVX to transmuter.
   function borrow(uint256 _amount, bool _depositToTransmuter) external override {
-    require(_amount > 0, "AladdinCVXLocker: borrow zero amount");
+    require(_amount > 0, "CLeverCVXLocker: borrow zero amount");
 
     // 1. update reward info
     _updateReward(msg.sender);
@@ -479,7 +495,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   /// @dev Someone donate CVX to all CVX locker in this contract.
   /// @param _amount The amount of CVX to donate.
   function donate(uint256 _amount) external override {
-    require(_amount > 0, "AladdinCVXLocker: donate zero amount");
+    require(_amount > 0, "CLeverCVXLocker: donate zero amount");
     IERC20Upgradeable(CVX).safeTransferFrom(msg.sender, address(this), _amount);
 
     _distribute(_amount);
@@ -500,7 +516,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
       IERC20Upgradeable(CVXCRV).safeTransfer(zap, _amount);
       _amount = IZap(zap).zap(CVXCRV, _amount, CVX, _minimumOut);
     }
-    require(_amount >= _minimumOut, "AladdinCVXLocker: insufficient output");
+    require(_amount >= _minimumOut, "CLeverCVXLocker: insufficient output");
 
     // 3. distribute incentive to platform and _recipient
     uint256 _platformFee = platformFeePercentage;
@@ -582,18 +598,20 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
     uint256 _pending = pendingUnlocked[currentEpoch];
     if (_pending > 0) {
       // check if the unlocked CVX is enough, normally this should always be true.
-      require(_unlocked >= _pending, "AladdinCVXLocker: insufficient unlocked CVX");
+      require(_unlocked >= _pending, "CLeverCVXLocker: insufficient unlocked CVX");
       _unlocked -= _pending;
       // update global info
-      totalLockedGlobal = uint128(uint256(totalLockedGlobal) - _pending);
       totalUnlockedGlobal = totalUnlockedGlobal.add(_pending);
+      totalPendingUnlockGlobal -= _pending; // should never overflow
       pendingUnlocked[currentEpoch] = 0;
     }
 
     // 4. relock
-    IERC20Upgradeable(CVX).safeApprove(CVX_LOCKER, 0);
-    IERC20Upgradeable(CVX).safeApprove(CVX_LOCKER, _unlocked);
-    IConvexCVXLocker(CVX_LOCKER).lock(address(this), _unlocked, _unlocked);
+    if (_unlocked > 0) {
+      IERC20Upgradeable(CVX).safeApprove(CVX_LOCKER, 0);
+      IERC20Upgradeable(CVX).safeApprove(CVX_LOCKER, _unlocked);
+      IConvexCVXLocker(CVX_LOCKER).lock(address(this), _unlocked, 0);
+    }
   }
 
   /********************************** Restricted Functions **********************************/
@@ -613,7 +631,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   /// @dev Update the address of governor.
   /// @param _governor The address to be updated
   function updateGovernor(address _governor) external onlyGovernorOrOwner {
-    require(_governor != address(0), "AladdinCVXLocker: zero governor address");
+    require(_governor != address(0), "CLeverCVXLocker: zero governor address");
     governor = _governor;
 
     emit UpdateGovernor(_governor);
@@ -622,7 +640,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   /// @dev Update stake percentage for CVX in this contract.
   /// @param _percentage The stake percentage to be updated, multipled by 1e9.
   function updateStakePercentage(uint256 _percentage) external onlyGovernorOrOwner {
-    require(_percentage <= FEE_DENOMINATOR, "AladdinCVXLocker: percentage too large");
+    require(_percentage <= FEE_DENOMINATOR, "CLeverCVXLocker: percentage too large");
     stakePercentage = _percentage;
 
     emit UpdateStakePercentage(_percentage);
@@ -641,7 +659,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   /// @param _status The status to be updated.
   function updateManualSwapRewardToken(address[] memory _tokens, bool _status) external onlyGovernorOrOwner {
     for (uint256 i = 0; i < _tokens.length; i++) {
-      require(_tokens[i] != CVX, "AladdinCVXLocker: invalid token");
+      require(_tokens[i] != CVX, "CLeverCVXLocker: invalid token");
       manualSwapRewardToken[_tokens[i]] = _status;
     }
   }
@@ -683,10 +701,15 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
 
   /// @dev Update the zap contract
   function updateZap(address _zap) external onlyOwner {
-    require(_zap != address(0), "AladdinCVXLocker: zero zap address");
+    require(_zap != address(0), "CLeverCVXLocker: zero zap address");
     zap = _zap;
 
     emit UpdateZap(_zap);
+  }
+
+  function updateReserveRate(uint256 _reserveRate) external onlyOwner {
+    require(_reserveRate <= FEE_DENOMINATOR, "CLeverCVXLocker: invalid reserve rate");
+    reserveRate = _reserveRate;
   }
 
   /// @dev Withdraw all manual swap reward tokens from the contract.
@@ -706,7 +729,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   /// @param _account The address of account to update reward info.
   function _updateReward(address _account) internal {
     UserInfo storage _info = userInfo[_account];
-    require(_info.lastInteractedBlock != block.number, "AladdinCVXLocker: enter the same block");
+    require(_info.lastInteractedBlock != block.number, "CLeverCVXLocker: enter the same block");
 
     uint256 _totalDebtGlobal = totalDebtGlobal;
     uint256 _totalDebt = _info.totalDebt;
@@ -787,14 +810,18 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
         _amount = _amount.add(_amounts[i]);
       }
     }
-    require(_amount >= _minimumOut, "AladdinCVXLocker: insufficient output");
+    require(_amount >= _minimumOut, "CLeverCVXLocker: insufficient output");
     return _amount;
   }
 
   /// @dev Internal function called by `harvest` and `harvestVotium`.
   function _distribute(uint256 _amount) internal {
     // 1. update reward info
-    accRewardPerShare = accRewardPerShare.add(_amount.mul(PRECISION) / uint256(totalLockedGlobal));
+    uint256 _totalLockedGlobal = totalLockedGlobal; // gas saving
+    // It's ok to donate when on one is locking in this contract.
+    if (_totalLockedGlobal > 0) {
+      accRewardPerShare = accRewardPerShare.add(_amount.mul(PRECISION) / uint256(_totalLockedGlobal));
+    }
 
     // 2. distribute reward CVX to Transmuter
     address _transmuter = transmuter;
@@ -817,21 +844,21 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
     }
   }
 
-  /// @dev Internal function used to help to mint aldCVX.
-  /// @param _amount The amount of aldCVX to mint.
-  /// @param _depositToTransmuter Whether to deposit the minted aldCVX to transmuter.
+  /// @dev Internal function used to help to mint clevCVX.
+  /// @param _amount The amount of clevCVX to mint.
+  /// @param _depositToTransmuter Whether to deposit the minted clevCVX to transmuter.
   function _mintOrDeposit(uint256 _amount, bool _depositToTransmuter) internal {
     if (_depositToTransmuter) {
-      address _aldCVX = aldCVX;
+      address _clevCVX = clevCVX;
       address _transmuter = transmuter;
-      // stake aldCVX to transmuter.
-      IALDCVX(_aldCVX).mint(address(this), _amount);
-      IERC20Upgradeable(_aldCVX).safeApprove(_transmuter, 0);
-      IERC20Upgradeable(_aldCVX).safeApprove(_transmuter, _amount);
+      // stake clevCVX to transmuter.
+      ICLeverToken(_clevCVX).mint(address(this), _amount);
+      IERC20Upgradeable(_clevCVX).safeApprove(_transmuter, 0);
+      IERC20Upgradeable(_clevCVX).safeApprove(_transmuter, _amount);
       ITransmuter(_transmuter).depositFor(msg.sender, _amount);
     } else {
-      // transfer aldCVX to sender.
-      IALDCVX(aldCVX).mint(msg.sender, _amount);
+      // transfer clevCVX to sender.
+      ICLeverToken(clevCVX).mint(msg.sender, _amount);
     }
   }
 
@@ -841,9 +868,9 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   ///                      cvxDeposited >= --------------
   ///                                      cvxReserveRate
   /// @param _totalDeposited The amount of CVX currently deposited.
-  /// @param _totalDebt The amount of aldCVX currently borrowed.
+  /// @param _totalDebt The amount of clevCVX currently borrowed.
   /// @param _newUnlock The amount of CVX to unlock.
-  /// @param _newBorrow The amount of aldCVX to borrow.
+  /// @param _newBorrow The amount of clevCVX to borrow.
   function _checkAccountHealth(
     uint256 _totalDeposited,
     uint256 _totalDebt,
@@ -852,7 +879,7 @@ contract AladdinCVXLocker is OwnableUpgradeable, IAladdinCVXLocker {
   ) internal view {
     require(
       _totalDeposited.sub(_newUnlock).mul(reserveRate) >= _totalDebt.add(_newBorrow).mul(FEE_DENOMINATOR),
-      "AladdinCVXLocker: unlock or borrow exceeds limit"
+      "CLeverCVXLocker: unlock or borrow exceeds limit"
     );
   }
 }

@@ -5,11 +5,11 @@ pragma abicoder v2;
 
 import "./IVotiumMultiMerkleStash.sol";
 
-interface IAladdinCVXLocker {
+interface ICLeverCVXLocker {
   event Deposit(address indexed _account, uint256 _amount);
   event Unlock(address indexed _account, uint256 _amount);
   event Withdraw(address indexed _account, uint256 _amount);
-  event Repay(address indexed _account, uint256 _cvxAmount, uint256 _aldCVXAmount);
+  event Repay(address indexed _account, uint256 _cvxAmount, uint256 _clevCVXAmount);
   event Borrow(address indexed _account, uint256 _amount);
   event Claim(address indexed _account, uint256 _amount);
   event Harvest(address indexed _caller, uint256 _reward, uint256 _platformFee, uint256 _harvestBounty);
@@ -31,7 +31,7 @@ interface IAladdinCVXLocker {
 
   function withdrawUnlocked() external;
 
-  function repay(uint256 _cvxAmount, uint256 _aldCVXAmount) external;
+  function repay(uint256 _cvxAmount, uint256 _clevCVXAmount) external;
 
   function borrow(uint256 _amount, bool _depositToTransmuter) external;
 
