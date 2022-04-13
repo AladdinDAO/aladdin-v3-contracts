@@ -40,8 +40,8 @@ contract Vesting is Ownable {
   }
 
   function claim() external {
-    // solhint-disable-next-line not-rely-on-time
     uint256 _claimed = vesting[msg.sender].claimedAmount;
+    // solhint-disable-next-line not-rely-on-time
     uint256 _claimable = _vested(msg.sender, block.timestamp) - vesting[msg.sender].claimedAmount;
     vesting[msg.sender].claimedAmount = uint128(_claimed + _claimable);
 

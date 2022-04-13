@@ -10,14 +10,14 @@
 # https://resources.curve.fi/base-features/understanding-gauges
 # https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/gauges/LiquidityGaugeV3.vy
 # This contract is an almost-identical fork of Curve's contract
-# veACT is used instead of veCRV.
+# veCLEV is used instead of veCRV.
 
 from vyper.interfaces import ERC20
 
 implements: ERC20
 
 
-interface ACT20:
+interface CLEV20:
     def future_epoch_time_write() -> uint256: nonpayable
     def rate() -> uint256: view
 
@@ -163,8 +163,8 @@ def __init__(_lp_token: address, _minter: address, _admin: address):
     self.voting_escrow = Controller(controller).voting_escrow()
 
     self.period_timestamp[0] = block.timestamp
-    self.inflation_rate = ACT20(crv_token).rate()
-    self.future_epoch_time = ACT20(crv_token).future_epoch_time_write()
+    self.inflation_rate = CLEV20(crv_token).rate()
+    self.future_epoch_time = CLEV20(crv_token).future_epoch_time_write()
 
 
 @view
@@ -187,9 +187,9 @@ def integrate_checkpoint() -> uint256:
 @internal
 def _update_liquidity_limit(addr: address, l: uint256, L: uint256):
     """
-    @notice Calculate limits which depend on the amount of ACT token per-user.
+    @notice Calculate limits which depend on the amount of CLEV token per-user.
             Effectively it calculates working balances to apply amplification
-            of ACT production by ACT
+            of CLEV production by CLEV
     @param addr User address
     @param l User's amount of liquidity (LP tokens)
     @param L Total amount of liquidity (LP tokens)
@@ -313,8 +313,8 @@ def _checkpoint(addr: address):
     prev_future_epoch: uint256 = self.future_epoch_time
     if prev_future_epoch >= _period_time:
         _token: address = self.crv_token
-        self.future_epoch_time = ACT20(_token).future_epoch_time_write()
-        new_rate = ACT20(_token).rate()
+        self.future_epoch_time = CLEV20(_token).future_epoch_time_write()
+        new_rate = CLEV20(_token).rate()
         self.inflation_rate = new_rate
 
     if self.is_killed:
@@ -397,7 +397,7 @@ def claimable_tokens(addr: address) -> uint256:
 @external
 def reward_contract() -> address:
     """
-    @notice Address of the reward contract providing non-ACT incentives for this gauge
+    @notice Address of the reward contract providing non-CLEV incentives for this gauge
     @dev Returns `ZERO_ADDRESS` if there is no reward contract active
     """
     return convert(self.reward_data % 2**160, address)
@@ -781,7 +781,7 @@ def set_rewards(_reward_contract: address, _sigs: bytes32, _reward_tokens: addre
 def set_killed(_is_killed: bool):
     """
     @notice Set the killed status for this contract
-    @dev When killed, the gauge always yields a rate of 0 and so cannot mint ACT
+    @dev When killed, the gauge always yields a rate of 0 and so cannot mint CLEV
     @param _is_killed Killed status to set
     """
     assert msg.sender == self.admin
