@@ -700,7 +700,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   }
 
   /// @dev Update the zap contract
-  function updateZap(address _zap) external onlyOwner {
+  function updateZap(address _zap) external onlyGovernorOrOwner {
     require(_zap != address(0), "CLeverCVXLocker: zero zap address");
     zap = _zap;
 
