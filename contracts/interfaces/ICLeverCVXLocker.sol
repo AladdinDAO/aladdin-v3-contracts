@@ -33,7 +33,7 @@ interface ICLeverCVXLocker {
 
   function repay(uint256 _cvxAmount, uint256 _clevCVXAmount) external;
 
-  function borrow(uint256 _amount, bool _depositToTransmuter) external;
+  function borrow(uint256 _amount, bool _depositToFurnace) external;
 
   function donate(uint256 _amount) external;
 

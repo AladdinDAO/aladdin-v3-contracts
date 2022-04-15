@@ -7,13 +7,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../interfaces/IConvexCVXRewardPool.sol";
-import "../interfaces/ITransmuter.sol";
+import "../interfaces/IFurnace.sol";
 import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IZap.sol";
 
 // solhint-disable reason-string
 
-contract Transmuter is OwnableUpgradeable, ITransmuter {
+contract Furnace is OwnableUpgradeable, IFurnace {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -99,12 +99,12 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   address public platform;
 
   modifier onlyWhitelisted() {
-    require(isWhitelisted[msg.sender], "Transmuter: only whitelisted");
+    require(isWhitelisted[msg.sender], "Furnace: only whitelisted");
     _;
   }
 
   modifier onlyGovernorOrOwner() {
-    require(msg.sender == governor || msg.sender == owner(), "Transmuter: only governor or owner");
+    require(msg.sender == governor || msg.sender == owner(), "Furnace: only governor or owner");
     _;
   }
 
@@ -118,12 +118,12 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   ) external initializer {
     OwnableUpgradeable.__Ownable_init();
 
-    require(_governor != address(0), "Transmuter: zero governor address");
-    require(_clevCVX != address(0), "Transmuter: zero clevCVX address");
-    require(_zap != address(0), "Transmuter: zero zap address");
-    require(_platform != address(0), "Transmuter: zero platform address");
-    require(_platformFeePercentage <= MAX_PLATFORM_FEE, "Transmuter: fee too large");
-    require(_harvestBountyPercentage <= MAX_HARVEST_BOUNTY, "Transmuter: fee too large");
+    require(_governor != address(0), "Furnace: zero governor address");
+    require(_clevCVX != address(0), "Furnace: zero clevCVX address");
+    require(_zap != address(0), "Furnace: zero zap address");
+    require(_platform != address(0), "Furnace: zero platform address");
+    require(_platformFeePercentage <= MAX_PLATFORM_FEE, "Furnace: fee too large");
+    require(_harvestBountyPercentage <= MAX_HARVEST_BOUNTY, "Furnace: fee too large");
 
     governor = _governor;
     clevCVX = _clevCVX;
@@ -171,7 +171,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   /// @dev Deposit clevCVX in this contract to change for CVX.
   /// @param _amount The amount of clevCVX to deposit.
   function deposit(uint256 _amount) external override {
-    require(_amount > 0, "Transmuter: deposit zero clevCVX");
+    require(_amount > 0, "Furnace: deposit zero clevCVX");
 
     // transfer token into contract
     IERC20Upgradeable(clevCVX).safeTransferFrom(msg.sender, address(this), _amount);
@@ -183,7 +183,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   /// @param _account The address of user you deposit for.
   /// @param _amount The amount of clevCVX to deposit.
   function depositFor(address _account, uint256 _amount) external override {
-    require(_amount > 0, "Transmuter: deposit zero clevCVX");
+    require(_amount > 0, "Furnace: deposit zero clevCVX");
 
     // transfer token into contract
     IERC20Upgradeable(clevCVX).safeTransferFrom(msg.sender, address(this), _amount);
@@ -195,7 +195,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   /// @param _recipient The address of user who will recieve the clevCVX.
   /// @param _amount The amount of clevCVX to withdraw.
   function withdraw(address _recipient, uint256 _amount) external override {
-    require(_amount > 0, "Transmuter: withdraw zero CVX");
+    require(_amount > 0, "Furnace: withdraw zero CVX");
 
     _updateUserInfo(msg.sender);
     _withdraw(_recipient, _amount);
@@ -230,7 +230,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   /// @param _origin The address of the user who will provide CVX.
   /// @param _amount The amount of CVX will be provided.
   function distribute(address _origin, uint256 _amount) external override onlyWhitelisted {
-    require(_amount > 0, "Transmuter: distribute zero CVX");
+    require(_amount > 0, "Furnace: distribute zero CVX");
 
     IERC20Upgradeable(CVX).safeTransferFrom(_origin, address(this), _amount);
 
@@ -284,7 +284,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   function updateWhitelists(address[] memory _whitelists, bool _status) external onlyOwner {
     for (uint256 i = 0; i < _whitelists.length; i++) {
       // solhint-disable-next-line reason-string
-      require(_whitelists[i] != address(0), "Transmuter: zero whitelist address");
+      require(_whitelists[i] != address(0), "Furnace: zero whitelist address");
       isWhitelisted[_whitelists[i]] = _status;
 
       emit UpdateWhitelist(_whitelists[i], _status);
@@ -294,7 +294,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   /// @dev Update the address of governor.
   /// @param _governor The address to be updated
   function updateGovernor(address _governor) external onlyGovernorOrOwner {
-    require(_governor != address(0), "Transmuter: zero governor address");
+    require(_governor != address(0), "Furnace: zero governor address");
     governor = _governor;
 
     emit UpdateGovernor(_governor);
@@ -303,7 +303,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   /// @dev Update stake percentage for CVX in this contract.
   /// @param _percentage The stake percentage to be updated, multipled by 1e9.
   function updateStakePercentage(uint256 _percentage) external onlyGovernorOrOwner {
-    require(_percentage <= FEE_DENOMINATOR, "Transmuter: percentage too large");
+    require(_percentage <= FEE_DENOMINATOR, "Furnace: percentage too large");
     stakePercentage = _percentage;
 
     emit UpdateStakePercentage(_percentage);
@@ -347,7 +347,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   /// @dev Update the zap contract
   /// @param _zap The zap contract to be updated.
   function updateZap(address _zap) external onlyGovernorOrOwner {
-    require(_zap != address(0), "Transmuter: zero zap address");
+    require(_zap != address(0), "Furnace: zero zap address");
     zap = _zap;
 
     emit UpdateZap(_zap);
@@ -427,7 +427,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
   /// @param _recipient The address of user who will recieve the clevCVX.
   /// @param _amount The amount of clevCVX to withdraw.
   function _withdraw(address _recipient, uint256 _amount) internal {
-    require(_amount <= userInfo[msg.sender].unrealised, "Transmuter: clevCVX not enough");
+    require(_amount <= userInfo[msg.sender].unrealised, "Furnace: clevCVX not enough");
 
     userInfo[msg.sender].unrealised = uint128(uint256(userInfo[msg.sender].unrealised) - _amount); // never overflow here
     totalUnrealised = uint128(uint256(totalUnrealised) - _amount); // never overflow here
@@ -499,7 +499,7 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
 
   /// @dev Convert uint256 value to uint128 value.
   function _toU128(uint256 _value) internal pure returns (uint128) {
-    require(_value < 340282366920938463463374607431768211456, "Transmuter: overflow");
+    require(_value < 340282366920938463463374607431768211456, "Furnace: overflow");
     return uint128(_value);
   }
 

@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { CLeverCVXLocker, IERC20, Transmuter, CLeverToken } from "../typechain";
+import { CLeverCVXLocker, IERC20, Furnace, CLeverToken } from "../typechain";
 import { Action, encodePoolHintV2, PoolType, request_fork } from "./utils";
 import { ethers } from "hardhat";
 import * as hre from "hardhat";
@@ -17,12 +17,12 @@ const PLATFORM_FEE_PERCENTAGE = 2.5e7; // 2.5%
 const HARVEST_BOUNTY_PERCENTAGE = 2.5e7; // 2.5%
 const CVXCRV = "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7";
 
-describe("VaultZapMainnetFork.spec", async () => {
+describe("CLeverCVXLocker.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
   let clevCVX: CLeverToken;
   let cvx: IERC20;
-  let transmuter: Transmuter;
+  let furnace: Furnace;
   let locker: CLeverCVXLocker;
 
   beforeEach(async () => {
@@ -62,10 +62,10 @@ describe("VaultZapMainnetFork.spec", async () => {
       encodePoolHintV2("0x05767d9EF41dC40689678fFca0608878fb3dE906", PoolType.UniswapV2, 2, 1, 0, Action.Swap),
     ]);
 
-    const Transmuter = await ethers.getContractFactory("Transmuter", deployer);
-    transmuter = await Transmuter.deploy();
-    await transmuter.deployed();
-    await transmuter.initialize(
+    const Furnace = await ethers.getContractFactory("Furnace", deployer);
+    furnace = await Furnace.deploy();
+    await furnace.deployed();
+    await furnace.initialize(
       deployer.address,
       clevCVX.address,
       zap.address,
@@ -81,7 +81,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       deployer.address,
       clevCVX.address,
       zap.address,
-      transmuter.address,
+      furnace.address,
       PLATFORM,
       PLATFORM_FEE_PERCENTAGE,
       HARVEST_BOUNTY_PERCENTAGE
@@ -89,7 +89,7 @@ describe("VaultZapMainnetFork.spec", async () => {
 
     await clevCVX.updateMinters([locker.address], true);
     await clevCVX.updateCeiling(locker.address, ethers.utils.parseEther("10000000"));
-    await transmuter.updateWhitelists([locker.address], true);
+    await furnace.updateWhitelists([locker.address], true);
     await locker.updateStakePercentage(500000000);
   });
 
@@ -110,7 +110,7 @@ describe("VaultZapMainnetFork.spec", async () => {
 
     it("should initialize correctly", async () => {
       expect(await locker.clevCVX()).to.eq(clevCVX.address);
-      expect(await locker.transmuter()).to.eq(transmuter.address);
+      expect(await locker.furnace()).to.eq(furnace.address);
       expect(await locker.governor()).to.eq(deployer.address);
       expect(await locker.totalLockedGlobal()).to.eq(constants.Zero);
       expect(await locker.totalUnlockedGlobal()).to.eq(constants.Zero);
@@ -182,7 +182,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(totalBorrowed).to.eq(constants.Zero);
       expect(totalReward).to.gt(constants.Zero);
 
-      expect(await transmuter.totalCVXInPool()).to.gt(constants.Zero);
+      expect(await furnace.totalCVXInPool()).to.gt(constants.Zero);
     });
   });
 
@@ -249,7 +249,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(await clevCVX.balanceOf(alice.address)).to.eq(borrowAmount);
     });
 
-    it("should succeed, when borrow half and deposit to transmuter", async () => {
+    it("should succeed, when borrow half and deposit to furnace", async () => {
       await locker.connect(alice).borrow(borrowAmount, true);
 
       expect(await locker.totalCVXInPool()).to.eq(constants.Zero);
@@ -265,7 +265,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       expect(totalBorrowed).to.eq(borrowAmount);
       expect(totalReward).to.eq(constants.Zero);
 
-      expect((await transmuter.getUserInfo(alice.address)).unrealised).to.eq(borrowAmount);
+      expect((await furnace.getUserInfo(alice.address)).unrealised).to.eq(borrowAmount);
       expect(await clevCVX.balanceOf(alice.address)).to.eq(constants.Zero);
     });
 
@@ -273,7 +273,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       await cvx.approve(locker.address, rewardAmount);
       await locker.connect(signer).donate(rewardAmount);
 
-      expect(await transmuter.totalCVXInPool()).to.eq(rewardAmount);
+      expect(await furnace.totalCVXInPool()).to.eq(rewardAmount);
 
       let [totalDeposited, totalPendingUnlocked, totalUnlocked, totalBorrowed, totalReward] = await locker.getUserInfo(
         alice.address
@@ -336,7 +336,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       const cvxAfter = await cvx.balanceOf(alice.address);
       expect(cvxBefore.sub(cvxAfter)).to.eq(repayAmount);
 
-      expect(await transmuter.totalCVXInPool()).to.eq(repayAmount);
+      expect(await furnace.totalCVXInPool()).to.eq(repayAmount);
 
       expect(await locker.totalCVXInPool()).to.eq(constants.Zero);
       expect(await locker.totalDebtGlobal()).to.eq(borrowAmount.sub(repayAmount));
@@ -360,7 +360,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       const cvxAfter = await cvx.balanceOf(alice.address);
       expect(cvxBefore.sub(cvxAfter)).to.eq(repayAmount.add(repayAmount.div(100)));
 
-      expect(await transmuter.totalCVXInPool()).to.eq(repayAmount);
+      expect(await furnace.totalCVXInPool()).to.eq(repayAmount);
 
       expect(await locker.totalCVXInPool()).to.eq(constants.Zero);
       expect(await locker.totalDebtGlobal()).to.eq(borrowAmount.sub(repayAmount));
@@ -383,7 +383,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       const clevCVXAfter = await clevCVX.balanceOf(alice.address);
       expect(clevCVXBefore.sub(clevCVXAfter)).to.eq(repayAmount);
 
-      expect(await transmuter.totalCVXInPool()).to.eq(constants.Zero);
+      expect(await furnace.totalCVXInPool()).to.eq(constants.Zero);
 
       expect(await locker.totalCVXInPool()).to.eq(constants.Zero);
       expect(await locker.totalDebtGlobal()).to.eq(borrowAmount.sub(repayAmount));
@@ -407,7 +407,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       const clevCVXAfter = await clevCVX.balanceOf(alice.address);
       expect(clevCVXBefore.sub(clevCVXAfter)).to.eq(repayAmount.add(repayAmount.div(100)));
 
-      expect(await transmuter.totalCVXInPool()).to.eq(constants.Zero);
+      expect(await furnace.totalCVXInPool()).to.eq(constants.Zero);
 
       expect(await locker.totalCVXInPool()).to.eq(constants.Zero);
       expect(await locker.totalDebtGlobal()).to.eq(borrowAmount.sub(repayAmount));
@@ -427,7 +427,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       await cvx.approve(locker.address, repayAmount);
       await locker.connect(signer).donate(repayAmount);
 
-      expect(await transmuter.totalCVXInPool()).to.eq(repayAmount);
+      expect(await furnace.totalCVXInPool()).to.eq(repayAmount);
 
       expect(await locker.totalCVXInPool()).to.eq(constants.Zero);
       // not change until user interacted with contract
@@ -456,7 +456,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       await cvx.approve(locker.address, repayAmount.add(borrowAmount));
       await locker.connect(signer).donate(repayAmount.add(borrowAmount));
 
-      expect(await transmuter.totalCVXInPool()).to.eq(repayAmount.add(borrowAmount));
+      expect(await furnace.totalCVXInPool()).to.eq(repayAmount.add(borrowAmount));
 
       expect(await locker.totalCVXInPool()).to.eq(constants.Zero);
       // not change until user interacted with contract

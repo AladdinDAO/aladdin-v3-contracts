@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface ITransmuter {
+interface IFurnace {
   event Deposit(address indexed _account, uint256 _amount);
   event Withdraw(address indexed _account, address _recipient, uint256 _amount);
   event Claim(address indexed _account, address _recipient, uint256 _amount);

@@ -1,20 +1,20 @@
 /* eslint-disable node/no-missing-import */
 import { ethers } from "hardhat";
 import { Action, encodePoolHintV2, PoolType } from "../test/utils";
-import { AladdinZap, CLeverCVXLocker, CLeverToken, ProxyAdmin, Transmuter } from "../typechain";
+import { AladdinZap, CLeverCVXLocker, CLeverToken, ProxyAdmin, Furnace } from "../typechain";
 
 const config: {
   proxyAdmin?: string;
   aladdinZap?: string;
   clevCVX?: string;
-  transmuter?: string;
+  furnace?: string;
   cvxLocker?: string;
 } = {
-  proxyAdmin: "0xA5C45440dc6CE020a21B374A753260FeA1A908DD",
-  aladdinZap: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
-  clevCVX: "0xf9Ee4aBCBA5823148850BA49d93238177accbB64",
-  transmuter: "0xc0d436ba02Ac6b793ada0a5Cedb658a6f7E0532d",
-  cvxLocker: "0xD7CfcdDeACB9c829aa240eb71dC6ae7e6C883d4B",
+  proxyAdmin: "0xf05e58fCeA29ab4dA01A495140B349F8410Ba904",
+  aladdinZap: "0xCe4dCc5028588377E279255c0335Effe2d7aB72a",
+  clevCVX: "0xdC846CcbCe1Be474E6410445ef5223CA00eCed94",
+  furnace: "0xa85C8645D094FfA36CBD41554F0Dd484EBb99D19",
+  cvxLocker: "0x86b7631F4c11750Da2b4494696b8953E5F1D0ddf",
 };
 
 const PLATFORM = "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F";
@@ -26,7 +26,7 @@ const CVXCRV = "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7";
 let proxyAdmin: ProxyAdmin;
 let aladdinZap: AladdinZap;
 let clevCVX: CLeverToken;
-let transmuter: Transmuter;
+let furnace: Furnace;
 let cvxLocker: CLeverCVXLocker;
 
 async function main() {
@@ -69,14 +69,14 @@ async function main() {
     console.log("Deploy clevCVX at:", clevCVX.address);
   }
 
-  if (config.transmuter) {
-    transmuter = await ethers.getContractAt("Transmuter", config.transmuter, deployer);
-    console.log("Found Transmuter at:", transmuter.address);
+  if (config.furnace) {
+    furnace = await ethers.getContractAt("Furnace", config.furnace, deployer);
+    console.log("Found Furnace at:", furnace.address);
   } else {
-    const Transmuter = await ethers.getContractFactory("Transmuter", deployer);
-    const impl = await Transmuter.deploy();
+    const Furnace = await ethers.getContractFactory("Furnace", deployer);
+    const impl = await Furnace.deploy();
     await impl.deployed();
-    console.log("Deploy Transmuter Impl at:", impl.address);
+    console.log("Deploy Furnace Impl at:", impl.address);
 
     const data = impl.interface.encodeFunctionData("initialize", [
       deployer.address,
@@ -89,8 +89,8 @@ async function main() {
     const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
     const proxy = await TransparentUpgradeableProxy.deploy(impl.address, proxyAdmin.address, data);
     await proxy.deployed();
-    transmuter = await ethers.getContractAt("Transmuter", proxy.address, deployer);
-    console.log("Deploy Transmuter at:", transmuter.address);
+    furnace = await ethers.getContractAt("Furnace", proxy.address, deployer);
+    console.log("Deploy Furnace at:", furnace.address);
   }
 
   if (config.cvxLocker) {
@@ -106,7 +106,7 @@ async function main() {
       deployer.address,
       clevCVX.address,
       aladdinZap.address,
-      transmuter.address,
+      furnace.address,
       PLATFORM,
       PLATFORM_FEE_PERCENTAGE,
       HARVEST_BOUNTY_PERCENTAGE,
@@ -135,7 +135,7 @@ async function main() {
   ]);
 
   await cvxLocker.updateReserveRate(500000000);
-  await transmuter.updateWhitelists([cvxLocker.address], true);
+  await furnace.updateWhitelists([cvxLocker.address], true);
 
   // for test only
   await clevCVX.updateMinters([deployer.address, cvxLocker.address], true);

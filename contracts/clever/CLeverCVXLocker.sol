@@ -11,7 +11,7 @@ import "../interfaces/ICLeverCVXLocker.sol";
 import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IConvexCVXLocker.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
-import "../interfaces/ITransmuter.sol";
+import "../interfaces/IFurnace.sol";
 import "../interfaces/ISnapshotDelegateRegistry.sol";
 import "../interfaces/IZap.sol";
 
@@ -115,8 +115,8 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   mapping(address => UserInfo) public userInfo;
   /// @dev Mapping from epoch number to the amount of CVX to be unlocked.
   mapping(uint256 => uint256) public pendingUnlocked;
-  /// @dev The address of Transmuter Contract.
-  address public transmuter;
+  /// @dev The address of Furnace Contract.
+  address public furnace;
   /// @dev The percentage of free CVX will be staked in CVXRewardPool.
   uint256 public stakePercentage;
   /// @dev The minimum of amount of CVX to be staked.
@@ -154,7 +154,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     address _governor,
     address _clevCVX,
     address _zap,
-    address _transmuter,
+    address _furnace,
     address _platform,
     uint256 _platformFeePercentage,
     uint256 _harvestBountyPercentage
@@ -164,7 +164,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     require(_governor != address(0), "CLeverCVXLocker: zero governor address");
     require(_clevCVX != address(0), "CLeverCVXLocker: zero clevCVX address");
     require(_zap != address(0), "CLeverCVXLocker: zero zap address");
-    require(_transmuter != address(0), "CLeverCVXLocker: zero transmuter address");
+    require(_furnace != address(0), "CLeverCVXLocker: zero furnace address");
     require(_platform != address(0), "CLeverCVXLocker: zero platform address");
     require(_platformFeePercentage <= MAX_PLATFORM_FEE, "CLeverCVXLocker: fee too large");
     require(_harvestBountyPercentage <= MAX_HARVEST_BOUNTY, "CLeverCVXLocker: fee too large");
@@ -172,7 +172,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     governor = _governor;
     clevCVX = _clevCVX;
     zap = _zap;
-    transmuter = _transmuter;
+    furnace = _furnace;
     platform = _platform;
     platformFeePercentage = _platformFeePercentage;
     harvestBountyPercentage = _harvestBountyPercentage;
@@ -430,15 +430,15 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
       _totalDebt = _totalDebt - _cvxAmount; // never overflow
       _totalDebtGlobal = _totalDebtGlobal - _cvxAmount; // never overflow
 
-      // distribute to transmuter and transfer fee to platform
+      // distribute to furnace and transfer fee to platform
       IERC20Upgradeable(CVX).safeTransferFrom(msg.sender, address(this), _cvxAmount + _fee);
       if (_fee > 0) {
         IERC20Upgradeable(CVX).safeTransfer(platform, _fee);
       }
-      address _transmuter = transmuter;
-      IERC20Upgradeable(CVX).safeApprove(_transmuter, 0);
-      IERC20Upgradeable(CVX).safeApprove(_transmuter, _cvxAmount);
-      ITransmuter(_transmuter).distribute(address(this), _cvxAmount);
+      address _furnace = furnace;
+      IERC20Upgradeable(CVX).safeApprove(_furnace, 0);
+      IERC20Upgradeable(CVX).safeApprove(_furnace, _cvxAmount);
+      IFurnace(_furnace).distribute(address(this), _cvxAmount);
     }
 
     // 4. check repay with clevCVX
@@ -464,8 +464,8 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev Borrow clevCVX from this contract.
   ///      Notice the reward will be used first and it will not be treated as debt.
   /// @param _amount The amount of clevCVX to borrow.
-  /// @param _depositToTransmuter Whether to deposit borrowed clevCVX to transmuter.
-  function borrow(uint256 _amount, bool _depositToTransmuter) external override {
+  /// @param _depositToFurnace Whether to deposit borrowed clevCVX to furnace.
+  function borrow(uint256 _amount, bool _depositToFurnace) external override {
     require(_amount > 0, "CLeverCVXLocker: borrow zero amount");
 
     // 1. update reward info
@@ -494,7 +494,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
       totalDebtGlobal = totalDebtGlobal + _borrowWithLocked; // should not overflow.
     }
 
-    _mintOrDeposit(_amount, _depositToTransmuter);
+    _mintOrDeposit(_amount, _depositToFurnace);
 
     emit Borrow(msg.sender, _amount);
   }
@@ -731,6 +731,15 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     }
   }
 
+  /// @dev Update keepers.
+  /// @param _accounts The address list of keepers to update.
+  /// @param _status The status of updated keepers.
+  function updateKeepers(address[] memory _accounts, bool _status) external onlyGovernorOrOwner {
+    for (uint256 i = 0; i < _accounts.length; i++) {
+      isKeeper[_accounts[i]] = _status;
+    }
+  }
+
   /********************************** Internal Functions **********************************/
 
   /// @dev Internal function called by `deposit`, `unlock`, `withdrawUnlocked`, `repay`, `borrow` and `claim`.
@@ -831,11 +840,11 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
       accRewardPerShare = accRewardPerShare.add(_amount.mul(PRECISION) / uint256(_totalLockedGlobal));
     }
 
-    // 2. distribute reward CVX to Transmuter
-    address _transmuter = transmuter;
-    IERC20Upgradeable(CVX).safeApprove(_transmuter, 0);
-    IERC20Upgradeable(CVX).safeApprove(_transmuter, _amount);
-    ITransmuter(_transmuter).distribute(address(this), _amount);
+    // 2. distribute reward CVX to Furnace
+    address _furnace = furnace;
+    IERC20Upgradeable(CVX).safeApprove(_furnace, 0);
+    IERC20Upgradeable(CVX).safeApprove(_furnace, _amount);
+    IFurnace(_furnace).distribute(address(this), _amount);
 
     // 3. stake extra CVX to cvxRewardPool
     uint256 _balanceStaked = IConvexCVXRewardPool(CVX_REWARD_POOL).balanceOf(address(this));
@@ -854,16 +863,16 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
 
   /// @dev Internal function used to help to mint clevCVX.
   /// @param _amount The amount of clevCVX to mint.
-  /// @param _depositToTransmuter Whether to deposit the minted clevCVX to transmuter.
-  function _mintOrDeposit(uint256 _amount, bool _depositToTransmuter) internal {
-    if (_depositToTransmuter) {
+  /// @param _depositToFurnace Whether to deposit the minted clevCVX to furnace.
+  function _mintOrDeposit(uint256 _amount, bool _depositToFurnace) internal {
+    if (_depositToFurnace) {
       address _clevCVX = clevCVX;
-      address _transmuter = transmuter;
-      // stake clevCVX to transmuter.
+      address _furnace = furnace;
+      // stake clevCVX to furnace.
       ICLeverToken(_clevCVX).mint(address(this), _amount);
-      IERC20Upgradeable(_clevCVX).safeApprove(_transmuter, 0);
-      IERC20Upgradeable(_clevCVX).safeApprove(_transmuter, _amount);
-      ITransmuter(_transmuter).depositFor(msg.sender, _amount);
+      IERC20Upgradeable(_clevCVX).safeApprove(_furnace, 0);
+      IERC20Upgradeable(_clevCVX).safeApprove(_furnace, _amount);
+      IFurnace(_furnace).depositFor(msg.sender, _amount);
     } else {
       // transfer clevCVX to sender.
       ICLeverToken(clevCVX).mint(msg.sender, _amount);
