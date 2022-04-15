@@ -466,7 +466,6 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
     uint256 _totalUnrealised = totalUnrealised;
     uint256 _totalRealised = totalRealised;
     uint128 _accUnrealisedFraction = accUnrealisedFraction;
-    uint256 _burnAmount;
     // 1. distribute CVX rewards
     if (_amount >= _totalUnrealised) {
       // In this case, all unrealised clevCVX are paid off.
@@ -475,16 +474,12 @@ contract Transmuter is OwnableUpgradeable, ITransmuter {
 
       accUnrealisedFraction = 0;
       lastPaidOffDistributeIndex = distributeIndex;
-
-      _burnAmount = _totalUnrealised;
     } else {
       totalUnrealised = uint128(_totalUnrealised - _amount);
       totalRealised = _toU128(_totalRealised + _amount);
 
       uint128 _fraction = _toU128(((_totalUnrealised - _amount) * E128) / _totalUnrealised); // mul never overflow
       accUnrealisedFraction = _mul128(_accUnrealisedFraction, _fraction);
-
-      _burnAmount = _amount;
     }
 
     // 2. stake extra CVX to cvxRewardPool

@@ -36,7 +36,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   // The denominator used for fee calculation.
   uint256 private constant FEE_DENOMINATOR = 1e9;
   // The maximum value of repay fee percentage.
-  uint256 private constant MAX_REPAY_FEE = 1e7; // 1%
+  uint256 private constant MAX_REPAY_FEE = 1e8; // 10%
   // The maximum value of platform fee percentage.
   uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
   // The maximum value of harvest bounty percentage.
@@ -137,8 +137,16 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev The address of recipient of platform fee
   address public platform;
 
+  /// @dev The list of whitelist keeper.
+  mapping(address => bool) public isKeeper;
+
   modifier onlyGovernorOrOwner() {
     require(msg.sender == governor || msg.sender == owner(), "CLeverCVXLocker: only governor or owner");
+    _;
+  }
+
+  modifier onlyKeeper() {
+    require(isKeeper[msg.sender], "CLeverCVXLocker: only keeper");
     _;
   }
 
@@ -240,8 +248,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     uint256 _currentEpoch = block.timestamp / REWARDS_DURATION;
     uint256 lengthLocks;
     for (uint256 i = 0; i < 17; i++) {
-      uint256 _index = (_currentEpoch + i + 1) % 17;
-      if (_info.epochLocked[_index] > 0) {
+      if (_info.epochLocked[i] > 0) {
         lengthLocks++;
       }
     }
@@ -548,6 +555,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   function harvestVotium(IVotiumMultiMerkleStash.claimParam[] calldata claims, uint256 _minimumOut)
     external
     override
+    onlyKeeper
     returns (uint256)
   {
     // 1. claim reward from votium
