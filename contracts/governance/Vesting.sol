@@ -55,7 +55,7 @@ contract Vesting is Ownable {
     uint256 _amount,
     uint256 _startTime,
     uint256 _endTime
-  ) external {
+  ) external onlyOwner {
     require(vesting[_recipient].vestedAmount == 0, "Vesting: already vested");
     require(_startTime < _endTime && _endTime < uint64(-1), "Vesting: invalid timestamp");
 

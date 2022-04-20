@@ -12,6 +12,8 @@ interface IVotiumMultiMerkleStash {
     bytes32[] merkleProof;
   }
 
+  function isClaimed(address token, uint256 index) external view returns (bool);
+
   function claim(
     address token,
     uint256 index,

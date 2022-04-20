@@ -559,11 +559,23 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     returns (uint256)
   {
     // 1. claim reward from votium
-    IVotiumMultiMerkleStash(VOTIUM_DISTRIBUTOR).claimMulti(address(this), claims);
+    for (uint256 i = 0; i < claims.length; i++) {
+      // in case someone has claimed the reward for this contract, we can still call this function to process reward.
+      if (!IVotiumMultiMerkleStash(VOTIUM_DISTRIBUTOR).isClaimed(claims[i].token, claims[i].index)) {
+        IVotiumMultiMerkleStash(VOTIUM_DISTRIBUTOR).claim(
+          claims[i].token,
+          claims[i].index,
+          address(this),
+          claims[i].amount,
+          claims[i].merkleProof
+        );
+      }
+    }
     address[] memory _rewardTokens = new address[](claims.length);
     uint256[] memory _amounts = new uint256[](claims.length);
     for (uint256 i = 0; i < claims.length; i++) {
       _rewardTokens[i] = claims[i].token;
+      // TODO: consider fee on transfer token (currently, such token doesn't exsist)
       _amounts[i] = claims[i].amount;
     }
 
@@ -588,7 +600,11 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   }
 
   /// @dev Process unlocked CVX in CVXLockerV2.
-  function processUnlockableCVX() external {
+  ///
+  /// This function should be called every week if
+  ///   1. `pendingUnlocked[currentEpoch]` is nonzero.
+  ///   2. some CVX is unlocked in current epoch.
+  function processUnlockableCVX() external onlyKeeper {
     // Be careful that someone may kick us out from CVXLockerV2
     // `totalUnlockedGlobal` keep track the amount of CVX unlocked from CVXLockerV2
     // all other CVX in this contract can be considered unlocked from CVXLockerV2 by someone else.
