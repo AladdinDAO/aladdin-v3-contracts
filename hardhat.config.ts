@@ -2,6 +2,7 @@ import * as dotenv from "dotenv";
 
 import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
+import "@nomiclabs/hardhat-vyper";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
@@ -36,6 +37,9 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  vyper: {
+    compilers: [{ version: "0.3.1" }, { version: "0.2.7" }],
+  },
   networks: {
     hardhat: {
       forking: {
@@ -54,7 +58,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     mainnetfork: {
-      url: "http://47.242.234.5:10547",
+      url: "http://47.242.46.45:10547",
       chainId: 10547,
       gas: 6700000,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],

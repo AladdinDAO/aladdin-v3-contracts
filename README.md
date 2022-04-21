@@ -42,8 +42,4 @@ npx hardhat test
 
 ## Deployment
 
-+ ProxyAdmin: 0x12b1326459d72F2Ab081116bf27ca46cD97762A0
-+ AladdinCRV: 0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884
-+ AladdinConvexVault: 0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8
-+ AladdinCRVZap: 0x5EB30ce188B0abb89A942cED6Cbe114F4d852082
-+ AladdinConvexVaultZap: 0x71Fb0cc62139766383C0F09F1E31375023592841
+see: [Deployments](https://github.com/AladdinDAO/deployments).

@@ -29,7 +29,7 @@ import "../interfaces/IWETH.sol";
 
 // solhint-disable reason-string, const-name-snakecase
 
-/// @dev This is a general zap contract for Transmuter and AladdinCVXLocker.
+/// @dev This is a general zap contract for Furnace and AladdinCVXLocker.
 contract AladdinZap is OwnableUpgradeable, IZap {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;

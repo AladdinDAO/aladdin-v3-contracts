@@ -88,6 +88,8 @@ const wstETH = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0";
 const wstETH_HOLDER = "0x3991ADBDf461D6817734555efDC8ef056fEfBF21";
 const UST_WORMHOLE = "0xa693B19d2931d498c5B318dF961919BB4aee87a5";
 const UST_WORMHOLE_HOLDER = "0x54195F35c93E7CD74fA5345c179fD06223Cd9eDB";
+const UST_TERRA = "0xa47c8bf37f92aBed4A126BDA807A7b7498661acD";
+const UST_TERRA_HOLDER = "0x2FAF487A4414Fe77e2327F0bf4AE2a264a776AD2";
 
 const LDO = "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32";
 
@@ -128,6 +130,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       rETH_HOLDER,
       wstETH_HOLDER,
       UST_WORMHOLE_HOLDER,
+      UST_TERRA_HOLDER,
     ]);
     deployer = await ethers.getSigner(DEPLOYER);
     owner = await ethers.getSigner(OWNER);
@@ -323,6 +326,17 @@ describe("VaultZapMainnetFork.spec", async () => {
             Action.AddLiquidity
           ),
         ]);
+        await zap.updateRoute(WETH, CURVE_FRAX3CRV_TOKEN, [
+          encodePoolHintV2("0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36", PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(
+            CURVE_FRAX3CRV_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            3,
+            3,
+            Action.AddLiquidity
+          ),
+        ]);
       });
 
       it("should succeed, when deposit with frax", async () => {
@@ -382,6 +396,18 @@ describe("VaultZapMainnetFork.spec", async () => {
         const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, usdt.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
         await vault.connect(signer).zapAndDeposit(pid, usdt.address, amountIn, 0);
+        expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
+      });
+
+      it("should succeed, when deposit with WETH", async () => {
+        const amountIn = ethers.utils.parseUnits("30", 18);
+        const sharesOut = ethers.utils.parseEther("75075.705338689649872635");
+        const signer = await ethers.getSigner(WETH_HOLDER);
+        const weth = await ethers.getContractAt("IERC20", WETH, signer);
+        await weth.approve(vault.address, constants.MaxUint256);
+        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, weth.address, amountIn, 0);
+        expect(shares).to.eq(sharesOut);
+        await vault.connect(signer).zapAndDeposit(pid, weth.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
     });
@@ -635,6 +661,10 @@ describe("VaultZapMainnetFork.spec", async () => {
         await zap.updateRoute(CVXCRV, CURVE_CVXCRV_TOKEN, [
           encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
         ]);
+        await zap.updateRoute(WETH, CURVE_CVXCRV_TOKEN, [
+          encodePoolHintV2(CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
+        ]);
       });
 
       it("should succeed, when deposit with CRV", async () => {
@@ -662,6 +692,20 @@ describe("VaultZapMainnetFork.spec", async () => {
         const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, cvxcrv.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
         await vault.connect(signer).zapAndDeposit(pid, cvxcrv.address, amountIn, 0);
+        expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
+      });
+
+      it("should succeed, when deposit with WETH", async () => {
+        const amountIn = ethers.utils.parseUnits("30", 18);
+        const sharesOut = ethers.utils.parseEther("40045.947149564208716637");
+        const signer = await ethers.getSigner(WETH_HOLDER);
+        await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
+
+        const weth = await ethers.getContractAt("IERC20", WETH, signer);
+        await weth.approve(vault.address, constants.MaxUint256);
+        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, weth.address, amountIn, 0);
+        expect(shares).to.eq(sharesOut);
+        await vault.connect(signer).zapAndDeposit(pid, weth.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
     });
@@ -944,6 +988,12 @@ describe("VaultZapMainnetFork.spec", async () => {
         await zap.updateRoute(CVXFXS, CURVE_CVXFXS_TOKEN, [
           encodePoolHintV2(CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
         ]);
+        await zap.updateRoute(WETH, CURVE_CVXFXS_TOKEN, [
+          encodePoolHintV2("0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640", PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2("0xc63B0708E2F7e69CB8A1df0e1389A98C35A76D52", PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2("0xE1573B9D29e2183B1AF0e743Dc2754979A40D237", PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        ]);
       });
 
       it("should succeed, when deposit with FXS", async () => {
@@ -971,6 +1021,20 @@ describe("VaultZapMainnetFork.spec", async () => {
         const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, cvxfxs.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
         await vault.connect(signer).zapAndDeposit(pid, cvxfxs.address, amountIn, 0);
+        expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
+      });
+
+      it("should succeed, when deposit with WETH", async () => {
+        const amountIn = ethers.utils.parseUnits("30", 18);
+        const sharesOut = ethers.utils.parseEther("2183.390505798733598052");
+        const signer = await ethers.getSigner(WETH_HOLDER);
+        await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
+
+        const weth = await ethers.getContractAt("IERC20", WETH, signer);
+        await weth.approve(vault.address, constants.MaxUint256);
+        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, weth.address, amountIn, 0);
+        expect(shares).to.eq(sharesOut);
+        await vault.connect(signer).zapAndDeposit(pid, weth.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
     });
@@ -1038,6 +1102,10 @@ describe("VaultZapMainnetFork.spec", async () => {
         await zap.updateRoute(USDT, CURVE_TRICRV_TOKEN, [
           encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.AddLiquidity),
         ]);
+        await zap.updateRoute(WETH, CURVE_TRICRV_TOKEN, [
+          encodePoolHintV2("0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36", PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.AddLiquidity),
+        ]);
       });
 
       it("should succeed, when deposit with DAI", async () => {
@@ -1073,6 +1141,18 @@ describe("VaultZapMainnetFork.spec", async () => {
         const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, usdt.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
         await vault.connect(signer).zapAndDeposit(pid, usdt.address, amountIn, 0);
+        expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
+      });
+
+      it("should succeed, when deposit with WETH", async () => {
+        const amountIn = ethers.utils.parseUnits("30", 18);
+        const sharesOut = ethers.utils.parseEther("74122.155275151535150722");
+        const signer = await ethers.getSigner(WETH_HOLDER);
+        const weth = await ethers.getContractAt("IERC20", WETH, signer);
+        await weth.approve(vault.address, constants.MaxUint256);
+        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, weth.address, amountIn, 0);
+        expect(shares).to.eq(sharesOut);
+        await vault.connect(signer).zapAndDeposit(pid, weth.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
     });
@@ -1179,9 +1259,31 @@ describe("VaultZapMainnetFork.spec", async () => {
             Action.AddLiquidity
           ),
         ]);
+        await zap.updateRoute(UST_TERRA, CURVE_UST_WORMHOLE_TOKEN, [
+          encodePoolHintV2("0x18D96B617a3e5C42a2Ada4bC5d1B48e223f17D0D", PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(
+            CURVE_UST_WORMHOLE_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            2,
+            2,
+            Action.AddLiquidity
+          ),
+        ]);
+        await zap.updateRoute(WETH, CURVE_UST_WORMHOLE_TOKEN, [
+          encodePoolHintV2("0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36", PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(
+            CURVE_UST_WORMHOLE_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            3,
+            3,
+            Action.AddLiquidity
+          ),
+        ]);
       });
 
-      it("should succeed, when deposit with ust", async () => {
+      /*it("should succeed, when deposit with UST-Wormhole", async () => {
         const amountIn = ethers.utils.parseUnits("10000", 6);
         const sharesOut = ethers.utils.parseEther("9988.140881346350453848");
         const signer = await ethers.getSigner(UST_WORMHOLE_HOLDER);
@@ -1238,6 +1340,30 @@ describe("VaultZapMainnetFork.spec", async () => {
         const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, usdt.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
         await vault.connect(signer).zapAndDeposit(pid, usdt.address, amountIn, 0);
+        expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
+      });*/
+
+      it("should succeed, when deposit with UST-Terra", async () => {
+        const amountIn = ethers.utils.parseUnits("10000", 18);
+        const sharesOut = ethers.utils.parseEther("9997.398219447987400946");
+        const signer = await ethers.getSigner(UST_TERRA_HOLDER);
+        const ust = await ethers.getContractAt("IERC20", UST_TERRA, signer);
+        await ust.approve(vault.address, constants.MaxUint256);
+        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, ust.address, amountIn, 0);
+        expect(shares).to.eq(sharesOut);
+        await vault.connect(signer).zapAndDeposit(pid, ust.address, amountIn, 0);
+        expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
+      });
+
+      it("should succeed, when deposit with WETH", async () => {
+        const amountIn = ethers.utils.parseUnits("30", 18);
+        const sharesOut = ethers.utils.parseEther("75296.803641493208462879");
+        const signer = await ethers.getSigner(WETH_HOLDER);
+        const weth = await ethers.getContractAt("IERC20", WETH, signer);
+        await weth.approve(vault.address, constants.MaxUint256);
+        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, weth.address, amountIn, 0);
+        expect(shares).to.eq(sharesOut);
+        await vault.connect(signer).zapAndDeposit(pid, weth.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
     });

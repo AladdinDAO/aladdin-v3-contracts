@@ -52,6 +52,7 @@ const ADDRESS: { [name: string]: string } = {
   rETH: "0xae78736Cd615f374D3085123A210448E74Fc6393",
   wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
   UST_WORMHOLE: "0xa693B19d2931d498c5B318dF961919BB4aee87a5",
+  UST_TERRA: "0xa47c8bf37f92aBed4A126BDA807A7b7498661acD",
   // pid = 0
   CURVE_STETH_POOL: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
   CURVE_STETH_TOKEN: "0x06325440D014e39736583c165C2963BA99fAf14E",
@@ -82,6 +83,17 @@ const ADDRESS: { [name: string]: string } = {
   // pid = 9
   CURVE_ROCKETETH_POOL: "0x447Ddd4960d9fdBF6af9a790560d0AF76795CB08",
   CURVE_ROCKETETH_TOKEN: "0x447Ddd4960d9fdBF6af9a790560d0AF76795CB08",
+  // Uniswap V2 pool
+  LDO_WETH_UNIV2: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
+  FXS_WETH_UNIV2: "0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23",
+  FXS_FRAX_UNIV2: "0xE1573B9D29e2183B1AF0e743Dc2754979A40D237",
+  // Uniswap V3 pool
+  USDC_WETH_UNIV3: "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+  USDC_USDT_UNIV3: "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
+  WETH_USDT_UNIV3: "0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36",
+  USDC_UST_TERRA_UNIV3: "0x18D96B617a3e5C42a2Ada4bC5d1B48e223f17D0D",
+  FRAX_USDC_UNIV3: "0xc63B0708E2F7e69CB8A1df0e1389A98C35A76D52",
+  // Balancer V2
 };
 
 const VAULTS: {
@@ -209,12 +221,21 @@ const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }[] = [
   {
     from: "LDO",
     to: "WETH",
-    routes: [encodePoolHintV2("0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a", PoolType.UniswapV2, 2, 0, 1, Action.Swap)],
+    routes: [encodePoolHintV2(ADDRESS.LDO_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap)],
   },
   {
     from: "FXS",
     to: "WETH",
-    routes: [encodePoolHintV2("0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23", PoolType.UniswapV2, 2, 0, 1, Action.Swap)],
+    routes: [encodePoolHintV2(ADDRESS.FXS_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap)],
+  },
+  {
+    from: "CVXCRV", // cvxCRV => CRV => WETH => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
   },
 ];
 
@@ -235,6 +256,13 @@ const ZAP_VAULT_ROUTES: {
       {
         token: "stETH",
         routes: [encodePoolHintV2(ADDRESS.CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity)],
+      },
+      {
+        token: "USDC", // USDC => WETH => CURVE_STETH
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        ],
       },
     ],
     remove: [
@@ -292,6 +320,20 @@ const ZAP_VAULT_ROUTES: {
       {
         token: "USDT",
         routes: [
+          encodePoolHintV2(
+            ADDRESS.CURVE_FRAX3CRV_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            3,
+            3,
+            Action.AddLiquidity
+          ),
+        ],
+      },
+      {
+        token: "WETH", // WETH => USDT => FRAX3CRV
+        routes: [
+          encodePoolHintV2(ADDRESS.WETH_USDT_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
           encodePoolHintV2(
             ADDRESS.CURVE_FRAX3CRV_POOL,
             PoolType.CurveFactoryUSDMetaPoolUnderlying,
@@ -378,6 +420,13 @@ const ZAP_VAULT_ROUTES: {
           encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.AddLiquidity),
         ],
       },
+      {
+        token: "USDC", // USDC => USDT => CURVE_TRICRYPTO
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_USDT_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.AddLiquidity),
+        ],
+      },
     ],
     remove: [
       {
@@ -415,6 +464,21 @@ const ZAP_VAULT_ROUTES: {
           encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
         ],
       },
+      {
+        token: "WETH", // WETH => CRV => CURVE_CVXCRV
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "USDC", // USDC => WETH => CRV => CURVE_CVXCRV
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
+        ],
+      },
     ],
     remove: [
       {
@@ -441,6 +505,13 @@ const ZAP_VAULT_ROUTES: {
       {
         token: "CRV",
         routes: [encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      },
+      {
+        token: "USDC", // USDC => WETH => CURVE_CRVETH
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        ],
       },
     ],
     remove: [
@@ -469,6 +540,13 @@ const ZAP_VAULT_ROUTES: {
         token: "CVX",
         routes: [encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
       },
+      {
+        token: "USDC", // USDC => WETH => CURVE_CVXETH
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        ],
+      },
     ],
     remove: [
       {
@@ -495,6 +573,23 @@ const ZAP_VAULT_ROUTES: {
       {
         token: "CVXFXS",
         routes: [encodePoolHintV2(ADDRESS.CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      },
+      {
+        token: "WETH", // WETH => USDC => FRAX => FXS
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "USDC", // USDC => FRAX => FXS
+        routes: [
+          encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        ],
       },
     ],
     remove: [
@@ -526,6 +621,13 @@ const ZAP_VAULT_ROUTES: {
       {
         token: "USDT",
         routes: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.AddLiquidity)],
+      },
+      {
+        token: "WETH", // WETH => USDT => 3CRV
+        routes: [
+          encodePoolHintV2(ADDRESS.WETH_USDT_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.AddLiquidity),
+        ],
       },
     ],
     remove: [
@@ -607,6 +709,34 @@ const ZAP_VAULT_ROUTES: {
             4,
             3,
             3,
+            Action.AddLiquidity
+          ),
+        ],
+      },
+      {
+        token: "WETH", // WETH => USDT => CURVE_UST_WORMHOLE
+        routes: [
+          encodePoolHintV2(ADDRESS.WETH_USDT_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(
+            ADDRESS.CURVE_UST_WORMHOLE_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            3,
+            3,
+            Action.AddLiquidity
+          ),
+        ],
+      },
+      {
+        token: "UST_TERRA", // UST_TERRA => USDC => CURVE_UST_WORMHOLE
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_UST_TERRA_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(
+            ADDRESS.CURVE_UST_WORMHOLE_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            2,
+            2,
             Action.AddLiquidity
           ),
         ],
@@ -703,8 +833,17 @@ const ZAP_VAULT_ROUTES: {
         ],
       },
       {
-        token: "WETH",
+        token: "WETH", // WETH => stETH => wstETh => CURVE_ROCKETETH
         routes: [
+          encodePoolHintV2(ADDRESS.stETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity),
+          encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity),
+          encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "USDC", // USDC => WETH => stETH => wstETh => CURVE_ROCKETETH
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
           encodePoolHintV2(ADDRESS.stETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity),
           encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity),
           encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
@@ -763,6 +902,7 @@ let vault: AladdinConvexVault;
 let vaultZap: AladdinConvexVaultZap;
 let aladdinZap: AladdinZap;
 
+// eslint-disable-next-line no-unused-vars
 async function addVaults() {
   for (const { convexId, rewards, withdrawFee, harvestBounty, platformFee } of VAULTS) {
     console.log("Adding pool with pid:", convexId, "rewards:", rewards.join("/"));
@@ -798,6 +938,32 @@ async function setupRoutes() {
   await tx.wait();
 }
 
+// eslint-disable-next-line no-unused-vars
+async function showNewZap() {
+  const newZap = [
+    ["cvxeth", "USDC"],
+    ["cvxcrv", "USDC"],
+    ["steth", "USDC"],
+    ["tricrypto2", "USDC"],
+    ["cvxfxs", "USDC"],
+    ["rocketeth", "USDC"],
+    ["crveth", "USDC"],
+  ];
+  for (const [pool, token] of newZap) {
+    console.log(`zap for token[${token}] of pool[${pool}]:`);
+    const vault = ZAP_VAULT_ROUTES[pool];
+    const add = ZAP_VAULT_ROUTES[pool].add;
+    for (const { token: _token, routes } of add) {
+      if (token === _token) {
+        console.log(
+          `  from[${ADDRESS[token]}] to[${ADDRESS[vault.name + "_TOKEN"]}] routes[${routes.map((x) => x.toString())}]`
+        );
+      }
+    }
+  }
+}
+
+// eslint-disable-next-line no-unused-vars
 async function setupRouteForAladdinZap() {
   console.log("update pool tokens");
   const tx = await aladdinZap.updatePoolTokens(
@@ -981,8 +1147,9 @@ async function main() {
     console.log("Deploy AladdinZap at:", proxy.address);
   }
 
-  await addVaults();
-  await setupRouteForAladdinZap();
+  // await addVaults();
+  // await setupRouteForAladdinZap();
+  // await showNewZap();
 }
 
 // We recommend this pattern to be able to use async/await everywhere
