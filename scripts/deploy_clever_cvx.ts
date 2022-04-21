@@ -1,7 +1,7 @@
 /* eslint-disable node/no-missing-import */
 import { ethers } from "hardhat";
-import { Action, encodePoolHintV2, PoolType } from "../test/utils";
 import { AladdinZap, CLeverCVXLocker, CLeverToken, ProxyAdmin, Furnace } from "../typechain";
+import { ADDRESS, ZAP_SWAP_ROUNTES } from "./config";
 
 const config: {
   proxyAdmin?: string;
@@ -21,11 +21,13 @@ const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
 const PLATFORM = "0xFC08757c505eA28709dF66E54870fB6dE09f0C5E";
 const PLATFORM_FEE_PERCENTAGE = 2e7; // 2%
 const HARVEST_BOUNTY_PERCENTAGE = 1e7; // 1%
+const REPAY_FEE_PERCENTAGE = 5e7; // 5%
 const RESERVE_RATE = 5e8; // 50%
 const STAKE_PERCENTAGE = 8e8; // 80%
 const STAKE_THRESHOLD = ethers.utils.parseEther("10");
-const CVX = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
-const CVXCRV = "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7";
+const MINT_CEILING = ethers.utils.parseEther("1000000");
+const CVX = ADDRESS.CVX;
+const CVXCRV = ADDRESS.CVXCRV;
 
 let proxyAdmin: ProxyAdmin;
 let aladdinZap: AladdinZap;
@@ -38,77 +40,81 @@ async function initialSetup() {
   // 2. crv ==> eth with CurveCryptoPool
   // 3. eth ==> cvx with CurveCryptoPool
   console.log(
-    "setup cvxCRV => CVX route:",
+    "Zap for cvxCRV => CVX:",
     `from[${CVXCRV}]`,
     `to[${CVX}]`,
-    `routes[${encodePoolHintV2(
-      "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8",
-      PoolType.CurveFactoryPlainPool,
-      2,
-      1,
-      0,
-      Action.Swap
-    ).toString()},${encodePoolHintV2(
-      "0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511",
-      PoolType.CurveCryptoPool,
-      2,
-      1,
-      0,
-      Action.Swap
-    ).toString()},${encodePoolHintV2(
-      "0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4",
-      PoolType.CurveCryptoPool,
-      2,
-      0,
-      1,
-      Action.Swap
-    ).toString()}]`
+    `routes[${ZAP_SWAP_ROUNTES.filter(({ from, to }) => from === "CVXCRV" && to === "CVX")[0].routes}]`
   );
 
-  let tx = await cvxLocker.updateReserveRate(RESERVE_RATE);
-  console.log("setup reserve rate in tx:", tx.hash);
-  let receipt = await tx.wait();
-  console.log("done, gas used:", receipt.gasUsed.toString());
+  if (!(await cvxLocker.reserveRate()).eq(RESERVE_RATE)) {
+    const tx = await cvxLocker.updateReserveRate(RESERVE_RATE);
+    console.log("setup reserve rate in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
 
-  tx = await cvxLocker.updateStakePercentage(STAKE_PERCENTAGE);
-  console.log("setup stake percentage in Locker in tx:", tx.hash);
-  receipt = await tx.wait();
-  console.log("done, gas used:", receipt.gasUsed.toString());
+  if (!(await cvxLocker.stakePercentage()).eq(STAKE_PERCENTAGE)) {
+    const tx = await cvxLocker.updateStakePercentage(STAKE_PERCENTAGE);
+    console.log("setup stake percentage in Locker in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
 
-  tx = await cvxLocker.updateStakeThreshold(STAKE_THRESHOLD);
-  console.log("setup stake threshold in Locker in tx:", tx.hash);
-  receipt = await tx.wait();
-  console.log("done, gas used:", receipt.gasUsed.toString());
+  if (!(await cvxLocker.stakeThreshold()).eq(STAKE_THRESHOLD)) {
+    const tx = await cvxLocker.updateStakeThreshold(STAKE_THRESHOLD);
+    console.log("setup stake threshold in Locker in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
 
-  tx = await furnace.updateWhitelists([cvxLocker.address], true);
-  console.log("setup furnace whitelists in tx:", tx.hash);
-  receipt = await tx.wait();
-  console.log("done, gas used:", receipt.gasUsed.toString());
+  if (!(await cvxLocker.isKeeper(KEEPER))) {
+    const tx = await cvxLocker.updateKeepers([KEEPER], true);
+    console.log("setup keeper in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
 
-  tx = await furnace.updateStakePercentage(STAKE_PERCENTAGE);
-  console.log("setup stake percentage in Furnace in tx:", tx.hash);
-  receipt = await tx.wait();
-  console.log("done, gas used:", receipt.gasUsed.toString());
+  if (!(await cvxLocker.repayFeePercentage()).eq(REPAY_FEE_PERCENTAGE)) {
+    const tx = await cvxLocker.updateRepayFeePercentage(REPAY_FEE_PERCENTAGE);
+    console.log("setup repay fee in Locker in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
 
-  tx = await furnace.updateStakeThreshold(STAKE_THRESHOLD);
-  console.log("setup stake threshold in Furnace in tx:", tx.hash);
-  receipt = await tx.wait();
-  console.log("done, gas used:", receipt.gasUsed.toString());
+  if (!(await furnace.isWhitelisted(cvxLocker.address))) {
+    const tx = await furnace.updateWhitelists([cvxLocker.address], true);
+    console.log("setup furnace whitelists in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
 
-  tx = await clevCVX.updateMinters([cvxLocker.address], true);
-  console.log("setup minter in tx:", tx.hash);
-  receipt = await tx.wait();
-  console.log("done, gas used:", receipt.gasUsed.toString());
+  if (!(await furnace.stakePercentage()).eq(STAKE_PERCENTAGE)) {
+    const tx = await furnace.updateStakePercentage(STAKE_PERCENTAGE);
+    console.log("setup stake percentage in Furnace in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
 
-  tx = await clevCVX.updateCeiling(cvxLocker.address, ethers.utils.parseEther("1000000"));
-  console.log("setup minter ceiling in tx:", tx.hash);
-  receipt = await tx.wait();
-  console.log("done, gas used:", receipt.gasUsed.toString());
+  if (!(await furnace.stakeThreshold()).eq(STAKE_THRESHOLD)) {
+    const tx = await furnace.updateStakeThreshold(STAKE_THRESHOLD);
+    console.log("setup stake threshold in Furnace in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
 
-  tx = await cvxLocker.updateKeepers([KEEPER], true);
-  console.log("setup keeper in tx:", tx.hash);
-  receipt = await tx.wait();
-  console.log("done, gas used:", receipt.gasUsed.toString());
+  if (!(await clevCVX.isMinter(cvxLocker.address))) {
+    const tx = await clevCVX.updateMinters([cvxLocker.address], true);
+    console.log("setup minter in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
+
+  if (!(await clevCVX.minterInfo(cvxLocker.address)).ceiling.eq(MINT_CEILING)) {
+    const tx = await clevCVX.updateCeiling(cvxLocker.address, MINT_CEILING);
+    console.log("setup minter ceiling in tx:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("done, gas used:", receipt.gasUsed.toString());
+  }
 }
 
 async function main() {
