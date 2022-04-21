@@ -10,16 +10,20 @@ const config: {
   furnace?: string;
   cvxLocker?: string;
 } = {
-  proxyAdmin: "0xf05e58fCeA29ab4dA01A495140B349F8410Ba904",
-  aladdinZap: "0xCe4dCc5028588377E279255c0335Effe2d7aB72a",
-  clevCVX: "0xdC846CcbCe1Be474E6410445ef5223CA00eCed94",
-  furnace: "0xa85C8645D094FfA36CBD41554F0Dd484EBb99D19",
-  cvxLocker: "0x86b7631F4c11750Da2b4494696b8953E5F1D0ddf",
+  proxyAdmin: "0x12b1326459d72F2Ab081116bf27ca46cD97762A0",
+  aladdinZap: "0x1104b4DF568fa7Af90B1Bed1D78A2F71e748dc8a",
+  clevCVX: "0xf05e58fCeA29ab4dA01A495140B349F8410Ba904",
+  furnace: "0xCe4dCc5028588377E279255c0335Effe2d7aB72a",
+  cvxLocker: "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
 };
 
-const PLATFORM = "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F";
-const PLATFORM_FEE_PERCENTAGE = 2.5e7; // 2.5%
-const HARVEST_BOUNTY_PERCENTAGE = 2.5e7; // 2.5%
+const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
+const PLATFORM = "0xFC08757c505eA28709dF66E54870fB6dE09f0C5E";
+const PLATFORM_FEE_PERCENTAGE = 2e7; // 2%
+const HARVEST_BOUNTY_PERCENTAGE = 1e7; // 1%
+const RESERVE_RATE = 5e8; // 50%
+const STAKE_PERCENTAGE = 8e8; // 80%
+const STAKE_THRESHOLD = ethers.utils.parseEther("10");
 const CVX = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
 const CVXCRV = "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7";
 
@@ -28,6 +32,84 @@ let aladdinZap: AladdinZap;
 let clevCVX: CLeverToken;
 let furnace: Furnace;
 let cvxLocker: CLeverCVXLocker;
+
+async function initialSetup() {
+  // 1. cvxcrv ==> crv with CurveFactoryPlainPool
+  // 2. crv ==> eth with CurveCryptoPool
+  // 3. eth ==> cvx with CurveCryptoPool
+  console.log(
+    "setup cvxCRV => CVX route:",
+    `from[${CVXCRV}]`,
+    `to[${CVX}]`,
+    `routes[${encodePoolHintV2(
+      "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8",
+      PoolType.CurveFactoryPlainPool,
+      2,
+      1,
+      0,
+      Action.Swap
+    ).toString()},${encodePoolHintV2(
+      "0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511",
+      PoolType.CurveCryptoPool,
+      2,
+      1,
+      0,
+      Action.Swap
+    ).toString()},${encodePoolHintV2(
+      "0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4",
+      PoolType.CurveCryptoPool,
+      2,
+      0,
+      1,
+      Action.Swap
+    ).toString()}]`
+  );
+
+  let tx = await cvxLocker.updateReserveRate(RESERVE_RATE);
+  console.log("setup reserve rate in tx:", tx.hash);
+  let receipt = await tx.wait();
+  console.log("done, gas used:", receipt.gasUsed.toString());
+
+  tx = await cvxLocker.updateStakePercentage(STAKE_PERCENTAGE);
+  console.log("setup stake percentage in Locker in tx:", tx.hash);
+  receipt = await tx.wait();
+  console.log("done, gas used:", receipt.gasUsed.toString());
+
+  tx = await cvxLocker.updateStakeThreshold(STAKE_THRESHOLD);
+  console.log("setup stake threshold in Locker in tx:", tx.hash);
+  receipt = await tx.wait();
+  console.log("done, gas used:", receipt.gasUsed.toString());
+
+  tx = await furnace.updateWhitelists([cvxLocker.address], true);
+  console.log("setup furnace whitelists in tx:", tx.hash);
+  receipt = await tx.wait();
+  console.log("done, gas used:", receipt.gasUsed.toString());
+
+  tx = await furnace.updateStakePercentage(STAKE_PERCENTAGE);
+  console.log("setup stake percentage in Furnace in tx:", tx.hash);
+  receipt = await tx.wait();
+  console.log("done, gas used:", receipt.gasUsed.toString());
+
+  tx = await furnace.updateStakeThreshold(STAKE_THRESHOLD);
+  console.log("setup stake threshold in Furnace in tx:", tx.hash);
+  receipt = await tx.wait();
+  console.log("done, gas used:", receipt.gasUsed.toString());
+
+  tx = await clevCVX.updateMinters([cvxLocker.address], true);
+  console.log("setup minter in tx:", tx.hash);
+  receipt = await tx.wait();
+  console.log("done, gas used:", receipt.gasUsed.toString());
+
+  tx = await clevCVX.updateCeiling(cvxLocker.address, ethers.utils.parseEther("1000000"));
+  console.log("setup minter ceiling in tx:", tx.hash);
+  receipt = await tx.wait();
+  console.log("done, gas used:", receipt.gasUsed.toString());
+
+  tx = await cvxLocker.updateKeepers([KEEPER], true);
+  console.log("setup keeper in tx:", tx.hash);
+  receipt = await tx.wait();
+  console.log("done, gas used:", receipt.gasUsed.toString());
+}
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -118,30 +200,7 @@ async function main() {
     console.log("Deploy CLeverCVXLocker at:", cvxLocker.address);
   }
 
-  // 1. cvxcrv ==> crv with CurveFactoryPlainPool
-  // 2. crv ==> eth with CurveCryptoPool
-  // 3. eth ==> cvx with UniswapV2
-  await aladdinZap.updateRoute(CVXCRV, CVX, [
-    encodePoolHintV2(
-      "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8",
-      PoolType.CurveFactoryPlainPool,
-      2,
-      1,
-      0,
-      Action.Swap
-    ),
-    encodePoolHintV2("0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511", PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
-    encodePoolHintV2("0x05767d9EF41dC40689678fFca0608878fb3dE906", PoolType.UniswapV2, 2, 1, 0, Action.Swap),
-  ]);
-
-  await cvxLocker.updateReserveRate(500000000);
-  await furnace.updateWhitelists([cvxLocker.address], true);
-
-  // for test only
-  await clevCVX.updateMinters([deployer.address, cvxLocker.address], true);
-  await clevCVX.updateCeiling(deployer.address, ethers.utils.parseEther("100000000"));
-  await clevCVX.updateCeiling(cvxLocker.address, ethers.utils.parseEther("100000000"));
-  await cvxLocker.updateStakePercentage(500000000);
+  await initialSetup();
 }
 
 // We recommend this pattern to be able to use async/await everywhere
