@@ -1,0 +1,227 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.7.6;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+
+import "../../interfaces/IAladdinCRV.sol";
+import "../interfaces/IAnyCallProxy.sol";
+import "../interfaces/IAnyswapRouter.sol";
+import "../interfaces/ICrossChainCallProxy.sol";
+import "../interfaces/ILayer2CRVDepositor.sol";
+import "../interfaces/ILayer1ACRVProxy.sol";
+
+// solhint-disable no-empty-blocks
+abstract contract Layer1ACRVProxyBase is ILayer1ACRVProxy {
+  using SafeERC20 for IERC20;
+
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+  /// @dev The denominator used to calculate cross chain fee.
+  uint256 internal constant FEE_DENOMINATOR = 1e9;
+  /// @dev The address of AladdinCRV contract.
+  address internal constant ACRV = 0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884;
+  /// @dev The address of CRV.
+  address internal constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
+
+  /// @notice The target chain id to interact.
+  uint256 public targetChain;
+  /// @notice The owner of the contract.
+  address public owner;
+  /// @notice The address of AnyCallProxy.
+  address public anyCallProxy;
+  /// @notice The address of CrossChainCallProxy.
+  address public crossChainCallProxy;
+
+  modifier onlyAnyCallProxy() {
+    // solhint-disable-next-line reason-string
+    require(msg.sender == anyCallProxy, "Layer1ACRVProxy: only AnyCallProxy");
+    _;
+  }
+
+  modifier onlyOwner() {
+    require(msg.sender == owner, "Layer1ACRVProxy: only owner");
+    _;
+  }
+
+  function _initialize(
+    uint256 _targetChain,
+    address _anyCallProxy,
+    address _crossChainCallProxy,
+    address _owner
+  ) internal {
+    uint256 _chainId;
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      _chainId := chainid()
+    }
+    // solhint-disable-next-line reason-string
+    require(_targetChain != _chainId, "Layer1ACRVProxy: invalid target chain");
+    // solhint-disable-next-line reason-string
+    require(_anyCallProxy != address(0), "Layer1ACRVProxy: zero address");
+    // solhint-disable-next-line reason-string
+    require(_crossChainCallProxy != address(0), "Layer1ACRVProxy: zero address");
+    // solhint-disable-next-line reason-string
+    require(_owner != address(0), "Layer1ACRVProxy: zero address");
+
+    targetChain = _targetChain;
+    anyCallProxy = _anyCallProxy;
+    crossChainCallProxy = _crossChainCallProxy;
+    owner = _owner;
+  }
+
+  /********************************** Mutated Functions **********************************/
+
+  /// @notice See {ILayer1ACRVProxy-deposit}
+  function deposit(
+    uint256 _executionId,
+    uint256 _targetChain,
+    address _recipient,
+    uint256 _crvAmount,
+    address _callback
+  ) external override onlyAnyCallProxy {
+    // do nothing, when amount is zero.
+    // solhint-disable-next-line reason-string
+    require(_crvAmount > 0, "Layer1ACRVProxy: deposit zero amount");
+    // solhint-disable-next-line reason-string
+    require(_targetChain == targetChain, "Layer1ACRVProxy: target chain mismatch");
+
+    {
+      uint256 _balance = IERC20(CRV).balanceOf(address(this));
+      // solhint-disable-next-line reason-string
+      require(_balance > 0, "Layer1ACRVProxy: insufficient CRV to deposit");
+      // in case that the fee calculation in layer2 is wrong.
+      if (_balance < _crvAmount) {
+        _crvAmount = _balance;
+      }
+    }
+
+    // 1. deposit CRV to aCRV
+    IERC20(CRV).safeApprove(ACRV, 0);
+    IERC20(CRV).safeApprove(ACRV, _crvAmount);
+    IAladdinCRV(ACRV).deposit(address(this), _crvAmount);
+
+    // 2. send aCRV to source chain
+    (uint256 _bridgeAmount, uint256 _totalFee) = _bridgeACRV(
+      _recipient,
+      // use aCRV balance, in case some dust aCRV left in last deposit.
+      IERC20(ACRV).balanceOf(address(this)),
+      _targetChain
+    );
+
+    // 3. cross chain call to notify
+    if (_callback != address(0)) {
+      bytes memory _data = abi.encodeWithSelector(
+        ILayer2CRVDepositor.finalizeDeposit.selector,
+        _executionId,
+        _crvAmount,
+        _bridgeAmount,
+        _totalFee
+      );
+      ICrossChainCallProxy(crossChainCallProxy).crossChainCall(_callback, _data, address(0), _targetChain);
+    }
+  }
+
+  /// @notice See {ILayer1ACRVProxy-withdraw}
+  function withdraw(
+    uint256 _executionId,
+    uint256 _targetChain,
+    address _recipient,
+    uint256 _acrvAmount,
+    address _callback
+  ) external override onlyAnyCallProxy {
+    // do nothing, when amount is zero.
+    // solhint-disable-next-line reason-string
+    require(_acrvAmount > 0, "Layer1ACRVProxy: deposit zero amount");
+    // solhint-disable-next-line reason-string
+    require(_targetChain == targetChain, "Layer1ACRVProxy: target chain mismatch");
+
+    // 1. withdraw CRV from aCRV.
+    uint256 _totalAmount = IAladdinCRV(ACRV).withdraw(
+      address(this),
+      _acrvAmount,
+      0,
+      IAladdinCRV.WithdrawOption.WithdrawAsCRV
+    );
+
+    // 2. bridge CRV to recipient in target chain.
+    (uint256 _bridgeAmount, uint256 _totalFee) = _bridgeCRV(_recipient, _totalAmount, _targetChain);
+
+    // 3. cross chain call to notify
+    if (_callback != address(0)) {
+      bytes memory _data = abi.encodeWithSelector(
+        ILayer2CRVDepositor.finalizeWithdraw.selector,
+        _executionId,
+        _acrvAmount,
+        _bridgeAmount,
+        _totalFee
+      );
+      ICrossChainCallProxy(crossChainCallProxy).crossChainCall(_callback, _data, address(0), _targetChain);
+    }
+  }
+
+  /********************************** Restricted Functions **********************************/
+
+  /// @notice Update AnyCallProxy contract.
+  /// @param _anyCallProxy The address to update.
+  function updateAnyCallProxy(address _anyCallProxy) external onlyOwner {
+    anyCallProxy = _anyCallProxy;
+  }
+
+  /// @notice Update CrossChainCallProxy contract.
+  /// @param _crossChainCallProxy The address to update.
+  function updateCrossChainCallProxy(address _crossChainCallProxy) external onlyOwner {
+    crossChainCallProxy = _crossChainCallProxy;
+  }
+
+  /// @notice Transfers ownership of the contract to a new account (`newOwner`).
+  /// @dev Can only be called by the current owner.
+  /// @param _owner The address of new owner.
+  function transferOwnership(address _owner) public onlyOwner {
+    // solhint-disable-next-line reason-string
+    require(_owner != address(0), "Layer1ACRVProxy: zero address");
+    emit OwnershipTransferred(owner, _owner);
+    owner = _owner;
+  }
+
+  /// @notice Execute calls on behalf of contract in case of emergency
+  /// @param _to The address of contract to call.
+  /// @param _value The amount of ETH passing to the contract.
+  /// @param _data The data passing to the contract.
+  function execute(
+    address _to,
+    uint256 _value,
+    bytes calldata _data
+  ) external onlyOwner returns (bool, bytes memory) {
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool success, bytes memory result) = _to.call{ value: _value }(_data);
+    return (success, result);
+  }
+
+  /********************************** Internal Functions **********************************/
+
+  /// @dev Internal function to bridge aCRV to target chain.
+  /// @param _recipient The address of recipient will receive the aCRV.
+  /// @param _totalAmount The total amount of aCRV to bridge.
+  /// @param _targetChain The target chain id.
+  /// @return _bridgeAmount The total amount of aCRV bridged, fees are included.
+  /// @return _totalFee The total amount of aCRV fee charged by Bridge.
+  function _bridgeACRV(
+    address _recipient,
+    uint256 _totalAmount,
+    uint256 _targetChain
+  ) internal virtual returns (uint256 _bridgeAmount, uint256 _totalFee) {}
+
+  /// @dev Internal function to bridge CRV to target chain.
+  /// @param _recipient The address of recipient will receive the CRV.
+  /// @param _totalAmount The total amount of CRV to bridge.
+  /// @param _targetChain The target chain id.
+  /// @return _bridgeAmount The total amount of CRV bridged, fees are included.
+  /// @return _totalFee The total amount of CRV fee charged by Bridge.
+  function _bridgeCRV(
+    address _recipient,
+    uint256 _totalAmount,
+    uint256 _targetChain
+  ) internal virtual returns (uint256 _bridgeAmount, uint256 _totalFee) {}
+}
