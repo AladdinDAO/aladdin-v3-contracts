@@ -5,18 +5,16 @@ pragma solidity ^0.7.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
+import "../CrossChainCallBase.sol";
+
 import "../../interfaces/IAladdinCRV.sol";
-import "../interfaces/IAnyCallProxy.sol";
-import "../interfaces/IAnyswapRouter.sol";
 import "../interfaces/ICrossChainCallProxy.sol";
 import "../interfaces/ILayer2CRVDepositor.sol";
 import "../interfaces/ILayer1ACRVProxy.sol";
 
 // solhint-disable no-empty-blocks
-abstract contract Layer1ACRVProxyBase is ILayer1ACRVProxy {
+abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
   using SafeERC20 for IERC20;
-
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
   /// @dev The denominator used to calculate cross chain fee.
   uint256 internal constant FEE_DENOMINATOR = 1e9;
@@ -27,23 +25,6 @@ abstract contract Layer1ACRVProxyBase is ILayer1ACRVProxy {
 
   /// @notice The target chain id to interact.
   uint256 public targetChain;
-  /// @notice The owner of the contract.
-  address public owner;
-  /// @notice The address of AnyCallProxy.
-  address public anyCallProxy;
-  /// @notice The address of CrossChainCallProxy.
-  address public crossChainCallProxy;
-
-  modifier onlyAnyCallProxy() {
-    // solhint-disable-next-line reason-string
-    require(msg.sender == anyCallProxy, "Layer1ACRVProxy: only AnyCallProxy");
-    _;
-  }
-
-  modifier onlyOwner() {
-    require(msg.sender == owner, "Layer1ACRVProxy: only owner");
-    _;
-  }
 
   function _initialize(
     uint256 _targetChain,
@@ -51,24 +32,12 @@ abstract contract Layer1ACRVProxyBase is ILayer1ACRVProxy {
     address _crossChainCallProxy,
     address _owner
   ) internal {
-    uint256 _chainId;
-    // solhint-disable-next-line no-inline-assembly
-    assembly {
-      _chainId := chainid()
-    }
     // solhint-disable-next-line reason-string
-    require(_targetChain != _chainId, "Layer1ACRVProxy: invalid target chain");
-    // solhint-disable-next-line reason-string
-    require(_anyCallProxy != address(0), "Layer1ACRVProxy: zero address");
-    // solhint-disable-next-line reason-string
-    require(_crossChainCallProxy != address(0), "Layer1ACRVProxy: zero address");
-    // solhint-disable-next-line reason-string
-    require(_owner != address(0), "Layer1ACRVProxy: zero address");
+    require(_targetChain != _getChainId(), "Layer1ACRVProxy: invalid target chain");
+
+    CrossChainCallBase._initialize(_anyCallProxy, _crossChainCallProxy, _owner);
 
     targetChain = _targetChain;
-    anyCallProxy = _anyCallProxy;
-    crossChainCallProxy = _crossChainCallProxy;
-    owner = _owner;
   }
 
   /********************************** Mutated Functions **********************************/
@@ -129,6 +98,7 @@ abstract contract Layer1ACRVProxyBase is ILayer1ACRVProxy {
     uint256 _targetChain,
     address _recipient,
     uint256 _acrvAmount,
+    uint256 _minCRVAmount,
     address _callback
   ) external override onlyAnyCallProxy {
     // do nothing, when amount is zero.
@@ -141,7 +111,7 @@ abstract contract Layer1ACRVProxyBase is ILayer1ACRVProxy {
     uint256 _totalAmount = IAladdinCRV(ACRV).withdraw(
       address(this),
       _acrvAmount,
-      0,
+      _minCRVAmount,
       IAladdinCRV.WithdrawOption.WithdrawAsCRV
     );
 
@@ -159,44 +129,6 @@ abstract contract Layer1ACRVProxyBase is ILayer1ACRVProxy {
       );
       ICrossChainCallProxy(crossChainCallProxy).crossChainCall(_callback, _data, address(0), _targetChain);
     }
-  }
-
-  /********************************** Restricted Functions **********************************/
-
-  /// @notice Update AnyCallProxy contract.
-  /// @param _anyCallProxy The address to update.
-  function updateAnyCallProxy(address _anyCallProxy) external onlyOwner {
-    anyCallProxy = _anyCallProxy;
-  }
-
-  /// @notice Update CrossChainCallProxy contract.
-  /// @param _crossChainCallProxy The address to update.
-  function updateCrossChainCallProxy(address _crossChainCallProxy) external onlyOwner {
-    crossChainCallProxy = _crossChainCallProxy;
-  }
-
-  /// @notice Transfers ownership of the contract to a new account (`newOwner`).
-  /// @dev Can only be called by the current owner.
-  /// @param _owner The address of new owner.
-  function transferOwnership(address _owner) public onlyOwner {
-    // solhint-disable-next-line reason-string
-    require(_owner != address(0), "Layer1ACRVProxy: zero address");
-    emit OwnershipTransferred(owner, _owner);
-    owner = _owner;
-  }
-
-  /// @notice Execute calls on behalf of contract in case of emergency
-  /// @param _to The address of contract to call.
-  /// @param _value The amount of ETH passing to the contract.
-  /// @param _data The data passing to the contract.
-  function execute(
-    address _to,
-    uint256 _value,
-    bytes calldata _data
-  ) external onlyOwner returns (bool, bytes memory) {
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool success, bytes memory result) = _to.call{ value: _value }(_data);
-    return (success, result);
   }
 
   /********************************** Internal Functions **********************************/
