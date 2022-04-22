@@ -104,8 +104,14 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   /// @notice See {ILayer2CRVDepositor-deposit}
   function deposit(uint256 _amount) external override {}
 
+  /// @notice See {ILayer2CRVDepositor-abortDeposit}
+  function abortDeposit(uint256 _amount) external override {}
+
   /// @notice See {ILayer2CRVDepositor-withdraw}
   function withdraw(uint256 _amount) external override {}
+
+  /// @notice See {ILayer2CRVDepositor-abortWithdraw}
+  function abortWithdraw(uint256 _amount) external override {}
 
   /// @notice Prepare asyncDeposit, bridge CRV to Layer1.
   /// @dev This function can only called by whitelisted addresses.
@@ -123,11 +129,8 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   /// @dev This function can only called by whitelisted addresses.
   function asyncWithdraw() external onlyWhitelist {}
 
-  /// @notice See {ILayer2CRVDepositor-claimACRV}
-  function claimACRV() external override {}
-
-  /// @notice See {ILayer2CRVDepositor-claimCRV}
-  function claimCRV() external override {}
+  /// @notice See {ILayer2CRVDepositor-claim}
+  function claim() external override {}
 
   /// @notice See {ILayer2CRVDepositor-anyFallback}
   function anyFallback(address _to, bytes memory _data) external override onlyAnyCallProxy {}

@@ -7,15 +7,22 @@ interface ILayer2CRVDepositor {
   /// @param _amount The amount of CRV to deposit.
   function deposit(uint256 _amount) external;
 
+  /// @notice Abort current deposit and take CRV back.
+  /// @dev Will revert if the CRV is already bridged to Layer 1.
+  /// @param _amount The amount of CRV to abort.
+  function abortDeposit(uint256 _amount) external;
+
   /// @notice Withdraw aCRV for CRV asynchronously in this contract.
   /// @param _amount The amount of aCRV to withdraw.
   function withdraw(uint256 _amount) external;
 
-  /// @notice Claim executed aCRV on asynchronous deposit.
-  function claimACRV() external;
+  /// @notice Abort current withdraw and take aCRV back.
+  /// @dev Will revert if the aCRV is already bridged to Layer 1.
+  /// @param _amount The amount of aCRV to abort.
+  function abortWithdraw(uint256 _amount) external;
 
-  /// @notice Claim executed CRV on asynchronous withdraw.
-  function claimCRV() external;
+  /// @notice Claim executed aCRV/CRV on asynchronous deposit/withdraw.
+  function claim() external;
 
   /// @notice Callback function called on failure in AnyswapCall.
   /// @dev This function can only called by AnyCallProxy.
