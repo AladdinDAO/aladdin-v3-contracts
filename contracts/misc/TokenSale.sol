@@ -19,11 +19,12 @@ contract TokenSale is Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
-  event Buy(address _sender, address _token, uint256 _amountIn, uint256 _refundAmount, uint256 _amountOut);
-  event Claim(address _recipient, uint256 _vestingAmount, uint256 _claimAmount);
+  event Buy(address indexed sender, address _token, uint256 _amountIn, uint256 _refundAmount, uint256 _amountOut);
+  event Claim(address indexed _recipient, uint256 _vestingAmount, uint256 _claimAmount);
   event UpdatePrice(uint256 _initialPrice, uint256 _upRatio, uint256 _variation);
   event UpdateSaleTime(uint256 _whitelistSaleTime, uint256 _publicSaleTime, uint256 _publicSaleDuration);
   event UpdateVesting(address _vesting, uint256 _vestRatio, uint256 _duration);
+  event UpdateWhitelistCap(address indexed _whitelist, uint256 _cap);
 
   uint256 private constant PRICE_PRECISION = 1e18;
   uint256 private constant RATIO_PRECISION = 1e9;
@@ -223,6 +224,18 @@ contract TokenSale is Ownable, ReentrancyGuard {
   }
 
   /********************************** Restricted Functions **********************************/
+
+  /// @notice Update token cap for whitelists.
+  /// @param _whitelist The list of whitelist to update.
+  /// @param _caps The list of cap to update.
+  function updateWhitelistCap(address[] memory _whitelist, uint256[] memory _caps) external onlyOwner {
+    require(_whitelist.length == _caps.length, "TokenSale: length mismatch");
+
+    for (uint256 i = 0; i < _whitelist.length; i++) {
+      whitelistCap[_whitelist[i]] = _caps[i];
+      emit UpdateWhitelistCap(_whitelist[i], _caps[i]);
+    }
+  }
 
   /// @notice Update sale start time, including whitelist/public sale start time and duration.
   ///
