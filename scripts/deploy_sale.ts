@@ -14,7 +14,7 @@ const config: {
   aladdinZap: "0xCe4dCc5028588377E279255c0335Effe2d7aB72a",
   token: "0xdC846CcbCe1Be474E6410445ef5223CA00eCed94",
   vest: "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
-  sale: "0xa85C8645D094FfA36CBD41554F0Dd484EBb99D19",
+  sale: "0xf293d3281F1a4222E1547faf935b4a93d20556DA",
 };
 
 const WETH = ADDRESS.WETH;
@@ -88,12 +88,12 @@ async function main() {
     console.log("Deploy TokenSale at:", sale.address);
   }
 
-  /*await sale.updateSaleTime(1650758400, 1651017600, 432000);
+  await sale.updateSaleTime(1650758400 + 86400, 1651017600 + 86400, 432000);
   await sale.updatePrice(
     ethers.utils.parseEther("0.001"),
     ethers.utils.parseUnits("0.05", 9),
     ethers.utils.parseEther("100000")
-  );*/
+  );
   await sale.transferOwnership("0xb9a1649b31FC2De6bbE78672A3d6EbecFa69B56b");
 }
 
