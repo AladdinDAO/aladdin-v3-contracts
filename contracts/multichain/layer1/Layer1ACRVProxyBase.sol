@@ -16,6 +16,24 @@ import "../interfaces/ILayer1ACRVProxy.sol";
 abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
   using SafeERC20 for IERC20;
 
+  event Deposit(
+    uint256 _executionId,
+    uint256 _targetChain,
+    address _recipient,
+    uint256 _crvAmount,
+    uint256 _acrvAmount,
+    uint256 _acrvFee
+  );
+
+  event Redeem(
+    uint256 _executionId,
+    uint256 _targetChain,
+    address _recipient,
+    uint256 _acrvAmount,
+    uint256 _crvAmount,
+    uint256 _crvFee
+  );
+
   /// @dev The denominator used to calculate cross chain fee.
   uint256 internal constant FEE_DENOMINATOR = 1e9;
   /// @dev The address of AladdinCRV contract.
@@ -90,6 +108,8 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
       );
       ICrossChainCallProxy(crossChainCallProxy).crossChainCall(_callback, _data, address(0), _targetChain);
     }
+
+    emit Deposit(_executionId, _targetChain, _recipient, _crvAmount, _bridgeAmount, _totalFee);
   }
 
   /// @notice See {ILayer1ACRVProxy-redeem}
@@ -129,6 +149,8 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
       );
       ICrossChainCallProxy(crossChainCallProxy).crossChainCall(_callback, _data, address(0), _targetChain);
     }
+
+    emit Redeem(_executionId, _targetChain, _recipient, _acrvAmount, _bridgeAmount, _totalFee);
   }
 
   /********************************** Internal Functions **********************************/

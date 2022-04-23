@@ -10,6 +10,9 @@ import "./interfaces/ICrossChainCallProxy.sol";
 /// @dev This is a proxy contract to relay cross chain call to AnyCallProxy contract.
 ///      This contract should have the same address in all evm compatible chain.
 contract CrossChainCallProxy is Ownable, ICrossChainCallProxy {
+  event UpdateWhitelist(address indexed _account, bool _status);
+  event UpdateAnyCallProxy(address indexed _anyCallProxy);
+
   /// @notice The address of AnyCallProxy.
   address public anyCallProxy;
   /// @notice Keep track the whitelist contracts.
@@ -63,7 +66,12 @@ contract CrossChainCallProxy is Ownable, ICrossChainCallProxy {
   /// @notice Update AnyCallProxy contract.
   /// @param _anyCallProxy The address to update.
   function updateAnyCallProxy(address _anyCallProxy) external onlyOwner {
+    // solhint-disable-next-line reason-string
+    require(_anyCallProxy != address(0), "CrossChainCallProxy: zero address");
+
     anyCallProxy = _anyCallProxy;
+
+    emit UpdateAnyCallProxy(_anyCallProxy);
   }
 
   /// @notice Update whitelist contract can call `crossChainCall`.
@@ -72,6 +80,8 @@ contract CrossChainCallProxy is Ownable, ICrossChainCallProxy {
   function updateWhitelist(address[] memory _whitelist, bool _status) external onlyOwner {
     for (uint256 i = 0; i < _whitelist.length; i++) {
       whitelist[_whitelist[i]] = _status;
+
+      emit UpdateWhitelist(_whitelist[i], _status);
     }
   }
 

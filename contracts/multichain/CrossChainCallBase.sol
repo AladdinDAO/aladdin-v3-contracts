@@ -6,6 +6,8 @@ import "./interfaces/IAnyCallProxy.sol";
 
 contract CrossChainCallBase {
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+  event UpdateCrossChainCallProxy(address indexed _crossChainCallProxy);
+  event UpdateAnyCallProxy(address indexed _anyCallProxy);
 
   /// @notice The owner of the contract.
   address public owner;
@@ -16,13 +18,13 @@ contract CrossChainCallBase {
 
   modifier onlyAnyCallProxy() {
     // solhint-disable-next-line reason-string
-    require(msg.sender == anyCallProxy, "Layer2CRVDepositor: only AnyCallProxy");
+    require(msg.sender == anyCallProxy, "CrossChainCallBase: only AnyCallProxy");
     _;
   }
 
   modifier onlyOwner() {
     // solhint-disable-next-line reason-string
-    require(msg.sender == owner, "Layer2CRVDepositor: only owner");
+    require(msg.sender == owner, "CrossChainCallBase: only owner");
     _;
   }
 
@@ -57,12 +59,16 @@ contract CrossChainCallBase {
   /// @param _anyCallProxy The address to update.
   function updateAnyCallProxy(address _anyCallProxy) external onlyOwner {
     anyCallProxy = _anyCallProxy;
+
+    emit UpdateAnyCallProxy(_anyCallProxy);
   }
 
   /// @notice Update CrossChainCallProxy contract.
   /// @param _crossChainCallProxy The address to update.
   function updateCrossChainCallProxy(address _crossChainCallProxy) external onlyOwner {
     crossChainCallProxy = _crossChainCallProxy;
+
+    emit UpdateCrossChainCallProxy(_crossChainCallProxy);
   }
 
   /// @notice Transfers ownership of the contract to a new account (`newOwner`).
@@ -70,7 +76,7 @@ contract CrossChainCallBase {
   /// @param _owner The address of new owner.
   function transferOwnership(address _owner) public onlyOwner {
     // solhint-disable-next-line reason-string
-    require(_owner != address(0), "Layer1ACRVProxy: zero address");
+    require(_owner != address(0), "CrossChainCallBase: zero address");
     emit OwnershipTransferred(owner, _owner);
     owner = _owner;
   }

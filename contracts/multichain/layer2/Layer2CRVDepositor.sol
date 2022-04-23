@@ -14,6 +14,8 @@ import "../interfaces/IAnyswapRouter.sol";
 contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
   using SafeERC20 for IERC20;
 
+  event UpdateAnyswapRouter(address indexed _anyswapRouter);
+
   struct CrossChainInfo {
     // The cross chain fee percentage.
     uint32 feePercentage;
@@ -77,7 +79,12 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
   /// @notice Update AnyswapRouter contract.
   /// @param _anyswapRouter The address to update.
   function updateAnyswapRouter(address _anyswapRouter) external onlyOwner {
+    // solhint-disable-next-line reason-string
+    require(_anyswapRouter != address(0), "Layer2CRVDepositor: zero address");
+
     anyswapRouter = _anyswapRouter;
+
+    emit UpdateAnyswapRouter(_anyswapRouter);
   }
 
   /********************************** Internal Functions **********************************/

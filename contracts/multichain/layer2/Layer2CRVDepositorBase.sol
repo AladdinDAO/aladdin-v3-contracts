@@ -17,6 +17,10 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
+  event UpdateWhitelist(address indexed _account, bool _status);
+  event UpdateLayer1Proxy(address indexed _layer1Proxy);
+  event UpdateFeeData(address indexed _platform, uint32 _depositFeePercentage, uint32 _redeemFeePercentage);
+
   /// @dev The denominator used to calculate cross chain fee.
   uint256 internal constant FEE_DENOMINATOR = 1e9;
   /// @dev The maximum deposit fee percentage.
@@ -384,7 +388,12 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   /// @notice Update the address of Layer1ACRVProxy contract.
   /// @param _layer1Proxy The address to update.
   function updateLayer1Proxy(address _layer1Proxy) external onlyOwner {
+    // solhint-disable-next-line reason-string
+    require(_layer1Proxy != address(0), "Layer2CRVDepositor: zero address");
+
     layer1Proxy = _layer1Proxy;
+
+    emit UpdateLayer1Proxy(_layer1Proxy);
   }
 
   /// @notice Update whitelist contract can call `crossChainCall`.
@@ -393,6 +402,8 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   function updateWhitelist(address[] memory _whitelist, bool _status) external onlyOwner {
     for (uint256 i = 0; i < _whitelist.length; i++) {
       whitelist[_whitelist[i]] = _status;
+
+      emit UpdateWhitelist(_whitelist[i], _status);
     }
   }
 
@@ -402,8 +413,8 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   /// @param _redeemFeePercentage The redeem fee percentage to update.
   function updateFeeData(
     address _platform,
-    uint256 _depositFeePercentage,
-    uint256 _redeemFeePercentage
+    uint32 _depositFeePercentage,
+    uint32 _redeemFeePercentage
   ) external onlyOwner {
     // solhint-disable-next-line reason-string
     require(_platform != address(0), "Layer2CRVDepositor: zero address");
@@ -412,7 +423,9 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     // solhint-disable-next-line reason-string
     require(_redeemFeePercentage <= MAX_WITHDRAW_FEE_PERCENTAGE, "Layer2CRVDepositor: fee too large");
 
-    fees = FeeData(_platform, uint32(_depositFeePercentage), uint32(_redeemFeePercentage));
+    fees = FeeData(_platform, _depositFeePercentage, _redeemFeePercentage);
+
+    emit UpdateFeeData(_platform, _depositFeePercentage, _redeemFeePercentage);
   }
 
   /********************************** Internal Functions **********************************/

@@ -16,6 +16,8 @@ import "../interfaces/IAnyswapRouter.sol";
 contract Layer1ACRVDefaultProxy is Initializable, Layer1ACRVProxyBase {
   using SafeERC20 for IERC20;
 
+  event UpdateAnyswapRouter(address indexed _anyswapRouter);
+
   struct CrossChainInfo {
     // The cross chain fee percentage.
     uint32 feePercentage;
@@ -86,7 +88,12 @@ contract Layer1ACRVDefaultProxy is Initializable, Layer1ACRVProxyBase {
   /// @notice Update AnyswapRouter contract.
   /// @param _anyswapRouter The address to update.
   function updateAnyswapRouter(address _anyswapRouter) external onlyOwner {
+    // solhint-disable-next-line reason-string
+    require(_anyswapRouter != address(0), "Layer1ACRVDefaultProxy: zero address");
+
     anyswapRouter = _anyswapRouter;
+
+    emit UpdateAnyswapRouter(_anyswapRouter);
   }
 
   /********************************** Internal Functions **********************************/

@@ -16,6 +16,8 @@ import "../interfaces/IPolygonRootChainManager.sol";
 contract Layer1ACRVPolygonProxy is Layer1ACRVDefaultProxy {
   using SafeERC20 for IERC20;
 
+  event ExitFromBridge(uint256 _amount);
+
   address private constant POLYGON_BRIDGE = 0xA0c68C638235ee32657e8f720a23ceC1bFc77C77;
 
   /********************************** Mutated Functions **********************************/
@@ -23,7 +25,11 @@ contract Layer1ACRVPolygonProxy is Layer1ACRVDefaultProxy {
   /// @notice Withdraw CRV from Polygon Bridge.
   /// @param _inputData The calldata pass to Polygon Bridge.
   function exitFromBridge(bytes calldata _inputData) external onlyAnyCallProxy {
+    uint256 _before = IERC20(CRV).balanceOf(address(this));
     IPolygonRootChainManager(POLYGON_BRIDGE).exit(_inputData);
+    uint256 _after = IERC20(CRV).balanceOf(address(this));
+
+    emit ExitFromBridge(_after - _before);
   }
 
   /********************************** Internal Functions **********************************/
