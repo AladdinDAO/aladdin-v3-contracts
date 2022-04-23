@@ -198,7 +198,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
 
   /// @notice Prepare asyncDeposit, bridge CRV to Layer1.
   /// @dev This function can only called by whitelisted addresses.
-  function prepareAsyncDeposit() external onlyWhitelist {
+  function prepareAsyncDeposit() external virtual onlyWhitelist {
     CrossChainOperationData memory _operation = depositOperation;
     // solhint-disable-next-line reason-string
     require(_operation.ongoing == 0, "Layer2CRVDepositor: has ongoing deposit");
@@ -223,7 +223,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
 
   /// @notice Prepare asyncRedeem, bridge aCRV to Layer1.
   /// @dev This function can only called by whitelisted addresses.
-  function prepareAsyncRedeem() external onlyWhitelist {
+  function prepareAsyncRedeem() external virtual onlyWhitelist {
     CrossChainOperationData memory _operation = redeemOperation;
     // solhint-disable-next-line reason-string
     require(_operation.ongoing == 0, "Layer2CRVDepositor: has ongoing redeem");
@@ -248,7 +248,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
 
   /// @notice Deposit CRV in this contract to Layer 1 aCRV contract asynchronously.
   /// @dev This function can only called by whitelisted addresses.
-  function asyncDeposit() external payable onlyWhitelist SponsorCrossCallFee {
+  function asyncDeposit() external payable virtual onlyWhitelist SponsorCrossCallFee {
     CrossChainOperationData memory _operation = depositOperation;
     // solhint-disable-next-line reason-string
     require(_operation.ongoing > 0, "Layer2CRVDepositor: no ongoing deposit");
@@ -277,7 +277,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
 
   /// @notice Redeem aCRV in this contract to Layer 1 aCRV contract asynchronously.
   /// @dev This function can only called by whitelisted addresses.
-  function asyncRedeem(uint256 _minCRVAmount) external payable onlyWhitelist SponsorCrossCallFee {
+  function asyncRedeem(uint256 _minCRVAmount) external payable virtual onlyWhitelist SponsorCrossCallFee {
     CrossChainOperationData memory _operation = redeemOperation;
     // solhint-disable-next-line reason-string
     require(_operation.ongoing > 0, "Layer2CRVDepositor: no ongoing redeem");
@@ -306,7 +306,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   }
 
   /// @notice See {ILayer2CRVDepositor-anyFallback}
-  function anyFallback(address _to, bytes calldata _data) external override onlyAnyCallProxy {
+  function anyFallback(address _to, bytes calldata _data) external virtual override onlyAnyCallProxy {
     bytes4 _selector;
     // solhint-disable-next-line no-inline-assembly
     assembly {
@@ -343,7 +343,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     uint256 _crvAmount,
     uint256 _acrvAmount,
     uint256 _acrvFee
-  ) external override onlyAnyCallProxy {
+  ) external virtual override onlyAnyCallProxy {
     // solhint-disable-next-line reason-string
     require(asyncDepositStatus == AsyncOperationStatus.OnGoing, "Layer2CRVDepositor: no ongoing deposit");
 
@@ -366,7 +366,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     uint256 _acrvAmount,
     uint256 _crvAmount,
     uint256 _crvFee
-  ) external override onlyAnyCallProxy {
+  ) external virtual override onlyAnyCallProxy {
     // solhint-disable-next-line reason-string
     require(asyncRedeemStatus == AsyncOperationStatus.OnGoing, "Layer2CRVDepositor: no ongoing redeem");
 

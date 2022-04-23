@@ -67,7 +67,7 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
     address _recipient,
     uint256 _crvAmount,
     address _callback
-  ) external override onlyAnyCallProxy {
+  ) external virtual override onlyAnyCallProxy {
     // do nothing, when amount is zero.
     // solhint-disable-next-line reason-string
     require(_crvAmount > 0, "Layer1ACRVProxy: deposit zero amount");
@@ -120,7 +120,7 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
     uint256 _acrvAmount,
     uint256 _minCRVAmount,
     address _callback
-  ) external override onlyAnyCallProxy {
+  ) external virtual override onlyAnyCallProxy {
     // do nothing, when amount is zero.
     // solhint-disable-next-line reason-string
     require(_acrvAmount > 0, "Layer1ACRVProxy: deposit zero amount");
