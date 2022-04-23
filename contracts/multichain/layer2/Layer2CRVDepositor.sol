@@ -42,9 +42,10 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
     address _crossChainCallProxy,
     address _owner,
     address _crv,
-    address _acrv
+    address _acrv,
+    address _layer1Proxy
   ) external initializer {
-    Layer2CRVDepositorBase._initialize(_anyCallProxy, _crossChainCallProxy, _owner, _crv, _acrv);
+    Layer2CRVDepositorBase._initialize(_anyCallProxy, _crossChainCallProxy, _owner, _crv, _acrv, _layer1Proxy);
     // solhint-disable-next-line reason-string
     require(_anyswapRouter != address(0), "Layer1ACRVDefaultProxy: zero address");
 
@@ -81,7 +82,7 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
 
   /********************************** Internal Functions **********************************/
 
-  /// See {Layer2CRVDepositorBase-_bridgeACRV}
+  /// @dev See {Layer2CRVDepositorBase-_bridgeACRV}
   function _bridgeACRV(address _recipient, uint256 _totalAmount)
     internal
     virtual
@@ -91,7 +92,7 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
     (_bridgeAmount, _totalFee) = _bridge(acrv, _recipient, _totalAmount, aCRVCrossChainInfo);
   }
 
-  /// See {Layer2CRVDepositorBase-_bridgeCRV}
+  /// @dev See {Layer2CRVDepositorBase-_bridgeCRV}
   function _bridgeCRV(address _recipient, uint256 _totalAmount)
     internal
     virtual
@@ -99,6 +100,13 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
     returns (uint256 _bridgeAmount, uint256 _totalFee)
   {
     (_bridgeAmount, _totalFee) = _bridge(crv, _recipient, _totalAmount, CRVCrossChainInfo);
+  }
+
+  /// @dev See {Layer2CRVDepositorBase-_customFallback}
+  function _customFallback(address, bytes memory) internal virtual override {
+    // no custom fallback is allowed
+    // solhint-disable-next-line reason-string
+    revert("Layer2CRVDepositor: invalid fallback call");
   }
 
   /// @dev Internal function to bridge some token to Layer 1.

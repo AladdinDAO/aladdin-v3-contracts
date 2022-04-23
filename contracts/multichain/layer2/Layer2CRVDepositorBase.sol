@@ -2,40 +2,50 @@
 
 pragma solidity ^0.7.6;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
 import "../CrossChainCallBase.sol";
 
+import "../interfaces/IAnyCallProxy.sol";
+import "../interfaces/ICrossChainCallProxy.sol";
 import "../interfaces/ILayer2CRVDepositor.sol";
+import "../interfaces/ILayer1ACRVProxy.sol";
 
 abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDepositor {
+  using SafeERC20 for IERC20;
+  using SafeMath for uint256;
+
   /// @dev The denominator used to calculate cross chain fee.
   uint256 internal constant FEE_DENOMINATOR = 1e9;
   /// @dev The maximum deposit fee percentage.
   uint256 private constant MAX_DEPOSIT_FEE_PERCENTAGE = 1e8; // 10%
-  /// @dev The maximum withdraw fee percentage.
+  /// @dev The maximum redeem fee percentage.
   uint256 private constant MAX_WITHDRAW_FEE_PERCENTAGE = 1e8; // 10%
 
   struct FeeData {
-    // The address of platform, used to receive deposit/withdraw fee.
+    // The address of platform, used to receive deposit/redeem fee.
     address platform;
     // The deposit fee percentage in $CRV charged on each deposit.
     uint32 depositFeePercentage;
-    // The withdraw fee percentage in $aCRV charged on each withdraw.
-    uint32 withdrawFeePercentage;
+    // The redeem fee percentage in $aCRV charged on each redeem.
+    uint32 redeemFeePercentage;
   }
 
   struct CrossChainOperationData {
-    // The amount of CRV/aCRV is waiting for deposit/withdraw.
+    // The amount of CRV/aCRV is waiting for deposit/redeem.
     uint112 pending;
-    // The amount of CRV/aCRV is depositing/withdrawing.
+    // The amount of CRV/aCRV is depositing/redeeming.
     uint112 ongoing;
-    // The current execution id.
+    // The current execution id, will increase after deposit/redeem is finialzed.
     uint32 executionId;
   }
 
   struct FinalizedOperationState {
-    // The amount of CRV/aCRV provided before asynchronous deposit/withdraw.
-    uint128 provideAmount;
-    // The amount of aCRV/CRV received after asynchronous deposit/withdraw.
+    // The amount of CRV/aCRV provided before asynchronous deposit/redeem.
+    uint128 providedAmount;
+    // The amount of aCRV/CRV received after asynchronous deposit/redeem.
     uint128 executedAmount;
   }
 
@@ -46,7 +56,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     uint224 amount;
   }
 
-  struct AccountOperationState {
+  struct AccountOperationList {
     // Keep track of claimed aCRV/CRV.
     uint256 claimIndex;
     // The list of user operations group by execution id.
@@ -57,18 +67,32 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   address public crv;
   /// @notice The address of aCRV in Layer 2.
   address public acrv;
-  /// @notice Fee data on deposit/withdraw.
+  /// @notice The address of Layer1ACRVProxy contract.
+  address public layer1Proxy;
+  /// @notice Fee data on deposit/redeem.
   FeeData public fees;
+
+  /// @notice The status for async deposit.
+  AsyncOperationStatus public asyncDepositStatus;
   /// @notice The data for CRV deposit operation.
-  CrossChainOperationData public crvOpetation;
-  /// @notice The data for aCRV withdraw operation.
-  CrossChainOperationData public acrvOpetation;
+  CrossChainOperationData public depositOperation;
 
+  /// @notice The status for async redeem.
+  AsyncOperationStatus public asyncRedeemStatus;
+  /// @notice The data for aCRV redeem operation.
+  CrossChainOperationData public redeemOperation;
+
+  /// @notice Mapping from execution id to finalized deposit state.
   mapping(uint256 => FinalizedOperationState) public finialzedDepositState;
-  mapping(uint256 => FinalizedOperationState) public finialzedWithdrawState;
-  mapping(address => AccountOperationState) public accountDepositState;
-  mapping(address => AccountOperationState) public accountWithdrawState;
+  /// @notice Mapping from execution id to finalized redeem state.
+  mapping(uint256 => FinalizedOperationState) public finialzedRedeemState;
 
+  /// @notice Mapping from account address to deposit operations.
+  mapping(address => AccountOperationList) public accountDepositOperations;
+  /// @notice Mapping from account address to redeem operations.
+  mapping(address => AccountOperationList) public accountRedeemOperations;
+
+  /// @notice Keep track of a list of whitelist addresses.
   mapping(address => bool) public whitelist;
 
   function _initialize(
@@ -76,17 +100,21 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     address _crossChainCallProxy,
     address _owner,
     address _crv,
-    address _acrv
+    address _acrv,
+    address _layer1Proxy
   ) internal {
     // solhint-disable-next-line reason-string
     require(_crv != address(0), "Layer2CRVDepositor: zero address");
     // solhint-disable-next-line reason-string
     require(_acrv != address(0), "Layer2CRVDepositor: zero address");
+    // solhint-disable-next-line reason-string
+    require(_layer1Proxy != address(0), "Layer2CRVDepositor: zero address");
 
     CrossChainCallBase._initialize(_anyCallProxy, _crossChainCallProxy, _owner);
 
     crv = _crv;
     acrv = _acrv;
+    layer1Proxy = _layer1Proxy;
   }
 
   modifier onlyWhitelist() {
@@ -97,61 +125,267 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
 
   /********************************** View Functions **********************************/
 
-  function claimable(address _account) external view returns (uint256, uint256) {}
+  /// @notice Get the amount of aCRV/CRV claimable.
+  /// @param _account The address of account to query.
+  function claimable(address _account) external view returns (uint256 _acrvAmount, uint256 _crvAmount) {
+    (, _acrvAmount) = _getClaimable(accountDepositOperations[_account], finialzedDepositState);
+    (, _crvAmount) = _getClaimable(accountRedeemOperations[_account], finialzedRedeemState);
+  }
+
+  /// @notice Get the amount of aCRV/CRV abortable.
+  /// @param _account The address of account to query.
+  function abortable(address _account) external view returns (uint256 _acrvAmount, uint256 _crvAmount) {
+    _acrvAmount = _getAbortable(false, _account);
+    _crvAmount = _getAbortable(true, _account);
+  }
 
   /********************************** Mutated Functions **********************************/
 
   /// @notice See {ILayer2CRVDepositor-deposit}
-  function deposit(uint256 _amount) external override {}
+  function deposit(uint256 _amount) external override {
+    // solhint-disable-next-line reason-string
+    require(_amount > 0, "Layer2CRVDepositor: deposit zero amount");
+
+    uint256 _executionId = _operateDepositOrRedeem(true, msg.sender, _amount);
+
+    emit Deposit(msg.sender, _executionId, _amount);
+  }
 
   /// @notice See {ILayer2CRVDepositor-abortDeposit}
-  function abortDeposit(uint256 _amount) external override {}
+  function abortDeposit(uint256 _amount) external override {
+    // solhint-disable-next-line reason-string
+    require(_amount > 0, "Layer2CRVDepositor: abort zero amount");
 
-  /// @notice See {ILayer2CRVDepositor-withdraw}
-  function withdraw(uint256 _amount) external override {}
+    uint256 _executionId = _abortDepositOrRedeem(true, msg.sender, _amount);
 
-  /// @notice See {ILayer2CRVDepositor-abortWithdraw}
-  function abortWithdraw(uint256 _amount) external override {}
+    emit AbortDeposit(msg.sender, _executionId, _amount);
+  }
+
+  /// @notice See {ILayer2CRVDepositor-redeem}
+  function redeem(uint256 _amount) external override {
+    // solhint-disable-next-line reason-string
+    require(_amount > 0, "Layer2CRVDepositor: redeem zero amount");
+
+    uint256 _executionId = _operateDepositOrRedeem(false, msg.sender, _amount);
+
+    emit Redeem(msg.sender, _executionId, _amount);
+  }
+
+  /// @notice See {ILayer2CRVDepositor-abortRedeem}
+  function abortRedeem(uint256 _amount) external override {
+    // solhint-disable-next-line reason-string
+    require(_amount > 0, "Layer2CRVDepositor: abort zero amount");
+
+    uint256 _executionId = _abortDepositOrRedeem(false, msg.sender, _amount);
+
+    emit AbortRedeem(msg.sender, _executionId, _amount);
+  }
+
+  /// @notice See {ILayer2CRVDepositor-claim}
+  function claim() external override {
+    uint256 _acrvAmount = _claim(accountDepositOperations[msg.sender], finialzedDepositState);
+    IERC20(acrv).safeTransfer(msg.sender, _acrvAmount);
+
+    uint256 _crvAmount = _claim(accountRedeemOperations[msg.sender], finialzedRedeemState);
+    IERC20(crv).safeTransfer(msg.sender, _crvAmount);
+
+    emit Claim(msg.sender, _acrvAmount, _crvAmount);
+  }
 
   /// @notice Prepare asyncDeposit, bridge CRV to Layer1.
   /// @dev This function can only called by whitelisted addresses.
-  function prepareAsyncDeposit() external onlyWhitelist {}
+  function prepareAsyncDeposit() external onlyWhitelist {
+    CrossChainOperationData memory _operation = depositOperation;
+    // solhint-disable-next-line reason-string
+    require(_operation.ongoing == 0, "Layer2CRVDepositor: has ongoing deposit");
+    // solhint-disable-next-line reason-string
+    require(_operation.pending > 0, "Layer2CRVDepositor: no pending deposit");
 
-  /// @notice Prepare asyncWithdraw, bridge aCRV to Layer1.
+    FeeData memory _fees = fees;
+    uint256 _totalAmount = _operation.pending;
+    uint256 _depositFee = (_totalAmount * _fees.depositFeePercentage) / FEE_DENOMINATOR;
+    _totalAmount -= _depositFee;
+    _operation.ongoing = _operation.pending;
+    _operation.pending = 0;
+
+    asyncDepositStatus = AsyncOperationStatus.Pending;
+    depositOperation = _operation;
+    IERC20(crv).safeTransfer(_fees.platform, _depositFee);
+
+    (, uint256 _bridgeFee) = _bridgeACRV(layer1Proxy, _totalAmount);
+
+    emit PrepareDeposit(_operation.executionId, _operation.ongoing, _depositFee, _bridgeFee);
+  }
+
+  /// @notice Prepare asyncRedeem, bridge aCRV to Layer1.
   /// @dev This function can only called by whitelisted addresses.
-  function prepareAsyncWithdraw() external onlyWhitelist {}
+  function prepareAsyncRedeem() external onlyWhitelist {
+    CrossChainOperationData memory _operation = redeemOperation;
+    // solhint-disable-next-line reason-string
+    require(_operation.ongoing == 0, "Layer2CRVDepositor: has ongoing redeem");
+    // solhint-disable-next-line reason-string
+    require(_operation.pending > 0, "Layer2CRVDepositor: no pending redeem");
+
+    FeeData memory _fees = fees;
+    uint256 _totalAmount = _operation.pending;
+    uint256 _redeemFee = (_totalAmount * _fees.redeemFeePercentage) / FEE_DENOMINATOR;
+    _totalAmount -= _redeemFee;
+    _operation.ongoing = _operation.pending;
+    _operation.pending = 0;
+
+    asyncRedeemStatus = AsyncOperationStatus.Pending;
+    redeemOperation = _operation;
+    IERC20(acrv).safeTransfer(_fees.platform, _redeemFee);
+
+    (, uint256 _bridgeFee) = _bridgeACRV(layer1Proxy, _totalAmount);
+
+    emit PrepareRedeem(_operation.executionId, _operation.ongoing, _redeemFee, _bridgeFee);
+  }
 
   /// @notice Deposit CRV in this contract to Layer 1 aCRV contract asynchronously.
   /// @dev This function can only called by whitelisted addresses.
-  function asyncDeposit() external onlyWhitelist {}
+  function asyncDeposit() external payable onlyWhitelist SponsorCrossCallFee {
+    CrossChainOperationData memory _operation = depositOperation;
+    // solhint-disable-next-line reason-string
+    require(_operation.ongoing > 0, "Layer2CRVDepositor: no ongoing deposit");
+    AsyncOperationStatus _status = asyncDepositStatus;
+    // solhint-disable-next-line reason-string
+    require(
+      _status == AsyncOperationStatus.Pending || _status == AsyncOperationStatus.Failed,
+      "Layer2CRVDepositor: no deposit or has ongoing deposit"
+    );
 
-  /// @notice Withdraw aCRV in this contract to Layer 1 aCRV contract asynchronously.
+    asyncDepositStatus = AsyncOperationStatus.OnGoing;
+
+    // cross chain call deposit
+    bytes memory _data = abi.encodeWithSelector(
+      ILayer1ACRVProxy.deposit.selector,
+      uint256(_operation.executionId),
+      uint256(1),
+      address(this),
+      uint256(_operation.ongoing),
+      address(this)
+    );
+    ICrossChainCallProxy(crossChainCallProxy).crossChainCall(layer1Proxy, _data, address(this), 1);
+
+    emit AsyncDeposit(_operation.executionId, _status);
+  }
+
+  /// @notice Redeem aCRV in this contract to Layer 1 aCRV contract asynchronously.
   /// @dev This function can only called by whitelisted addresses.
-  function asyncWithdraw() external onlyWhitelist {}
+  function asyncRedeem(uint256 _minCRVAmount) external payable onlyWhitelist SponsorCrossCallFee {
+    CrossChainOperationData memory _operation = redeemOperation;
+    // solhint-disable-next-line reason-string
+    require(_operation.ongoing > 0, "Layer2CRVDepositor: no ongoing redeem");
+    AsyncOperationStatus _status = asyncRedeemStatus;
+    // solhint-disable-next-line reason-string
+    require(
+      _status == AsyncOperationStatus.Pending || _status == AsyncOperationStatus.Failed,
+      "Layer2CRVDepositor: no redeem or has ongoing redeem"
+    );
 
-  /// @notice See {ILayer2CRVDepositor-claim}
-  function claim() external override {}
+    asyncRedeemStatus = AsyncOperationStatus.OnGoing;
+
+    // cross chain call redeem
+    bytes memory _data = abi.encodeWithSelector(
+      ILayer1ACRVProxy.redeem.selector,
+      uint256(_operation.executionId),
+      uint256(1),
+      address(this),
+      uint256(_operation.ongoing),
+      _minCRVAmount,
+      address(this)
+    );
+    ICrossChainCallProxy(crossChainCallProxy).crossChainCall(layer1Proxy, _data, address(this), 1);
+
+    emit AsyncRedeem(_operation.executionId, _status);
+  }
 
   /// @notice See {ILayer2CRVDepositor-anyFallback}
-  function anyFallback(address _to, bytes memory _data) external override onlyAnyCallProxy {}
+  function anyFallback(address _to, bytes calldata _data) external override onlyAnyCallProxy {
+    bytes4 _selector;
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      _selector := calldataload(_data.offset)
+    }
+    if (_selector == ILayer1ACRVProxy.deposit.selector) {
+      (uint256 _executionId, , , , ) = abi.decode(_data[4:], (uint256, uint256, address, uint256, address));
+      CrossChainOperationData memory _operation = depositOperation;
+      // solhint-disable-next-line reason-string
+      require(_operation.executionId == _executionId, "Layer2CRVDepositor: execution id mismatch");
+      // solhint-disable-next-line reason-string
+      require(asyncDepositStatus == AsyncOperationStatus.OnGoing, "Layer2CRVDepositor: no ongoing deposit");
+      asyncDepositStatus = AsyncOperationStatus.Failed;
+
+      emit AsyncDepositFailed(_executionId);
+    } else if (_selector == ILayer1ACRVProxy.redeem.selector) {
+      (uint256 _executionId, , , , , ) = abi.decode(_data[4:], (uint256, uint256, address, uint256, uint256, address));
+      CrossChainOperationData memory _operation = redeemOperation;
+      // solhint-disable-next-line reason-string
+      require(_operation.executionId == _executionId, "Layer2CRVDepositor: execution id mismatch");
+      // solhint-disable-next-line reason-string
+      require(asyncRedeemStatus == AsyncOperationStatus.OnGoing, "Layer2CRVDepositor: no ongoing redeem");
+      asyncRedeemStatus = AsyncOperationStatus.Failed;
+
+      emit AsyncRedeemFailed(_executionId);
+    } else {
+      _customFallback(_to, _data);
+    }
+  }
 
   /// @notice See {ILayer2CRVDepositor-finalizeDeposit}
   function finalizeDeposit(
-    uint256 _exectionId,
+    uint256 _executionId,
     uint256 _crvAmount,
     uint256 _acrvAmount,
     uint256 _acrvFee
-  ) external override onlyAnyCallProxy {}
+  ) external override onlyAnyCallProxy {
+    // solhint-disable-next-line reason-string
+    require(asyncDepositStatus == AsyncOperationStatus.OnGoing, "Layer2CRVDepositor: no ongoing deposit");
 
-  /// @notice See {ILayer2CRVDepositor-finalizeWithdraw}
-  function finalizeWithdraw(
-    uint256 _exectionId,
+    CrossChainOperationData memory _operation = depositOperation;
+    // solhint-disable-next-line reason-string
+    require(_operation.executionId == _executionId, "Layer2CRVDepositor: execution id mismatch");
+
+    finialzedDepositState[_executionId] = FinalizedOperationState(uint128(_operation.ongoing), uint128(_acrvAmount));
+    asyncDepositStatus = AsyncOperationStatus.None;
+    _operation.ongoing = 0;
+    _operation.executionId += 1;
+    depositOperation = _operation;
+
+    emit FinalizeDeposit(_executionId, _crvAmount, _acrvAmount, _acrvFee);
+  }
+
+  /// @notice See {ILayer2CRVDepositor-finalizeRedeem}
+  function finalizeRedeem(
+    uint256 _executionId,
     uint256 _acrvAmount,
     uint256 _crvAmount,
     uint256 _crvFee
-  ) external override onlyAnyCallProxy {}
+  ) external override onlyAnyCallProxy {
+    // solhint-disable-next-line reason-string
+    require(asyncRedeemStatus == AsyncOperationStatus.OnGoing, "Layer2CRVDepositor: no ongoing redeem");
+
+    CrossChainOperationData memory _operation = redeemOperation;
+    // solhint-disable-next-line reason-string
+    require(_operation.executionId == _executionId, "Layer2CRVDepositor: execution id mismatch");
+
+    finialzedRedeemState[_executionId] = FinalizedOperationState(uint128(_operation.ongoing), uint128(_crvAmount));
+    asyncRedeemStatus = AsyncOperationStatus.None;
+    _operation.ongoing = 0;
+    _operation.executionId += 1;
+    redeemOperation = _operation;
+
+    emit FinalizeRedeem(_executionId, _acrvAmount, _crvAmount, _crvFee);
+  }
 
   /********************************** Restricted Functions **********************************/
+
+  /// @notice Update the address of Layer1ACRVProxy contract.
+  /// @param _layer1Proxy The address to update.
+  function updateLayer1Proxy(address _layer1Proxy) external onlyOwner {
+    layer1Proxy = _layer1Proxy;
+  }
 
   /// @notice Update whitelist contract can call `crossChainCall`.
   /// @param _whitelist The list of whitelist address to update.
@@ -165,23 +399,164 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   /// @dev Update fee data
   /// @param _platform The address of platform to update.
   /// @param _depositFeePercentage The deposit fee percentage to update.
-  /// @param _withdrawFeePercentage The withdraw fee percentage to update.
+  /// @param _redeemFeePercentage The redeem fee percentage to update.
   function updateFeeData(
     address _platform,
     uint256 _depositFeePercentage,
-    uint256 _withdrawFeePercentage
+    uint256 _redeemFeePercentage
   ) external onlyOwner {
     // solhint-disable-next-line reason-string
     require(_platform != address(0), "Layer2CRVDepositor: zero address");
     // solhint-disable-next-line reason-string
     require(_depositFeePercentage <= MAX_DEPOSIT_FEE_PERCENTAGE, "Layer2CRVDepositor: fee too large");
     // solhint-disable-next-line reason-string
-    require(_withdrawFeePercentage <= MAX_WITHDRAW_FEE_PERCENTAGE, "Layer2CRVDepositor: fee too large");
+    require(_redeemFeePercentage <= MAX_WITHDRAW_FEE_PERCENTAGE, "Layer2CRVDepositor: fee too large");
 
-    fees = FeeData(_platform, uint32(_depositFeePercentage), uint32(_withdrawFeePercentage));
+    fees = FeeData(_platform, uint32(_depositFeePercentage), uint32(_redeemFeePercentage));
   }
 
   /********************************** Internal Functions **********************************/
+
+  /// @dev Internal function to get current aCRV/CRV execution id.
+  function _getExecutionId(CrossChainOperationData memory _operation) private pure returns (uint256) {
+    if (_operation.ongoing > 0) {
+      return _operation.executionId + 1;
+    } else {
+      return _operation.executionId;
+    }
+  }
+
+  function _isExecutionOngoing(CrossChainOperationData memory _operation, uint256 _executionId)
+    private
+    pure
+    returns (bool)
+  {
+    if (_operation.ongoing > 0) {
+      return _operation.executionId == _executionId;
+    } else {
+      return false;
+    }
+  }
+
+  function _operateDepositOrRedeem(
+    bool isDeposit,
+    address _account,
+    uint256 _amount
+  ) private returns (uint256 _executionId) {
+    // 1. transfer from msg.sender
+    address _token = isDeposit ? crv : acrv;
+    IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+
+    // 2. update global state
+    CrossChainOperationData memory _operation = isDeposit ? depositOperation : redeemOperation;
+    _executionId = _getExecutionId(_operation);
+    {
+      uint256 _newPending = _amount.add(_operation.pending);
+      require(_newPending <= uint112(-1), "Layer2CRVDepositor: overflow");
+      _operation.pending = uint112(_newPending);
+      if (isDeposit) {
+        depositOperation = _operation;
+      } else {
+        redeemOperation = _operation;
+      }
+    }
+
+    // 3. update user state
+    AccountOperationList storage _operations = isDeposit
+      ? accountDepositOperations[_account]
+      : accountRedeemOperations[_account];
+    uint256 _length = _operations.operations.length;
+    if (_length > 0 && _operations.operations[_length - 1].executionId == _executionId) {
+      _operations.operations[_length - 1].amount += uint224(_amount); // addition is safe
+    } else {
+      _operations.operations.push(AccountOperation(uint32(_executionId), uint224(_amount)));
+    }
+  }
+
+  function _abortDepositOrRedeem(
+    bool isDeposit,
+    address _account,
+    uint256 _amount
+  ) private returns (uint256 _executionId) {
+    // 1. check global last operation status
+    CrossChainOperationData memory _operation = isDeposit ? depositOperation : redeemOperation;
+    _executionId = _getExecutionId(_operation);
+    // solhint-disable-next-line reason-string
+    require(!_isExecutionOngoing(_operation, _executionId), "Layer2CRVDepositor: execution is ongoing");
+
+    // 2. check and update user last operation
+    AccountOperationList storage _operations = isDeposit
+      ? accountDepositOperations[_account]
+      : accountRedeemOperations[_account];
+    uint256 _length = _operations.operations.length;
+    if (_length > 0 && _operations.operations[_length - 1].executionId == _executionId) {
+      AccountOperation memory _accountOperation = _operations.operations[_length - 1];
+      // solhint-disable-next-line reason-string
+      require(_accountOperation.amount >= _amount, "Layer2CRVDepositor: insufficient amount to abort");
+      _operations.operations[_length - 1].amount -= uint224(_amount);
+    } else {
+      // solhint-disable-next-line reason-string
+      revert("Layer2CRVDepositor: insufficient amount to abort");
+    }
+
+    // 3. update last global operation
+    _operation.pending -= uint112(_amount);
+    if (isDeposit) {
+      depositOperation = _operation;
+    } else {
+      redeemOperation = _operation;
+    }
+
+    // transfer token to user
+    address _token = isDeposit ? crv : acrv;
+    IERC20(_token).safeTransfer(_account, _amount);
+  }
+
+  function _claim(
+    AccountOperationList storage _operations,
+    mapping(uint256 => FinalizedOperationState) storage _finalized
+  ) private returns (uint256 _claimable) {
+    uint256 _claimIndex;
+    (_claimIndex, _claimable) = _getClaimable(_operations, _finalized);
+
+    _operations.claimIndex = _claimIndex;
+  }
+
+  function _getClaimable(
+    AccountOperationList storage _operations,
+    mapping(uint256 => FinalizedOperationState) storage _finalized
+  ) private view returns (uint256 _claimIndex, uint256 _claimable) {
+    uint256 _length = _operations.operations.length;
+    _claimIndex = _operations.claimIndex;
+    AccountOperation memory _operation;
+    FinalizedOperationState memory _finalizedState;
+    while (_claimIndex < _length) {
+      _operation = _operations.operations[_claimIndex];
+      _finalizedState = _finalized[_operation.executionId];
+
+      if (_finalizedState.providedAmount == 0) break;
+
+      _claimable += (uint256(_operation.amount) * _finalizedState.executedAmount) / _finalizedState.providedAmount;
+      _claimIndex += 1;
+    }
+  }
+
+  function _getAbortable(bool isDeposit, address _account) private view returns (uint256) {
+    CrossChainOperationData memory _operation = isDeposit ? depositOperation : redeemOperation;
+    uint256 _executionId = _getExecutionId(_operation);
+    if (!_isExecutionOngoing(_operation, _executionId)) return 0;
+
+    AccountOperationList storage _operations = isDeposit
+      ? accountDepositOperations[_account]
+      : accountRedeemOperations[_account];
+    uint256 _length = _operations.operations.length;
+    if (_length > 0 && _operations.operations[_length - 1].executionId == _executionId) {
+      AccountOperation memory _accountOperation = _operations.operations[_length - 1];
+      return _accountOperation.amount;
+    } else {
+      return 0;
+    }
+  }
 
   /// @dev Internal function to bridge aCRV to Layer 1.
   /// @param _recipient The address of recipient will receive the aCRV.
@@ -204,4 +579,9 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     virtual
     returns (uint256 _bridgeAmount, uint256 _totalFee)
   {}
+
+  /// @dev Internal function to handle failure fallback except deposit and redeem.
+  /// @param _to The target address in original call.
+  /// @param _data The calldata pass to target address in original call.
+  function _customFallback(address _to, bytes memory _data) internal virtual {}
 }

@@ -92,8 +92,8 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
     }
   }
 
-  /// @notice See {ILayer1ACRVProxy-withdraw}
-  function withdraw(
+  /// @notice See {ILayer1ACRVProxy-redeem}
+  function redeem(
     uint256 _executionId,
     uint256 _targetChain,
     address _recipient,
@@ -107,7 +107,7 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
     // solhint-disable-next-line reason-string
     require(_targetChain == targetChain, "Layer1ACRVProxy: target chain mismatch");
 
-    // 1. withdraw CRV from aCRV.
+    // 1. redeem CRV from aCRV.
     uint256 _totalAmount = IAladdinCRV(ACRV).withdraw(
       address(this),
       _acrvAmount,
@@ -121,7 +121,7 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
     // 3. cross chain call to notify
     if (_callback != address(0)) {
       bytes memory _data = abi.encodeWithSelector(
-        ILayer2CRVDepositor.finalizeWithdraw.selector,
+        ILayer2CRVDepositor.finalizeRedeem.selector,
         _executionId,
         _acrvAmount,
         _bridgeAmount,

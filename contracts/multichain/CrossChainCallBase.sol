@@ -2,6 +2,8 @@
 
 pragma solidity ^0.7.6;
 
+import "./interfaces/IAnyCallProxy.sol";
+
 contract CrossChainCallBase {
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
@@ -21,6 +23,14 @@ contract CrossChainCallBase {
   modifier onlyOwner() {
     // solhint-disable-next-line reason-string
     require(msg.sender == owner, "Layer2CRVDepositor: only owner");
+    _;
+  }
+
+  modifier SponsorCrossCallFee() {
+    // caller sponsor cross chain fee.
+    if (msg.value > 0) {
+      IAnyCallProxy(anyCallProxy).deposit{ value: msg.value }(crossChainCallProxy);
+    }
     _;
   }
 

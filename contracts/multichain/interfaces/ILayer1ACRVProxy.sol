@@ -17,14 +17,14 @@ interface ILayer1ACRVProxy {
     address _callback
   ) external;
 
-  /// @notice Cross chain withdraw aCRV to CRV and cross back to target chain.
-  /// @param _executionId An unique id to keep track on the withdraw operation on target chain.
+  /// @notice Cross chain redeem aCRV to CRV and cross back to target chain.
+  /// @param _executionId An unique id to keep track on the redeem operation on target chain.
   /// @param _targetChain The target chain id.
   /// @param _recipient The address of recipient who will receive the aCRV on target chain.
-  /// @param _acrvAmount The amount of aCRV to withdraw.
+  /// @param _acrvAmount The amount of aCRV to redeem.
   /// @param _minCRVAmount The minimum amount of CRV to receive.
   /// @param _callback The address who will receive callback on target chain.
-  function withdraw(
+  function redeem(
     uint256 _executionId,
     uint256 _targetChain,
     address _recipient,
