@@ -352,4 +352,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
     }
     return _amount;
   }
+
+  // solhint-disable-next-line no-empty-blocks
+  receive() external payable {}
 }
