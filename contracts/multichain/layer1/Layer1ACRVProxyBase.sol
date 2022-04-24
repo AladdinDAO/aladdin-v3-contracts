@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "../CrossChainCallBase.sol";
+import "../../misc/Multicall.sol";
 
 import "../../interfaces/IAladdinCRV.sol";
 import "../interfaces/ICrossChainCallProxy.sol";
@@ -13,7 +15,7 @@ import "../interfaces/ILayer2CRVDepositor.sol";
 import "../interfaces/ILayer1ACRVProxy.sol";
 
 // solhint-disable no-empty-blocks
-abstract contract Layer1ACRVProxyBase is CrossChainCallBase, ILayer1ACRVProxy {
+abstract contract Layer1ACRVProxyBase is CrossChainCallBase, Multicall, ILayer1ACRVProxy {
   using SafeERC20 for IERC20;
 
   event Deposit(

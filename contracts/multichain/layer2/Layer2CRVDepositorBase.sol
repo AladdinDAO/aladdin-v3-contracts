@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -99,6 +100,29 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   /// @notice Keep track of a list of whitelist addresses.
   mapping(address => bool) public whitelist;
 
+  uint256 private constant _NOT_ENTERED = 1;
+  uint256 private constant _ENTERED = 2;
+  uint256 private _enterStatus;
+
+  /// @dev Prevents a contract from calling itself, directly or indirectly.
+  /// Calling a `nonReentrant` function from another `nonReentrant`
+  /// function is not supported. It is possible to prevent this from happening
+  /// by making the `nonReentrant` function external, and make it call a
+  /// `private` function that does the actual work.
+  modifier nonReentrant() {
+    // On the first call to nonReentrant, _notEntered will be true
+    require(_enterStatus != _ENTERED, "ReentrancyGuard: reentrant call");
+
+    // Any calls to nonReentrant after this point will fail
+    _enterStatus = _ENTERED;
+
+    _;
+
+    // By storing the original value once again, a refund is triggered (see
+    // https://eips.ethereum.org/EIPS/eip-2200)
+    _enterStatus = _NOT_ENTERED;
+  }
+
   function _initialize(
     address _anyCallProxy,
     address _crossChainCallProxy,
@@ -119,6 +143,9 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     crv = _crv;
     acrv = _acrv;
     layer1Proxy = _layer1Proxy;
+
+    // for ReentrancyGuard
+    _enterStatus = _NOT_ENTERED;
   }
 
   modifier onlyWhitelist() {
@@ -146,7 +173,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   /********************************** Mutated Functions **********************************/
 
   /// @notice See {ILayer2CRVDepositor-deposit}
-  function deposit(uint256 _amount) external override {
+  function deposit(uint256 _amount) external override nonReentrant {
     // solhint-disable-next-line reason-string
     require(_amount > 0, "Layer2CRVDepositor: deposit zero amount");
 
@@ -156,7 +183,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   }
 
   /// @notice See {ILayer2CRVDepositor-abortDeposit}
-  function abortDeposit(uint256 _amount) external override {
+  function abortDeposit(uint256 _amount) external override nonReentrant {
     // solhint-disable-next-line reason-string
     require(_amount > 0, "Layer2CRVDepositor: abort zero amount");
 
@@ -166,7 +193,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   }
 
   /// @notice See {ILayer2CRVDepositor-redeem}
-  function redeem(uint256 _amount) external override {
+  function redeem(uint256 _amount) external override nonReentrant {
     // solhint-disable-next-line reason-string
     require(_amount > 0, "Layer2CRVDepositor: redeem zero amount");
 
@@ -176,7 +203,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   }
 
   /// @notice See {ILayer2CRVDepositor-abortRedeem}
-  function abortRedeem(uint256 _amount) external override {
+  function abortRedeem(uint256 _amount) external override nonReentrant {
     // solhint-disable-next-line reason-string
     require(_amount > 0, "Layer2CRVDepositor: abort zero amount");
 
@@ -186,7 +213,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   }
 
   /// @notice See {ILayer2CRVDepositor-claim}
-  function claim() external override {
+  function claim() external override nonReentrant {
     uint256 _acrvAmount = _claim(accountDepositOperations[msg.sender], finialzedDepositState);
     IERC20(acrv).safeTransfer(msg.sender, _acrvAmount);
 
