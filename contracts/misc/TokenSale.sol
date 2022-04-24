@@ -25,6 +25,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
   event UpdateSaleTime(uint256 _whitelistSaleTime, uint256 _publicSaleTime, uint256 _publicSaleDuration);
   event UpdateVesting(address _vesting, uint256 _vestRatio, uint256 _duration);
   event UpdateWhitelistCap(address indexed _whitelist, uint256 _cap);
+  event UpdateSupportedToken(address indexed _token, bool _status);
 
   uint256 private constant PRICE_PRECISION = 1e18;
   uint256 private constant RATIO_PRECISION = 1e9;
@@ -114,7 +115,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
     require(_amountIn > 0, "TokenSale: zero input amount");
 
     // 1. check supported token
-    require(!isSupported[_token], "TokenSale: token not support");
+    require(isSupported[_token], "TokenSale: token not support");
 
     // 2. check sale time
     SaleTimeData memory _saleTime = saleTimeData;
@@ -224,6 +225,16 @@ contract TokenSale is Ownable, ReentrancyGuard {
   }
 
   /********************************** Restricted Functions **********************************/
+
+  /// @notice Update supported tokens.
+  /// @param _tokens The list of addresses of token to update.
+  /// @param _status The status to update.
+  function updateSupportedTokens(address[] memory _tokens, bool _status) external onlyOwner {
+    for (uint256 i = 0; i < _tokens.length; i++) {
+      isSupported[_tokens[i]] = _status;
+      emit UpdateSupportedToken(_tokens[i], _status);
+    }
+  }
 
   /// @notice Update token cap for whitelists.
   /// @param _whitelist The list of whitelist to update.
