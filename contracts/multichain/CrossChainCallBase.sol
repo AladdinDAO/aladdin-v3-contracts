@@ -53,11 +53,17 @@ contract CrossChainCallBase {
     owner = _owner;
   }
 
+  // solhint-disable-next-line no-empty-blocks
+  receive() external payable {}
+
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update AnyCallProxy contract.
   /// @param _anyCallProxy The address to update.
   function updateAnyCallProxy(address _anyCallProxy) external onlyOwner {
+    // solhint-disable-next-line reason-string
+    require(_anyCallProxy != address(0), "CrossChainCallBase: zero address");
+
     anyCallProxy = _anyCallProxy;
 
     emit UpdateAnyCallProxy(_anyCallProxy);
@@ -66,6 +72,9 @@ contract CrossChainCallBase {
   /// @notice Update CrossChainCallProxy contract.
   /// @param _crossChainCallProxy The address to update.
   function updateCrossChainCallProxy(address _crossChainCallProxy) external onlyOwner {
+    // solhint-disable-next-line reason-string
+    require(_crossChainCallProxy != address(0), "CrossChainCallBase: zero address");
+
     crossChainCallProxy = _crossChainCallProxy;
 
     emit UpdateCrossChainCallProxy(_crossChainCallProxy);
@@ -77,7 +86,9 @@ contract CrossChainCallBase {
   function transferOwnership(address _owner) public onlyOwner {
     // solhint-disable-next-line reason-string
     require(_owner != address(0), "CrossChainCallBase: zero address");
+
     emit OwnershipTransferred(owner, _owner);
+
     owner = _owner;
   }
 
@@ -96,6 +107,28 @@ contract CrossChainCallBase {
   }
 
   /********************************** Internal Functions **********************************/
+
+  /// @dev Internal function to bridge aCRV to target chain.
+  /// @param _recipient The address of recipient will receive the aCRV.
+  /// @param _totalAmount The total amount of aCRV to bridge.
+  /// @return _bridgeAmount The total amount of aCRV bridged, fees are included.
+  /// @return _totalFee The total amount of aCRV fee charged by Bridge.
+  function _bridgeACRV(address _recipient, uint256 _totalAmount)
+    internal
+    virtual
+    returns (uint256 _bridgeAmount, uint256 _totalFee)
+  {}
+
+  /// @dev Internal function to bridge CRV to target chain.
+  /// @param _recipient The address of recipient will receive the CRV.
+  /// @param _totalAmount The total amount of CRV to bridge.
+  /// @return _bridgeAmount The total amount of CRV bridged, fees are included.
+  /// @return _totalFee The total amount of CRV fee charged by Bridge.
+  function _bridgeCRV(address _recipient, uint256 _totalAmount)
+    internal
+    virtual
+    returns (uint256 _bridgeAmount, uint256 _totalFee)
+  {}
 
   /// @dev Internal function to get current chain id.
   function _getChainId() internal pure returns (uint256) {

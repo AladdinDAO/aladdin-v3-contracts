@@ -3,26 +3,12 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "../interfaces/IUChildERC20.sol";
+import "../interfaces/IFantomCRV.sol";
 
-import "../layer1/PolygonACRVProxy.sol";
 import "./Layer2CRVDepositor.sol";
 
-contract PolygonCRVDepositor is Layer2CRVDepositor {
+contract FantomCRVDepositor is Layer2CRVDepositor {
   event AsyncExit(uint256 indexed _executionId);
-
-  function asyncExit(bytes calldata _inputData) external payable onlyWhitelist SponsorCrossCallFee {
-    CrossChainOperationData memory _operation = depositOperation;
-    AsyncOperationStatus _status = asyncDepositStatus;
-    // solhint-disable-next-line reason-string
-    require(_status == AsyncOperationStatus.Pending, "Layer2CRVDepositor: no pending deposit");
-
-    // cross chain call deposit
-    bytes memory _data = abi.encodeWithSelector(PolygonACRVProxy.exitFromBridge.selector, _inputData);
-    ICrossChainCallProxy(crossChainCallProxy).crossChainCall(layer1Proxy, _data, address(0), 1);
-
-    emit AsyncExit(_operation.executionId);
-  }
 
   /********************************** Internal Functions **********************************/
 
@@ -40,14 +26,22 @@ contract PolygonCRVDepositor is Layer2CRVDepositor {
     returns (uint256 _bridgeAmount, uint256 _totalFee)
   {
     // solhint-disable-next-line reason-string
-    require(_recipient == address(this), "PolygonCRVDepositor: only bridge to self");
+    require(_recipient == address(this), "PolygonCRVDepositor: only withdraw to self");
 
     CrossChainInfo memory _info = CRVCrossChainInfo;
     // solhint-disable-next-line reason-string
     require(_totalAmount >= _info.minCrossChainAmount, "PolygonCRVDepositor: insufficient cross chain amount");
     // we don't need to check upper limit here.
 
-    IUChildERC20(crv).withdraw(_totalAmount);
+    IFantomCRV(crv).Swapout(_totalAmount, _recipient);
+
+    _totalFee = (_bridgeAmount * _info.feePercentage) / FEE_DENOMINATOR;
+    if (_totalFee < _info.minCrossChainFee) {
+      _totalFee = _info.minCrossChainFee;
+    }
+    if (_totalFee > _info.maxCrossChainFee) {
+      _totalFee = _info.maxCrossChainFee;
+    }
 
     _bridgeAmount = _totalAmount;
     _totalFee = 0;

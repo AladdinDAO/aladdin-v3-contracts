@@ -378,7 +378,10 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     // solhint-disable-next-line reason-string
     require(_operation.executionId == _executionId, "Layer2CRVDepositor: execution id mismatch");
 
-    finialzedDepositState[_executionId] = FinalizedOperationState(uint128(_operation.ongoing), uint128(_acrvAmount));
+    finialzedDepositState[_executionId] = FinalizedOperationState(
+      uint128(_operation.ongoing),
+      uint128(_acrvAmount - _acrvFee)
+    );
     asyncDepositStatus = AsyncOperationStatus.None;
     _operation.ongoing = 0;
     _operation.executionId += 1;
@@ -401,7 +404,10 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     // solhint-disable-next-line reason-string
     require(_operation.executionId == _executionId, "Layer2CRVDepositor: execution id mismatch");
 
-    finialzedRedeemState[_executionId] = FinalizedOperationState(uint128(_operation.ongoing), uint128(_crvAmount));
+    finialzedRedeemState[_executionId] = FinalizedOperationState(
+      uint128(_operation.ongoing),
+      uint128(_crvAmount - _crvFee)
+    );
     asyncRedeemStatus = AsyncOperationStatus.None;
     _operation.ongoing = 0;
     _operation.executionId += 1;
@@ -597,28 +603,6 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
       return 0;
     }
   }
-
-  /// @dev Internal function to bridge aCRV to Layer 1.
-  /// @param _recipient The address of recipient will receive the aCRV.
-  /// @param _totalAmount The total amount of aCRV to bridge.
-  /// @return _bridgeAmount The total amount of aCRV bridged, fees are included.
-  /// @return _totalFee The total amount of aCRV fee charged by Bridge.
-  function _bridgeACRV(address _recipient, uint256 _totalAmount)
-    internal
-    virtual
-    returns (uint256 _bridgeAmount, uint256 _totalFee)
-  {}
-
-  /// @dev Internal function to bridge CRV to Layer 1.
-  /// @param _recipient The address of recipient will receive the CRV.
-  /// @param _totalAmount The total amount of CRV to bridge.
-  /// @return _bridgeAmount The total amount of CRV bridged, fees are included.
-  /// @return _totalFee The total amount of CRV fee charged by Bridge.
-  function _bridgeCRV(address _recipient, uint256 _totalAmount)
-    internal
-    virtual
-    returns (uint256 _bridgeAmount, uint256 _totalFee)
-  {}
 
   /// @dev Internal function to handle failure fallback except deposit and redeem.
   /// @param _to The target address in original call.

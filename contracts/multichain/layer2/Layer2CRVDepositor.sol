@@ -34,6 +34,7 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
 
   /// @notice aCRV cross chain info.
   CrossChainInfo public aCRVCrossChainInfo;
+
   /// @notice  CRV cross chain info.
   // solhint-disable-next-line var-name-mixedcase
   CrossChainInfo public CRVCrossChainInfo;
@@ -89,24 +90,14 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
 
   /********************************** Internal Functions **********************************/
 
-  /// @dev See {Layer2CRVDepositorBase-_bridgeACRV}
+  /// @dev See {CrossChainCallBase-_bridgeACRV}
   function _bridgeACRV(address _recipient, uint256 _totalAmount)
     internal
     virtual
     override
     returns (uint256 _bridgeAmount, uint256 _totalFee)
   {
-    (_bridgeAmount, _totalFee) = _bridge(acrv, _recipient, _totalAmount, aCRVCrossChainInfo);
-  }
-
-  /// @dev See {Layer2CRVDepositorBase-_bridgeCRV}
-  function _bridgeCRV(address _recipient, uint256 _totalAmount)
-    internal
-    virtual
-    override
-    returns (uint256 _bridgeAmount, uint256 _totalFee)
-  {
-    (_bridgeAmount, _totalFee) = _bridge(crv, _recipient, _totalAmount, CRVCrossChainInfo);
+    (_bridgeAmount, _totalFee) = _bridgeWithAnyswapRouter(acrv, _recipient, _totalAmount, aCRVCrossChainInfo);
   }
 
   /// @dev See {Layer2CRVDepositorBase-_customFallback}
@@ -122,7 +113,7 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
   /// @param _totalAmount The total amount of token to bridge.
   /// @return _bridgeAmount The total amount of token bridged, fees are included.
   /// @return _totalFee The total amount of token fee charged by Bridge.
-  function _bridge(
+  function _bridgeWithAnyswapRouter(
     address _token,
     address _recipient,
     uint256 _totalAmount,

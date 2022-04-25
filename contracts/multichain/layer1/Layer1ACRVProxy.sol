@@ -12,8 +12,8 @@ import "./Layer1ACRVProxyBase.sol";
 import "../interfaces/IAnyswapRouter.sol";
 
 /// @dev The default implementation of Layer1ACRVProxy,
-///      bridge CRV/aCRV using Multichain (Previously Anyswap).
-contract Layer1ACRVDefaultProxy is Initializable, Layer1ACRVProxyBase {
+///      bridge aCRV using Multichain (Previously Anyswap).
+contract Layer1ACRVProxy is Initializable, Layer1ACRVProxyBase {
   using SafeERC20 for IERC20;
 
   event UpdateAnyswapRouter(address indexed _anyswapRouter);
@@ -34,12 +34,12 @@ contract Layer1ACRVDefaultProxy is Initializable, Layer1ACRVProxyBase {
   /// @notice The address of AnyswapRouter.
   address public anyswapRouter;
 
-  /// @notice Mapping from chain id to aCRV cross chain info.
-  mapping(uint256 => CrossChainInfo) public aCRVCrossChainInfo;
+  /// @notice aCRV cross chain info.
+  CrossChainInfo public aCRVCrossChainInfo;
 
-  /// @notice Mapping from chain id to CRV cross chain info.
+  /// @notice  CRV cross chain info.
   // solhint-disable-next-line var-name-mixedcase
-  mapping(uint256 => CrossChainInfo) public CRVCrossChainInfo;
+  CrossChainInfo public CRVCrossChainInfo;
 
   function initialize(
     uint256 _targetChain,
@@ -59,13 +59,8 @@ contract Layer1ACRVDefaultProxy is Initializable, Layer1ACRVProxyBase {
 
   /// @notice Update CrossChainInfo for ACRV or CRV.
   /// @param _token The address of token to update.
-  /// @param _chainId The chain id to update.
   /// @param _info The CrossChainInfo to update.
-  function updateCrossChainInfo(
-    address _token,
-    uint256 _chainId,
-    CrossChainInfo memory _info
-  ) external onlyOwner {
+  function updateCrossChainInfo(address _token, CrossChainInfo memory _info) external onlyOwner {
     // solhint-disable-next-line reason-string
     require(_token == ACRV || _token == CRV, "Layer1ACRVDefaultProxy: invalid token");
     // solhint-disable-next-line reason-string
@@ -79,9 +74,9 @@ contract Layer1ACRVDefaultProxy is Initializable, Layer1ACRVProxyBase {
     );
 
     if (_token == ACRV) {
-      aCRVCrossChainInfo[_chainId] = _info;
+      aCRVCrossChainInfo = _info;
     } else {
-      CRVCrossChainInfo[_chainId] = _info;
+      CRVCrossChainInfo = _info;
     }
   }
 
@@ -98,49 +93,42 @@ contract Layer1ACRVDefaultProxy is Initializable, Layer1ACRVProxyBase {
 
   /********************************** Internal Functions **********************************/
 
-  /// @dev See {Layer1ACRVProxyBase-_bridgeACRV}
-  function _bridgeACRV(
-    address _recipient,
-    uint256 _totalAmount,
-    uint256 _targetChain
-  ) internal virtual override returns (uint256 _bridgeAmount, uint256 _totalFee) {
-    CrossChainInfo memory _info = aCRVCrossChainInfo[_targetChain];
-
-    (_bridgeAmount, _totalFee) = _bridge(ACRV, _recipient, _totalAmount, _targetChain, _info);
+  /// @dev See {CrossChainCallBase-_bridgeACRV}
+  function _bridgeACRV(address _recipient, uint256 _totalAmount)
+    internal
+    virtual
+    override
+    returns (uint256 _bridgeAmount, uint256 _totalFee)
+  {
+    (_bridgeAmount, _totalFee) = _bridgeWithAnyswapRouter(ANY_ACRV, ACRV, _recipient, _totalAmount, aCRVCrossChainInfo);
   }
 
-  /// @dev See {Layer1ACRVProxyBase-_bridgeCRV}
-  function _bridgeCRV(
-    address _recipient,
-    uint256 _totalAmount,
-    uint256 _targetChain
-  ) internal virtual override returns (uint256 _bridgeAmount, uint256 _totalFee) {
-    CrossChainInfo memory _info = CRVCrossChainInfo[_targetChain];
-
-    (_bridgeAmount, _totalFee) = _bridge(CRV, _recipient, _totalAmount, _targetChain, _info);
+  /// @dev See {CrossChainCallBase-_bridgeCRV}
+  function _bridgeCRV(address, uint256) internal virtual override returns (uint256, uint256) {
+    revert("bridge CRV unsupported");
   }
 
   /// @dev Internal function to bridge some token to target chain.
   /// @param _token The address of the token to bridge.
   /// @param _recipient The address of recipient will receive the token.
   /// @param _totalAmount The total amount of token to bridge.
-  /// @param _targetChain The target chain id.
   /// @return _bridgeAmount The total amount of token bridged, fees are included.
   /// @return _totalFee The total amount of token fee charged by Bridge.
-  function _bridge(
+  function _bridgeWithAnyswapRouter(
     address _token,
+    address _underlying,
     address _recipient,
     uint256 _totalAmount,
-    uint256 _targetChain,
     CrossChainInfo memory _info
   ) private returns (uint256 _bridgeAmount, uint256 _totalFee) {
     // solhint-disable-next-line reason-string
     require(_totalAmount >= _info.minCrossChainAmount, "Layer1ACRVDefaultProxy: insufficient cross chain amount");
 
     address _anyswapRouter = anyswapRouter;
-    IERC20(_token).safeApprove(_anyswapRouter, 0);
-    IERC20(_token).safeApprove(_anyswapRouter, _totalAmount);
+    IERC20(_underlying).safeApprove(_anyswapRouter, 0);
+    IERC20(_underlying).safeApprove(_anyswapRouter, _totalAmount);
 
+    uint256 _targetChain = targetChain;
     _bridgeAmount = _totalAmount;
     // batch swap in case the amount is too large for single cross chain.
     while (_bridgeAmount >= _info.minCrossChainAmount) {

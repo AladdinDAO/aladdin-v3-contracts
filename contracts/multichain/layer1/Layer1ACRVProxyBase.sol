@@ -40,6 +40,8 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, Multicall, ILayer1A
   uint256 internal constant FEE_DENOMINATOR = 1e9;
   /// @dev The address of AladdinCRV contract.
   address internal constant ACRV = 0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884;
+  /// @dev The address of Anyswap AladdinCRV contract.
+  address internal constant ANY_ACRV = 0x85009bcA4cd4C8F554c3C9a1c2f778Ec3Ce7fEb1;
   /// @dev The address of CRV.
   address internal constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
 
@@ -89,14 +91,13 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, Multicall, ILayer1A
     // 1. deposit CRV to aCRV
     IERC20(CRV).safeApprove(ACRV, 0);
     IERC20(CRV).safeApprove(ACRV, _crvAmount);
-    IAladdinCRV(ACRV).deposit(address(this), _crvAmount);
+    IAladdinCRV(ACRV).depositWithCRV(address(this), _crvAmount);
 
     // 2. send aCRV to source chain
     (uint256 _bridgeAmount, uint256 _totalFee) = _bridgeACRV(
       _recipient,
       // use aCRV balance, in case some dust aCRV left in last deposit.
-      IERC20(ACRV).balanceOf(address(this)),
-      _targetChain
+      IERC20(ACRV).balanceOf(address(this))
     );
 
     // 3. cross chain call to notify
@@ -125,9 +126,19 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, Multicall, ILayer1A
   ) external virtual override onlyAnyCallProxy {
     // do nothing, when amount is zero.
     // solhint-disable-next-line reason-string
-    require(_acrvAmount > 0, "Layer1ACRVProxy: deposit zero amount");
+    require(_acrvAmount > 0, "Layer1ACRVProxy: redeem zero amount");
     // solhint-disable-next-line reason-string
     require(_targetChain == targetChain, "Layer1ACRVProxy: target chain mismatch");
+
+    {
+      uint256 _balance = IERC20(ACRV).balanceOf(address(this));
+      // solhint-disable-next-line reason-string
+      require(_balance > 0, "Layer1ACRVProxy: insufficient aCRV to redeem");
+      // in case that the fee calculation in layer2 is wrong.
+      if (_balance < _acrvAmount) {
+        _acrvAmount = _balance;
+      }
+    }
 
     // 1. redeem CRV from aCRV.
     uint256 _totalAmount = IAladdinCRV(ACRV).withdraw(
@@ -138,7 +149,7 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, Multicall, ILayer1A
     );
 
     // 2. bridge CRV to recipient in target chain.
-    (uint256 _bridgeAmount, uint256 _totalFee) = _bridgeCRV(_recipient, _totalAmount, _targetChain);
+    (uint256 _bridgeAmount, uint256 _totalFee) = _bridgeCRV(_recipient, _totalAmount);
 
     // 3. cross chain call to notify
     if (_callback != address(0)) {
@@ -154,30 +165,4 @@ abstract contract Layer1ACRVProxyBase is CrossChainCallBase, Multicall, ILayer1A
 
     emit Redeem(_executionId, _targetChain, _recipient, _acrvAmount, _bridgeAmount, _totalFee);
   }
-
-  /********************************** Internal Functions **********************************/
-
-  /// @dev Internal function to bridge aCRV to target chain.
-  /// @param _recipient The address of recipient will receive the aCRV.
-  /// @param _totalAmount The total amount of aCRV to bridge.
-  /// @param _targetChain The target chain id.
-  /// @return _bridgeAmount The total amount of aCRV bridged, fees are included.
-  /// @return _totalFee The total amount of aCRV fee charged by Bridge.
-  function _bridgeACRV(
-    address _recipient,
-    uint256 _totalAmount,
-    uint256 _targetChain
-  ) internal virtual returns (uint256 _bridgeAmount, uint256 _totalFee) {}
-
-  /// @dev Internal function to bridge CRV to target chain.
-  /// @param _recipient The address of recipient will receive the CRV.
-  /// @param _totalAmount The total amount of CRV to bridge.
-  /// @param _targetChain The target chain id.
-  /// @return _bridgeAmount The total amount of CRV bridged, fees are included.
-  /// @return _totalFee The total amount of CRV fee charged by Bridge.
-  function _bridgeCRV(
-    address _recipient,
-    uint256 _totalAmount,
-    uint256 _targetChain
-  ) internal virtual returns (uint256 _bridgeAmount, uint256 _totalFee) {}
 }
