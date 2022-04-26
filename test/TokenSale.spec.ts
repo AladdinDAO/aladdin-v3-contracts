@@ -76,7 +76,13 @@ describe("TokenSale.spec", async () => {
       await network.provider.send("evm_setNextBlockTimestamp", [FORK_TIMESTAMP + 86400 * 2]);
       // buy 10000 CLEV
       await sale.connect(signerWETH).buy(WETH, ethers.utils.parseEther("10"), 0);
-      expect(await sale.getPrice()).to.eq(ethers.utils.parseEther("0.001005"));
+      expect(await sale.getPrice()).to.eq(ethers.utils.parseEther("0.001"));
+      // buy another 90000 CLEV
+      await sale.connect(signerWETH).buy(WETH, ethers.utils.parseEther("90"), 0);
+      expect(await sale.getPrice()).to.eq(ethers.utils.parseEther("0.00105"));
+      // buy another 100000 CLEV
+      await sale.connect(signerWETH).buy(WETH, ethers.utils.parseEther("105"), 0);
+      expect(await sale.getPrice()).to.eq(ethers.utils.parseEther("0.0011"));
     });
 
     it("should revert, when input amount is zero", async () => {

@@ -82,20 +82,15 @@ contract TokenSale is Ownable, ReentrancyGuard {
   /********************************** View Functions **********************************/
 
   /// @notice Return current price (base/quota) of quota token.
-  /// @dev                                            totalSold
-  ///      CurrenetPrice = InitPrice * (1 + UpRatio * ---------)
-  ///                                                 Variation
+  /// @dev                                                  / totalSold \
+  ///      CurrenetPrice = InitPrice * (1 + UpRatio * floor|  ---------  |)
+  ///                                                       \ Variation /
   function getPrice() public view returns (uint256) {
     PriceData memory _data = priceData;
     uint256 _totalSold = totalSold;
+    uint256 _level = _totalSold / _data.variation;
 
-    return
-      RATIO_PRECISION
-        .mul(_data.variation)
-        .add(_totalSold.mul(_data.upRatio))
-        .mul(_data.initialPrice)
-        .div(_data.variation)
-        .div(RATIO_PRECISION);
+    return RATIO_PRECISION.add(_level.mul(_data.upRatio)).mul(_data.initialPrice).div(RATIO_PRECISION);
   }
 
   /********************************** Mutated Functions **********************************/
