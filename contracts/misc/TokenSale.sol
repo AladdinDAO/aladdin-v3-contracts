@@ -93,8 +93,8 @@ contract TokenSale is Ownable, ReentrancyGuard {
       RATIO_PRECISION
         .mul(_data.variation)
         .add(_totalSold.mul(_data.upRatio))
-        .div(_data.variation)
         .mul(_data.initialPrice)
+        .div(_data.variation)
         .div(RATIO_PRECISION);
   }
 
