@@ -50,7 +50,7 @@ contract Layer1ACRVProxy is Initializable, Layer1ACRVProxyBase {
   ) external initializer {
     Layer1ACRVProxyBase._initialize(_targetChain, _anyCallProxy, _crossChainCallProxy, _owner);
     // solhint-disable-next-line reason-string
-    require(_anyswapRouter != address(0), "Layer1ACRVDefaultProxy: zero address");
+    require(_anyswapRouter != address(0), "Layer1ACRVProxy: zero address");
 
     anyswapRouter = _anyswapRouter;
   }
@@ -62,16 +62,13 @@ contract Layer1ACRVProxy is Initializable, Layer1ACRVProxyBase {
   /// @param _info The CrossChainInfo to update.
   function updateCrossChainInfo(address _token, CrossChainInfo memory _info) external onlyOwner {
     // solhint-disable-next-line reason-string
-    require(_token == ACRV || _token == CRV, "Layer1ACRVDefaultProxy: invalid token");
+    require(_token == ACRV || _token == CRV, "Layer1ACRVProxy: invalid token");
     // solhint-disable-next-line reason-string
-    require(_info.feePercentage <= FEE_DENOMINATOR, "Layer1ACRVDefaultProxy: fee percentage too large");
+    require(_info.feePercentage <= FEE_DENOMINATOR, "Layer1ACRVProxy: fee percentage too large");
     // solhint-disable-next-line reason-string
-    require(_info.minCrossChainFee <= _info.maxCrossChainFee, "Layer1ACRVDefaultProxy: invalid cross chain fee");
+    require(_info.minCrossChainFee <= _info.maxCrossChainFee, "Layer1ACRVProxy: invalid cross chain fee");
     // solhint-disable-next-line reason-string
-    require(
-      _info.minCrossChainAmount <= _info.maxCrossChainAmount,
-      "Layer1ACRVDefaultProxy: invalid cross chain amount"
-    );
+    require(_info.minCrossChainAmount <= _info.maxCrossChainAmount, "Layer1ACRVProxy: invalid cross chain amount");
 
     if (_token == ACRV) {
       aCRVCrossChainInfo = _info;
@@ -84,7 +81,7 @@ contract Layer1ACRVProxy is Initializable, Layer1ACRVProxyBase {
   /// @param _anyswapRouter The address to update.
   function updateAnyswapRouter(address _anyswapRouter) external onlyOwner {
     // solhint-disable-next-line reason-string
-    require(_anyswapRouter != address(0), "Layer1ACRVDefaultProxy: zero address");
+    require(_anyswapRouter != address(0), "Layer1ACRVProxy: zero address");
 
     anyswapRouter = _anyswapRouter;
 
@@ -120,9 +117,9 @@ contract Layer1ACRVProxy is Initializable, Layer1ACRVProxyBase {
     address _recipient,
     uint256 _totalAmount,
     CrossChainInfo memory _info
-  ) private returns (uint256 _bridgeAmount, uint256 _totalFee) {
+  ) internal returns (uint256 _bridgeAmount, uint256 _totalFee) {
     // solhint-disable-next-line reason-string
-    require(_totalAmount >= _info.minCrossChainAmount, "Layer1ACRVDefaultProxy: insufficient cross chain amount");
+    require(_totalAmount >= _info.minCrossChainAmount, "Layer1ACRVProxy: insufficient cross chain amount");
 
     address _anyswapRouter = anyswapRouter;
     IERC20(_underlying).safeApprove(_anyswapRouter, 0);
@@ -131,19 +128,22 @@ contract Layer1ACRVProxy is Initializable, Layer1ACRVProxyBase {
     uint256 _targetChain = targetChain;
     _bridgeAmount = _totalAmount;
     // batch swap in case the amount is too large for single cross chain.
-    while (_bridgeAmount >= _info.minCrossChainAmount) {
+    while (_bridgeAmount > 0 && _bridgeAmount >= _info.minCrossChainAmount) {
       uint256 _amount = _info.maxCrossChainAmount;
       if (_amount > _bridgeAmount) _amount = _bridgeAmount;
       IAnyswapRouter(_anyswapRouter).anySwapOutUnderlying(_token, _recipient, _amount, _targetChain);
 
-      uint256 _fee = (_amount * _info.feePercentage) / FEE_DENOMINATOR; // multiplication is safe
-      if (_fee < _info.minCrossChainFee) _fee = _info.minCrossChainFee;
-      if (_fee > _info.maxCrossChainFee) _fee = _info.maxCrossChainFee;
-
-      _totalFee += _fee; // addition is safe
+      _totalFee += _computeBridgeFee(_amount, _info); // addition is safe
       _bridgeAmount -= _amount; // subtraction is safe
     }
 
     _bridgeAmount = _totalAmount - _bridgeAmount; // subtraction is safe
+  }
+
+  function _computeBridgeFee(uint256 _amount, CrossChainInfo memory _info) internal view virtual returns (uint256) {
+    uint256 _fee = (_amount * _info.feePercentage) / FEE_DENOMINATOR; // multiplication is safe
+    if (_fee < _info.minCrossChainFee) _fee = _info.minCrossChainFee;
+    if (_fee > _info.maxCrossChainFee) _fee = _info.maxCrossChainFee;
+    return _fee;
   }
 }

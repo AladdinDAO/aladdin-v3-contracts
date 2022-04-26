@@ -7,6 +7,10 @@ import "../interfaces/IFantomCRV.sol";
 
 import "./Layer2CRVDepositor.sol";
 
+/// @notice The implementation of Layer2CRVDepositor for Fantom
+///   + bridge aCRV using Multichain (Previously Anyswap)
+///   + bridge CRV using Fantom Bridge.
+/// @dev The address of this contract should be the same as corresponding Layer1ACRVProxy.
 contract FantomCRVDepositor is Layer2CRVDepositor {
   event AsyncExit(uint256 indexed _executionId);
 
@@ -26,24 +30,16 @@ contract FantomCRVDepositor is Layer2CRVDepositor {
     returns (uint256 _bridgeAmount, uint256 _totalFee)
   {
     // solhint-disable-next-line reason-string
-    require(_recipient == address(this), "PolygonCRVDepositor: only withdraw to self");
+    require(_recipient == address(this), "FantomCRVDepositor: only bridge to self");
 
     CrossChainInfo memory _info = CRVCrossChainInfo;
     // solhint-disable-next-line reason-string
-    require(_totalAmount >= _info.minCrossChainAmount, "PolygonCRVDepositor: insufficient cross chain amount");
+    require(_totalAmount >= _info.minCrossChainAmount, "FantomCRVDepositor: insufficient cross chain amount");
     // we don't need to check upper limit here.
 
     IFantomCRV(crv).Swapout(_totalAmount, _recipient);
 
-    _totalFee = (_bridgeAmount * _info.feePercentage) / FEE_DENOMINATOR;
-    if (_totalFee < _info.minCrossChainFee) {
-      _totalFee = _info.minCrossChainFee;
-    }
-    if (_totalFee > _info.maxCrossChainFee) {
-      _totalFee = _info.maxCrossChainFee;
-    }
-
+    _totalFee = _computeBridgeFee(_bridgeAmount, _info);
     _bridgeAmount = _totalAmount;
-    _totalFee = 0;
   }
 }

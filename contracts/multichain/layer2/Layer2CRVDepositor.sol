@@ -50,7 +50,7 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
   ) external initializer {
     Layer2CRVDepositorBase._initialize(_anyCallProxy, _crossChainCallProxy, _owner, _crv, _acrv, _layer1Proxy);
     // solhint-disable-next-line reason-string
-    require(_anyswapRouter != address(0), "Layer1ACRVDefaultProxy: zero address");
+    require(_anyswapRouter != address(0), "Layer2CRVDepositor: zero address");
 
     anyswapRouter = _anyswapRouter;
   }
@@ -118,29 +118,30 @@ contract Layer2CRVDepositor is Initializable, Layer2CRVDepositorBase {
     address _recipient,
     uint256 _totalAmount,
     CrossChainInfo memory _info
-  ) private returns (uint256 _bridgeAmount, uint256 _totalFee) {
+  ) internal returns (uint256 _bridgeAmount, uint256 _totalFee) {
     // solhint-disable-next-line reason-string
     require(_totalAmount >= _info.minCrossChainAmount, "Layer2CRVDepositor: insufficient cross chain amount");
 
     address _anyswapRouter = anyswapRouter;
-    IERC20(_token).safeApprove(_anyswapRouter, 0);
-    IERC20(_token).safeApprove(_anyswapRouter, _totalAmount);
-
     _bridgeAmount = _totalAmount;
+
     // batch swap in case the amount is too large for single cross chain.
-    while (_bridgeAmount >= _info.minCrossChainAmount) {
+    while (_bridgeAmount > 0 && _bridgeAmount >= _info.minCrossChainAmount) {
       uint256 _amount = _info.maxCrossChainAmount;
       if (_amount > _bridgeAmount) _amount = _bridgeAmount;
-      IAnyswapRouter(_anyswapRouter).anySwapOutUnderlying(_token, _recipient, _amount, 1);
+      IAnyswapRouter(_anyswapRouter).anySwapOut(_token, _recipient, _amount, 1);
 
-      uint256 _fee = (_amount * _info.feePercentage) / FEE_DENOMINATOR; // multiplication is safe
-      if (_fee < _info.minCrossChainFee) _fee = _info.minCrossChainFee;
-      if (_fee > _info.maxCrossChainFee) _fee = _info.maxCrossChainFee;
-
-      _totalFee += _fee; // addition is safe
+      _totalFee += _computeBridgeFee(_amount, _info); // addition is safe
       _bridgeAmount -= _amount; // subtraction is safe
     }
 
     _bridgeAmount = _totalAmount - _bridgeAmount; // subtraction is safe
+  }
+
+  function _computeBridgeFee(uint256 _amount, CrossChainInfo memory _info) internal view virtual returns (uint256) {
+    uint256 _fee = (_amount * _info.feePercentage) / FEE_DENOMINATOR; // multiplication is safe
+    if (_fee < _info.minCrossChainFee) _fee = _info.minCrossChainFee;
+    if (_fee > _info.maxCrossChainFee) _fee = _info.maxCrossChainFee;
+    return _fee;
   }
 }

@@ -46,7 +46,6 @@ const config: HardhatUserConfig = {
         url: process.env.HARDHAT_FORK_URL as string,
         blockNumber: 14243290,
       },
-      chainId: 1,
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",

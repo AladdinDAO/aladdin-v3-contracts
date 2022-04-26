@@ -35,14 +35,21 @@ export enum Action {
 }
 
 // eslint-disable-next-line camelcase
-export async function request_fork(blockNumber: number, contracts: string[]) {
+export async function request_fork(blockNumber: number, contracts: string[], network: string = "ethereum") {
+  let jsonRpcUrl: string = process.env.HARDHAT_FORK_URL as string;
+  if (network === "polygon") {
+    jsonRpcUrl = process.env.HARDHAT_POLYGON_FORK_URL as string;
+  }
+  if (network === "fantom") {
+    jsonRpcUrl = process.env.HARDHAT_FANTOM_FORK_URL as string;
+  }
   await hre.network.provider.request({
     method: "hardhat_reset",
     params: [
       {
         forking: {
-          jsonRpcUrl: process.env.HARDHAT_FORK_URL,
-          blockNumber: blockNumber,
+          jsonRpcUrl,
+          blockNumber,
         },
       },
     ],

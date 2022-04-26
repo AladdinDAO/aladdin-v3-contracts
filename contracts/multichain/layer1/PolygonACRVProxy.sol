@@ -45,6 +45,9 @@ contract PolygonACRVProxy is Layer1ACRVProxy {
     override
     returns (uint256 _bridgeAmount, uint256 _totalFee)
   {
+    // solhint-disable-next-line reason-string
+    require(_recipient == address(this), "PolygonACRVProxy: only bridge to self");
+
     IERC20(CRV).safeApprove(POLYGON_ERC20_BRIDGE, 0);
     IERC20(CRV).safeApprove(POLYGON_ERC20_BRIDGE, _totalAmount);
 

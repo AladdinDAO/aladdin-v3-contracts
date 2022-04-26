@@ -257,7 +257,7 @@ describe("Multichain.ethereum.spec", async () => {
 
     it("should revert, when owner update anyswap router to zero", async () => {
       await expect(aCRVProxy.updateAnyswapRouter(constants.AddressZero)).to.revertedWith(
-        "Layer1ACRVDefaultProxy: zero address"
+        "Layer1ACRVProxy: zero address"
       );
     });
 
@@ -290,7 +290,7 @@ describe("Multichain.ethereum.spec", async () => {
           minCrossChainAmount: 0,
           maxCrossChainAmount: 0,
         })
-      ).to.revertedWith("Layer1ACRVDefaultProxy: invalid token");
+      ).to.revertedWith("Layer1ACRVProxy: invalid token");
       await expect(
         aCRVProxy.updateCrossChainInfo(crv.address, {
           feePercentage: BigNumber.from("1000000001"),
@@ -299,7 +299,7 @@ describe("Multichain.ethereum.spec", async () => {
           minCrossChainAmount: 0,
           maxCrossChainAmount: 0,
         })
-      ).to.revertedWith("Layer1ACRVDefaultProxy: fee percentage too large");
+      ).to.revertedWith("Layer1ACRVProxy: fee percentage too large");
       await expect(
         aCRVProxy.updateCrossChainInfo(crv.address, {
           feePercentage: 0,
@@ -308,7 +308,7 @@ describe("Multichain.ethereum.spec", async () => {
           minCrossChainAmount: 0,
           maxCrossChainAmount: 0,
         })
-      ).to.revertedWith("Layer1ACRVDefaultProxy: invalid cross chain fee");
+      ).to.revertedWith("Layer1ACRVProxy: invalid cross chain fee");
       await expect(
         aCRVProxy.updateCrossChainInfo(crv.address, {
           feePercentage: 0,
@@ -317,7 +317,7 @@ describe("Multichain.ethereum.spec", async () => {
           minCrossChainAmount: 1,
           maxCrossChainAmount: 0,
         })
-      ).to.revertedWith("Layer1ACRVDefaultProxy: invalid cross chain amount");
+      ).to.revertedWith("Layer1ACRVProxy: invalid cross chain amount");
     });
 
     it("should succeed, when owner update cross chain info", async () => {
@@ -505,7 +505,7 @@ describe("Multichain.ethereum.spec", async () => {
             ]),
             false,
             "0x08c379a0" +
-              defaultAbiCoder.encode(["string"], ["Layer1ACRVDefaultProxy: insufficient cross chain amount"]).slice(2),
+              defaultAbiCoder.encode(["string"], ["Layer1ACRVProxy: insufficient cross chain amount"]).slice(2),
             deployer.address,
             CHAIN_ID
           );

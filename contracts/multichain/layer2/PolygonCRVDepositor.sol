@@ -8,6 +8,10 @@ import "../interfaces/IUChildERC20.sol";
 import "../layer1/PolygonACRVProxy.sol";
 import "./Layer2CRVDepositor.sol";
 
+/// @notice The implementation of Layer2CRVDepositor for Polygon
+///   + bridge aCRV using Multichain (Previously Anyswap)
+///   + bridge CRV using Polygon Bridge.
+/// @dev The address of this contract should be the same as corresponding Layer1ACRVProxy.
 contract PolygonCRVDepositor is Layer2CRVDepositor {
   event AsyncExit(uint256 indexed _executionId);
 
@@ -15,7 +19,7 @@ contract PolygonCRVDepositor is Layer2CRVDepositor {
     CrossChainOperationData memory _operation = depositOperation;
     AsyncOperationStatus _status = asyncDepositStatus;
     // solhint-disable-next-line reason-string
-    require(_status == AsyncOperationStatus.Pending, "Layer2CRVDepositor: no pending deposit");
+    require(_status == AsyncOperationStatus.Pending, "PolygonCRVDepositor: no pending deposit");
 
     // cross chain call deposit
     bytes memory _data = abi.encodeWithSelector(PolygonACRVProxy.exitFromBridge.selector, _inputData);
@@ -23,6 +27,8 @@ contract PolygonCRVDepositor is Layer2CRVDepositor {
 
     emit AsyncExit(_operation.executionId);
   }
+
+  // @todo add asyncExitAndRedeem
 
   /********************************** Internal Functions **********************************/
 

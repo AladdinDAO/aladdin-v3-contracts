@@ -123,6 +123,12 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     _enterStatus = _NOT_ENTERED;
   }
 
+  modifier onlyWhitelist() {
+    // solhint-disable-next-line reason-string
+    require(whitelist[msg.sender], "Layer2CRVDepositor: only whitelist");
+    _;
+  }
+
   function _initialize(
     address _anyCallProxy,
     address _crossChainCallProxy,
@@ -146,12 +152,6 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
 
     // for ReentrancyGuard
     _enterStatus = _NOT_ENTERED;
-  }
-
-  modifier onlyWhitelist() {
-    // solhint-disable-next-line reason-string
-    require(whitelist[msg.sender], "Layer2CRVDepositor: only whitelist");
-    _;
   }
 
   /********************************** View Functions **********************************/
@@ -241,9 +241,12 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
 
     asyncDepositStatus = AsyncOperationStatus.Pending;
     depositOperation = _operation;
-    IERC20(crv).safeTransfer(_fees.platform, _depositFee);
 
-    (, uint256 _bridgeFee) = _bridgeACRV(layer1Proxy, _totalAmount);
+    if (_depositFee > 0) {
+      IERC20(crv).safeTransfer(_fees.platform, _depositFee);
+    }
+
+    (, uint256 _bridgeFee) = _bridgeCRV(layer1Proxy, _totalAmount);
 
     emit PrepareDeposit(_operation.executionId, _operation.ongoing, _depositFee, _bridgeFee);
   }
@@ -266,7 +269,10 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
 
     asyncRedeemStatus = AsyncOperationStatus.Pending;
     redeemOperation = _operation;
-    IERC20(acrv).safeTransfer(_fees.platform, _redeemFee);
+
+    if (_redeemFee > 0) {
+      IERC20(acrv).safeTransfer(_fees.platform, _redeemFee);
+    }
 
     (, uint256 _bridgeFee) = _bridgeACRV(layer1Proxy, _totalAmount);
 
@@ -278,12 +284,12 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   function asyncDeposit() external payable virtual onlyWhitelist SponsorCrossCallFee {
     CrossChainOperationData memory _operation = depositOperation;
     // solhint-disable-next-line reason-string
-    require(_operation.ongoing > 0, "Layer2CRVDepositor: no ongoing deposit");
+    require(_operation.ongoing > 0, "Layer2CRVDepositor: no pending deposit");
     AsyncOperationStatus _status = asyncDepositStatus;
     // solhint-disable-next-line reason-string
     require(
       _status == AsyncOperationStatus.Pending || _status == AsyncOperationStatus.Failed,
-      "Layer2CRVDepositor: no deposit or has ongoing deposit"
+      "Layer2CRVDepositor: no pending deposit or has ongoing deposit"
     );
 
     asyncDepositStatus = AsyncOperationStatus.OnGoing;
@@ -307,12 +313,12 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   function asyncRedeem(uint256 _minCRVAmount) external payable virtual onlyWhitelist SponsorCrossCallFee {
     CrossChainOperationData memory _operation = redeemOperation;
     // solhint-disable-next-line reason-string
-    require(_operation.ongoing > 0, "Layer2CRVDepositor: no ongoing redeem");
+    require(_operation.ongoing > 0, "Layer2CRVDepositor: no pending redeem");
     AsyncOperationStatus _status = asyncRedeemStatus;
     // solhint-disable-next-line reason-string
     require(
       _status == AsyncOperationStatus.Pending || _status == AsyncOperationStatus.Failed,
-      "Layer2CRVDepositor: no redeem or has ongoing redeem"
+      "Layer2CRVDepositor: no pending redeem or has ongoing redeem"
     );
 
     asyncRedeemStatus = AsyncOperationStatus.OnGoing;
@@ -527,8 +533,6 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     // 1. check global last operation status
     CrossChainOperationData memory _operation = isDeposit ? depositOperation : redeemOperation;
     _executionId = _getExecutionId(_operation);
-    // solhint-disable-next-line reason-string
-    require(!_isExecutionOngoing(_operation, _executionId), "Layer2CRVDepositor: execution is ongoing");
 
     // 2. check and update user last operation
     AccountOperationList storage _operations = isDeposit
@@ -590,7 +594,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
   function _getAbortable(bool isDeposit, address _account) private view returns (uint256) {
     CrossChainOperationData memory _operation = isDeposit ? depositOperation : redeemOperation;
     uint256 _executionId = _getExecutionId(_operation);
-    if (!_isExecutionOngoing(_operation, _executionId)) return 0;
+    if (_isExecutionOngoing(_operation, _executionId)) return 0;
 
     AccountOperationList storage _operations = isDeposit
       ? accountDepositOperations[_account]

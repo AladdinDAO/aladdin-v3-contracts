@@ -4,7 +4,7 @@ pragma solidity ^0.7.6;
 
 import "./interfaces/IAnyCallProxy.sol";
 
-contract CrossChainCallBase {
+abstract contract CrossChainCallBase {
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
   event UpdateCrossChainCallProxy(address indexed _crossChainCallProxy);
   event UpdateAnyCallProxy(address indexed _anyCallProxy);
