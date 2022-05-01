@@ -170,6 +170,18 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     _crvAmount = _getAbortable(true, _account);
   }
 
+  /// @notice Get the list of deposit operations.
+  /// @param _account The address of account to query.
+  function getAccountDepositOperations(address _account) external view returns (AccountOperation[] memory _operations) {
+    return accountDepositOperations[_account].operations;
+  }
+
+  /// @notice Get the list of redeem operations.
+  /// @param _account The address of account to query.
+  function getAccountRedeemOperations(address _account) external view returns (AccountOperation[] memory _operations) {
+    return accountRedeemOperations[_account].operations;
+  }
+
   /********************************** Mutated Functions **********************************/
 
   /// @notice See {ILayer2CRVDepositor-deposit}
