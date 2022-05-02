@@ -23,6 +23,11 @@ export const ADDRESS: { [name: string]: string } = {
   wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
   UST_WORMHOLE: "0xa693B19d2931d498c5B318dF961919BB4aee87a5",
   UST_TERRA: "0xa47c8bf37f92aBed4A126BDA807A7b7498661acD",
+  LYRA: "0x01BA67AAC7f75f647D94220Cc98FB30FCc5105Bf",
+  SNX: "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
+  GRO: "0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7",
+  FLX: "0x6243d8CEA23066d098a15582d81a598b4e8391F4",
+  ANGLE: "0x31429d1856aD1377A8A0079410B297e1a9e214c2",
   // pid = 0
   CURVE_STETH_POOL: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
   CURVE_STETH_TOKEN: "0x06325440D014e39736583c165C2963BA99fAf14E",
@@ -57,13 +62,21 @@ export const ADDRESS: { [name: string]: string } = {
   LDO_WETH_UNIV2: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
   FXS_WETH_UNIV2: "0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23",
   FXS_FRAX_UNIV2: "0xE1573B9D29e2183B1AF0e743Dc2754979A40D237",
+  WETH_ALCX_UNIV2: "0xC3f279090a47e80990Fe3a9c30d24Cb117EF91a8",
+  SPELL_WETH_UNIV2: "0xb5De0C3753b6E1B4dBA616Db82767F17513E6d4E",
+  LYRA_WETH_UNIV2: "0x52DaC05FC0000e9F01CE9A1E91592BfbFcE87350",
+  GRO_USDC_UNIV2: "0x21C5918CcB42d20A2368bdCA8feDA0399EbfD2f6",
+  FLX_WETH_UNIV2: "0xd6F3768E62Ef92a9798E5A8cEdD2b78907cEceF9",
+  ANGLE_WETH_UNIV2: "0xFb55AF0ef0DcdeC92Bd3752E7a9237dfEfB8AcC0",
   // Uniswap V3 pool
   USDC_WETH_UNIV3: "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
   USDC_USDT_UNIV3: "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
   WETH_USDT_UNIV3: "0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36",
   USDC_UST_TERRA_UNIV3: "0x18D96B617a3e5C42a2Ada4bC5d1B48e223f17D0D",
+  USDC_UST_WORMHOLE_UNIV3: "0xA87B2FF0759f5B82c7EC86444A70f25C6BfFCCbf",
   FRAX_USDC_UNIV3: "0xc63B0708E2F7e69CB8A1df0e1389A98C35A76D52",
   // Balancer V2
+  SNX_WETH_BALANCER: "0x072f14B85ADd63488DDaD88f855Fda4A99d6aC9B",
 };
 
 export const VAULTS: {
@@ -204,6 +217,88 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     routes: [
       encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "FXS", // FXS ==(Sushi)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.FXS_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "UST_WORMHOLE", // UST ==(UniV3)==> USDC ==(UniV3)==> WETH ==(CurveV2)=> CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.USDC_UST_WORMHOLE_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "LDO", // LDO ==(Sushi)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.LDO_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "ALCX", // ALCX ==(Sushi)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.WETH_ALCX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "SPELL", // SPELL ==(Sushi)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.SPELL_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "LYRA", // LYRA ==(Sushi)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.LYRA_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "SNX", // SNX ==(Balancer)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.SNX_WETH_BALANCER, PoolType.BalancerV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "GRO", // GRO ==(UniV2) ==> USDC ==(UniV3)==> WETH ==(CurveV2)=> CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.GRO_USDC_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "FLX", // FLX ==(UniV2)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.FLX_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "ANGLE", // ANGLE ==(Sushi)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.ANGLE_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },
