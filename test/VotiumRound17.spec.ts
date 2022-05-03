@@ -34,6 +34,8 @@ const FLX = ADDRESS.FLX;
 const FLX_HOLDER = "0xCa86D57519dbFE34A25EEf0923b259ab07986B71";
 const ANGLE = ADDRESS.ANGLE;
 const ANGLE_HOLDER = "0x2Fc443960971e53FD6223806F0114D5fAa8C7C4e";
+const INV = ADDRESS.INV;
+const INV_HOLDER = "0xDAe6951Fb927f40d76dA0eF1d5a1a9bee8aF944B";
 
 let firstCall = true;
 
@@ -57,6 +59,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       GRO_HOLDER,
       FLX_HOLDER,
       ANGLE_HOLDER,
+      INV_HOLDER,
     ]);
     deployer = await ethers.getSigner(DEPLOYER);
     owner = await ethers.getSigner(ZAP_OWNER);
@@ -67,7 +70,7 @@ describe("VaultZapMainnetFork.spec", async () => {
 
     zap = await ethers.getContractAt("AladdinZap", ZAP, owner);
 
-    const rewards = ["FXS", "UST_WORMHOLE", "LDO", "ALCX", "SPELL", "LYRA", "SNX", "GRO", "FLX", "ANGLE"];
+    const rewards = ["FXS", "UST_WORMHOLE", "LDO", "ALCX", "SPELL", "LYRA", "SNX", "GRO", "FLX", "ANGLE", "INV"];
     for (const { from, to, routes } of ZAP_SWAP_ROUNTES) {
       if (rewards.includes(from) && to === "CVX") {
         await zap.updateRoute(ADDRESS[from], CVX, routes);
@@ -234,6 +237,22 @@ describe("VaultZapMainnetFork.spec", async () => {
 
     const beforeCVX = await cvx.balanceOf(signer.address);
     await zap.connect(signer).zapFrom(angle.address, amountIn, CVX, 0);
+    const afterCVX = await cvx.balanceOf(signer.address);
+
+    expect(afterCVX.sub(beforeCVX)).gte(expectCVX);
+  });
+
+  it("INV => CVX", async () => {
+    const amountIn = ethers.utils.parseUnits("100", 18);
+    const expectCVX = ethers.utils.parseUnits("800", 18);
+    const signer = await ethers.getSigner(INV_HOLDER);
+    await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
+
+    const inv = await ethers.getContractAt("IERC20", INV, signer);
+    await inv.approve(zap.address, amountIn);
+
+    const beforeCVX = await cvx.balanceOf(signer.address);
+    await zap.connect(signer).zapFrom(inv.address, amountIn, CVX, 0);
     const afterCVX = await cvx.balanceOf(signer.address);
 
     expect(afterCVX.sub(beforeCVX)).gte(expectCVX);

@@ -28,6 +28,7 @@ export const ADDRESS: { [name: string]: string } = {
   GRO: "0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7",
   FLX: "0x6243d8CEA23066d098a15582d81a598b4e8391F4",
   ANGLE: "0x31429d1856aD1377A8A0079410B297e1a9e214c2",
+  INV: "0x41D5D79431A913C4aE7d69a668ecdfE5fF9DFB68",
   // pid = 0
   CURVE_STETH_POOL: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
   CURVE_STETH_TOKEN: "0x06325440D014e39736583c165C2963BA99fAf14E",
@@ -68,6 +69,7 @@ export const ADDRESS: { [name: string]: string } = {
   GRO_USDC_UNIV2: "0x21C5918CcB42d20A2368bdCA8feDA0399EbfD2f6",
   FLX_WETH_UNIV2: "0xd6F3768E62Ef92a9798E5A8cEdD2b78907cEceF9",
   ANGLE_WETH_UNIV2: "0xFb55AF0ef0DcdeC92Bd3752E7a9237dfEfB8AcC0",
+  INV_WETH_UNIV2: "0x328dFd0139e26cB0FEF7B0742B49b0fe4325F821",
   // Uniswap V3 pool
   USDC_WETH_UNIV3: "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
   USDC_USDT_UNIV3: "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
@@ -299,6 +301,14 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     to: "CVX",
     routes: [
       encodePoolHintV2(ADDRESS.ANGLE_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "INV", // INV ==(Sushi)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.INV_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },

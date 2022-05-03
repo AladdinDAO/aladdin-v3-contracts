@@ -12,6 +12,7 @@ const SNX = ADDRESS.SNX;
 const GRO = ADDRESS.GRO;
 const FLX = ADDRESS.FLX;
 const ANGLE = ADDRESS.ANGLE;
+const INV = ADDRESS.INV;
 
 export const Round17Rewards = [
   {
@@ -216,6 +217,24 @@ export const Round17Rewards = [
       "0x3810dc7f28ae190bc4a2ea9c703f4ffa3d1d98e48491c18bdf33b56b8b1a7a89",
       "0x551c456ab4c23880755256c83df74e06d3c1b2221377022c19ccae0b737abae0",
       "0x3ff5c2beeae607305d59544d2514bbe11751f348b9d431ba37b14c1bacd73620",
+    ],
+  },
+  {
+    token: INV,
+    index: 657,
+    amount: "0x2014d6f036c34800",
+    merkleProof: [
+      "0xf3be1426d37317d728b6913d7904e6a354dffc57ae790686ca6b26dbb7214e8a",
+      "0xda7fd39b435c5b7293c02fbe62d75d894472cc703a0475d610e6bf2b49b6a6a7",
+      "0xd681ac3c5f96ce8aa13162b5de1a496e05429bd60f921d8daa70efd6693dc4ec",
+      "0x43848bb34b79efb6794a974a1378b5858a8deb30cdd73d38945229952abef29f",
+      "0x37895f746bc4f9db61e072421377ea84440801af3cb640957efe86d3e9278190",
+      "0x0535e19c98374e8a4b1f2e4ac8f317c37a7014d3e64bb5a6897796a5712a1c3f",
+      "0xd0c104ebb24bc462675fe8ac96ccb178f38449a319b2454c4f198c2733034a2e",
+      "0xcd9ea0b4df0421a560f810eca98d84596222dc081552789f1b48bdcb3dec5508",
+      "0x0d4dc9bbb032a0457c109413f7af6cbd44eb87e0bf6dc36bf71f52ec7639559d",
+      "0x70a867d54df3dc7315ceaab0b0398afa4b425532de8f139bc1c54cfc0c81ea08",
+      "0xe190f2decce1b9184451d7ec8f2896646b11b5ebfa05dcc60f1285f31e155205",
     ],
   },
 ];
