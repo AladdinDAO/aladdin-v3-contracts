@@ -17,6 +17,7 @@ export const ADDRESS: { [name: string]: string } = {
   USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
   USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
   WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+  renBTC: "0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D",
   CVXFXS: "0xFEEf77d3f69374f66429C91d732A244f074bdf74",
   CVXCRV: "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7",
   rETH: "0xae78736Cd615f374D3085123A210448E74Fc6393",
@@ -59,6 +60,9 @@ export const ADDRESS: { [name: string]: string } = {
   // pid = 9
   CURVE_ROCKETETH_POOL: "0x447Ddd4960d9fdBF6af9a790560d0AF76795CB08",
   CURVE_ROCKETETH_TOKEN: "0x447Ddd4960d9fdBF6af9a790560d0AF76795CB08",
+  // pid = 10
+  CURVE_REN_POOL: "0x93054188d876f558f4a66B2EF1d97d16eDf0895B",
+  CURVE_REN_TOKEN: "0x49849C98ae39Fff122806C06791Fa73784FB3675",
   // Uniswap V2 pool
   LDO_WETH_UNIV2: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
   FXS_WETH_UNIV2: "0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23",
@@ -77,6 +81,7 @@ export const ADDRESS: { [name: string]: string } = {
   USDC_UST_TERRA_UNIV3: "0x18D96B617a3e5C42a2Ada4bC5d1B48e223f17D0D",
   USDC_UST_WORMHOLE_UNIV3: "0xA87B2FF0759f5B82c7EC86444A70f25C6BfFCCbf",
   FRAX_USDC_UNIV3: "0xc63B0708E2F7e69CB8A1df0e1389A98C35A76D52",
+  WBTC_WETH_UNIV3_500: "0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0",
   // Balancer V2
   SNX_WETH_BALANCER: "0x072f14B85ADd63488DDaD88f855Fda4A99d6aC9B",
 };
@@ -179,17 +184,15 @@ export const VAULTS: {
     harvestBounty: 1e7,
     platformFee: 1e7,
   },
-
-  /*
-    [36, [CRV, CVX, ALCX]], // alusd
-    [40, [CRV, CVX, SPELL]], // mim
-    [41, [CRV, CVX]], // cvxcrv
-    [49, [CRV, CVX]], // aleth
-    [52, [CRV, CVX]], // mim-ust
-    [66, [CRV, CVX]], // spelleth
-    [67, [CRV, CVX]], // teth
-    [68, [CRV, CVX]], // yfieth
-    [69, [CRV, CVX]], // fxseth */
+  // ren, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "ren",
+    convexId: 6,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
 ];
 
 export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }[] = [
@@ -967,5 +970,34 @@ export const ZAP_VAULT_ROUTES: {
         ],
       },
     ],
+  },
+  ren: {
+    name: "CURVE_REN",
+    add: [
+      {
+        token: "renBTC", // renBTC ==(Curve/Add)==> CURVE_REN
+        routes: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity)],
+      },
+      {
+        token: "WBTC", // WBTC ==(Curve/Add)==> CURVE_REN
+        routes: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity)],
+      },
+      {
+        token: "WETH", // WETH ==(UniV3/Swap/500)==> WBTC ==(Curve/Add)==> CURVE_REN
+        routes: [
+          encodePoolHintV2(ADDRESS.WBTC_WETH_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "USDC", // USDC ==(Curve/Swap)==> USDT ==(Curve/Swap)==> WBTC ==(Curve/Add)==> CURVE_REN
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 2, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        ],
+      },
+    ],
+    remove: [],
   },
 };
