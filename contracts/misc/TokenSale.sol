@@ -19,11 +19,13 @@ contract TokenSale is Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
-  event Buy(address _sender, address _token, uint256 _amountIn, uint256 _refundAmount, uint256 _amountOut);
-  event Claim(address _recipient, uint256 _vestingAmount, uint256 _claimAmount);
+  event Buy(address indexed sender, address _token, uint256 _amountIn, uint256 _refundAmount, uint256 _amountOut);
+  event Claim(address indexed _recipient, uint256 _vestingAmount, uint256 _claimAmount);
   event UpdatePrice(uint256 _initialPrice, uint256 _upRatio, uint256 _variation);
   event UpdateSaleTime(uint256 _whitelistSaleTime, uint256 _publicSaleTime, uint256 _publicSaleDuration);
   event UpdateVesting(address _vesting, uint256 _vestRatio, uint256 _duration);
+  event UpdateWhitelistCap(address indexed _whitelist, uint256 _cap);
+  event UpdateSupportedToken(address indexed _token, bool _status);
 
   uint256 private constant PRICE_PRECISION = 1e18;
   uint256 private constant RATIO_PRECISION = 1e9;
@@ -80,20 +82,15 @@ contract TokenSale is Ownable, ReentrancyGuard {
   /********************************** View Functions **********************************/
 
   /// @notice Return current price (base/quota) of quota token.
-  /// @dev                                            totalSold
-  ///      CurrenetPrice = InitPrice * (1 + UpRatio * ---------)
-  ///                                                 Variation
+  /// @dev                                                  / totalSold \
+  ///      CurrenetPrice = InitPrice * (1 + UpRatio * floor|  ---------  |)
+  ///                                                       \ Variation /
   function getPrice() public view returns (uint256) {
     PriceData memory _data = priceData;
     uint256 _totalSold = totalSold;
+    uint256 _level = _totalSold / _data.variation;
 
-    return
-      RATIO_PRECISION
-        .mul(_data.variation)
-        .add(_totalSold.mul(_data.upRatio))
-        .div(_data.variation)
-        .mul(_data.initialPrice)
-        .div(RATIO_PRECISION);
+    return RATIO_PRECISION.add(_level.mul(_data.upRatio)).mul(_data.initialPrice).div(RATIO_PRECISION);
   }
 
   /********************************** Mutated Functions **********************************/
@@ -113,7 +110,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
     require(_amountIn > 0, "TokenSale: zero input amount");
 
     // 1. check supported token
-    require(!isSupported[_token], "TokenSale: token not support");
+    require(isSupported[_token], "TokenSale: token not support");
 
     // 2. check sale time
     SaleTimeData memory _saleTime = saleTimeData;
@@ -224,6 +221,28 @@ contract TokenSale is Ownable, ReentrancyGuard {
 
   /********************************** Restricted Functions **********************************/
 
+  /// @notice Update supported tokens.
+  /// @param _tokens The list of addresses of token to update.
+  /// @param _status The status to update.
+  function updateSupportedTokens(address[] memory _tokens, bool _status) external onlyOwner {
+    for (uint256 i = 0; i < _tokens.length; i++) {
+      isSupported[_tokens[i]] = _status;
+      emit UpdateSupportedToken(_tokens[i], _status);
+    }
+  }
+
+  /// @notice Update token cap for whitelists.
+  /// @param _whitelist The list of whitelist to update.
+  /// @param _caps The list of cap to update.
+  function updateWhitelistCap(address[] memory _whitelist, uint256[] memory _caps) external onlyOwner {
+    require(_whitelist.length == _caps.length, "TokenSale: length mismatch");
+
+    for (uint256 i = 0; i < _whitelist.length; i++) {
+      whitelistCap[_whitelist[i]] = _caps[i];
+      emit UpdateWhitelistCap(_whitelist[i], _caps[i]);
+    }
+  }
+
   /// @notice Update sale start time, including whitelist/public sale start time and duration.
   ///
   /// @param _whitelistSaleTime The timestamp when whitelist sale started.
@@ -328,4 +347,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
     }
     return _amount;
   }
+
+  // solhint-disable-next-line no-empty-blocks
+  receive() external payable {}
 }
