@@ -310,7 +310,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     bytes memory _data = abi.encodeWithSelector(
       ILayer1ACRVProxy.deposit.selector,
       uint256(_operation.executionId),
-      uint256(1),
+      _getChainId(),
       address(this),
       uint256(_operation.ongoing),
       address(this)
@@ -339,7 +339,7 @@ abstract contract Layer2CRVDepositorBase is CrossChainCallBase, ILayer2CRVDeposi
     bytes memory _data = abi.encodeWithSelector(
       ILayer1ACRVProxy.redeem.selector,
       uint256(_operation.executionId),
-      uint256(1),
+      _getChainId(),
       address(this),
       uint256(_operation.ongoing),
       _minCRVAmount,

@@ -1,6 +1,6 @@
 /* eslint-disable node/no-missing-import */
 import * as dotenv from "dotenv";
-import { constants, Wallet } from "ethers";
+import { Wallet } from "ethers";
 
 import { ethers, network } from "hardhat";
 import {
@@ -44,12 +44,16 @@ const config: {
     fantom: "0x12b1326459d72F2Ab081116bf27ca46cD97762A0",
   },
   crossChainCallProxy: {
+    mainnet: "0xac0250EE662A9A00E0B45f5b596500bBb54EF907",
     polygon: "0xac0250EE662A9A00E0B45f5b596500bBb54EF907",
     fantom: "0xac0250EE662A9A00E0B45f5b596500bBb54EF907",
   },
   fantomDepositor: "0x200282c631ba9BcA2d5aA2447E798aF698987871",
   polygonDepositor: "0x94BF442b38061Fe523Ec03F8eA5fd26A0D73bCc9",
-  acrvProxy: {},
+  acrvProxy: {
+    fantom: "0x200282c631ba9BcA2d5aA2447E798aF698987871",
+    polygon: "0x94BF442b38061Fe523Ec03F8eA5fd26A0D73bCc9",
+  },
 };
 
 let proxyAdmin: ProxyAdmin;
@@ -99,13 +103,67 @@ async function main() {
 
   if (network.name === "mainnet") {
     // deploy ACRVProxy with fantomDeployer or polygonDeployer
+    if (config.acrvProxy.fantom) {
+      fantomACRVProxy = await ethers.getContractAt("FantomACRVProxy", config.acrvProxy.fantom, deployer);
+      console.log("Found FantomACRVProxy at:", fantomACRVProxy.address);
+    } else {
+      const FantomACRVProxy = await ethers.getContractFactory("FantomACRVProxy", fantomDeployer);
+      const impl = await FantomACRVProxy.deploy({ nonce: 0 });
+      await impl.deployed();
+      console.log("Deploy FantomACRVProxy Impl at:", impl.address);
+
+      const data = impl.interface.encodeFunctionData("initialize", [
+        250,
+        ANYCALL_PROXY,
+        ANYSWAP_ROUTER.mainnet,
+        crossChainCallProxy.address,
+        deployer.address,
+      ]);
+      const TransparentUpgradeableProxy = await ethers.getContractFactory(
+        "TransparentUpgradeableProxy",
+        fantomDeployer
+      );
+      const proxy = await TransparentUpgradeableProxy.deploy(impl.address, proxyAdmin.address, data, {
+        nonce: 1,
+      });
+      await proxy.deployed();
+      fantomACRVProxy = await ethers.getContractAt("FantomACRVProxy", proxy.address, fantomDeployer);
+      console.log("Deploy FantomACRVProxy at:", fantomACRVProxy.address);
+    }
+    if (config.acrvProxy.polygon) {
+      polygonACRVProxy = await ethers.getContractAt("PolygonACRVProxy", config.acrvProxy.polygon, deployer);
+      console.log("Found PolygonACRVProxy at:", polygonACRVProxy.address);
+    } else {
+      const PolygonACRVProxy = await ethers.getContractFactory("PolygonACRVProxy", polygonDeployer);
+      const impl = await PolygonACRVProxy.deploy({ nonce: 0 });
+      await impl.deployed();
+      console.log("Deploy PolygonACRVProxy Impl at:", impl.address);
+
+      const data = impl.interface.encodeFunctionData("initialize", [
+        137,
+        ANYCALL_PROXY,
+        ANYSWAP_ROUTER.mainnet,
+        crossChainCallProxy.address,
+        deployer.address,
+      ]);
+      const TransparentUpgradeableProxy = await ethers.getContractFactory(
+        "TransparentUpgradeableProxy",
+        polygonDeployer
+      );
+      const proxy = await TransparentUpgradeableProxy.deploy(impl.address, proxyAdmin.address, data, {
+        nonce: 1,
+      });
+      await proxy.deployed();
+      polygonACRVProxy = await ethers.getContractAt("PolygonACRVProxy", proxy.address, polygonDeployer);
+      console.log("Deploy PolygonACRVProxy at:", polygonACRVProxy.address);
+    }
   } else if (network.name === "fantom") {
     if (config.fantomDepositor) {
       fantomDepositor = await ethers.getContractAt("FantomCRVDepositor", config.fantomDepositor, deployer);
       console.log("Found FantomCRVDepositor at:", fantomDepositor.address);
     } else {
       const FantomCRVDepositor = await ethers.getContractFactory("FantomCRVDepositor", fantomDeployer);
-      const impl = await FantomCRVDepositor.deploy({ nonce: 0, gasPrice: 500 * 1e9 });
+      const impl = await FantomCRVDepositor.deploy({ nonce: 0 });
       await impl.deployed();
       console.log("Deploy FantomCRVDepositor Impl at:", impl.address);
 
@@ -124,7 +182,6 @@ async function main() {
       );
       const proxy = await TransparentUpgradeableProxy.deploy(impl.address, proxyAdmin.address, data, {
         nonce: 1,
-        gasPrice: 500 * 1e9,
       });
       await proxy.deployed();
       fantomDepositor = await ethers.getContractAt("FantomCRVDepositor", proxy.address, fantomDeployer);
@@ -136,7 +193,7 @@ async function main() {
       console.log("Found PolygonCRVDepositor at:", polygonDepositor.address);
     } else {
       const PolygonCRVDepositor = await ethers.getContractFactory("PolygonCRVDepositor", polygonDeployer);
-      const impl = await PolygonCRVDepositor.deploy();
+      const impl = await PolygonCRVDepositor.deploy({ nonce: 0 });
       await impl.deployed();
       console.log("Deploy PolygonCRVDepositor Impl at:", impl.address);
 
@@ -153,7 +210,7 @@ async function main() {
         "TransparentUpgradeableProxy",
         polygonDeployer
       );
-      const proxy = await TransparentUpgradeableProxy.deploy(impl.address, proxyAdmin.address, data);
+      const proxy = await TransparentUpgradeableProxy.deploy(impl.address, proxyAdmin.address, data, { nonce: 1 });
       await proxy.deployed();
       polygonDepositor = await ethers.getContractAt("PolygonCRVDepositor", proxy.address, polygonDeployer);
       console.log("Deploy PolygonCRVDepositor at:", polygonDepositor.address);
