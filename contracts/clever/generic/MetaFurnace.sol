@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
+import "../interfaces/IERC20Metadata.sol";
 import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IMetaFurnace.sol";
 import "../interfaces/IYieldStrategy.sol";
@@ -124,6 +125,8 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
 
     require(_baseToken != address(0), "Furnace: zero address");
     require(_debtToken != address(0), "Furnace: zero address");
+    require(IERC20Metadata(_debtToken).decimals() == 18, "Furnace: decimal mismatch");
+    require(IERC20Metadata(_baseToken).decimals() <= 18, "Furnace: decimal too large");
 
     baseToken = _baseToken;
     debtToken = _debtToken;
@@ -290,9 +293,8 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
         );
       } else {
         // migrate and notify
-        uint256 _totalMigrate = IYieldStrategy(_yieldInfo.strategy).totalYieldToken();
-        IYieldStrategy(_yieldInfo.strategy).migrate(_strategy);
-        IYieldStrategy(_strategy).deposit(address(this), _totalMigrate, false);
+        uint256 _totalMigrate = IYieldStrategy(_yieldInfo.strategy).migrate(_strategy);
+        IYieldStrategy(_strategy).onMigrateFinished(_totalMigrate);
       }
     }
 
@@ -362,9 +364,10 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     _updateUserInfo(_account);
 
     // 2. compute realised and unrelised
+    uint256 _scale = 10**(18 - IERC20Metadata(baseToken).decimals());
     uint256 _totalUnrealised = furnaceInfo.totalUnrealised;
     uint256 _totalRealised = furnaceInfo.totalRealised;
-    uint256 _freeBaseToken = totalBaseTokenInPool().sub(_totalRealised);
+    uint256 _freeBaseToken = (totalBaseTokenInPool() * _scale).sub(_totalRealised);
 
     uint256 _newUnrealised;
     uint256 _newRealised;
@@ -406,26 +409,31 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   /// @dev Internal function called by `claim`.
   /// @param _recipient The address of user who will recieve the baseToken.
   function _claim(address _recipient) internal {
-    uint256 _amount = userInfo[msg.sender].realised;
+    uint256 _debtAmount = userInfo[msg.sender].realised;
     // should not overflow, but just in case, we use safe math.
-    furnaceInfo.totalRealised = uint128(uint256(furnaceInfo.totalRealised).sub(_amount));
+    furnaceInfo.totalRealised = uint128(uint256(furnaceInfo.totalRealised).sub(_debtAmount));
     userInfo[msg.sender].realised = 0;
 
-    uint256 _balanceInContract = IERC20Upgradeable(baseToken).balanceOf(address(this));
-    if (_balanceInContract < _amount) {
+    // scale to base token
+    address _baseToken = baseToken;
+    uint256 _scale = 10**(18 - IERC20Metadata(_baseToken).decimals());
+    uint256 _baseAmount = _debtAmount / _scale;
+
+    uint256 _balanceInContract = IERC20Upgradeable(_baseToken).balanceOf(address(this));
+    if (_balanceInContract < _baseAmount) {
       address _strategy = yieldInfo.strategy;
       // balance is not enough, with from yield strategy
-      uint256 _yieldAmountToWithdraw = ((_amount - _balanceInContract) * 1e18) /
+      uint256 _yieldAmountToWithdraw = ((_baseAmount - _balanceInContract) * 1e18) /
         IYieldStrategy(_strategy).underlyingPrice();
       uint256 _diff = IYieldStrategy(_strategy).withdraw(address(this), _yieldAmountToWithdraw, true);
-      _amount = _balanceInContract + _diff;
+      _baseAmount = _balanceInContract + _diff;
     }
-    IERC20Upgradeable(baseToken).safeTransfer(_recipient, _amount);
+    IERC20Upgradeable(_baseToken).safeTransfer(_recipient, _baseAmount);
 
     // burn realised debtToken
-    ICLeverToken(debtToken).burn(_amount);
+    ICLeverToken(debtToken).burn(_debtAmount);
 
-    emit Claim(msg.sender, _recipient, _amount);
+    emit Claim(msg.sender, _recipient, _debtAmount);
   }
 
   /// @dev Internal function called by `distribute` and `harvest`.
@@ -433,6 +441,10 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   /// @param _amount The amount of baseToken will be provided.
   function _distribute(address _origin, uint256 _amount) internal {
     FurnaceInfo memory _furnaceInfo = furnaceInfo;
+
+    // scale to debt token
+    uint256 _scale = 10**(18 - IERC20Metadata(baseToken).decimals());
+    _amount *= _scale;
 
     _furnaceInfo.distributeIndex += 1;
     // 1. distribute baseToken rewards
@@ -471,7 +483,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
       }
     }
 
-    emit Distribute(_origin, _amount);
+    emit Distribute(_origin, _amount / _scale);
   }
 
   /// @dev Compute the value of (_a / 2^128) * (_b / 2^128) with precision 2^128.
