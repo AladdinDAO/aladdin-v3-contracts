@@ -522,6 +522,7 @@ describe("CLeverCVXLocker.spec", async () => {
       [alice] = await ethers.getSigners();
       await cvx.transfer(alice.address, ethers.utils.parseEther("10000"));
       await cvx.connect(alice).approve(locker.address, constants.MaxUint256);
+      await locker.updateKeepers([deployer.address], true);
     });
 
     it("should succeed, when deposit 1 time, unlock after 17 weeks", async () => {

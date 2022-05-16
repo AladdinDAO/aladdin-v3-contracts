@@ -30,6 +30,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   event UpdatePlatform(address indexed _platform);
   event UpdateZap(address indexed _zap);
   event UpdateGovernor(address indexed _governor);
+  event UpdatePauseTimestamp(uint256 _startTimestamp, uint256 _finishTimestamp);
 
   // The precision used to calculate accumulated rewards.
   uint256 private constant PRECISION = 1e18;
@@ -139,6 +140,12 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
 
   /// @dev The list of whitelist keeper.
   mapping(address => bool) public isKeeper;
+
+  /// @dev The start timestamp to pause deposit
+  uint128 public pauseStartTimestamp;
+
+  /// @dev The finish timestamp to pause deposit
+  uint128 public pauseFinishTimestamp;
 
   modifier onlyGovernorOrOwner() {
     require(msg.sender == governor || msg.sender == owner(), "CLeverCVXLocker: only governor or owner");
@@ -295,6 +302,10 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev Deposit CVX and lock into CVXLockerV2
   /// @param _amount The amount of CVX to lock.
   function deposit(uint256 _amount) external override {
+    require(
+      block.timestamp < pauseStartTimestamp || block.timestamp > pauseFinishTimestamp,
+      "CLeverCVXLocker: deposit is paused"
+    );
     require(_amount > 0, "CLeverCVXLocker: deposit zero CVX");
     IERC20Upgradeable(CVX).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -754,6 +765,15 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     for (uint256 i = 0; i < _accounts.length; i++) {
       isKeeper[_accounts[i]] = _status;
     }
+  }
+
+  function updatePauseTimestamp(uint128 _start, uint128 _finish) external onlyGovernorOrOwner {
+    require(_start <= _finish, "CLeverCVXLocker: invalid timestamp interval");
+
+    pauseStartTimestamp = _start;
+    pauseFinishTimestamp = _finish;
+
+    emit UpdatePauseTimestamp(_start, _finish);
   }
 
   /********************************** Internal Functions **********************************/
