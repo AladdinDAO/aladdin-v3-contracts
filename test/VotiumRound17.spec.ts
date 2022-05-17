@@ -39,7 +39,7 @@ const INV_HOLDER = "0xDAe6951Fb927f40d76dA0eF1d5a1a9bee8aF944B";
 
 let firstCall = true;
 
-describe("VaultZapMainnetFork.spec", async () => {
+describe("VotiumRound17.spec", async () => {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
   let zap: AladdinZap;
