@@ -7,6 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "../interfaces/IYieldStrategy.sol";
 
+/// @title YieldStrategyBase for CLever and Furnace.
+///
+/// @author 0xChiaki
 abstract contract YieldStrategyBase is IYieldStrategy {
   using SafeERC20 for IERC20;
 

@@ -15,7 +15,7 @@ import "../../interfaces/IZap.sol";
 
 // solhint-disable reason-string
 
-/// @title ConcentratorStrategy Strategy for CLever.
+/// @title Concentrator Strategy for CLever.
 ///
 /// @author 0xChiaki
 ///
@@ -181,6 +181,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
 
   function _zapBeforeDeposit(uint256 _amount, bool _isUnderlying) internal returns (uint256) {
     if (_isUnderlying) {
+      // @todo add reserve check for curve lp to avoid flashloan attack.
       address _zap = zap;
       address _underlyingToken = underlyingToken;
       IERC20(_underlyingToken).safeTransfer(_zap, _amount);
@@ -197,6 +198,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
   ) internal returns (uint256) {
     address _token = yieldToken;
     if (_asUnderlying) {
+      // @todo add reserve check for curve lp to avoid flashloan attack.
       address _zap = zap;
       address _underlyingToken = underlyingToken;
       IERC20(_token).safeTransfer(_zap, _amount);

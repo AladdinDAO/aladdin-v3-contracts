@@ -212,7 +212,13 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   }
 
   /// @inheritdoc IMetaFurnace
-  function distribute(address _origin, uint256 _amount) external override onlyWhitelisted {
+  function distribute(
+    address _origin,
+    address _token,
+    uint256 _amount
+  ) external override onlyWhitelisted {
+    require(_token == baseToken, "Furnace: invalid distributed token");
+
     _distribute(_origin, _amount);
   }
 

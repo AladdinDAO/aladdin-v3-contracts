@@ -49,6 +49,11 @@ interface IMetaFurnace {
   /// + Caller should make sure the amount be greater than zero.
   ///
   /// @param _origin The address of the user who will provide baseToken.
+  /// @param _token The address of token distributed.
   /// @param _amount The amount of baseToken will be provided.
-  function distribute(address _origin, uint256 _amount) external;
+  function distribute(
+    address _origin,
+    address _token,
+    uint256 _amount
+  ) external;
 }

@@ -161,7 +161,7 @@ describe("Furnace.spec", async () => {
 
           // distribute 3 baseToken
           await baseToken.transfer(furnace.address, ethers.utils.parseUnits("3", baseDecimals));
-          await furnace.distribute(signer.address, ethers.utils.parseUnits("3", baseDecimals));
+          await furnace.distribute(signer.address, baseToken.address, ethers.utils.parseUnits("3", baseDecimals));
           [unrealised, realised] = await furnace.getUserInfo(alice.address);
           expect(realised).to.closeToBn(ethers.utils.parseEther("3"), 10);
           expect(unrealised).to.closeToBn(ethers.utils.parseEther("97"), 10);
@@ -172,7 +172,7 @@ describe("Furnace.spec", async () => {
 
           // distribute another 6 baseToken
           await baseToken.transfer(furnace.address, ethers.utils.parseUnits("6", baseDecimals));
-          await furnace.distribute(signer.address, ethers.utils.parseUnits("6", baseDecimals));
+          await furnace.distribute(signer.address, baseToken.address, ethers.utils.parseUnits("6", baseDecimals));
           [unrealised, realised] = await furnace.getUserInfo(alice.address);
           expect(realised).to.closeToBn(ethers.utils.parseEther("9"), 10);
           expect(unrealised).to.closeToBn(ethers.utils.parseEther("91"), 10);
@@ -208,7 +208,7 @@ describe("Furnace.spec", async () => {
 
           // distribute 100 baseToken to pay all debt
           await baseToken.transfer(furnace.address, ethers.utils.parseUnits("100", baseDecimals));
-          await furnace.distribute(signer.address, ethers.utils.parseUnits("100", baseDecimals));
+          await furnace.distribute(signer.address, baseToken.address, ethers.utils.parseUnits("100", baseDecimals));
           [unrealised, realised] = await furnace.getUserInfo(alice.address);
           expect(realised).to.closeToBn(ethers.utils.parseEther("100"), 10);
           expect(unrealised).to.closeToBn(ethers.utils.parseEther("0"), 10);
@@ -228,7 +228,7 @@ describe("Furnace.spec", async () => {
 
           // distribute another 10 baseToken to pay all debt
           await baseToken.transfer(furnace.address, ethers.utils.parseUnits("10", baseDecimals));
-          await furnace.distribute(signer.address, ethers.utils.parseUnits("10", baseDecimals));
+          await furnace.distribute(signer.address, baseToken.address, ethers.utils.parseUnits("10", baseDecimals));
           [unrealised, realised] = await furnace.getUserInfo(alice.address);
           expect(realised).to.closeToBn(ethers.utils.parseEther("110"), 10);
           expect(unrealised).to.closeToBn(ethers.utils.parseEther("0"), 10);
@@ -251,7 +251,7 @@ describe("Furnace.spec", async () => {
 
           // distribute another 100 baseToken
           await baseToken.transfer(furnace.address, ethers.utils.parseUnits("100", baseDecimals));
-          await furnace.distribute(signer.address, ethers.utils.parseUnits("100", baseDecimals));
+          await furnace.distribute(signer.address, baseToken.address, ethers.utils.parseUnits("100", baseDecimals));
           [unrealised, realised] = await furnace.getUserInfo(alice.address);
           expect(realised).to.closeToBn(ethers.utils.parseEther("0"), 0);
           expect(unrealised).to.closeToBn(ethers.utils.parseEther("0"), 0);
@@ -282,6 +282,6 @@ describe("Furnace.spec", async () => {
     });
   };
 
-  await run(6);
-  // await run(18);
+  run(6);
+  run(18);
 });

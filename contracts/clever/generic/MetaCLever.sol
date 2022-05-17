@@ -5,6 +5,7 @@ pragma solidity ^0.7.6;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
 import "../interfaces/IERC20Metadata.sol";
@@ -15,19 +16,21 @@ import "../interfaces/IYieldStrategy.sol";
 
 // solhint-disable not-rely-on-time, max-states-count, reason-string
 
-contract MetaCLever is OwnableUpgradeable, IMetaCLever {
+contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLever {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event UpdateFeeInfo(
     address indexed _platform,
-    uint32 _repayPercentage,
     uint32 _platformPercentage,
-    uint32 _bountyPercentage
+    uint32 _bountyPercentage,
+    uint32 _repayPercentage
   );
   event MigrateYieldStrategy(uint256 _index, address _oldStrategy, address _newStrategy);
   event AddYieldStrategy(uint256 _index, address _strategy);
   event SetStrategyActive(uint256 _index, bool _isActive);
+  event UpdateReserveRate(uint256 _reserveRate);
+  event UpdateFurnace(address _furnace);
 
   // The precision used to calculate accumulated rewards.
   uint256 private constant PRECISION = 1e18;
@@ -80,12 +83,10 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     // A signed value which represents the current amount of debt or credit that the account has accrued.
     // Positive values indicate debt, negative values indicate credit.
     int128 totalDebt;
-    // The block number of the last interacted block (deposit, unlock, withdraw, repay, borrow).
-    uint64 lastInteractedBlock;
     // The bitmask indicates the strategy that the user has deposited into the system.
     // If the i-th bit is 1, it means the user has deposited.
     // The corresponding bit will be cleared if the user takes all token from the strategy.
-    uint64 depositMask;
+    uint128 depositMask;
     // The share balances for each yield strategy.
     mapping(uint256 => uint256) share;
     // The pending rewards for each extra reward token in each yield strategy.
@@ -127,6 +128,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
 
   function initialize(address _debtToken, address _furnace) external initializer {
     OwnableUpgradeable.__Ownable_init();
+    ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
 
     require(_debtToken != address(0), "CLever: zero address");
     require(_furnace != address(0), "CLever: zero address");
@@ -137,7 +139,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
 
     debtToken = _debtToken;
     furnace = _furnace;
-    reserveRate = 500_000_000;
+    reserveRate = 500_000_000; // 50%
   }
 
   /********************************** View Functions **********************************/
@@ -145,6 +147,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
   /// @notice Return all active yield strategies.
   ///
   /// @return _indices The indices of all active yield strategies.
+  /// @return _strategies The list of strategy addresses for corresponding yield strategy.
   /// @return _underlyingTokens The list of underlying token addresses for corresponding yield strategy.
   /// @return _yieldTokens The list of yield token addresses for corresponding yield strategy.
   function getActiveYieldStrategies()
@@ -152,6 +155,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     view
     returns (
       uint256[] memory _indices,
+      address[] memory _strategies,
       address[] memory _underlyingTokens,
       address[] memory _yieldTokens
     )
@@ -163,6 +167,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     }
 
     _indices = new uint256[](_totalActiveStrategies);
+    _strategies = new address[](_totalActiveStrategies);
     _underlyingTokens = new address[](_totalActiveStrategies);
     _yieldTokens = new address[](_totalActiveStrategies);
 
@@ -170,6 +175,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     for (uint256 i = 0; i < _yieldStrategyIndex; i++) {
       if (yieldStrategies[i].isActive) {
         _indices[_totalActiveStrategies] = i;
+        _strategies[_totalActiveStrategies] = yieldStrategies[i].strategy;
         _underlyingTokens[_totalActiveStrategies] = yieldStrategies[i].underlyingToken;
         _yieldTokens[_totalActiveStrategies] = yieldStrategies[i].yieldToken;
         _totalActiveStrategies += 1;
@@ -191,7 +197,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
   /// @notice Return the amount of underlying token per share.
   /// @param _strategyIndex The index of yield strategy to query.
   function getUnderlyingTokenPerShare(uint256 _strategyIndex)
-    public
+    external
     view
     onlyExistingStrategy(_strategyIndex)
     returns (uint256)
@@ -252,6 +258,31 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     }
   }
 
+  /// @notice Return user info by strategy index.
+  ///
+  /// @param _account The address of user.
+  /// @param _strategyIndex The index of yield strategy to query.
+  ///
+  /// @return _share The amount of yield token share of the user.
+  /// @return _underlyingTokenAmount The amount of underlying token of the user.
+  /// @return _yieldTokenAmount The amount of yield token of the user.
+  function getUserStrategyInfo(address _account, uint256 _strategyIndex)
+    external
+    view
+    onlyExistingStrategy(_strategyIndex)
+    returns (
+      uint256 _share,
+      uint256 _underlyingTokenAmount,
+      uint256 _yieldTokenAmount
+    )
+  {
+    UserInfo storage _userInfo = userInfo[_account];
+
+    _share = _userInfo.share[_strategyIndex];
+    _underlyingTokenAmount = _share.mul(_getUnderlyingTokenPerShare(_strategyIndex)) / PRECISION;
+    _yieldTokenAmount = _share.mul(_getYieldTokenPerShare(_strategyIndex)) / PRECISION;
+  }
+
   /// @notice Return the pending extra rewards for user.
   ///
   /// @param _strategyIndex The index of yield strategy to query.
@@ -284,7 +315,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     uint256 _amount,
     uint256 _minShareOut,
     bool _isUnderlying
-  ) external override onlyActiveStrategy(_strategyIndex) returns (uint256 _shares) {
+  ) external override nonReentrant onlyActiveStrategy(_strategyIndex) returns (uint256 _shares) {
     require(_amount > 0, "CLever: deposit zero amount");
 
     YieldStrategyInfo storage _yieldStrategy = yieldStrategies[_strategyIndex];
@@ -341,7 +372,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     uint256 _share,
     uint256 _minAmountOut,
     bool _asUnderlying
-  ) external override onlyActiveStrategy(_strategyIndex) returns (uint256) {
+  ) external override nonReentrant onlyActiveStrategy(_strategyIndex) returns (uint256) {
     require(_share > 0, "CLever: withdraw zero share");
 
     UserInfo storage _userInfo = userInfo[msg.sender];
@@ -350,10 +381,10 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     YieldStrategyInfo storage _yieldStrategy = yieldStrategies[_strategyIndex];
 
     // 1. update harvestable yield token
-    _updateHarvestable(_strategyIndex);
+    _updateHarvestableByMask(_userInfo.depositMask);
 
     // 2. update account rewards
-    _updateReward(_strategyIndex, msg.sender);
+    _updateReward(msg.sender);
 
     // 3. compute actual amount of yield token to withdraw
     // @note The value is already updated in step 1, it's safe to use storage value directly.
@@ -381,6 +412,8 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     _amount = IYieldStrategy(_yieldStrategy.strategy).withdraw(_recipient, _amount, _asUnderlying);
     require(_amount >= _minAmountOut, "CLever: insufficient output");
 
+    emit Withdraw(_strategyIndex, msg.sender, _share, _amount);
+
     return _amount;
   }
 
@@ -389,8 +422,21 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     address _underlyingToken,
     address _recipient,
     uint256 _amount
-  ) external override {
+  ) external override nonReentrant {
     require(_amount > 0, "CLever: repay zero amount");
+
+    // check token is valid
+    {
+      uint256 _yieldStrategyIndex = yieldStrategyIndex;
+      bool _found;
+      for (uint256 i = 0; i < _yieldStrategyIndex; i++) {
+        if (yieldStrategies[i].isActive && yieldStrategies[i].underlyingToken == _underlyingToken) {
+          _found = true;
+          break;
+        }
+      }
+      require(_found, "CLever: invalid underlying token");
+    }
 
     UserInfo storage _userInfo = userInfo[_recipient];
 
@@ -402,9 +448,9 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
       int256 _debt = _userInfo.totalDebt;
       require(_debt > 0, "CLever: no debt to repay");
       uint256 _scale = 10**(18 - IERC20Metadata(_underlyingToken).decimals());
-      uint256 _maximumAmount = _scale * uint256(_debt);
+      uint256 _maximumAmount = uint256(_debt) / _scale;
       if (_amount > _maximumAmount) _amount = _maximumAmount;
-      uint256 _debtPaid = _amount / _scale;
+      uint256 _debtPaid = _amount * _scale;
       _userInfo.totalDebt = int128(_debt - int256(_debtPaid)); // safe to do cast
     }
 
@@ -416,9 +462,9 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     }
     address _furnace = furnace;
     IERC20Upgradeable(_underlyingToken).safeTransferFrom(msg.sender, _furnace, _amount);
-    IMetaFurnace(_furnace).distribute(address(this), _amount);
+    IMetaFurnace(_furnace).distribute(address(this), _underlyingToken, _amount);
 
-    emit Repay(msg.sender, _underlyingToken, _amount);
+    emit Repay(_recipient, _underlyingToken, _amount);
   }
 
   /// @inheritdoc IMetaCLever
@@ -426,7 +472,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     address _recipient,
     uint256 _amount,
     bool _depositToFurnace
-  ) external override {
+  ) external override nonReentrant {
     require(_amount > 0, "CLever: mint zero amount");
 
     UserInfo storage _userInfo = userInfo[msg.sender];
@@ -457,7 +503,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
   }
 
   /// @inheritdoc IMetaCLever
-  function burn(address _recipient, uint256 _amount) external override {
+  function burn(address _recipient, uint256 _amount) external override nonReentrant {
     require(_amount > 0, "CLever: burn zero amount");
 
     UserInfo storage _userInfo = userInfo[_recipient];
@@ -483,33 +529,15 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
   }
 
   /// @inheritdoc IMetaCLever
-  function claim(uint256 _strategyIndex, address _recipient) public override {
-    UserInfo storage _userInfo = userInfo[msg.sender];
-    YieldStrategyInfo storage _yieldStrategy = yieldStrategies[_strategyIndex];
-
-    // 1. update reward info
-    _updateReward(_strategyIndex, msg.sender);
-
-    // 2. claim rewards
-    uint256 _length = _yieldStrategy.extraRewardTokens.length;
-    address _rewardToken;
-    uint256 _rewardAmount;
-    for (uint256 i = 0; i < _length; i++) {
-      _rewardToken = _yieldStrategy.extraRewardTokens[i];
-      _rewardAmount = _userInfo.pendingRewards[_strategyIndex][_rewardToken];
-      if (_rewardAmount > 0) {
-        IERC20Upgradeable(_rewardToken).safeTransfer(_recipient, _rewardAmount);
-        _userInfo.pendingRewards[_strategyIndex][_rewardToken] = 0;
-        emit Claim(_strategyIndex, _rewardToken, _rewardAmount);
-      }
-    }
+  function claim(uint256 _strategyIndex, address _recipient) public override nonReentrant {
+    _claim(_strategyIndex, msg.sender, _recipient);
   }
 
   /// @inheritdoc IMetaCLever
-  function claimAll(address _recipient) external override {
+  function claimAll(address _recipient) external override nonReentrant {
     uint256 _yieldStrategyIndex = yieldStrategyIndex;
     for (uint256 i = 0; i < _yieldStrategyIndex; i++) {
-      claim(i, _recipient);
+      _claim(i, msg.sender, _recipient);
     }
   }
 
@@ -518,7 +546,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     uint256 _strategyIndex,
     address _recipient,
     uint256 _minimumOut
-  ) external override onlyActiveStrategy(_strategyIndex) returns (uint256) {
+  ) external override nonReentrant onlyActiveStrategy(_strategyIndex) returns (uint256) {
     YieldStrategyInfo storage _yieldStrategy = yieldStrategies[_strategyIndex];
 
     // 1. update harvestable yield token
@@ -570,45 +598,57 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     }
 
     // 5. distribute underlying token to users
-    _distribute(_strategyIndex, _toDistribute);
+    if (_toDistribute > 0) {
+      _distribute(_strategyIndex, _toDistribute);
+    }
 
     emit Harvest(_strategyIndex, _toDistribute, _platformFee, _harvestBounty);
 
     return _harvestedUnderlyingTokenAmount;
   }
 
+  /// @notice Update the reward info for specific account.
+  ///
+  /// @param _account The address of account to update.
+  function updateReward(address _account) external nonReentrant {
+    UserInfo storage _userInfo = userInfo[_account];
+
+    _updateHarvestableByMask(_userInfo.depositMask);
+    _updateReward(_account);
+  }
+
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update the fee information.
   /// @param _platform The platform address to be updated.
-  /// @param _repayPercentage The repay fee percentage to be updated, multipled by 1e9.
   /// @param _platformPercentage The platform fee percentage to be updated, multipled by 1e9.
   /// @param _bountyPercentage The harvest bounty percentage to be updated, multipled by 1e9.
+  /// @param _repayPercentage The repay fee percentage to be updated, multipled by 1e9.
   function updateFeeInfo(
     address _platform,
-    uint32 _repayPercentage,
     uint32 _platformPercentage,
-    uint32 _bountyPercentage
+    uint32 _bountyPercentage,
+    uint32 _repayPercentage
   ) external onlyOwner {
     require(_platform != address(0), "CLever: zero address");
-    require(_platformPercentage <= MAX_REPAY_FEE, "CLever: fee too large");
-    require(_platformPercentage <= MAX_PLATFORM_FEE, "CLever: fee too large");
-    require(_bountyPercentage <= MAX_HARVEST_BOUNTY, "CLever: fee too large");
+    require(_platformPercentage <= MAX_PLATFORM_FEE, "CLever: platform fee too large");
+    require(_bountyPercentage <= MAX_HARVEST_BOUNTY, "CLever: bounty fee too large");
+    require(_repayPercentage <= MAX_REPAY_FEE, "CLever: repay fee too large");
 
-    feeInfo = FeeInfo(_platform, _repayPercentage, _platformPercentage, _bountyPercentage);
+    feeInfo = FeeInfo(_platform, _platformPercentage, _bountyPercentage, _repayPercentage);
 
-    emit UpdateFeeInfo(_platform, _repayPercentage, _platformPercentage, _bountyPercentage);
+    emit UpdateFeeInfo(_platform, _platformPercentage, _bountyPercentage, _repayPercentage);
   }
 
   /// @notice Add new yield strategy
   ///
   /// @param _strategy The address of the new strategy.
-  function addYieldStrategy(address _strategy) external onlyOwner {
+  function addYieldStrategy(address _strategy, address[] memory _extraRewardTokens) external onlyOwner {
     require(_strategy != address(0), "CLever: add empty strategy");
 
     uint256 _yieldStrategyIndex = yieldStrategyIndex;
     for (uint256 i = 0; i < _yieldStrategyIndex; i++) {
-      require(yieldStrategies[_yieldStrategyIndex].strategy != _strategy, "CLever: add duplicated strategy");
+      require(yieldStrategies[i].strategy != _strategy, "CLever: add duplicated strategy");
     }
 
     require(IERC20Metadata(IYieldStrategy(_strategy).underlyingToken()).decimals() <= 18, "CLever: decimals too large");
@@ -617,7 +657,10 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     yieldStrategies[_yieldStrategyIndex].underlyingToken = IYieldStrategy(_strategy).underlyingToken();
     yieldStrategies[_yieldStrategyIndex].yieldToken = IYieldStrategy(_strategy).yieldToken();
     yieldStrategies[_yieldStrategyIndex].isActive = true;
+    yieldStrategies[_yieldStrategyIndex].extraRewardTokens = _extraRewardTokens;
     yieldStrategyIndex = _yieldStrategyIndex + 1;
+
+    emit AddYieldStrategy(_yieldStrategyIndex, _strategy);
   }
 
   /// @notice Active or deactive an existing yield strategy.
@@ -626,6 +669,8 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
   /// @param _isActive The status to update.
   function setIsActive(uint256 _strategyIndex, bool _isActive) external onlyExistingStrategy(_strategyIndex) onlyOwner {
     yieldStrategies[_strategyIndex].isActive = _isActive;
+
+    emit SetStrategyActive(_strategyIndex, _isActive);
   }
 
   /// @notice Migrate an existing yield stategy to a new address.
@@ -638,6 +683,7 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     onlyOwner
   {
     address _oldStrategy = yieldStrategies[_strategyIndex].strategy;
+    require(_oldStrategy != _newStrategy, "CLever: migrate to same strategy");
     require(
       IYieldStrategy(_oldStrategy).yieldToken() == IYieldStrategy(_newStrategy).yieldToken(),
       "CLever: yield token mismatch"
@@ -657,23 +703,77 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
 
     // 3. update yield strategy
     yieldStrategies[_strategyIndex].strategy = _newStrategy;
-    yieldStrategies[_strategyIndex].activeYieldTokenAmount =
-      (yieldStrategies[_strategyIndex].activeYieldTokenAmount * _newYieldAmount) /
-      _oldYieldAmount;
-    yieldStrategies[_strategyIndex].harvestableYieldTokenAmount =
-      (yieldStrategies[_strategyIndex].harvestableYieldTokenAmount * _newYieldAmount) /
-      _oldYieldAmount;
+    if (_oldYieldAmount > 0) {
+      yieldStrategies[_strategyIndex].activeYieldTokenAmount =
+        (yieldStrategies[_strategyIndex].activeYieldTokenAmount * _newYieldAmount) /
+        _oldYieldAmount;
+      yieldStrategies[_strategyIndex].harvestableYieldTokenAmount =
+        (yieldStrategies[_strategyIndex].harvestableYieldTokenAmount * _newYieldAmount) /
+        _oldYieldAmount;
+    }
+
+    emit MigrateYieldStrategy(_strategyIndex, _oldStrategy, _newStrategy);
   }
 
   /// @notice Update the reserve rate for the system.
   ///
   /// @param _reserveRate The reserve rate to update.
   function updateReserveRate(uint256 _reserveRate) external onlyOwner {
-    require(_reserveRate <= FEE_PRECISION, "CLeverCVXLocker: invalid reserve rate");
+    require(_reserveRate <= FEE_PRECISION, "CLever: invalid reserve rate");
     reserveRate = _reserveRate;
+
+    emit UpdateReserveRate(_reserveRate);
+  }
+
+  /// @notice Update the furnace contract.
+  ///
+  /// @param _furnace The new furnace address to update.
+  function updateFurnace(address _furnace) external onlyOwner {
+    require(_furnace != address(0), "CLever: zero furnace address");
+
+    address _debtToken = debtToken;
+    // revoke approve from old furnace
+    IERC20Upgradeable(_debtToken).safeApprove(furnace, uint256(0));
+    // approve max to new furnace
+    IERC20Upgradeable(_debtToken).safeApprove(_furnace, uint256(-1));
+
+    furnace = _furnace;
+
+    emit UpdateFurnace(_furnace);
   }
 
   /********************************** Internal Functions **********************************/
+
+  /// @dev Internal function to claim pending extra rewards.
+  ///
+  /// @param _strategyIndex The index of yield strategy to claim.
+  /// @param _account The address of account to claim reward.
+  /// @param _recipient The address of recipient to receive the reward.
+  function _claim(
+    uint256 _strategyIndex,
+    address _account,
+    address _recipient
+  ) internal {
+    UserInfo storage _userInfo = userInfo[_account];
+    YieldStrategyInfo storage _yieldStrategy = yieldStrategies[_strategyIndex];
+
+    // 1. update reward info
+    _updateReward(_strategyIndex, _account);
+
+    // 2. claim rewards
+    uint256 _length = _yieldStrategy.extraRewardTokens.length;
+    address _rewardToken;
+    uint256 _rewardAmount;
+    for (uint256 i = 0; i < _length; i++) {
+      _rewardToken = _yieldStrategy.extraRewardTokens[i];
+      _rewardAmount = _userInfo.pendingRewards[_strategyIndex][_rewardToken];
+      if (_rewardAmount > 0) {
+        IERC20Upgradeable(_rewardToken).safeTransfer(_recipient, _rewardAmount);
+        _userInfo.pendingRewards[_strategyIndex][_rewardToken] = 0;
+        emit Claim(_strategyIndex, _rewardToken, _rewardAmount);
+      }
+    }
+  }
 
   /// @dev Internal function to update `harvestableYieldTokenAmount` according to bitmask.
   /// If the correspond bit is set to `1`, we should update the corresponding yield strategy.
@@ -755,9 +855,6 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     UserInfo storage _userInfo = userInfo[_account];
     YieldStrategyInfo storage _yieldStrategyInfo = yieldStrategies[_strategyIndex];
 
-    require(_userInfo.lastInteractedBlock != block.number, "CLever: interact in the same block");
-    _userInfo.lastInteractedBlock = uint64(block.number);
-
     uint256 _share = _userInfo.share[_strategyIndex];
 
     // 1. update user debt
@@ -765,7 +862,8 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     uint256 _accRewardPerShare = _yieldStrategyInfo.accRewardPerShare[_token];
     uint256 _accRewardPerSharePaid = _userInfo.accRewardPerSharePaid[_strategyIndex][_token];
     if (_accRewardPerSharePaid < _accRewardPerShare) {
-      uint256 _rewards = _share.mul(_accRewardPerShare - _accRewardPerSharePaid) / PRECISION;
+      uint256 _scale = 10**(18 - IERC20Metadata(_token).decimals());
+      uint256 _rewards = (_share.mul(_accRewardPerShare - _accRewardPerSharePaid) / PRECISION).mul(_scale);
       _userInfo.totalDebt -= SafeCastUpgradeable.toInt128(SafeCastUpgradeable.toInt256(_rewards));
       _userInfo.accRewardPerSharePaid[_strategyIndex][_token] = _accRewardPerShare;
     }
@@ -789,10 +887,14 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
   /// @param _strategyIndex The index of yield strategy to update.
   /// @param _amount The amount of underlying token to distribute.
   function _distribute(uint256 _strategyIndex, uint256 _amount) internal {
+    address _furnace = furnace;
+    address _underlyingToken = yieldStrategies[_strategyIndex].underlyingToken;
+    IERC20Upgradeable(_underlyingToken).safeTransfer(_furnace, _amount);
+    IMetaFurnace(_furnace).distribute(address(this), _underlyingToken, _amount);
+
     uint256 _totalShare = yieldStrategies[_strategyIndex].totalShare;
     if (_totalShare == 0) return;
 
-    address _underlyingToken = yieldStrategies[_strategyIndex].underlyingToken;
     uint256 _accRewardPerShare = yieldStrategies[_strategyIndex].accRewardPerShare[_underlyingToken];
     yieldStrategies[_strategyIndex].accRewardPerShare[_underlyingToken] = _accRewardPerShare.add(
       _amount.mul(PRECISION) / _totalShare
@@ -897,7 +999,10 @@ contract MetaCLever is OwnableUpgradeable, IMetaCLever {
     uint256 _totalValue = _getTotalValue(_account);
     int256 _totalDebt = userInfo[_account].totalDebt;
     if (_totalDebt > 0) {
-      require(_totalValue.mul(reserveRate) >= uint256(_totalDebt), "CLever: account undercollateralized");
+      require(
+        _totalValue.mul(reserveRate) >= uint256(_totalDebt).mul(FEE_PRECISION),
+        "CLever: account undercollateralized"
+      );
     }
   }
 }

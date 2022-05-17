@@ -15,9 +15,11 @@ import "../../interfaces/IZap.sol";
 
 // solhint-disable reason-string
 
-/// @title ConcentratorBatchStrategy Strategy for CLever.
+/// @title Concentrator Batch Strategy for CLever.
 ///
 /// @author 0xChiaki
+///
+/// @dev This contract will wait the pending amount above threshold and do batch deposit.
 contract ConcentratorBatchStrategy is Ownable, ConcentratorStrategy {
   using SafeERC20 for IERC20;
 

@@ -9,7 +9,7 @@ import "../clever/strategies/YieldStrategyBase.sol";
 contract MockYieldStrategy is YieldStrategyBase {
   constructor(address _token, address _operator) YieldStrategyBase(_token, _token, _operator) {}
 
-  function underlyingPrice() external view override returns (uint256) {
+  function underlyingPrice() external view virtual override returns (uint256) {
     return 10**18;
   }
 
@@ -24,15 +24,15 @@ contract MockYieldStrategy is YieldStrategyBase {
   function deposit(
     address,
     uint256 _amount,
-    bool _isUnderlying
-  ) external override onlyOperator returns (uint256 _yieldAmount) {
+    bool
+  ) external virtual override onlyOperator returns (uint256 _yieldAmount) {
     _yieldAmount = _amount;
   }
 
   function withdraw(
     address _recipient,
     uint256 _amount,
-    bool _asUnderlying
+    bool
   ) external override onlyOperator returns (uint256 _returnAmount) {
     IERC20(underlyingToken).transfer(_recipient, _amount);
     _returnAmount = _amount;

@@ -4,7 +4,7 @@ pragma solidity ^0.7.6;
 
 interface IMetaCLever {
   event Deposit(uint256 indexed _strategyIndex, address indexed _account, uint256 _share, uint256 _amount);
-  event Withdraw(address indexed _account, uint256 _amount);
+  event Withdraw(uint256 indexed _strategyIndex, address indexed _account, uint256 _share, uint256 _amount);
   event Repay(address indexed _account, address indexed _underlyingToken, uint256 _amount);
   event Mint(address indexed _account, address indexed _recipient, uint256 _amount);
   event Burn(address indexed _account, address indexed _recipient, uint256 _amount);
