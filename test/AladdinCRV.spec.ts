@@ -1,8 +1,7 @@
 /* eslint-disable node/no-missing-import */
 import { expect } from "chai";
-import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { AladdinCRV, IERC20 } from "../typechain";
+import { AladdinCRV } from "../typechain";
 // eslint-disable-next-line camelcase
 import { Action, encodePoolHintV2, PoolType, request_fork } from "./utils";
 
@@ -21,7 +20,6 @@ const CURVE_TRICRYPTO_POOL = "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46";
 const CURVE_CVXETH_POOL = "0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4";
 const CURVE_CRVETH_POOL = "0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511";
 const CURVE_CVXCRV_POOL = "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8";
-const USDT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 const PLATFORM = "0x07dA2d30E26802ED65a52859a50872cfA615bD0A";
