@@ -8,13 +8,17 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 
 import "./AladdinConvexVault.sol";
 
+interface ICONT {
+  function mint(address _to, uint256 _value) external view returns (bool);
+}
+
 contract ConcentratorIFOVault is AladdinConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event ClaimCONT(uint256 indexed _pid, address indexed _caller, address _recipient, uint256 _amount);
   event MineCONT(uint256 _amount);
-  event UpdateIFOConfig(address _cont, uint256 _startTime, uint256 _endTime);
+  event UpdateIFOConfig(address _rewarder, address _cont, uint256 _startTime, uint256 _endTime);
 
   uint256 private constant MAX_MINED_CONT = 1500000 ether;
 
@@ -30,6 +34,9 @@ contract ConcentratorIFOVault is AladdinConvexVault {
 
   /// @notice The address of $CONT token.
   address public cont;
+
+  /// @notice The address of $CONT rewarder for Liquidity Mining
+  address public rewarder;
 
   /// @notice The start timestamp in seconds.
   uint64 public startTime;
@@ -122,6 +129,10 @@ contract ConcentratorIFOVault is AladdinConvexVault {
         accCONTPerShare[_pid] = accCONTPerShare[_pid].add(_pendingCONT.mul(PRECISION) / _pool.totalShare);
 
         contMined += uint128(_pendingCONT);
+
+        ICONT(cont).mint(address(this), _pendingCONT);
+        // @todo change to actual percentage
+        ICONT(cont).mint(rewarder, (_pendingCONT * 4) / 60);
         emit MineCONT(_pendingCONT);
       }
       _rewards -= _pendingCONT;
@@ -153,19 +164,22 @@ contract ConcentratorIFOVault is AladdinConvexVault {
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update IFO configuration
+  /// @param _cont The address of rewarder for Liquidity Mining
   /// @param _cont The address of $CONT token.
   /// @param _startTime The start time of IFO.
   /// @param _endTime The finish time of IFO.
   function updateIFOConfig(
+    address _rewarder,
     address _cont,
     uint64 _startTime,
     uint64 _endTime
   ) external onlyOwner {
+    rewarder = _rewarder;
     cont = _cont;
     startTime = _startTime;
     endTime = _endTime;
 
-    emit UpdateIFOConfig(_cont, _startTime, _endTime);
+    emit UpdateIFOConfig(_rewarder, _cont, _startTime, _endTime);
   }
 
   /********************************** Internal Functions **********************************/
