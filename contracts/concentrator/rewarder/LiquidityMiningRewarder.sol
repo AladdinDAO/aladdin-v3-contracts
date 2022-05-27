@@ -25,7 +25,7 @@ contract LiquidityMiningRewarder {
     address _cont = cont;
     uint256 _balance = IERC20(_cont).balanceOf(address(this));
     if (_balance > 0) {
-      IERC20(_cont).safeTra0nsfer(msg.sender, _balance);
+      IERC20(_cont).safeTransfer(msg.sender, _balance);
     }
   }
 }
