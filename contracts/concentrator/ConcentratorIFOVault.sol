@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "./AladdinConvexVault.sol";
 
 interface ICONT {
-  function mint(address _to, uint256 _value) external view returns (bool);
+  function mint(address _to, uint256 _value) external returns (bool);
 }
 
 contract ConcentratorIFOVault is AladdinConvexVault {
@@ -17,10 +17,10 @@ contract ConcentratorIFOVault is AladdinConvexVault {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event ClaimCONT(uint256 indexed _pid, address indexed _caller, address _recipient, uint256 _amount);
-  event MineCONT(uint256 _amount);
+  event IFOMineCONT(uint256 _amount);
   event UpdateIFOConfig(address _rewarder, address _cont, uint256 _startTime, uint256 _endTime);
 
-  uint256 private constant MAX_MINED_CONT = 1500000 ether;
+  uint256 private constant MAX_MINED_CONT = 1_500_000 ether;
 
   /// @notice Mapping from pool id to accumulated cont reward per share, with 1e18 precision.
   mapping(uint256 => uint256) public accCONTPerShare;
@@ -130,10 +130,16 @@ contract ConcentratorIFOVault is AladdinConvexVault {
 
         contMined += uint128(_pendingCONT);
 
+        // Vault Mining $CONT
         ICONT(cont).mint(address(this), _pendingCONT);
-        // @todo change to actual percentage
-        ICONT(cont).mint(rewarder, (_pendingCONT * 4) / 60);
-        emit MineCONT(_pendingCONT);
+
+        // Liquidity Mining $CONT
+        ICONT(cont).mint(rewarder, (_pendingCONT * 6) / 100);
+
+        // transfer aCRV to platform
+        IERC20Upgradeable(aladdinCRV).safeTransfer(platform, _pendingCONT);
+
+        emit IFOMineCONT(_pendingCONT);
       }
       _rewards -= _pendingCONT;
     }
@@ -164,7 +170,7 @@ contract ConcentratorIFOVault is AladdinConvexVault {
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update IFO configuration
-  /// @param _cont The address of rewarder for Liquidity Mining
+  /// @param _rewarder The address of rewarder for Liquidity Mining
   /// @param _cont The address of $CONT token.
   /// @param _startTime The start time of IFO.
   /// @param _endTime The finish time of IFO.

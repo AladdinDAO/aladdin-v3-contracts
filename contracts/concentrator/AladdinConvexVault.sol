@@ -346,7 +346,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
 
     // 2. withdraw lp token
     UserInfo storage _userInfo = userInfo[_pid][msg.sender];
-    uint256 _shares = _pool.totalShare;
+    uint256 _shares = _userInfo.shares;
     uint256 _totalShare = _pool.totalShare;
     uint256 _totalUnderlying = _pool.totalUnderlying;
     uint256 _withdrawable = _shares.mul(_totalUnderlying) / _totalShare; // no withdraw fee
