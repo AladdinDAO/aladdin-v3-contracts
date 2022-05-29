@@ -7,6 +7,7 @@ import { ethers } from "hardhat";
 import * as hre from "hardhat";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
+import { ADDRESS } from "../scripts/config";
 
 const FORK_BLOCK_NUMBER = 14386700;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
@@ -16,6 +17,7 @@ const PLATFORM = "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F";
 const PLATFORM_FEE_PERCENTAGE = 2.5e7; // 2.5%
 const HARVEST_BOUNTY_PERCENTAGE = 2.5e7; // 2.5%
 const CVXCRV = "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7";
+const WETH = ADDRESS.WETH;
 
 describe("CLeverCVXLocker.spec", async () => {
   let deployer: SignerWithAddress;
@@ -48,8 +50,7 @@ describe("CLeverCVXLocker.spec", async () => {
 
     // 1. cvxcrv ==> crv with CurveFactoryPlainPool
     // 2. crv ==> eth with CurveCryptoPool
-    // 3. eth ==> cvx with UniswapV2
-    await zap.updateRoute(CVXCRV, CVX, [
+    await zap.updateRoute(CVXCRV, WETH, [
       encodePoolHintV2(
         "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8",
         PoolType.CurveFactoryPlainPool,
@@ -59,6 +60,9 @@ describe("CLeverCVXLocker.spec", async () => {
         Action.Swap
       ),
       encodePoolHintV2("0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511", PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+    ]);
+    // 2. eth ==> cvx with UniswapV2
+    await zap.updateRoute(WETH, CVX, [
       encodePoolHintV2("0x05767d9EF41dC40689678fFca0608878fb3dE906", PoolType.UniswapV2, 2, 1, 0, Action.Swap),
     ]);
 
