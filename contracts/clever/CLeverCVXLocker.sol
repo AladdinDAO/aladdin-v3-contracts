@@ -55,6 +55,8 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   address private constant CVX_LOCKER = 0x72a19342e8F1838460eBFCCEf09F6585e32db86E;
   // The address of votium distributor
   address private constant VOTIUM_DISTRIBUTOR = 0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A;
+  // The address of cvxFXS token.
+  address private constant CVXFXS = 0xFEEf77d3f69374f66429C91d732A244f074bdf74;
 
   struct EpochUnlockInfo {
     // The number of CVX should unlocked at the start of epoch `unlockEpoch`.
@@ -184,6 +186,10 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     platformFeePercentage = _platformFeePercentage;
     harvestBountyPercentage = _harvestBountyPercentage;
     reserveRate = 500_000_000;
+  }
+  
+  receive() external payable {
+    require(msg.sender == zap, "only zap can send ETH");
   }
 
   /********************************** View Functions **********************************/
@@ -528,12 +534,27 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     IConvexCVXRewardPool(CVX_REWARD_POOL).getReward(false);
     IConvexCVXLocker(CVX_LOCKER).getReward(address(this));
 
-    // 2. convert all CVXCRV to CVX
-    uint256 _amount = IERC20Upgradeable(CVXCRV).balanceOf(address(this));
-    if (_amount > 0) {
-      IERC20Upgradeable(CVXCRV).safeTransfer(zap, _amount);
-      _amount = IZap(zap).zap(CVXCRV, _amount, CVX, _minimumOut);
+    // 2. convert all cvxCRV/cvxFXS to ETH, then to CVX
+    uint256 _amount; // store the amount of ETH
+    address _zap = zap;
+    {
+      uint256 _cvxcrvAmount = IERC20Upgradeable(CVXCRV).balanceOf(address(this));
+      if (_cvxcrvAmount > 0) {
+        IERC20Upgradeable(CVXCRV).safeTransfer(_zap, _cvxcrvAmount);
+        _amount += IZap(_zap).zap(CVXCRV, _cvxcrvAmount, address(0), 0);
+      }
     }
+    {
+      uint256 _cvxfxsAmount = IERC20Upgradeable(CVXFXS).balanceOf(address(this));
+      if (_cvxfxsAmount > 0) {
+        IERC20Upgradeable(CVXFXS).safeTransfer(_zap, _cvxfxsAmount);
+        _amount += IZap(_zap).zap(CVXFXS, _cvxfxsAmount, address(0), 0);
+      }
+    }
+    if (_amount > 0) {
+      _amount = IZap(_zap).zap{ value: _amount }(address(0), _amount, CVX, 0);
+    }
+    // @note now `_amount` store the amount of CVX
     require(_amount >= _minimumOut, "CLeverCVXLocker: insufficient output");
 
     // 3. distribute incentive to platform and _recipient
@@ -850,6 +871,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     uint256 _amount;
     address _token;
     address _zap = zap;
+    // @todo we should better to swap to ETH first, then CVX
     for (uint256 i = 0; i < _rewardTokens.length; i++) {
       _token = _rewardTokens[i];
       // skip manual swap token

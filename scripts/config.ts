@@ -30,6 +30,10 @@ export const ADDRESS: { [name: string]: string } = {
   FLX: "0x6243d8CEA23066d098a15582d81a598b4e8391F4",
   ANGLE: "0x31429d1856aD1377A8A0079410B297e1a9e214c2",
   INV: "0x41D5D79431A913C4aE7d69a668ecdfE5fF9DFB68",
+  STG: "0xaf5191b0de278c7286d6c7cc6ab6bb8a73ba2cd6",
+  TRIBE: "0xc7283b66eb1eb5fb86327f08e1b5816b0720212b",
+  GEIST: "0x2EBfF165CB363002C5f9cBcfd6803957BA0B7208",
+  FEI: "0x956F47F50A910163D8BF957Cf5846D573E7f87CA",
   // pid = 0
   CURVE_STETH_POOL: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
   CURVE_STETH_TOKEN: "0x06325440D014e39736583c165C2963BA99fAf14E",
@@ -63,6 +67,7 @@ export const ADDRESS: { [name: string]: string } = {
   // pid = 10
   CURVE_REN_POOL: "0x93054188d876f558f4a66B2EF1d97d16eDf0895B",
   CURVE_REN_TOKEN: "0x49849C98ae39Fff122806C06791Fa73784FB3675",
+  CURVE_STGUSDC_POOL: "0x3211C6cBeF1429da3D0d58494938299C92Ad5860",
   // Uniswap V2 pool
   LDO_WETH_UNIV2: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
   FXS_WETH_UNIV2: "0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23",
@@ -74,6 +79,7 @@ export const ADDRESS: { [name: string]: string } = {
   FLX_WETH_UNIV2: "0xd6F3768E62Ef92a9798E5A8cEdD2b78907cEceF9",
   ANGLE_WETH_UNIV2: "0xFb55AF0ef0DcdeC92Bd3752E7a9237dfEfB8AcC0",
   INV_WETH_UNIV2: "0x328dFd0139e26cB0FEF7B0742B49b0fe4325F821",
+  FEI_TRIBE_UNIV2: "0x9928e4046d7c6513326cCeA028cD3e7a91c7590A",
   // Uniswap V3 pool
   USDC_WETH_UNIV3: "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
   USDC_USDT_UNIV3: "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
@@ -84,6 +90,7 @@ export const ADDRESS: { [name: string]: string } = {
   WBTC_WETH_UNIV3_500: "0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0",
   // Balancer V2
   SNX_WETH_BALANCER: "0x072f14B85ADd63488DDaD88f855Fda4A99d6aC9B",
+  FEI_WETH_BALANCER: "0x90291319F1D4eA3ad4dB0Dd8fe9E12BAF749E845",
 };
 
 export const VAULTS: {
@@ -286,7 +293,7 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     from: "GRO", // GRO ==(UniV2) ==> USDC ==(UniV3)==> WETH ==(CurveV2)=> CVX
     to: "CVX",
     routes: [
-      encodePoolHintV2(ADDRESS.GRO_USDC_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_STGUSDC_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
@@ -312,6 +319,24 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     to: "CVX",
     routes: [
       encodePoolHintV2(ADDRESS.INV_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "STG", // STG ==(CurveV2)==> USDC ==(UniV3)==> WETH == (CurveV2) => CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.CURVE_STGUSDC_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "TRIBE", // TRIBE ==(UniV2)==> FEI ==(Balancer)==> WETH ==(CurveV2)=> CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.FEI_TRIBE_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.FEI_WETH_BALANCER, PoolType.BalancerV2, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },
