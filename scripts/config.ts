@@ -2,6 +2,43 @@
 import { BigNumber } from "ethers";
 import { Action, encodePoolHintV2, PoolType } from "../test/utils";
 
+export const DECIMALS: { [name: string]: number } = {
+  WETH: 18,
+  CRV: 18,
+  CVX: 18,
+  LDO: 18,
+  FXS: 18,
+  ALCX: 18,
+  SPELL: 18,
+  stETH: 18,
+  FRAX: 18,
+  TRICRV: 18,
+  DAI: 18,
+  USDC: 6,
+  USDT: 6,
+  WBTC: 8,
+  renBTC: 8,
+  CVXFXS: 18,
+  CVXCRV: 18,
+  rETH: 18,
+  wstETH: 18,
+  UST_WORMHOLE: 6,
+  UST_TERRA: 18,
+  LYRA: 18,
+  SNX: 18,
+  GRO: 18,
+  FLX: 18,
+  ANGLE: 18,
+  INV: 18,
+  STG: 18,
+  TRIBE: 18,
+  GEIST: 18,
+  FEI: 18,
+  JPEG: 18,
+  USDN: 18,
+  EURS: 2,
+};
+
 export const ADDRESS: { [name: string]: string } = {
   WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   CRV: "0xD533a949740bb3306d119CC777fa900bA034cd52",
@@ -34,40 +71,48 @@ export const ADDRESS: { [name: string]: string } = {
   TRIBE: "0xc7283b66eb1eb5fb86327f08e1b5816b0720212b",
   GEIST: "0x2EBfF165CB363002C5f9cBcfd6803957BA0B7208",
   FEI: "0x956F47F50A910163D8BF957Cf5846D573E7f87CA",
-  // pid = 0
+  JPEG: "0xE80C0cd204D654CEbe8dd64A4857cAb6Be8345a3",
+  USDN: "0x674C6Ad92Fd080e4004b2312b45f796a192D27a0",
+  EURS: "0xdB25f211AB05b1c97D595516F45794528a807ad8",
+  // Curve stETH/ETH
   CURVE_STETH_POOL: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
   CURVE_STETH_TOKEN: "0x06325440D014e39736583c165C2963BA99fAf14E",
-  // pid = 1
+  // Curve Frax/3CRV(DAI/USDC/USDT)
   CURVE_FRAX3CRV_POOL: "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B",
   CURVE_FRAX3CRV_TOKEN: "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B",
-  // pid = 2
+  // Curve WBTC/WETH/USDT
   CURVE_TRICRYPTO_POOL: "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46",
   CURVE_TRICRYPTO_TOKEN: "0xc4AD29ba4B3c580e6D59105FFf484999997675Ff",
-  // pid = 3
+  // Curve cvxCRV/CRV
   CURVE_CVXCRV_POOL: "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8",
   CURVE_CVXCRV_TOKEN: "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8",
-  // pid = 4
+  // Curve ETH/CRV
   CURVE_CRVETH_POOL: "0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511",
   CURVE_CRVETH_TOKEN: "0xEd4064f376cB8d68F770FB1Ff088a3d0F3FF5c4d",
-  // pid = 5
+  // Curve ETH/CVX
   CURVE_CVXETH_POOL: "0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4",
   CURVE_CVXETH_TOKEN: "0x3A283D9c08E8b55966afb64C515f5143cf907611",
-  // pid = 6
+  // Curve cvxFXS/FXS
   CURVE_CVXFXS_POOL: "0xd658A338613198204DCa1143Ac3F01A722b5d94A",
   CURVE_CVXFXS_TOKEN: "0xF3A43307DcAFa93275993862Aae628fCB50dC768",
-  // pid = 7
+  // Curve 3pool(DAI/USDC/USDT)
   CURVE_TRICRV_POOL: "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7",
   CURVE_TRICRV_TOKEN: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490",
-  // pid = 8
+  // Curve UST/3CRV(DAI/USDC/USDT)
   CURVE_UST_WORMHOLE_POOL: "0xCEAF7747579696A2F0bb206a14210e3c9e6fB269",
   CURVE_UST_WORMHOLE_TOKEN: "0xCEAF7747579696A2F0bb206a14210e3c9e6fB269",
-  // pid = 9
+  // Curve rETH/wstETH
   CURVE_ROCKETETH_POOL: "0x447Ddd4960d9fdBF6af9a790560d0AF76795CB08",
   CURVE_ROCKETETH_TOKEN: "0x447Ddd4960d9fdBF6af9a790560d0AF76795CB08",
-  // pid = 10
+  // Curve renBTC/WBTC
   CURVE_REN_POOL: "0x93054188d876f558f4a66B2EF1d97d16eDf0895B",
   CURVE_REN_TOKEN: "0x49849C98ae39Fff122806C06791Fa73784FB3675",
+  // Curve STG/USDC
   CURVE_STGUSDC_POOL: "0x3211C6cBeF1429da3D0d58494938299C92Ad5860",
+  // Curve USDN/3CRV(DAI/USDC/USDT)
+  CURVE_USDN_TOKEN: "0x4f3E8F405CF5aFC05D68142F3783bDfE13811522",
+  CURVE_USDN_POOL: "0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1",
+  CURVE_USDN_DEPOSIT: "0x094d12e5b541784701FD8d65F11fc0598FBC6332",
   // Uniswap V2 pool
   LDO_WETH_UNIV2: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
   FXS_WETH_UNIV2: "0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23",
@@ -80,6 +125,7 @@ export const ADDRESS: { [name: string]: string } = {
   ANGLE_WETH_UNIV2: "0xFb55AF0ef0DcdeC92Bd3752E7a9237dfEfB8AcC0",
   INV_WETH_UNIV2: "0x328dFd0139e26cB0FEF7B0742B49b0fe4325F821",
   FEI_TRIBE_UNIV2: "0x9928e4046d7c6513326cCeA028cD3e7a91c7590A",
+  JPEG_WETH_UNIV2: "0xdB06a76733528761Eda47d356647297bC35a98BD",
   // Uniswap V3 pool
   USDC_WETH_UNIV3: "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
   USDC_USDT_UNIV3: "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
@@ -88,6 +134,7 @@ export const ADDRESS: { [name: string]: string } = {
   USDC_UST_WORMHOLE_UNIV3: "0xA87B2FF0759f5B82c7EC86444A70f25C6BfFCCbf",
   FRAX_USDC_UNIV3: "0xc63B0708E2F7e69CB8A1df0e1389A98C35A76D52",
   WBTC_WETH_UNIV3_500: "0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0",
+  USDC_EURS_POOL_500: "0xbd5fDda17bC27bB90E37Df7A838b1bFC0dC997F5",
   // Balancer V2
   SNX_WETH_BALANCER: "0x072f14B85ADd63488DDaD88f855Fda4A99d6aC9B",
   FEI_WETH_BALANCER: "0x90291319F1D4eA3ad4dB0Dd8fe9E12BAF749E845",
@@ -323,7 +370,7 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     ],
   },
   {
-    from: "STG", // STG ==(CurveV2)==> USDC ==(UniV3)==> WETH == (CurveV2) => CVX
+    from: "STG", // STG ==(CurveV2)==> USDC ==(UniV3)==> WETH ==(CurveV2==> CVX
     to: "CVX",
     routes: [
       encodePoolHintV2(ADDRESS.CURVE_STGUSDC_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
@@ -332,11 +379,39 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     ],
   },
   {
-    from: "TRIBE", // TRIBE ==(UniV2)==> FEI ==(Balancer)==> WETH ==(CurveV2)=> CVX
+    from: "TRIBE", // TRIBE ==(UniV2)==> FEI ==(Balancer)==> WETH ==(CurveV2)==> CVX
     to: "CVX",
     routes: [
       encodePoolHintV2(ADDRESS.FEI_TRIBE_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
       encodePoolHintV2(ADDRESS.FEI_WETH_BALANCER, PoolType.BalancerV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "JPEG", // JPEG ==(Sushi)==> WETH ==(CurveV2)==> CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.JPEG_WETH_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "USDN", // USDN ==(Curve)==> USDC ==(UniV3)==> WETH ==(CurveV2==> CVX
+    to: "CVX",
+    routes: [
+      // @todo Actually, we should use `PoolType.CurveMetaPoolUnderlying`. But the zap contract has some bugs, we may fix it later.
+      // encodePoolHintV2(ADDRESS.CURVE_USDN_DEPOSIT, PoolType.CurveMetaPoolUnderlying, 4, 0, 2, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_USDN_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 0, 2, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "EURS", // EURS ==(UniV3)==> USDC ==(UniV3)==> WETH ==(CurveV2==> CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.USDC_EURS_POOL_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },
