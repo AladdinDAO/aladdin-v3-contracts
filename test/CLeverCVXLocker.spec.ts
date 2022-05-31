@@ -6,7 +6,7 @@ import { Action, encodePoolHintV2, PoolType, request_fork } from "./utils";
 import { ethers } from "hardhat";
 import * as hre from "hardhat";
 import { expect } from "chai";
-import { BigNumber, constants } from "ethers";
+import { BigNumber, constants, Wallet } from "ethers";
 import { ADDRESS } from "../scripts/config";
 
 const FORK_BLOCK_NUMBER = 14386700;

@@ -329,7 +329,9 @@ contract AladdinZap is OwnableUpgradeable, IZap {
     address _tokenOut = _getPoolTokenByIndex(_poolType, _pool, _indexOut);
 
     _wrapTokenIfNeeded(_tokenIn, _amountIn);
-    _approve(_tokenIn, _pool, _amountIn);
+    if (_poolType != PoolType.CurveYPoolUnderlying && _poolType != PoolType.CurveMetaPoolUnderlying) {
+      _approve(_tokenIn, _pool, _amountIn);
+    }
 
     uint256 _before = _getBalance(_tokenOut);
     if (_poolType == PoolType.CurveETHPool) {
@@ -355,11 +357,13 @@ contract AladdinZap is OwnableUpgradeable, IZap {
       ICurveYPoolSwap(_pool).exchange(int128(_indexIn), int128(_indexOut), _amountIn, 0);
     } else if (_poolType == PoolType.CurveYPoolUnderlying) {
       _pool = ICurveYPoolDeposit(_pool).curve();
+      _approve(_tokenIn, _pool, _amountIn);
       ICurveYPoolSwap(_pool).exchange_underlying(int128(_indexIn), int128(_indexOut), _amountIn, 0);
     } else if (_poolType == PoolType.CurveMetaPool) {
       ICurveMetaPoolSwap(_pool).exchange(int128(_indexIn), int128(_indexOut), _amountIn, 0);
     } else if (_poolType == PoolType.CurveMetaPoolUnderlying) {
       _pool = ICurveMetaPoolDeposit(_pool).pool();
+      _approve(_tokenIn, _pool, _amountIn);
       ICurveMetaPoolSwap(_pool).exchange_underlying(int128(_indexIn), int128(_indexOut), _amountIn, 0);
     } else if (_poolType == PoolType.CurveFactoryPlainPool) {
       ICurveFactoryPlainPool(_pool).exchange(int128(_indexIn), int128(_indexOut), _amountIn, 0, address(this));
@@ -519,7 +523,8 @@ contract AladdinZap is OwnableUpgradeable, IZap {
     } else if (_type == PoolType.CurveYPoolUnderlying) {
       return ICurveYPoolDeposit(_pool).underlying_coins(_index);
     } else if (_type == PoolType.CurveMetaPoolUnderlying) {
-      return ICurveMetaPoolDeposit(_pool).base_coins(_index);
+      if (_index == 0) return ICurveMetaPoolDeposit(_pool).coins(0);
+      else return ICurveMetaPoolDeposit(_pool).base_coins(_index - 1);
     } else if (_type == PoolType.CurveFactoryUSDMetaPoolUnderlying) {
       if (_index == 0) return ICurveBasePool(_pool).coins(_index);
       else return _get3PoolTokenByIndex(_index - 1);
