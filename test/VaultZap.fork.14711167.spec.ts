@@ -82,7 +82,7 @@ describe("VaultZapMainnetFork.spec", async () => {
           `routes[${routes.toString()}]`
         );
       }
-      await zap.updateRoute(ADDRESS[token], ADDRESS[name + "_TOKEN"], routes);
+      await zap.updateRoute(ADDRESS[name + "_TOKEN"], ADDRESS[token], routes);
     }
     if (firstCall) {
       console.log(`updatePoolTokens: pools[${CURVE_REN_POOL}] tokens[${CURVE_REN_TOKEN}]`);
