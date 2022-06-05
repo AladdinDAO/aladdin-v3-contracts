@@ -175,8 +175,8 @@ def future_epoch_time_write() -> uint256:
 @internal
 @view
 def _available_supply() -> uint256:
-    # @note changed to make sure we always have 3000000 max supply
-    return 3_000_000 * 10 ** self.decimals
+    # @note changed to make sure we always have 5000000 max supply
+    return 5_000_000 * 10 ** self.decimals
 
 
 @external

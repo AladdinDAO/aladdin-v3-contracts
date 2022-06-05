@@ -118,7 +118,14 @@ contract ConcentratorIFOVault is AladdinConvexVault {
     uint256 _rewards;
     (harvested, _rewards) = _harvestAsACRV(_pid, _minimumOut);
 
-    // 2. do IFO if possible
+    // 2. distribute harvest bounty to _recipient
+    uint256 _harvestBounty = (_pool.harvestBountyPercentage * _rewards) / FEE_DENOMINATOR;
+    if (_harvestBounty > 0) {
+      _rewards = _rewards - _harvestBounty;
+      IERC20Upgradeable(aladdinCRV).safeTransfer(_recipient, _harvestBounty);
+    }
+
+    // 3. do IFO if possible
     // solhint-disable-next-line not-rely-on-time
     if (startTime <= block.timestamp && block.timestamp <= endTime) {
       uint256 _pendingCTR = MAX_MINED_CTR - ctrMined;
@@ -144,23 +151,15 @@ contract ConcentratorIFOVault is AladdinConvexVault {
       _rewards -= _pendingCTR;
     }
 
+    // 4. distribute rest rewards to platform and depositors
     if (_rewards > 0) {
-      // 3. distribute rewards to platform and _recipient
-      address _token = aladdinCRV; // gas saving
       uint256 _platformFee = _pool.platformFeePercentage;
-      uint256 _harvestBounty = _pool.harvestBountyPercentage;
       if (_platformFee > 0) {
         _platformFee = (_platformFee * _rewards) / FEE_DENOMINATOR;
         _rewards = _rewards - _platformFee;
-        IERC20Upgradeable(_token).safeTransfer(platform, _platformFee);
-      }
-      if (_harvestBounty > 0) {
-        _harvestBounty = (_harvestBounty * _rewards) / FEE_DENOMINATOR;
-        _rewards = _rewards - _harvestBounty;
-        IERC20Upgradeable(_token).safeTransfer(_recipient, _harvestBounty);
+        IERC20Upgradeable(aladdinCRV).safeTransfer(platform, _platformFee);
       }
 
-      // 4. update rewards info
       _pool.accRewardPerShare = _pool.accRewardPerShare.add(_rewards.mul(PRECISION) / _pool.totalShare);
 
       emit Harvest(msg.sender, _rewards, _platformFee, _harvestBounty);
@@ -180,6 +179,8 @@ contract ConcentratorIFOVault is AladdinConvexVault {
     uint64 _startTime,
     uint64 _endTime
   ) external onlyOwner {
+    require(_startTime <= _endTime, "invalid IFO time");
+
     rewarder = _rewarder;
     ctr = _ctr;
     startTime = _startTime;

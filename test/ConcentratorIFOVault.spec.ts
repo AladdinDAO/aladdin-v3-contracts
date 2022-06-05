@@ -15,9 +15,9 @@ import {
 import { ConcentratorFeeDistributor } from "../typechain/ConcentratorFeeDistributor";
 import { ConcentratorGaugeController } from "../typechain/ConcentratorGaugeController";
 import { ConcentratorLiquidityGauge } from "../typechain/ConcentratorLiquidityGauge";
-import { CONT } from "../typechain/CONT";
-import { CONTMinter } from "../typechain/CONTMinter";
-import { VeCONT } from "../typechain/VeCONT";
+import { CTR } from "../typechain/CTR";
+import { CTRMinter } from "../typechain/CTRMinter";
+import { VeCTR } from "../typechain/VeCTR";
 // eslint-disable-next-line camelcase
 import { request_fork } from "./utils";
 
@@ -45,10 +45,10 @@ describe("ConcentratorIFOVault.spec", async () => {
   let holder: SignerWithAddress;
   let vault: AladdinConvexVault;
   let mockLP: CLeverToken;
-  let cont: CONT;
-  let ve: VeCONT;
+  let cont: CTR;
+  let ve: VeCTR;
   let distributor: ConcentratorFeeDistributor;
-  let minter: CONTMinter;
+  let minter: CTRMinter;
   let controller: ConcentratorGaugeController;
   let gauge: ConcentratorLiquidityGauge;
   let rewarder: LiquidityMiningRewarder;
@@ -79,21 +79,21 @@ describe("ConcentratorIFOVault.spec", async () => {
     mockLP = await CLeverToken.deploy("LP", "LP");
     await mockLP.deployed();
 
-    const CONT = await ethers.getContractFactory("CONT", deployer);
-    cont = await CONT.deploy("Concentrator", "CONT", 18);
+    const CTR = await ethers.getContractFactory("CTR", deployer);
+    cont = await CTR.deploy("Concentrator", "CTR", 18);
     await cont.deployed();
     await cont.set_admin(admin.address);
 
-    const veCONT = await ethers.getContractFactory("veCONT", deployer);
-    ve = (await veCONT.deploy(cont.address, "Vote Escrowed CONT", "veCONT", "veCONT_1.0.0")) as VeCONT;
+    const veCTR = await ethers.getContractFactory("veCTR", deployer);
+    ve = (await veCTR.deploy(cont.address, "Vote Escrowed CTR", "veCTR", "veCTR_1.0.0")) as VeCTR;
     await ve.deployed();
 
     const ConcentratorGaugeController = await ethers.getContractFactory("ConcentratorGaugeController", deployer);
     controller = await ConcentratorGaugeController.deploy(cont.address, ve.address);
     await controller.deployed();
 
-    const CONTMinter = await ethers.getContractFactory("CONTMinter", deployer);
-    minter = await CONTMinter.deploy(cont.address, controller.address);
+    const CTRMinter = await ethers.getContractFactory("CTRMinter", deployer);
+    minter = await CTRMinter.deploy(cont.address, controller.address);
     await minter.deployed();
 
     const ConcentratorFeeDistributor = await ethers.getContractFactory("ConcentratorFeeDistributor", deployer);
@@ -157,7 +157,7 @@ describe("ConcentratorIFOVault.spec", async () => {
       await ifo.connect(holder)["deposit(uint256,uint256)"](0, amount);
     });
 
-    it("should mint CONT on harvest", async () => {
+    it("should mint CTR on harvest", async () => {
       const acrv = await ethers.getContractAt("AladdinCRV", ACRV, deployer);
       expect(await acrv.balanceOf(ifo.address)).to.eq(constants.Zero);
       const beforePlatformBalance = await acrv.balanceOf(admin.address);
@@ -178,12 +178,12 @@ describe("ConcentratorIFOVault.spec", async () => {
       expect(afterPlatformBalance.sub(beforePlatformBalance)).to.eq(balance);
 
       // state is correct
-      expect(await ifo.pendingCONT(0, holder.address)).to.closeToBn(balance, 1e6);
+      expect(await ifo.pendingCTR(0, holder.address)).to.closeToBn(balance, 1e6);
 
       // can claim
-      await ifo.connect(holder).claimCONT(0, holder.address);
+      await ifo.connect(holder).claimCTR(0, holder.address);
       expect(await cont.balanceOf(holder.address)).to.closeToBn(balance, 1e6);
-      expect(await ifo.pendingCONT(0, holder.address)).to.eq(constants.Zero);
+      expect(await ifo.pendingCTR(0, holder.address)).to.eq(constants.Zero);
     });
   });
 
@@ -224,7 +224,7 @@ describe("ConcentratorIFOVault.spec", async () => {
       await gauge.connect(deployer)["deposit(uint256)"](gaugeAmount);
     });
 
-    it("should mint CONT on harvest", async () => {
+    it("should mint CTR on harvest", async () => {
       const acrv = await ethers.getContractAt("AladdinCRV", ACRV, deployer);
       expect(await acrv.balanceOf(ifo.address)).to.eq(constants.Zero);
       await cont.connect(admin).set_minter(ifo.address);
