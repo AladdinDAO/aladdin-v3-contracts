@@ -12,7 +12,7 @@
 # Curve Finance's ERC20CRV
 # https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/ERC20CRV.vy
 # This contract is an almost-identical fork of Curve's contract
-# The initial supply change to 1_410_000
+# The initial supply change to 2_350_000
 # The initial rate change to 0 per second
 # The rate reduction coefficient change to 1, lead to 0% decay per year
 
@@ -61,7 +61,7 @@ YEAR: constant(uint256) = 86400 * 365
 # =========
 # * Aladdin DAO - 30%
 # * Treasury - 10%
-# * Contributor - 5%
+# * CTRributor - 5%
 # * Airdrop - 1%
 # * Initial Liquidity - 1%
 # == 47% ==
@@ -69,7 +69,7 @@ YEAR: constant(uint256) = 86400 * 365
 # all left token will be minted during IFO
 
 # Supply parameters
-INITIAL_SUPPLY: constant(uint256) = 1_410_000
+INITIAL_SUPPLY: constant(uint256) = 2_350_000
 INITIAL_RATE: constant(uint256) = 0
 RATE_REDUCTION_TIME: constant(uint256) = YEAR
 RATE_REDUCTION_COEFFICIENT: constant(uint256) = 10 ** 18

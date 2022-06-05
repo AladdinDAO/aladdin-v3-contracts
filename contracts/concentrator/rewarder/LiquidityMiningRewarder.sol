@@ -8,24 +8,24 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 contract LiquidityMiningRewarder {
   using SafeERC20 for IERC20;
 
-  address public cont;
+  address public ctr;
   address public gauge;
 
-  constructor(address _cont, address _gauge) {
-    require(_cont != address(0), "zero cont address");
+  constructor(address _ctr, address _gauge) {
+    require(_ctr != address(0), "zero cont address");
     require(_gauge != address(0), "zero gauge address");
 
-    cont = _cont;
+    ctr = _ctr;
     gauge = _gauge;
   }
 
   function claim() external {
     require(msg.sender == gauge, "not gauge");
 
-    address _cont = cont;
-    uint256 _balance = IERC20(_cont).balanceOf(address(this));
+    address _ctr = ctr;
+    uint256 _balance = IERC20(_ctr).balanceOf(address(this));
     if (_balance > 0) {
-      IERC20(_cont).safeTransfer(msg.sender, _balance);
+      IERC20(_ctr).safeTransfer(msg.sender, _balance);
     }
   }
 }

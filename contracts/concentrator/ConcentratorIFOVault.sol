@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 
 import "./AladdinConvexVault.sol";
 
-interface ICONT {
+interface ICTR {
   function mint(address _to, uint256 _value) external returns (bool);
 }
 
@@ -16,26 +16,26 @@ contract ConcentratorIFOVault is AladdinConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
-  event ClaimCONT(uint256 indexed _pid, address indexed _caller, address _recipient, uint256 _amount);
-  event IFOMineCONT(uint256 _amount);
-  event UpdateIFOConfig(address _rewarder, address _cont, uint256 _startTime, uint256 _endTime);
+  event ClaimCTR(uint256 indexed _pid, address indexed _caller, address _recipient, uint256 _amount);
+  event IFOMineCTR(uint256 _amount);
+  event UpdateIFOConfig(address _rewarder, address _ctr, uint256 _startTime, uint256 _endTime);
 
-  uint256 private constant MAX_MINED_CONT = 1_500_000 ether;
+  uint256 private constant MAX_MINED_CTR = 2_500_000 ether;
 
   /// @notice Mapping from pool id to accumulated cont reward per share, with 1e18 precision.
-  mapping(uint256 => uint256) public accCONTPerShare;
+  mapping(uint256 => uint256) public accCTRPerShare;
 
   /// @dev Mapping from pool id to account address to pending cont rewards.
-  mapping(uint256 => mapping(address => uint256)) private userCONTRewards;
+  mapping(uint256 => mapping(address => uint256)) private userCTRRewards;
 
   /// @dev Mapping from pool id to account address to reward per share
   /// already paid for the user, with 1e18 precision.
-  mapping(uint256 => mapping(address => uint256)) private userCONTPerSharePaid;
+  mapping(uint256 => mapping(address => uint256)) private userCTRPerSharePaid;
 
-  /// @notice The address of $CONT token.
-  address public cont;
+  /// @notice The address of $CTR token.
+  address public ctr;
 
-  /// @notice The address of $CONT rewarder for Liquidity Mining
+  /// @notice The address of $CTR rewarder for Liquidity Mining
   address public rewarder;
 
   /// @notice The start timestamp in seconds.
@@ -44,44 +44,44 @@ contract ConcentratorIFOVault is AladdinConvexVault {
   /// @notice The end timestamp in seconds.
   uint64 public endTime;
 
-  /// @notice The amount of $CONT token mined so far.
-  uint128 public contMined;
+  /// @notice The amount of $CTR token mined so far.
+  uint128 public ctrMined;
 
   /********************************** View Functions **********************************/
 
-  /// @notice Return the amount of pending $CONT rewards for specific pool.
+  /// @notice Return the amount of pending $CTR rewards for specific pool.
   /// @param _pid - The pool id.
   /// @param _account - The address of user.
-  function pendingCONT(uint256 _pid, address _account) public view returns (uint256) {
+  function pendingCTR(uint256 _pid, address _account) public view returns (uint256) {
     UserInfo storage _userInfo = userInfo[_pid][_account];
     return
-      userCONTRewards[_pid][_account].add(
-        accCONTPerShare[_pid].sub(userCONTPerSharePaid[_pid][_account]).mul(_userInfo.shares) / PRECISION
+      userCTRRewards[_pid][_account].add(
+        accCTRPerShare[_pid].sub(userCTRPerSharePaid[_pid][_account]).mul(_userInfo.shares) / PRECISION
       );
   }
 
   /********************************** Mutated Functions **********************************/
 
-  /// @notice Claim pending $CONT from specific pool.
+  /// @notice Claim pending $CTR from specific pool.
   /// @param _pid - The pool id.
   /// @param _recipient The address of recipient who will recieve the token.
-  /// @return claimed - The amount of $CONT sent to caller.
-  function claimCONT(uint256 _pid, address _recipient) external onlyExistPool(_pid) returns (uint256) {
+  /// @return claimed - The amount of $CTR sent to caller.
+  function claimCTR(uint256 _pid, address _recipient) external onlyExistPool(_pid) returns (uint256) {
     _updateRewards(_pid, msg.sender);
 
-    uint256 _rewards = userCONTRewards[_pid][msg.sender];
-    userCONTRewards[_pid][msg.sender] = 0;
+    uint256 _rewards = userCTRRewards[_pid][msg.sender];
+    userCTRRewards[_pid][msg.sender] = 0;
 
-    IERC20Upgradeable(cont).safeTransfer(_recipient, _rewards);
-    emit ClaimCONT(_pid, msg.sender, _recipient, _rewards);
+    IERC20Upgradeable(ctr).safeTransfer(_recipient, _rewards);
+    emit ClaimCTR(_pid, msg.sender, _recipient, _rewards);
 
     return _rewards;
   }
 
-  /// @notice Claim pending $CONT from all pools.
+  /// @notice Claim pending $CTR from all pools.
   /// @param _recipient The address of recipient who will recieve the token.
-  /// @return claimed - The amount of $CONT sent to caller.
-  function claimAllCONT(address _recipient) external returns (uint256) {
+  /// @return claimed - The amount of $CTR sent to caller.
+  function claimAllCTR(address _recipient) external returns (uint256) {
     uint256 _rewards = 0;
     for (uint256 _pid = 0; _pid < poolInfo.length; _pid++) {
       UserInfo storage _userInfo = userInfo[_pid][msg.sender];
@@ -92,16 +92,16 @@ contract ConcentratorIFOVault is AladdinConvexVault {
       }
 
       // claim if user has reward
-      uint256 _currentPoolRewards = userCONTRewards[_pid][msg.sender];
+      uint256 _currentPoolRewards = userCTRRewards[_pid][msg.sender];
       if (_currentPoolRewards > 0) {
         _rewards = _rewards.add(_currentPoolRewards);
-        userCONTRewards[_pid][msg.sender] = 0;
+        userCTRRewards[_pid][msg.sender] = 0;
 
-        emit ClaimCONT(_pid, msg.sender, _recipient, _currentPoolRewards);
+        emit ClaimCTR(_pid, msg.sender, _recipient, _currentPoolRewards);
       }
     }
 
-    IERC20Upgradeable(cont).safeTransfer(_recipient, _rewards);
+    IERC20Upgradeable(ctr).safeTransfer(_recipient, _rewards);
 
     return _rewards;
   }
@@ -121,27 +121,27 @@ contract ConcentratorIFOVault is AladdinConvexVault {
     // 2. do IFO if possible
     // solhint-disable-next-line not-rely-on-time
     if (startTime <= block.timestamp && block.timestamp <= endTime) {
-      uint256 _pendingCONT = MAX_MINED_CONT - contMined;
-      if (_pendingCONT > _rewards) {
-        _pendingCONT = _rewards;
+      uint256 _pendingCTR = MAX_MINED_CTR - ctrMined;
+      if (_pendingCTR > _rewards) {
+        _pendingCTR = _rewards;
       }
-      if (_pendingCONT > 0) {
-        accCONTPerShare[_pid] = accCONTPerShare[_pid].add(_pendingCONT.mul(PRECISION) / _pool.totalShare);
+      if (_pendingCTR > 0) {
+        accCTRPerShare[_pid] = accCTRPerShare[_pid].add(_pendingCTR.mul(PRECISION) / _pool.totalShare);
 
-        contMined += uint128(_pendingCONT);
+        ctrMined += uint128(_pendingCTR);
 
-        // Vault Mining $CONT
-        ICONT(cont).mint(address(this), _pendingCONT);
+        // Vault Mining $CTR
+        ICTR(ctr).mint(address(this), _pendingCTR);
 
-        // Liquidity Mining $CONT
-        ICONT(cont).mint(rewarder, (_pendingCONT * 6) / 100);
+        // Liquidity Mining $CTR
+        ICTR(ctr).mint(rewarder, (_pendingCTR * 6) / 100);
 
         // transfer aCRV to platform
-        IERC20Upgradeable(aladdinCRV).safeTransfer(platform, _pendingCONT);
+        IERC20Upgradeable(aladdinCRV).safeTransfer(platform, _pendingCTR);
 
-        emit IFOMineCONT(_pendingCONT);
+        emit IFOMineCTR(_pendingCTR);
       }
-      _rewards -= _pendingCONT;
+      _rewards -= _pendingCTR;
     }
 
     if (_rewards > 0) {
@@ -171,21 +171,21 @@ contract ConcentratorIFOVault is AladdinConvexVault {
 
   /// @notice Update IFO configuration
   /// @param _rewarder The address of rewarder for Liquidity Mining
-  /// @param _cont The address of $CONT token.
+  /// @param _ctr The address of $CTR token.
   /// @param _startTime The start time of IFO.
   /// @param _endTime The finish time of IFO.
   function updateIFOConfig(
     address _rewarder,
-    address _cont,
+    address _ctr,
     uint64 _startTime,
     uint64 _endTime
   ) external onlyOwner {
     rewarder = _rewarder;
-    cont = _cont;
+    ctr = _ctr;
     startTime = _startTime;
     endTime = _endTime;
 
-    emit UpdateIFOConfig(_rewarder, _cont, _startTime, _endTime);
+    emit UpdateIFOConfig(_rewarder, _ctr, _startTime, _endTime);
   }
 
   /********************************** Internal Functions **********************************/
@@ -194,10 +194,10 @@ contract ConcentratorIFOVault is AladdinConvexVault {
     // 1. update aCRV rewards
     AladdinConvexVault._updateRewards(_pid, _account);
 
-    // 2. update CONT rewards
-    uint256 _contRewards = pendingCONT(_pid, _account);
-    userCONTRewards[_pid][_account] = _contRewards;
-    userCONTPerSharePaid[_pid][_account] = accCONTPerShare[_pid];
+    // 2. update CTR rewards
+    uint256 _ctrRewards = pendingCTR(_pid, _account);
+    userCTRRewards[_pid][_account] = _ctrRewards;
+    userCTRPerSharePaid[_pid][_account] = accCTRPerShare[_pid];
   }
 
   function _harvestAsACRV(uint256 _pid, uint256 _minimumOut) internal returns (uint256, uint256) {
