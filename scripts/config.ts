@@ -74,6 +74,7 @@ export const ADDRESS: { [name: string]: string } = {
   JPEG: "0xE80C0cd204D654CEbe8dd64A4857cAb6Be8345a3",
   USDN: "0x674C6Ad92Fd080e4004b2312b45f796a192D27a0",
   EURS: "0xdB25f211AB05b1c97D595516F45794528a807ad8",
+  PUSD: "0x466a756E9A7401B5e2444a3fCB3c2C12FBEa0a54",
   // Curve stETH/ETH
   CURVE_STETH_POOL: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
   CURVE_STETH_TOKEN: "0x06325440D014e39736583c165C2963BA99fAf14E",
@@ -113,6 +114,9 @@ export const ADDRESS: { [name: string]: string } = {
   CURVE_USDN_TOKEN: "0x4f3E8F405CF5aFC05D68142F3783bDfE13811522",
   CURVE_USDN_POOL: "0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1",
   CURVE_USDN_DEPOSIT: "0x094d12e5b541784701FD8d65F11fc0598FBC6332",
+  // Curve PUSD/3CRV(DAI/USDC/USDT)
+  CURVE_PUSD3CRV_POOL: "0x8EE017541375F6Bcd802ba119bdDC94dad6911A1",
+  CURVE_PUSD3CRV_TOKEN: "0x8EE017541375F6Bcd802ba119bdDC94dad6911A1",
   // Uniswap V2 pool
   LDO_WETH_UNIV2: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
   FXS_WETH_UNIV2: "0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23",
@@ -243,6 +247,15 @@ export const VAULTS: {
     name: "ren",
     convexId: 6,
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // pusd, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "pusd",
+    convexId: 91,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV, ADDRESS.JPEG],
     withdrawFee: 5e5,
     harvestBounty: 1e7,
     platformFee: 1e7,
@@ -1095,6 +1108,77 @@ export const ZAP_VAULT_ROUTES: {
           encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 2, Action.Swap),
           encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 1, Action.Swap),
           encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        ],
+      },
+    ],
+    remove: [],
+  },
+  pusd: {
+    name: "CURVE_PUSD3CRV",
+    add: [
+      {
+        token: "PUSD",
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "TRICRV",
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "DAI",
+        routes: [
+          encodePoolHintV2(
+            ADDRESS.CURVE_PUSD3CRV_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            1,
+            1,
+            Action.AddLiquidity
+          ),
+        ],
+      },
+      {
+        token: "USDC",
+        routes: [
+          encodePoolHintV2(
+            ADDRESS.CURVE_PUSD3CRV_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            2,
+            2,
+            Action.AddLiquidity
+          ),
+        ],
+      },
+      {
+        token: "USDT",
+        routes: [
+          encodePoolHintV2(
+            ADDRESS.CURVE_PUSD3CRV_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            3,
+            3,
+            Action.AddLiquidity
+          ),
+        ],
+      },
+      {
+        token: "WETH", // WETH => USDT => FRAX3CRV
+        routes: [
+          encodePoolHintV2(ADDRESS.WETH_USDT_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(
+            ADDRESS.CURVE_PUSD3CRV_POOL,
+            PoolType.CurveFactoryUSDMetaPoolUnderlying,
+            4,
+            3,
+            3,
+            Action.AddLiquidity
+          ),
         ],
       },
     ],
