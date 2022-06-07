@@ -18,7 +18,7 @@ contract ConcentratorIFOVault is AladdinConvexVault {
 
   event ClaimCTR(uint256 indexed _pid, address indexed _caller, address _recipient, uint256 _amount);
   event IFOMineCTR(uint256 _amount);
-  event UpdateIFOConfig(address _rewarder, address _ctr, uint256 _startTime, uint256 _endTime);
+  event UpdateIFOConfig(address _ctr, uint256 _startTime, uint256 _endTime);
 
   uint256 private constant MAX_MINED_CTR = 2_500_000 ether;
 
@@ -34,9 +34,6 @@ contract ConcentratorIFOVault is AladdinConvexVault {
 
   /// @notice The address of $CTR token.
   address public ctr;
-
-  /// @notice The address of $CTR rewarder for Liquidity Mining
-  address public rewarder;
 
   /// @notice The start timestamp in seconds.
   uint64 public startTime;
@@ -141,7 +138,7 @@ contract ConcentratorIFOVault is AladdinConvexVault {
         ICTR(ctr).mint(address(this), _pendingCTR);
 
         // Liquidity Mining $CTR
-        ICTR(ctr).mint(rewarder, (_pendingCTR * 6) / 100);
+        ICTR(ctr).mint(platform, (_pendingCTR * 6) / 100);
 
         // transfer aCRV to platform
         IERC20Upgradeable(aladdinCRV).safeTransfer(platform, _pendingCTR);
@@ -169,24 +166,21 @@ contract ConcentratorIFOVault is AladdinConvexVault {
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update IFO configuration
-  /// @param _rewarder The address of rewarder for Liquidity Mining
   /// @param _ctr The address of $CTR token.
   /// @param _startTime The start time of IFO.
   /// @param _endTime The finish time of IFO.
   function updateIFOConfig(
-    address _rewarder,
     address _ctr,
     uint64 _startTime,
     uint64 _endTime
   ) external onlyOwner {
     require(_startTime <= _endTime, "invalid IFO time");
 
-    rewarder = _rewarder;
     ctr = _ctr;
     startTime = _startTime;
     endTime = _endTime;
 
-    emit UpdateIFOConfig(_rewarder, _ctr, _startTime, _endTime);
+    emit UpdateIFOConfig(_ctr, _startTime, _endTime);
   }
 
   /********************************** Internal Functions **********************************/

@@ -10,7 +10,7 @@ import {
   CLeverToken,
   ConcentratorIFOVault,
   IConvexBooster,
-  LiquidityMiningRewarder,
+  PlatformFeeDistributor,
 } from "../typechain";
 import { ConcentratorFeeDistributor } from "../typechain/ConcentratorFeeDistributor";
 import { ConcentratorGaugeController } from "../typechain/ConcentratorGaugeController";
@@ -45,13 +45,13 @@ describe("ConcentratorIFOVault.spec", async () => {
   let holder: SignerWithAddress;
   let vault: AladdinConvexVault;
   let mockLP: CLeverToken;
-  let cont: CTR;
+  let ctr: CTR;
   let ve: VeCTR;
   let distributor: ConcentratorFeeDistributor;
   let minter: CTRMinter;
   let controller: ConcentratorGaugeController;
   let gauge: ConcentratorLiquidityGauge;
-  let rewarder: LiquidityMiningRewarder;
+  let rewarder: PlatformFeeDistributor;
   let ifo: ConcentratorIFOVault;
   let booster: IConvexBooster;
 
@@ -80,37 +80,37 @@ describe("ConcentratorIFOVault.spec", async () => {
     await mockLP.deployed();
 
     const CTR = await ethers.getContractFactory("CTR", deployer);
-    cont = await CTR.deploy("Concentrator", "CTR", 18);
-    await cont.deployed();
-    await cont.set_admin(admin.address);
+    ctr = await CTR.deploy("Concentrator", "CTR", 18);
+    await ctr.deployed();
+    await ctr.set_admin(admin.address);
 
     const veCTR = await ethers.getContractFactory("veCTR", deployer);
-    ve = (await veCTR.deploy(cont.address, "Vote Escrowed CTR", "veCTR", "veCTR_1.0.0")) as VeCTR;
+    ve = (await veCTR.deploy(ctr.address, "Vote Escrowed CTR", "veCTR", "veCTR_1.0.0")) as VeCTR;
     await ve.deployed();
 
     const ConcentratorGaugeController = await ethers.getContractFactory("ConcentratorGaugeController", deployer);
-    controller = await ConcentratorGaugeController.deploy(cont.address, ve.address);
+    controller = await ConcentratorGaugeController.deploy(ctr.address, ve.address);
     await controller.deployed();
 
     const CTRMinter = await ethers.getContractFactory("CTRMinter", deployer);
-    minter = await CTRMinter.deploy(cont.address, controller.address);
+    minter = await CTRMinter.deploy(ctr.address, controller.address);
     await minter.deployed();
 
     const ConcentratorFeeDistributor = await ethers.getContractFactory("ConcentratorFeeDistributor", deployer);
-    distributor = await ConcentratorFeeDistributor.deploy(ve.address, 0, cont.address, deployer.address, admin.address);
+    distributor = await ConcentratorFeeDistributor.deploy(ve.address, 0, ctr.address, deployer.address, admin.address);
     await distributor.deployed();
 
     const ConcentratorLiquidityGauge = await ethers.getContractFactory("ConcentratorLiquidityGauge", deployer);
     gauge = await ConcentratorLiquidityGauge.deploy(mockLP.address, minter.address, admin.address);
     await gauge.deployed();
 
-    const LiquidityMiningRewarder = await ethers.getContractFactory("LiquidityMiningRewarder", deployer);
-    rewarder = await LiquidityMiningRewarder.deploy(cont.address, gauge.address);
+    const PlatformFeeDistributor = await ethers.getContractFactory("PlatformFeeDistributor", deployer);
+    rewarder = await PlatformFeeDistributor.deploy(gauge.address, admin.address, distributor.address, []);
     await rewarder.deployed();
 
     const ConcentratorIFOVault = await ethers.getContractFactory("ConcentratorIFOVault", deployer);
     ifo = await ConcentratorIFOVault.deploy();
-    await ifo.initialize(ACRV, ZAP, admin.address);
+    await ifo.initialize(ACRV, ZAP, rewarder.address);
     await ifo.transferOwnership(admin.address);
   });
 
@@ -149,41 +149,50 @@ describe("ConcentratorIFOVault.spec", async () => {
     const amount = ethers.utils.parseEther("100000");
 
     beforeEach(async () => {
-      await ifo.connect(admin).updateIFOConfig(rewarder.address, cont.address, 0, 2e9);
+      await ifo.connect(admin).updateIFOConfig(ctr.address, 0, 2e9);
       await ifo.connect(admin).addPool(41, [CRV, CVX], 30e5, 1e7, 8e7);
 
       const token = await ethers.getContractAt("IERC20", CURVE_CVXCRV_TOKEN, holder);
       await token.approve(ifo.address, amount);
       await ifo.connect(holder)["deposit(uint256,uint256)"](0, amount);
+      await rewarder.updateGauge(deployer.address);
+      await rewarder.addRewardToken(ACRV, 0, 1e9);
     });
 
     it("should mint CTR on harvest", async () => {
       const acrv = await ethers.getContractAt("AladdinCRV", ACRV, deployer);
       expect(await acrv.balanceOf(ifo.address)).to.eq(constants.Zero);
-      const beforePlatformBalance = await acrv.balanceOf(admin.address);
-      await cont.connect(admin).set_minter(ifo.address);
+      const beforeRewarderBalance = await acrv.balanceOf(rewarder.address);
+      await ctr.connect(admin).set_minter(ifo.address);
       await booster.earmarkRewards(41);
       await ifo.harvest(0, deployer.address, 0);
-      const afterPlatformBalance = await acrv.balanceOf(admin.address);
+      const afterRewarderBalance = await acrv.balanceOf(rewarder.address);
 
-      // mint cont
-      const balance = await cont.balanceOf(ifo.address);
-      const rewarderBalance = await cont.balanceOf(rewarder.address);
+      // mint ctr
+      const balance = await ctr.balanceOf(ifo.address);
+      const rewarderBalance = await ctr.balanceOf(rewarder.address);
       expect(balance).to.gt(constants.Zero);
       expect(rewarderBalance).to.eq(balance.mul(6).div(100));
 
       // no aCRV in ifo
       expect(await acrv.balanceOf(ifo.address)).to.eq(constants.Zero);
-      // all aCRV transfer to platform
-      expect(afterPlatformBalance.sub(beforePlatformBalance)).to.eq(balance);
+      // all aCRV transfer to rewarder
+      expect(afterRewarderBalance.sub(beforeRewarderBalance)).to.eq(balance);
 
       // state is correct
       expect(await ifo.pendingCTR(0, holder.address)).to.closeToBn(balance, 1e6);
 
       // can claim
       await ifo.connect(holder).claimCTR(0, holder.address);
-      expect(await cont.balanceOf(holder.address)).to.closeToBn(balance, 1e6);
+      expect(await ctr.balanceOf(holder.address)).to.closeToBn(balance, 1e6);
       expect(await ifo.pendingCTR(0, holder.address)).to.eq(constants.Zero);
+
+      // trigger gauge claim
+      const beforePlatformBalance = await acrv.balanceOf(admin.address);
+      await rewarder.connect(deployer).claim();
+      const afterPlatformBalance = await acrv.balanceOf(admin.address);
+      // all aCRV transfer to platform
+      expect(afterPlatformBalance.sub(beforePlatformBalance)).to.eq(balance);
     });
   });
 
@@ -192,12 +201,15 @@ describe("ConcentratorIFOVault.spec", async () => {
     const gaugeAmount = ethers.utils.parseEther("100");
 
     beforeEach(async () => {
-      await ifo.connect(admin).updateIFOConfig(rewarder.address, cont.address, 0, 2e9);
+      await ifo.connect(admin).updateIFOConfig(ctr.address, 0, 2e9);
       await ifo.connect(admin).addPool(41, [CRV, CVX], 30e5, 1e7, 8e7);
 
       const token = await ethers.getContractAt("IERC20", CURVE_CVXCRV_TOKEN, holder);
       await token.approve(ifo.address, amount);
       await ifo.connect(holder)["deposit(uint256,uint256)"](0, amount);
+
+      // add ctr as reward token
+      await rewarder.addRewardToken(ctr.address, 1e9, 0);
 
       // mint token
       await mockLP.updateMinters([deployer.address], true);
@@ -209,7 +221,7 @@ describe("ConcentratorIFOVault.spec", async () => {
       await gauge
         .connect(admin)
         .set_rewards(rewarder.address, sigs, [
-          cont.address,
+          ctr.address,
           constants.AddressZero,
           constants.AddressZero,
           constants.AddressZero,
@@ -227,25 +239,25 @@ describe("ConcentratorIFOVault.spec", async () => {
     it("should mint CTR on harvest", async () => {
       const acrv = await ethers.getContractAt("AladdinCRV", ACRV, deployer);
       expect(await acrv.balanceOf(ifo.address)).to.eq(constants.Zero);
-      await cont.connect(admin).set_minter(ifo.address);
+      await ctr.connect(admin).set_minter(ifo.address);
       await booster.earmarkRewards(41);
       await ifo.harvest(0, deployer.address, 0);
 
       // mint cont
-      const balance = await cont.balanceOf(ifo.address);
-      const rewarderBalance = await cont.balanceOf(rewarder.address);
+      const balance = await ctr.balanceOf(ifo.address);
+      const rewarderBalance = await ctr.balanceOf(rewarder.address);
       expect(balance).to.gt(constants.Zero);
       expect(rewarderBalance).to.eq(balance.mul(6).div(100));
 
       // gauge checkpoint
-      const rewards = await gauge.callStatic.claimable_reward_write(deployer.address, cont.address);
+      const rewards = await gauge.callStatic.claimable_reward_write(deployer.address, ctr.address);
       expect(rewards).to.closeToBn(rewarderBalance, 100);
 
       // claim
-      const before = await cont.balanceOf(deployer.address);
-      await gauge.claimable_reward_write(deployer.address, cont.address);
+      const before = await ctr.balanceOf(deployer.address);
+      await gauge.claimable_reward_write(deployer.address, ctr.address);
       await gauge.connect(deployer)["claim_rewards(address)"](deployer.address);
-      const after = await cont.balanceOf(deployer.address);
+      const after = await ctr.balanceOf(deployer.address);
       expect(after.sub(before)).to.eq(rewards);
     });
   });
