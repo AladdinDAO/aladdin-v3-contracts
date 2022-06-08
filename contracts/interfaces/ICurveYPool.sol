@@ -40,18 +40,23 @@ interface ICurveYPoolDeposit {
   function remove_liquidity_one_coin(
     uint256 _token_amount,
     int128 i,
-    uint256 _min_amount
+    uint256 _min_amount,
+    bool donate_dust
   ) external;
 
   function calc_withdraw_one_coin(uint256 _token_amount, int128 i) external view returns (uint256);
 
-  function token() external returns (address);
+  function token() external view returns (address);
 
-  function curve() external returns (address);
+  function curve() external view returns (address);
 
   function coins(uint256 index) external view returns (address);
 
   function underlying_coins(uint256 index) external view returns (address);
+
+  function coins(int128 index) external view returns (address);
+
+  function underlying_coins(int128 index) external view returns (address);
 }
 
 // solhint-disable var-name-mixedcase, func-name-mixedcase

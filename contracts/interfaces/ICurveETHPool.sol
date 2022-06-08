@@ -38,4 +38,6 @@ interface ICurveETHPool {
   ) external view returns (uint256);
 
   function coins(uint256 index) external view returns (address);
+
+  function lp_token() external view returns (address);
 }

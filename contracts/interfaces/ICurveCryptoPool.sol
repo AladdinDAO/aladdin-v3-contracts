@@ -52,6 +52,8 @@ interface ICurveCryptoPool {
   ) external view returns (uint256);
 
   function coins(uint256 index) external view returns (address);
+
+  function token() external view returns (address);
 }
 
 /// @dev This is the interface of Zap Contract for Curve Meta Crypto Pools, examples:
@@ -66,7 +68,7 @@ interface IZapCurveMetaCryptoPool {
     uint256 token_amount,
     uint256 i,
     uint256 min_amount
-  ) external returns (uint256);
+  ) external;
 
   function calc_withdraw_one_coin(uint256 token_amount, uint256 i) external view returns (uint256);
 
