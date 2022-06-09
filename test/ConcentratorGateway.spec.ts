@@ -91,6 +91,10 @@ const FORK_PARAMS: {
       holder: "0x85eb61a62701be46479c913717e8d8fad42b398d",
       amount: "10000",
     },
+    PUSD: {
+      holder: "0x9dea480cafef5538f42720ffbd57ae55e53f3bfa",
+      amount: "10000",
+    },
   },
 };
 
@@ -103,7 +107,7 @@ describe("ConcentratorGateway.spec", async () => {
   let gateway: ConcentratorGateway;
 
   VAULTS.forEach(({ name }, pid) => {
-    if (name !== "cvxcrv") return;
+    // if (name !== "cvxcrv") return;
     const { name: prefix, add } = ZAP_VAULT_ROUTES[name];
     const lpAddress = ADDRESS[`${prefix}_TOKEN`];
 
