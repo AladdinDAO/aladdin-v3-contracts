@@ -25,8 +25,6 @@ import "../interfaces/IUniswapV3Pool.sol";
 import "../interfaces/IUniswapV3Router.sol";
 import "../interfaces/IWETH.sol";
 
-import "hardhat/console.sol";
-
 interface ICurvePoolRegistry {
   // solhint-disable-next-line func-name-mixedcase
   function get_lp_token(address _pool) external view returns (address);
@@ -129,7 +127,7 @@ contract TokenZapLogic {
     }
   }
 
-  function swap(uint256 _route, uint256 _amountIn) public returns (uint256) {
+  function swap(uint256 _route, uint256 _amountIn) public payable returns (uint256) {
     address _pool = address(_route & uint256(1461501637330902918203684832716283019655932542975));
     PoolType _poolType = PoolType((_route >> 160) & 255);
     uint256 _indexIn = (_route >> 170) & 3;

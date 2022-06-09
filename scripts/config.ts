@@ -2,7 +2,6 @@
 import { BigNumber } from "ethers";
 import { Action, encodePoolHintV2, PoolType } from "../test/utils";
 
-<<<<<<< HEAD
 export const DECIMALS: { [name: string]: number } = {
   WETH: 18,
   CRV: 18,
@@ -41,7 +40,7 @@ export const DECIMALS: { [name: string]: number } = {
   MTA: 18,
 };
 
-export const V3_CTRRACTS = {
+export const V3_CONTRACTS = {
   CommunityMultisig: "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F",
   ManagementMultisig: "0x28c921adAC4c1072658eB01a28DA06b5F651eF62",
   CLeverTreasury: "0xFC08757c505eA28709dF66E54870fB6dE09f0C5E",
@@ -560,6 +559,14 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     routes: [
       encodePoolHintV2(ADDRESS.MTA_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "USDC", // USDC ==(UniV3)==> WETH ==(CurveV2)=> CRV
+    to: "CRV",
+    routes: [
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },
 ];
@@ -1135,7 +1142,7 @@ export const ZAP_VAULT_ROUTES: {
       },
     ],
   },
-  rocketeth: {
+  RocketPoolETH: {
     name: "CURVE_ROCKETETH",
     add: [
       {

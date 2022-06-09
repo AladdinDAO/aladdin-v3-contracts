@@ -11,7 +11,7 @@ import {
   ProxyAdmin,
   VeCTR,
 } from "../typechain";
-import { ADDRESS, IFO_VAULTS, V3_CTRRACTS } from "./config";
+import { ADDRESS, IFO_VAULTS, V3_CONTRACTS } from "./config";
 
 const config: {
   acrv?: string;
@@ -25,10 +25,12 @@ const config: {
   gauge?: string;
   rewarder?: string;
   ifo?: string;
+  logic?: string;
+  concentratorGateway?: string;
 } = {
   proxyAdmin: "0xFfc272E72EeE0d6eD1253dD0165ef7473Cf7Acf4",
-  acrv: V3_CTRRACTS.aCRV,
-  aladdinZap: V3_CTRRACTS.AladdinZap,
+  acrv: V3_CONTRACTS.aCRV,
+  aladdinZap: V3_CONTRACTS.AladdinZap,
   ctr: "0xf68EadE8f0d8bBAecd6E7ebcb3Ac6B782732DC55",
   ve: "0xbcC95708e0ea0a1e5EcF339bf1ead789EE728824",
   controller: "0x9B1d8B625E15cdF13dEF590B9D177a2EC699CDDb",
@@ -37,6 +39,8 @@ const config: {
   gauge: "0x9939dFbFFB25364cdE728A2e725B22f59d6e1e40",
   rewarder: "0x695136781e9eF600636745789AE9411154BDCb6F",
   ifo: "0x251E903c2Dd553AAF3d093A3346FC42A997560A8",
+  logic: "0x09bAC086926C4027dee5300B49031f6F76dFada3",
+  concentratorGateway: "0x06cC154201De1f67326c6d10B5F88ED4236A2344",
 };
 
 let proxyAdmin: ProxyAdmin;
@@ -146,14 +150,14 @@ async function main() {
     console.log("Found PlatformFeeDistributor at:", rewarder.address);
   } else {
     const PlatformFeeDistributor = await ethers.getContractFactory("PlatformFeeDistributor", deployer);
-    rewarder = await PlatformFeeDistributor.deploy(gauge.address, V3_CTRRACTS.CommunityMultisig, distributor.address, [
+    rewarder = await PlatformFeeDistributor.deploy(gauge.address, V3_CONTRACTS.CommunityMultisig, distributor.address, [
       {
         token: ctr.address,
         gaugePercentage: 1e9,
         treasuryPercentage: 0,
       },
       {
-        token: V3_CTRRACTS.aCRV,
+        token: V3_CONTRACTS.aCRV,
         gaugePercentage: 0,
         treasuryPercentage: 1e9,
       },
@@ -171,8 +175,8 @@ async function main() {
     console.log("Deploy ConcentratorIFOVault Impl at:", impl.address);
 
     const data = impl.interface.encodeFunctionData("initialize", [
-      V3_CTRRACTS.aCRV,
-      V3_CTRRACTS.AladdinZap,
+      V3_CONTRACTS.aCRV,
+      V3_CONTRACTS.AladdinZap,
       rewarder.address,
     ]);
     const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
@@ -182,9 +186,31 @@ async function main() {
     console.log("Deploy ConcentratorIFOVault at:", ifo.address);
   }
 
+  if (config.logic) {
+    const logic = await ethers.getContractAt("CTRMinter", config.logic, deployer);
+    console.log("Found TokenZapLogic at:", logic.address);
+  } else {
+    const TokenZapLogic = await ethers.getContractFactory("TokenZapLogic", deployer);
+    const logic = await TokenZapLogic.deploy();
+    await logic.deployed();
+    config.logic = logic.address;
+    console.log("Deploy TokenZapLogic at:", logic.address);
+  }
+
+  if (config.concentratorGateway) {
+    const gateway = await ethers.getContractAt("ConcentratorGateway", config.concentratorGateway, deployer);
+    console.log("Found ConcentratorGateway at:", gateway.address);
+  } else {
+    const ConcentratorGateway = await ethers.getContractFactory("ConcentratorGateway", deployer);
+    const gateway = await ConcentratorGateway.deploy(config.logic);
+    await gateway.deployed();
+    config.concentratorGateway = gateway.address;
+    console.log("Deploy ConcentratorGateway at:", gateway.address);
+  }
+
   await addVaults();
   {
-    const tx = await ifo.updateIFOConfig(ctr.address, 1654444800, 1655049600);
+    const tx = await ifo.updateIFOConfig(ctr.address, 1654444800, 1655105421 + 86400 * 5);
     console.log("updateIFOConfig:", tx.hash);
     await tx.wait();
   }
@@ -197,6 +223,24 @@ async function main() {
   {
     const tx = await ctr.set_minter(ifo.address);
     console.log("CTR set minter:", tx.hash);
+    await tx.wait();
+  }
+  {
+    // gauge
+    const sigs = "0x00000000000000004e71d92d0000000000000000000000000000000000000000";
+    const tx = await gauge
+      .connect(deployer)
+      .set_rewards(rewarder.address, sigs, [
+        ctr.address,
+        constants.AddressZero,
+        constants.AddressZero,
+        constants.AddressZero,
+        constants.AddressZero,
+        constants.AddressZero,
+        constants.AddressZero,
+        constants.AddressZero,
+      ]);
+    console.log("setup rewards in gauge, hash:", tx.hash);
     await tx.wait();
   }
 }
