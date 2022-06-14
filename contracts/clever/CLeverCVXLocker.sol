@@ -187,7 +187,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     harvestBountyPercentage = _harvestBountyPercentage;
     reserveRate = 500_000_000;
   }
-  
+
   receive() external payable {
     require(msg.sender == zap, "only zap can send ETH");
   }

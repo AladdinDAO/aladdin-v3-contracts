@@ -37,6 +37,7 @@ export const DECIMALS: { [name: string]: number } = {
   JPEG: 18,
   USDN: 18,
   EURS: 2,
+  MTA: 18,
 };
 
 export const ADDRESS: { [name: string]: string } = {
@@ -75,6 +76,7 @@ export const ADDRESS: { [name: string]: string } = {
   USDN: "0x674C6Ad92Fd080e4004b2312b45f796a192D27a0",
   EURS: "0xdB25f211AB05b1c97D595516F45794528a807ad8",
   PUSD: "0x466a756E9A7401B5e2444a3fCB3c2C12FBEa0a54",
+  MTA: "0xa3BeD4E1c75D00fa6f4E5E6922DB7261B5E9AcD2",
   // Curve stETH/ETH
   CURVE_STETH_POOL: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
   CURVE_STETH_TOKEN: "0x06325440D014e39736583c165C2963BA99fAf14E",
@@ -130,6 +132,7 @@ export const ADDRESS: { [name: string]: string } = {
   INV_WETH_UNIV2: "0x328dFd0139e26cB0FEF7B0742B49b0fe4325F821",
   FEI_TRIBE_UNIV2: "0x9928e4046d7c6513326cCeA028cD3e7a91c7590A",
   JPEG_WETH_UNIV2: "0xdB06a76733528761Eda47d356647297bC35a98BD",
+  MTA_WETH_UNIV2: "0x0d0d65E7A7dB277d3E0F5E1676325E75f3340455",
   // Uniswap V3 pool
   USDC_WETH_UNIV3: "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
   USDC_USDT_UNIV3: "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
@@ -420,11 +423,19 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     ],
   },
   {
-    from: "EURS", // EURS ==(UniV3)==> USDC ==(UniV3)==> WETH ==(CurveV2==> CVX
+    from: "EURS", // EURS ==(UniV3)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX
     to: "CVX",
     routes: [
       encodePoolHintV2(ADDRESS.USDC_EURS_POOL_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "MTA", // MTA ==(UniV2)==> WETH ==(CurveV2)==> CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.MTA_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },

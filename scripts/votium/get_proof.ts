@@ -22,10 +22,13 @@ const db = getDatabase(app);
 
 const LOCKER = "0x96C68D861aDa016Ed98c30C810879F9df7c64154";
 
-const TOKENS = ["ALCX", "CVX", "EURS", "FXS", "JPEG", "LDO", "SNX", "STG", "TRIBE", "USDN"];
+const TOKENS: { [round: number]: string[] } = {
+  19: ["ALCX", "CVX", "EURS", "FXS", "JPEG", "LDO", "LYRA", "SNX", "STG", "TRIBE", "USDN"],
+  20: ["ALCX", "CVX", "FXS", "JPEG", "LDO", "MTA", "SNX", "STG", "USDN"],
+};
 
 async function main() {
-  for (const token of TOKENS) {
+  for (const token of TOKENS[20]) {
     const address = ADDRESS[token];
     const amountRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/amount/");
     const proofRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/proof/");
