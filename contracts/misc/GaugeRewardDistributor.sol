@@ -47,6 +47,12 @@ contract GaugeRewardDistributor is Ownable, ReentrancyGuard {
     mapping(address => uint256) pendings;
   }
 
+  struct GaugeInfo {
+    GaugeType gaugeType;
+    address[] tokens;
+    uint256[] pendings;
+  }
+
   /// @dev The fee denominator used for percentage calculation.
   uint256 private constant FEE_DENOMINATOR = 1e9;
 
@@ -61,6 +67,29 @@ contract GaugeRewardDistributor is Ownable, ReentrancyGuard {
 
   /// @dev Mapping from gauge address to gauge type and rewards.
   mapping(address => GaugeRewards) private gauges;
+
+  /// @notice Return the gauge information given the gauge address.
+  /// @param _gauge The address of the gauge.
+  function getGaugeInfo(address _gauge) external view returns (GaugeInfo memory) {
+    GaugeInfo memory _info;
+    uint256 _length = gauges[_gauge].tokens.length();
+
+    _info.gaugeType = gauges[_gauge].gaugeType;
+    _info.tokens = new address[](_length);
+    _info.pendings = new uint256[](_length);
+    for (uint256 i = 0; i < _length; i++) {
+      _info.tokens[i] = gauges[_gauge].tokens.at(i);
+      _info.pendings[i] = gauges[_gauge].pendings[_info.tokens[i]];
+    }
+
+    return _info;
+  }
+
+  /// @notice Return the reward distribution given the token address.
+  /// @param _token The address of the token.
+  function getDistributionInfo(address _token) external view returns (RewardDistribution[] memory) {
+    return distributions[_token];
+  }
 
   /// @notice Claim function called by Curve Gauge V1, V2 or V3.
   function claim() external {
@@ -216,7 +245,7 @@ contract GaugeRewardDistributor is Ownable, ReentrancyGuard {
       uint256 _pending = _rewards.pendings[_token];
       if (_pending > 0) {
         _rewards.pendings[_token] = 0;
-        IERC20(_pending).safeTransfer(_gauge, _pending);
+        IERC20(_token).safeTransfer(_gauge, _pending);
       }
     }
   }
