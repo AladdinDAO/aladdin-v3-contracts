@@ -10,7 +10,7 @@ import {
   AladdinZap,
   ProxyAdmin,
 } from "../typechain";
-import { ADDRESS, VAULTS, ZAP_VAULT_ROUTES } from "./config";
+import { ADDRESS, VAULTS, ZAP_SWAP_ROUNTES, ZAP_VAULT_ROUTES } from "./config";
 
 const config: {
   acrv?: string;

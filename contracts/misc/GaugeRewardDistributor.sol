@@ -10,11 +10,7 @@ import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "./PlatformFeeDistributor.sol";
-
-interface ICurveGaugeV5 {
-  // solhint-disable-next-line func-name-mixedcase, var-name-mixedcase
-  function deposit_reward_token(address _reward_token, uint256 _amount) external;
-}
+import "./ICurveGaugeV4V5.sol";
 
 contract GaugeRewardDistributor is Ownable, ReentrancyGuard {
   using SafeMath for uint256;
@@ -299,7 +295,7 @@ contract GaugeRewardDistributor is Ownable, ReentrancyGuard {
           // @note rewards can be deposited to Curve Gauge V4 or V5 directly.
           IERC20(_token).approve(_distribution.gauge, 0);
           IERC20(_token).approve(_distribution.gauge, _part);
-          ICurveGaugeV5(_distribution.gauge).deposit_reward_token(_token, _part);
+          ICurveGaugeV4V5(_distribution.gauge).deposit_reward_token(_token, _part);
         } else {
           // no gauge to distribute, just send to owner
           IERC20(_token).safeTransfer(owner(), _part);
