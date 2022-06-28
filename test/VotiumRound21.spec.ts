@@ -9,7 +9,7 @@ import { AladdinZap, CLeverCVXLocker, IERC20 } from "../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "./utils";
 
-const FORK_BLOCK_NUMBER = 15038060;
+const FORK_BLOCK_NUMBER = 15038380;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const PROXY_ADMIN = "0x12b1326459d72F2Ab081116bf27ca46cD97762A0";
 const ZAP = "0x1104b4DF568fa7Af90B1Bed1D78A2F71e748dc8a";
