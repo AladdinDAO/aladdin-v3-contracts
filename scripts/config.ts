@@ -38,6 +38,7 @@ export const DECIMALS: { [name: string]: number } = {
   USDN: 18,
   EURS: 2,
   MTA: 18,
+  GNO: 18,
 };
 
 export const ADDRESS: { [name: string]: string } = {
@@ -77,6 +78,7 @@ export const ADDRESS: { [name: string]: string } = {
   EURS: "0xdB25f211AB05b1c97D595516F45794528a807ad8",
   PUSD: "0x466a756E9A7401B5e2444a3fCB3c2C12FBEa0a54",
   MTA: "0xa3BeD4E1c75D00fa6f4E5E6922DB7261B5E9AcD2",
+  GNO: "0x6810e776880C02933D47DB1b9fc05908e5386b96",
   // Curve stETH/ETH
   CURVE_STETH_POOL: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
   CURVE_STETH_TOKEN: "0x06325440D014e39736583c165C2963BA99fAf14E",
@@ -142,6 +144,7 @@ export const ADDRESS: { [name: string]: string } = {
   FRAX_USDC_UNIV3: "0xc63B0708E2F7e69CB8A1df0e1389A98C35A76D52",
   WBTC_WETH_UNIV3_500: "0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0",
   USDC_EURS_POOL_500: "0xbd5fDda17bC27bB90E37Df7A838b1bFC0dC997F5",
+  GNO_WETH_UNIV3_3000: "0xf56D08221B5942C428Acc5De8f78489A97fC5599",
   // Balancer V2
   SNX_WETH_BALANCER: "0x072f14B85ADd63488DDaD88f855Fda4A99d6aC9B",
   FEI_WETH_BALANCER: "0x90291319F1D4eA3ad4dB0Dd8fe9E12BAF749E845",
@@ -436,6 +439,14 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     to: "CVX",
     routes: [
       encodePoolHintV2(ADDRESS.MTA_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "GNO", // GNO ==(UniV3)==> WETH ==(CurveV2)==> CVX
+    to: "CVX",
+    routes: [
+      encodePoolHintV2(ADDRESS.GNO_WETH_UNIV3_3000, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },
