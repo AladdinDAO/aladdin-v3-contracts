@@ -20,7 +20,11 @@ contract ConcentratorIFOVault is AladdinConvexVault {
   event IFOMineCTR(uint256 _amount);
   event UpdateIFOConfig(address _ctr, uint256 _startTime, uint256 _endTime);
 
+  /// @dev The maximum amount of CTR to mint in IFO.
   uint256 private constant MAX_MINED_CTR = 2_500_000 ether;
+
+  /// @dev The unlocked percentage of for CTR minted in IFO.
+  uint256 private constant UNLOCK_PERCENTAGE = 5e8;
 
   /// @notice Mapping from pool id to accumulated cont reward per share, with 1e18 precision.
   mapping(uint256 => uint256) public accCTRPerShare;
@@ -130,15 +134,16 @@ contract ConcentratorIFOVault is AladdinConvexVault {
         _pendingCTR = _rewards;
       }
       if (_pendingCTR > 0) {
-        accCTRPerShare[_pid] = accCTRPerShare[_pid].add(_pendingCTR.mul(PRECISION) / _pool.totalShare);
+        uint256 _unlocked = (_pendingCTR * UNLOCK_PERCENTAGE) / FEE_DENOMINATOR;
+        accCTRPerShare[_pid] = accCTRPerShare[_pid].add(_unlocked.mul(PRECISION) / _pool.totalShare);
 
         ctrMined += uint128(_pendingCTR);
 
-        // Vault Mining $CTR
-        ICTR(ctr).mint(address(this), _pendingCTR);
+        // Vault Mining $CTR, unlocked part
+        ICTR(ctr).mint(address(this), _unlocked);
 
-        // Liquidity Mining $CTR
-        ICTR(ctr).mint(platform, (_pendingCTR * 6) / 100);
+        // Liquidity Mining $CTR and Vault Mining $CTR, locked part
+        ICTR(ctr).mint(platform, (_pendingCTR * 6) / 100 + _pendingCTR - _unlocked);
 
         // transfer aCRV to platform
         IERC20Upgradeable(aladdinCRV).safeTransfer(platform, _pendingCTR);

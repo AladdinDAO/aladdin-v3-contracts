@@ -11,8 +11,8 @@ import {
   ConcentratorIFOVault,
   IConvexBooster,
   PlatformFeeDistributor,
+  VeCTRFeeDistributor,
 } from "../typechain";
-import { ConcentratorFeeDistributor } from "../typechain/ConcentratorFeeDistributor";
 import { ConcentratorGaugeController } from "../typechain/ConcentratorGaugeController";
 import { ConcentratorLiquidityGauge } from "../typechain/ConcentratorLiquidityGauge";
 import { CTR } from "../typechain/CTR";
@@ -39,6 +39,8 @@ const CRV_HOLDER = "0x7a16fF8270133F063aAb6C9977183D9e72835428";
 const CVX = ADDRESS.CVX;
 const CVX_HOLDER = "0x28C6c06298d514Db089934071355E5743bf21d60";
 
+const UNLOCK_PERCENTAGE = 5e8;
+
 describe("ConcentratorIFOVault.spec", async () => {
   let deployer: SignerWithAddress;
   let admin: SignerWithAddress;
@@ -47,7 +49,7 @@ describe("ConcentratorIFOVault.spec", async () => {
   let mockLP: CLeverToken;
   let ctr: CTR;
   let ve: VeCTR;
-  let distributor: ConcentratorFeeDistributor;
+  let distributor: VeCTRFeeDistributor;
   let minter: CTRMinter;
   let controller: ConcentratorGaugeController;
   let gauge: ConcentratorLiquidityGauge;
@@ -96,8 +98,14 @@ describe("ConcentratorIFOVault.spec", async () => {
     minter = await CTRMinter.deploy(ctr.address, controller.address);
     await minter.deployed();
 
-    const ConcentratorFeeDistributor = await ethers.getContractFactory("ConcentratorFeeDistributor", deployer);
-    distributor = await ConcentratorFeeDistributor.deploy(ve.address, 0, ctr.address, deployer.address, admin.address);
+    const VeCTRFeeDistributor = await ethers.getContractFactory("veCTRFeeDistributor", deployer);
+    distributor = (await VeCTRFeeDistributor.deploy(
+      ve.address,
+      0,
+      ctr.address,
+      deployer.address,
+      admin.address
+    )) as VeCTRFeeDistributor;
     await distributor.deployed();
 
     const ConcentratorLiquidityGauge = await ethers.getContractFactory("ConcentratorLiquidityGauge", deployer);
@@ -170,14 +178,15 @@ describe("ConcentratorIFOVault.spec", async () => {
 
       // mint ctr
       const balance = await ctr.balanceOf(ifo.address);
+      const minted = balance.mul(1e9).div(UNLOCK_PERCENTAGE);
       const rewarderBalance = await ctr.balanceOf(rewarder.address);
       expect(balance).to.gt(constants.Zero);
-      expect(rewarderBalance).to.eq(balance.mul(6).div(100));
+      expect(rewarderBalance).to.closeToBn(minted.mul(6).div(100).add(minted.sub(balance)), 100);
 
       // no aCRV in ifo
       expect(await acrv.balanceOf(ifo.address)).to.eq(constants.Zero);
       // all aCRV transfer to rewarder
-      expect(afterRewarderBalance.sub(beforeRewarderBalance)).to.eq(balance);
+      expect(afterRewarderBalance.sub(beforeRewarderBalance)).to.closeToBn(minted, 100);
 
       // state is correct
       expect(await ifo.pendingCTR(0, holder.address)).to.closeToBn(balance, 1e6);
@@ -192,7 +201,7 @@ describe("ConcentratorIFOVault.spec", async () => {
       await rewarder.connect(deployer).claim();
       const afterPlatformBalance = await acrv.balanceOf(admin.address);
       // all aCRV transfer to platform
-      expect(afterPlatformBalance.sub(beforePlatformBalance)).to.eq(balance);
+      expect(afterPlatformBalance.sub(beforePlatformBalance)).to.closeToBn(minted, 100);
     });
   });
 
@@ -245,9 +254,10 @@ describe("ConcentratorIFOVault.spec", async () => {
 
       // mint cont
       const balance = await ctr.balanceOf(ifo.address);
+      const minted = balance.mul(1e9).div(UNLOCK_PERCENTAGE);
       const rewarderBalance = await ctr.balanceOf(rewarder.address);
       expect(balance).to.gt(constants.Zero);
-      expect(rewarderBalance).to.eq(balance.mul(6).div(100));
+      expect(rewarderBalance).to.eq(minted.mul(6).div(100).add(minted.sub(balance)));
 
       // gauge checkpoint
       const rewards = await gauge.callStatic.claimable_reward_write(deployer.address, ctr.address);
