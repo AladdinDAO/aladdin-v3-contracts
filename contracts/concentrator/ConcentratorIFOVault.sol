@@ -26,6 +26,9 @@ contract ConcentratorIFOVault is AladdinConvexVault {
   /// @dev The unlocked percentage of for CTR minted in IFO.
   uint256 private constant UNLOCK_PERCENTAGE = 5e8;
 
+  /// @dev The percentage CTR for liquidity mining.
+  uint256 private constant LIQUIDITY_MINING_PERCENTAGE = 6e7;
+
   /// @notice Mapping from pool id to accumulated cont reward per share, with 1e18 precision.
   mapping(uint256 => uint256) public accCTRPerShare;
 
@@ -143,7 +146,10 @@ contract ConcentratorIFOVault is AladdinConvexVault {
         ICTR(ctr).mint(address(this), _unlocked);
 
         // Liquidity Mining $CTR and Vault Mining $CTR, locked part
-        ICTR(ctr).mint(platform, (_pendingCTR * 6) / 100 + _pendingCTR - _unlocked);
+        ICTR(ctr).mint(
+          platform,
+          (_pendingCTR * LIQUIDITY_MINING_PERCENTAGE) / FEE_DENOMINATOR + _pendingCTR - _unlocked
+        );
 
         // transfer aCRV to platform
         IERC20Upgradeable(aladdinCRV).safeTransfer(platform, _pendingCTR);

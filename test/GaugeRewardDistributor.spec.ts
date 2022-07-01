@@ -374,6 +374,14 @@ describe("GaugeRewardDistributor.spec", async () => {
       await feeDistributor.addRewardToken(token2.address, 1e9, 0);
     });
 
+    it("should revert, when donate non-reward token", async () => {
+      await expect(gaugeDistributor.donate([alice.address], [0])).to.revertedWith("not reward token");
+    });
+
+    it("should revert, when length mismatch", async () => {
+      await expect(gaugeDistributor.donate([alice.address], [])).to.revertedWith("length mismatch");
+    });
+
     it("should succeed, when donate nothing", async () => {
       await gaugeDistributor.donate([], []);
       const info = await gaugeDistributor.getGaugeInfo(gauge1.address);

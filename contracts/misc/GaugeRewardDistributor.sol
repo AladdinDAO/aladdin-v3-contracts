@@ -101,6 +101,7 @@ contract GaugeRewardDistributor is Ownable, ReentrancyGuard {
   function donate(address[] memory _tokens, uint256[] memory _amounts) external nonReentrant {
     require(_tokens.length == _amounts.length, "length mismatch");
     for (uint256 i = 0; i < _tokens.length; i++) {
+      require(distributions[_tokens[i]].length > 0, "not reward token");
       uint256 _before = IERC20(_tokens[i]).balanceOf(address(this));
       IERC20(_tokens[i]).safeTransferFrom(msg.sender, address(this), _amounts[i]);
       _amounts[i] = IERC20(_tokens[i]).balanceOf(address(this)).sub(_before);
@@ -293,8 +294,8 @@ contract GaugeRewardDistributor is Ownable, ReentrancyGuard {
           _gauge.pendings[_token] = _part.add(_gauge.pendings[_token]);
         } else if (_gauge.gaugeType == GaugeType.CurveGaugeV4V5) {
           // @note rewards can be deposited to Curve Gauge V4 or V5 directly.
-          IERC20(_token).approve(_distribution.gauge, 0);
-          IERC20(_token).approve(_distribution.gauge, _part);
+          IERC20(_token).safeApprove(_distribution.gauge, 0);
+          IERC20(_token).safeApprove(_distribution.gauge, _part);
           ICurveGaugeV4V5(_distribution.gauge).deposit_reward_token(_token, _part);
         } else {
           // no gauge to distribute, just send to owner
