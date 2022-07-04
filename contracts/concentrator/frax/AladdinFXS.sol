@@ -11,6 +11,8 @@ import "../../interfaces/IConvexBasicRewards.sol";
 import "../../interfaces/ICurveCryptoPool.sol";
 import "../../interfaces/IZap.sol";
 
+// solhint-disable no-empty-blocks
+
 contract AladdinFXS is AladdinCompounder {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -29,6 +31,7 @@ contract AladdinFXS is AladdinCompounder {
   address private constant FXS = 0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0;
 
   /// @dev The address of cvxFXS token.
+  // solhint-disable-next-line const-name-snakecase
   address private constant cvxFXS = 0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0;
 
   /// @dev The address of Convex Booster.
@@ -178,7 +181,6 @@ contract AladdinFXS is AladdinCompounder {
 
     totalAssetsStored = _totalAssets + _assets;
 
-    // @todo should do lazy deposit
     _depositToConvex(_assets);
 
     emit Deposit(msg.sender, _receiver, _assets, _shares);
@@ -218,6 +220,7 @@ contract AladdinFXS is AladdinCompounder {
   /// @dev Internal function to deposit assets to Convex Booster.
   /// @param _amount The amount of assets to deposit.
   function _depositToConvex(uint256 _amount) internal {
+    // @todo should do lazy deposit
     IERC20Upgradeable(CURVE_CVXFXS_TOKEN).safeApprove(BOOSTER, 0);
     IERC20Upgradeable(CURVE_CVXFXS_TOKEN).safeApprove(BOOSTER, _amount);
     IConvexBooster(BOOSTER).deposit(CURVE_CVXFXS_POOLID, _amount, true);

@@ -13,18 +13,49 @@ import "./interfaces/IConcentratorConvexVault.sol";
 import "../interfaces/IConvexBooster.sol";
 import "../interfaces/IConvexBasicRewards.sol";
 
-// solhint-disable no-empty-blocks, reason-string
+// solhint-disable no-empty-blocks, reason-string, not-rely-on-time
 abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, IConcentratorConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
+  /// @notice Emitted when withdraw fee percentage is updated.
+  /// @param _pid The pool id to update.
+  /// @param _feePercentage The new fee percentage.
   event UpdateWithdrawalFeePercentage(uint256 indexed _pid, uint256 _feePercentage);
+
+  /// @notice Emitted when platform fee percentage is updated.
+  /// @param _pid The pool id to update.
+  /// @param _feePercentage The new fee percentage.
   event UpdatePlatformFeePercentage(uint256 indexed _pid, uint256 _feePercentage);
-  event UpdateHarvestBountyPercentage(uint256 indexed _pid, uint256 _percentage);
+
+  /// @notice Emitted when harvest bounty percentage is updated.
+  /// @param _pid The pool id to update.
+  /// @param _feePercentage The new fee percentage.
+  event UpdateHarvestBountyPercentage(uint256 indexed _pid, uint256 _feePercentage);
+
+  /// @notice Emitted when the platform address is updated.
+  /// @param _platform The new platform address.
   event UpdatePlatform(address indexed _platform);
+
+  /// @notice Emitted when the list of reward tokens is updated.
+  /// @param _pid The pool id to update.
+  /// @param _rewardTokens The new list of reward tokens.
   event UpdatePoolRewardTokens(uint256 indexed _pid, address[] _rewardTokens);
+
+  /// @notice Emitted when a new pool is added.
+  /// @param _pid The pool id added.
+  /// @param _convexPid The corresponding convex pool id.
+  /// @param _rewardTokens The list of reward tokens.
   event AddPool(uint256 indexed _pid, uint256 _convexPid, address[] _rewardTokens);
+
+  /// @notice Emitted when deposit is paused for the pool.
+  /// @param _pid The pool id to update.
+  /// @param _status The new status.
   event PausePoolDeposit(uint256 indexed _pid, bool _status);
+
+  /// @notice Emitted when withdraw is paused for the pool.
+  /// @param _pid The pool id to update.
+  /// @param _status The new status.
   event PausePoolWithdraw(uint256 indexed _pid, bool _status);
 
   /// @dev Compiler will pack this into single `uint256`.
@@ -34,7 +65,9 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     // The length of reward period in seconds.
     // If the value is zero, the reward will be distributed immediately.
     uint32 periodLength;
+    // The timesamp in seconds when reward is updated.
     uint48 lastUpdate;
+    // The finish timestamp in seconds of current reward period.
     uint48 finishAt;
   }
 
@@ -91,9 +124,10 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
   /// @dev The maximum percentage of harvest bounty.
   uint256 internal constant MAX_HARVEST_BOUNTY = 1e8; // 10%
 
+  /// @dev The number of seconds in one week.
   uint256 internal constant WEEK = 86400 * 7;
 
-  // The address of Convex Booster Contract
+  /// @dev The address of Convex Booster Contract
   address private constant BOOSTER = 0xF403C135812408BFbE8713b5A23a04b3D48AAE31;
 
   /// @notice The list of all supported pool.
@@ -140,12 +174,14 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     RewardInfo memory _rewardInfo = rewardInfo[_pid];
 
     uint256 _accRewardPerShare = _pool.accRewardPerShare;
-    uint256 _lastUpdate = _rewardInfo.lastUpdate;
-    // solhint-disable-next-line not-rely-on-time
-    if (_lastUpdate > block.timestamp) _lastUpdate = block.timestamp;
-    uint256 _duration = _lastUpdate - _rewardInfo.lastUpdate;
-    if (_duration > 0 && _pool.totalShare > 0) {
-      _accRewardPerShare = _accRewardPerShare.add(_duration.mul(_rewardInfo.rate).mul(PRECISION) / _pool.totalShare);
+    if (_rewardInfo.periodLength > 0) {
+      uint256 _lastUpdate = _rewardInfo.lastUpdate;
+      // solhint-disable-next-line not-rely-on-time
+      if (_lastUpdate > block.timestamp) _lastUpdate = block.timestamp;
+      uint256 _duration = _lastUpdate - _rewardInfo.lastUpdate;
+      if (_duration > 0 && _pool.totalShare > 0) {
+        _accRewardPerShare = _accRewardPerShare.add(_duration.mul(_rewardInfo.rate).mul(PRECISION) / _pool.totalShare);
+      }
     }
 
     return _pendingReward(_pid, _account, _accRewardPerShare);
@@ -358,7 +394,7 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     emit Harvest(_pid, msg.sender, _recipient, _rewards, _platformFee, _harvestBounty);
 
     // 4. update rewards info
-    _pool.accRewardPerShare = _pool.accRewardPerShare.add(_rewards.mul(PRECISION) / _pool.totalShare);
+    _notifyHarvestedReward(_pid, _rewards - _platformFee - _harvestBounty);
 
     return _rewards;
   }
@@ -480,6 +516,10 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
 
   /********************************** Internal Functions **********************************/
 
+  /// @dev Internal function to return the amount of pending rewards.
+  /// @param _pid The pool id to query.
+  /// @param _account The address of account to query.
+  /// @param _accRewardPerShare Hint used to compute rewards.
   function _pendingReward(
     uint256 _pid,
     address _account,
@@ -492,24 +532,31 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
       );
   }
 
+  /// @dev Internal function to reward checkpoint.
+  /// @param _pid The pool id to update.
+  /// @param _account The address of account to update.
   function _updateRewards(uint256 _pid, address _account) internal virtual {
     PoolInfo storage _pool = poolInfo[_pid];
 
     // 1. update global info
     RewardInfo memory _rewardInfo = rewardInfo[_pid];
     uint256 _accRewardPerShare = _pool.accRewardPerShare;
-    uint256 _lastUpdate = _rewardInfo.lastUpdate;
-    // solhint-disable-next-line not-rely-on-time
-    if (_lastUpdate > block.timestamp) _lastUpdate = block.timestamp;
-    uint256 _duration = _lastUpdate - _rewardInfo.lastUpdate;
-    if (_duration > 0) {
-      _rewardInfo.lastUpdate = uint48(_lastUpdate);
-      if (_pool.totalShare > 0) {
-        _accRewardPerShare = _accRewardPerShare.add(_duration.mul(_rewardInfo.rate).mul(PRECISION) / _pool.totalShare);
-      }
+    if (_rewardInfo.periodLength > 0) {
+      uint256 _lastUpdate = _rewardInfo.lastUpdate;
+      // solhint-disable-next-line not-rely-on-time
+      if (_lastUpdate > block.timestamp) _lastUpdate = block.timestamp;
+      uint256 _duration = _lastUpdate - _rewardInfo.lastUpdate;
+      if (_duration > 0) {
+        _rewardInfo.lastUpdate = uint48(_lastUpdate);
+        if (_pool.totalShare > 0) {
+          _accRewardPerShare = _accRewardPerShare.add(
+            _duration.mul(_rewardInfo.rate).mul(PRECISION) / _pool.totalShare
+          );
+        }
 
-      rewardInfo[_pid] = _rewardInfo;
-      _pool.accRewardPerShare = _accRewardPerShare;
+        rewardInfo[_pid] = _rewardInfo;
+        _pool.accRewardPerShare = _accRewardPerShare;
+      }
     }
 
     if (_account != address(0)) {
@@ -620,6 +667,34 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     UserInfo storage _info = userInfo[_pid][_owner];
     _info.allowances[_spender] = _amount;
     emit Approval(_pid, _owner, _spender, _amount);
+  }
+
+  /// @dev Internal function to notify harvested rewards.
+  /// @dev The caller should make sure `_updateRewards` is called before.
+  /// @param _pid The pool id to notify.
+  /// @param _amount The amount of harvested rewards.
+  function _notifyHarvestedReward(uint256 _pid, uint256 _amount) internal virtual {
+    RewardInfo memory _info = rewardInfo[_pid];
+
+    if (_info.periodLength == 0) {
+      PoolInfo storage _pool = poolInfo[_pid];
+      _pool.accRewardPerShare = _pool.accRewardPerShare.add(_amount.mul(PRECISION) / _pool.totalShare);
+    } else {
+      require(_amount < uint128(-1), "harvested amount overflow");
+
+      if (block.timestamp >= _info.finishAt) {
+        _info.rate = uint128(_amount / _info.periodLength);
+      } else {
+        uint256 _remaining = _info.finishAt - block.timestamp;
+        uint256 _leftover = _remaining * _info.rate;
+        _info.rate = uint128((_amount + _leftover) / _info.periodLength);
+      }
+
+      _info.lastUpdate = uint48(block.timestamp);
+      _info.finishAt = uint48(block.timestamp + _info.periodLength);
+
+      rewardInfo[_pid] = _info;
+    }
   }
 
   /// @dev Internal function to claim reward token.

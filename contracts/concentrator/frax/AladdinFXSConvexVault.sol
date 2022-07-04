@@ -13,6 +13,8 @@ contract AladdinFXSConvexVault is ConcentratorConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
+  /// @notice Emitted when the zap contract is updated.
+  /// @param _zap The address of the zap contract.
   event UpdateZap(address indexed _zap);
 
   /// @dev The address of Curve cvxfxs pool.
@@ -25,6 +27,7 @@ contract AladdinFXSConvexVault is ConcentratorConvexVault {
   address private constant FXS = 0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0;
 
   /// @dev The address of cvxFXS token.
+  // solhint-disable-next-line const-name-snakecase
   address private constant cvxFXS = 0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0;
 
   /// @notice The address of AladdinFXS token.
