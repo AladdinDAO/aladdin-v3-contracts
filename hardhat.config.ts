@@ -46,15 +46,24 @@ const config: HardhatUserConfig = {
         url: process.env.HARDHAT_FORK_URL as string,
         blockNumber: 14243290,
       },
-      chainId: 1,
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     mainnet: {
-      url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
+      url: "https://rpc.ankr.com/eth",
       chainId: 1,
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    polygon: {
+      url: "https://rpc.ankr.com/polygon",
+      chainId: 137,
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    fantom: {
+      url: "https://rpc.ankr.com/fantom",
+      chainId: 250,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     mainnetfork: {
