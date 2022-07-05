@@ -107,7 +107,7 @@ abstract contract AladdinCompounder is
   /// @inheritdoc IAladdinCompounder
   function convertToAssets(uint256 _shares) public view override returns (uint256) {
     uint256 _totalShares = totalSupply();
-    if (_totalShares == 0) return 0;
+    if (_totalShares == 0) return _shares;
 
     uint256 _totalAssets = totalAssets();
     return _totalAssets.mul(_shares) / _totalShares;
@@ -140,8 +140,15 @@ abstract contract AladdinCompounder is
 
   /// @inheritdoc IAladdinCompounder
   function previewWithdraw(uint256 _assets) external view override returns (uint256) {
-    // @todo should consider withdraw fee.
-    return convertToShares(_assets);
+    uint256 _totalAssets = totalAssets();
+    require(_assets <= _totalAssets, "exceed total assets");
+    uint256 _shares = convertToShares(_assets);
+    if (_assets == _totalAssets) {
+      return _shares;
+    } else {
+      FeeInfo memory _fees = feeInfo;
+      return _shares.mul(FEE_DENOMINATOR).div(FEE_DENOMINATOR - _fees.withdrawPercentage);
+    }
   }
 
   /// @inheritdoc IAladdinCompounder
@@ -151,7 +158,17 @@ abstract contract AladdinCompounder is
 
   /// @inheritdoc IAladdinCompounder
   function previewRedeem(uint256 _shares) external view override returns (uint256) {
-    return convertToAssets(_shares);
+    uint256 _totalSupply = totalSupply();
+    require(_shares <= _totalSupply, "exceed total supply");
+
+    uint256 _assets = convertToAssets(_shares);
+    if (_shares == totalSupply()) {
+      return _assets;
+    } else {
+      FeeInfo memory _fees = feeInfo;
+      uint256 _withdrawFee = _assets.mul(_fees.withdrawPercentage) / FEE_DENOMINATOR;
+      return _assets - _withdrawFee;
+    }
   }
 
   /********************************** Mutated Functions **********************************/
@@ -190,11 +207,18 @@ abstract contract AladdinCompounder is
   ) external override nonReentrant returns (uint256) {
     _distributePendingReward();
 
-    // @todo we should roundup and consider withdraw fee.
+    uint256 _totalAssets = totalAssets();
+    require(_assets <= _totalAssets, "exceed total assets");
+
     uint256 _shares = convertToShares(_assets);
+    if (_assets < _totalAssets) {
+      FeeInfo memory _fees = feeInfo;
+      _shares = _shares.mul(FEE_DENOMINATOR).div(FEE_DENOMINATOR - _fees.withdrawPercentage);
+    }
+
     if (msg.sender != _owner) {
       uint256 _allowance = allowance(_owner, msg.sender);
-      require(_allowance >= _shares, "Compounder: withdraw exceeds allowance");
+      require(_allowance >= _shares, "withdraw exceeds allowance");
       if (_allowance != uint256(-1)) {
         // decrease allowance if it is not max
         _approve(_owner, msg.sender, _allowance - _shares);
@@ -215,7 +239,7 @@ abstract contract AladdinCompounder is
 
     if (msg.sender != _owner) {
       uint256 _allowance = allowance(_owner, msg.sender);
-      require(_allowance >= _shares, "Compounder: redeem exceeds allowance");
+      require(_allowance >= _shares, "redeem exceeds allowance");
       if (_allowance != uint256(-1)) {
         // decrease allowance if it is not max
         _approve(_owner, msg.sender, _allowance - _shares);
@@ -244,10 +268,10 @@ abstract contract AladdinCompounder is
     uint32 _bountyPercentage,
     uint32 _withdrawPercentage
   ) external onlyOwner {
-    require(_platform != address(0), "Compounder: zero address");
-    require(_platformPercentage <= MAX_PLATFORM_FEE, "Compounder: platform fee too large");
-    require(_bountyPercentage <= MAX_HARVEST_BOUNTY, "Compounder: bounty fee too large");
-    require(_withdrawPercentage <= MAX_WITHDRAW_FEE, "Compounder: withdraw fee too large");
+    require(_platform != address(0), "zero platform address");
+    require(_platformPercentage <= MAX_PLATFORM_FEE, "platform fee too large");
+    require(_bountyPercentage <= MAX_HARVEST_BOUNTY, "bounty fee too large");
+    require(_withdrawPercentage <= MAX_WITHDRAW_FEE, "withdraw fee too large");
 
     feeInfo = FeeInfo(_platform, _platformPercentage, _bountyPercentage, _withdrawPercentage);
 
@@ -314,7 +338,7 @@ abstract contract AladdinCompounder is
     if (_info.periodLength == 0) {
       totalAssetsStored = totalAssetsStored.add(_amount);
     } else {
-      require(_amount < uint128(-1), "Compounder: amount overflow");
+      require(_amount < uint128(-1), "amount overflow");
 
       if (block.timestamp >= _info.finishAt) {
         _info.rate = uint128(_amount / _info.periodLength);

@@ -32,7 +32,7 @@ contract AladdinFXS is AladdinCompounder {
 
   /// @dev The address of cvxFXS token.
   // solhint-disable-next-line const-name-snakecase
-  address private constant cvxFXS = 0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0;
+  address private constant cvxFXS = 0xFEEf77d3f69374f66429C91d732A244f074bdf74;
 
   /// @dev The address of Convex Booster.
   address private constant BOOSTER = 0xF403C135812408BFbE8713b5A23a04b3D48AAE31;
@@ -93,6 +93,7 @@ contract AladdinFXS is AladdinCompounder {
       address _zap = zap;
       for (uint256 i = 0; i < _length; i++) {
         address _token = rewards[i]; // saving gas
+        // first token is always FXS, so this line will not be affected by zapping
         uint256 _pending = IERC20Upgradeable(_token).balanceOf(address(this)).sub(_balances[i]);
         if (_token == cvxFXS) {
           _amounts[1] += _pending;
@@ -118,10 +119,12 @@ contract AladdinFXS is AladdinCompounder {
     uint256 _totalShare = totalSupply();
     if (_info.platformPercentage > 0) {
       _platformFee = (_info.platformPercentage * _amountLP) / FEE_DENOMINATOR;
+      // share will be a little more than the actual percentage since minted before distribute rewards
       _mint(_info.platform, _platformFee.mul(_totalShare) / _totalAssets);
     }
     if (_info.bountyPercentage > 0) {
       _harvestBounty = (_info.bountyPercentage * _amountLP) / FEE_DENOMINATOR;
+      // share will be a little more than the actual percentage since minted before distribute rewards
       _mint(_recipient, _harvestBounty.mul(_totalShare) / _totalAssets);
     }
     totalAssetsStored = _totalAssets.add(_platformFee).add(_harvestBounty);
@@ -160,17 +163,24 @@ contract AladdinFXS is AladdinCompounder {
   /// @dev Internal function to validate rewards list.
   /// @param _rewards The address list of reward tokens.
   function _checkRewards(address[] memory _rewards) internal pure {
+    bool _hasFXS = false;
     for (uint256 i = 0; i < _rewards.length; i++) {
       require(_rewards[i] != address(0), "aFXS: zero reward token");
+      if (_rewards[i] == FXS) _hasFXS = true;
       for (uint256 j = 0; j < i; j++) {
         require(_rewards[i] != _rewards[j], "aFXS: duplicated reward token");
       }
+    }
+    if (_hasFXS) {
+      require(_rewards[0] == FXS, "aFXS: first token not FXS");
     }
   }
 
   /// @inheritdoc AladdinCompounder
   /// @dev The caller should make sure `_distributePendingReward` is called before.
   function _deposit(uint256 _assets, address _receiver) internal override returns (uint256) {
+    require(_assets > 0, "aFXS: deposit zero amount");
+
     uint256 _totalAssets = totalAssetsStored; // the value is correct
     uint256 _totalShare = totalSupply();
     uint256 _shares;
@@ -195,6 +205,7 @@ contract AladdinFXS is AladdinCompounder {
     address _receiver,
     address _owner
   ) internal override returns (uint256) {
+    require(_shares > 0, "aFXS: withdraw zero share");
     require(_shares <= balanceOf(_owner), "aFXS: insufficient owner shares");
     uint256 _totalAssets = totalAssetsStored; // the value is correct
     uint256 _totalShare = totalSupply();
@@ -213,6 +224,8 @@ contract AladdinFXS is AladdinCompounder {
     totalAssetsStored = _totalAssets - _amount; // never overflow here
 
     _withdrawFromConvex(_amount, _receiver);
+
+    emit Withdraw(msg.sender, _receiver, _owner, _amount, _shares);
 
     return _amount;
   }

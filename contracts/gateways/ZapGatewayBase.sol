@@ -44,7 +44,7 @@ abstract contract ZapGatewayBase is Ownable {
     if (_token == address(0)) {
       uint256 _balance = address(this).balance;
       if (_balance < _amount) {
-        IWETH(WETH).withdraw(_balance);
+        IWETH(WETH).withdraw(_amount);
       }
       // solhint-disable-next-line avoid-low-level-calls
       (bool _success, ) = msg.sender.call{ value: _amount }("");
