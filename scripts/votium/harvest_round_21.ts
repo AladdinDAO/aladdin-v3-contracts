@@ -1,25 +1,24 @@
 /* eslint-disable node/no-missing-import */
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
-import { ADDRESS, DECIMALS } from "../config";
+import { DEPLOYED_CONTRACTS, TOKENS } from "../utils";
 import { Round21Rewards } from "./config";
 
 async function main() {
   for (const item of Round21Rewards) {
-    const symbol: string = Object.entries(ADDRESS).filter(
-      ([, address]) => address.toLowerCase() === item.token.toLowerCase()
+    const symbol: string = Object.entries(TOKENS).filter(
+      ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
     )[0][0];
     console.log(
-      `token[${symbol}], address[${item.token}], amount[${ethers.utils.formatUnits(item.amount, DECIMALS[symbol])}]`
+      `token[${symbol}], address[${item.token}], amount[${ethers.utils.formatUnits(
+        item.amount,
+        TOKENS[symbol].decimals
+      )}]`
     );
   }
 
   const [deployer] = await ethers.getSigners();
-  const cvxLocker = await ethers.getContractAt(
-    "CLeverCVXLocker",
-    "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
-    deployer
-  );
+  const cvxLocker = await ethers.getContractAt("CLeverCVXLocker", DEPLOYED_CONTRACTS.CLeverForCVX, deployer);
 
   const estimate = BigNumber.from(
     await ethers.provider.call({

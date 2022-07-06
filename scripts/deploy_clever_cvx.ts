@@ -1,7 +1,7 @@
 /* eslint-disable node/no-missing-import */
 import { ethers } from "hardhat";
 import { AladdinZap, CLeverCVXLocker, CLeverToken, ProxyAdmin, Furnace } from "../typechain";
-import { ADDRESS, ZAP_SWAP_ROUNTES } from "./config";
+import { ADDRESS, ZAP_ROUTES } from "./utils";
 
 const config: {
   proxyAdmin?: string;
@@ -39,12 +39,7 @@ async function initialSetup() {
   // 1. cvxcrv ==> crv with CurveFactoryPlainPool
   // 2. crv ==> eth with CurveCryptoPool
   // 3. eth ==> cvx with CurveCryptoPool
-  console.log(
-    "Zap for cvxCRV => CVX:",
-    `from[${CVXCRV}]`,
-    `to[${CVX}]`,
-    `routes[${ZAP_SWAP_ROUNTES.filter(({ from, to }) => from === "CVXCRV" && to === "CVX")[0].routes}]`
-  );
+  console.log("Zap for cvxCRV => CVX:", `from[${CVXCRV}]`, `to[${CVX}]`, `routes[${ZAP_ROUTES.cvxCRV.CVX}]`);
 
   if (!(await cvxLocker.reserveRate()).eq(RESERVE_RATE)) {
     const tx = await cvxLocker.updateReserveRate(RESERVE_RATE);

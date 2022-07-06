@@ -3,10 +3,10 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { ADDRESS, ZAP_SWAP_ROUNTES } from "../scripts/config";
-import { AladdinZap, IERC20 } from "../typechain";
+import { ADDRESS, ZAP_ROUTES } from "../../scripts/utils";
+import { AladdinZap, IERC20 } from "../../typechain";
 // eslint-disable-next-line camelcase
-import { request_fork } from "./utils";
+import { request_fork } from "../utils";
 
 const FORK_BLOCK_NUMBER = 14699276;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
@@ -71,11 +71,12 @@ describe("VotiumRound17.spec", async () => {
     zap = await ethers.getContractAt("AladdinZap", ZAP, owner);
 
     const rewards = ["FXS", "UST_WORMHOLE", "LDO", "ALCX", "SPELL", "LYRA", "SNX", "GRO", "FLX", "ANGLE", "INV"];
-    for (const { from, to, routes } of ZAP_SWAP_ROUNTES) {
-      if (rewards.includes(from) && to === "CVX") {
+    for (const from in rewards) {
+      const routes = ZAP_ROUTES[from].CVX;
+      if (routes !== undefined) {
         await zap.updateRoute(ADDRESS[from], CVX, routes);
         if (firstCall) {
-          console.log(`${from} to ${to} zap: from[${ADDRESS[from]}] to[${CVX}] routes[${routes.toString()}]`);
+          console.log(`${from} to CVX zap: from[${ADDRESS[from]}] to[${CVX}] routes[${routes.toString()}]`);
         }
       }
     }

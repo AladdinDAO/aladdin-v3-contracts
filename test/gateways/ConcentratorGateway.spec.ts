@@ -4,9 +4,10 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { ADDRESS, V3_CONTRACTS, VAULTS, ZAP_VAULT_ROUTES } from "../scripts/config";
-import { AladdinConvexVault, ConcentratorGateway } from "../typechain";
-import { request_fork } from "./utils";
+import { VAULTS, ZAP_VAULT_ROUTES } from "../../scripts/config";
+import { ADDRESS, DEPLOYED_CONTRACTS } from "../../scripts/utils";
+import { AladdinConvexVault, ConcentratorGateway } from "../../typechain";
+import { request_fork } from "../utils";
 
 const FORK_PARAMS: {
   number: number;
@@ -115,20 +116,20 @@ describe("ConcentratorGateway.spec", async () => {
       beforeEach(async () => {
         const holders = add.map(({ token }) => FORK_PARAMS.tokens[token].holder);
         holders.push(DEPLOYER);
-        holders.push(V3_CONTRACTS.CommunityMultisig);
+        holders.push(DEPLOYED_CONTRACTS.CommunityMultisig);
 
         await request_fork(FORK_PARAMS.number, holders);
         deployer = await ethers.getSigner(DEPLOYER);
-        owner = await ethers.getSigner(V3_CONTRACTS.CommunityMultisig);
+        owner = await ethers.getSigner(DEPLOYED_CONTRACTS.CommunityMultisig);
         await deployer.sendTransaction({ to: owner.address, value: ethers.utils.parseEther("10") });
 
-        const proxyAdmin = await ethers.getContractAt("ProxyAdmin", V3_CONTRACTS.ProxyAdmin, owner);
+        const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.ProxyAdmin, owner);
 
         const AladdinConvexVault = await ethers.getContractFactory("AladdinConvexVault", deployer);
         const impl = await AladdinConvexVault.deploy();
         await impl.deployed();
 
-        vault = await ethers.getContractAt("AladdinConvexVault", V3_CONTRACTS.AladdinConvexVault);
+        vault = await ethers.getContractAt("AladdinConvexVault", DEPLOYED_CONTRACTS.AladdinConvexVault);
 
         await proxyAdmin.upgrade(vault.address, impl.address);
 

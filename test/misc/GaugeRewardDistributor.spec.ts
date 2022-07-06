@@ -9,7 +9,7 @@ import {
   MockCurveGaugeV4V5,
   MockERC20,
   PlatformFeeDistributor,
-} from "../typechain";
+} from "../../typechain";
 
 describe("GaugeRewardDistributor.spec", async () => {
   let deployer: SignerWithAddress;

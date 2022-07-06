@@ -1,7 +1,7 @@
 /* eslint-disable node/no-missing-import */
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { ADDRESS } from "../config";
+import { TOKENS } from "../utils";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -22,15 +22,15 @@ const db = getDatabase(app);
 
 const LOCKER = "0x96C68D861aDa016Ed98c30C810879F9df7c64154";
 
-const TOKENS: { [round: number]: string[] } = {
+const REWARDS: { [round: number]: string[] } = {
   19: ["ALCX", "CVX", "EURS", "FXS", "JPEG", "LDO", "LYRA", "SNX", "STG", "TRIBE", "USDN"],
   20: ["ALCX", "CVX", "FXS", "JPEG", "LDO", "MTA", "SNX", "STG", "USDN"],
   21: ["ALCX", "CVX", "FXS", "FLX", "GNO", "INV", "JPEG", "LDO", "SPELL", "STG"],
 };
 
 async function main() {
-  for (const token of TOKENS[21]) {
-    const address = ADDRESS[token];
+  for (const token of REWARDS[21]) {
+    const address = TOKENS[token].address;
     const amountRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/amount/");
     const proofRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/proof/");
     const indexRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/index/");

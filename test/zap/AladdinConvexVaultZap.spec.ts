@@ -1,22 +1,23 @@
 /* eslint-disable node/no-missing-import */
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { encodePoolHint, TOKENS } from "../../scripts/utils";
 // eslint-disable-next-line camelcase
-import { encodePoolHint, request_fork } from "./utils";
+import { request_fork } from "../utils";
 
 const FORK_BLOCK_NUMBER = 14243290;
-const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-const CVX = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
+const WETH = TOKENS.WETH.address;
+const CVX = TOKENS.CVX.address;
 const CVX_HOLDER = "0x28C6c06298d514Db089934071355E5743bf21d60";
-const CRV = "0xD533a949740bb3306d119CC777fa900bA034cd52";
+const CRV = TOKENS.CRV.address;
 const CRV_HOLDER = "0x7a16fF8270133F063aAb6C9977183D9e72835428";
-const SPELL = "0x090185f2135308BaD17527004364eBcC2D37e5F6";
+const SPELL = TOKENS.SPELL.address;
 const SPELL_HOLDER = "0x8C54EbDD960056d2CfF5998df5695dACA1FC0190";
-const ALCX = "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF";
+const ALCX = TOKENS.ALCX.address;
 const ALCX_HOLDER = "0x28C6c06298d514Db089934071355E5743bf21d60";
-const LDO = "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32";
+const LDO = TOKENS.LDO.address;
 const LDO_HOLDER = "0x447f95026107aaed7472A0470931e689f51e0e42";
-const FXS = "0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0";
+const FXS = TOKENS.FXS.address;
 const FXS_HOLDER = "0xF977814e90dA44bFA03b6295A0616a897441aceC";
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 

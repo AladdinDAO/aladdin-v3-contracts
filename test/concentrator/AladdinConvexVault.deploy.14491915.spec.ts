@@ -4,9 +4,9 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { AladdinConvexVault, IConvexBooster } from "../typechain";
+import { AladdinConvexVault, IConvexBooster } from "../../typechain";
 // eslint-disable-next-line camelcase
-import { request_fork } from "./utils";
+import { request_fork } from "../utils";
 
 const FORK_BLOCK_NUMBER = 14491915;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
@@ -80,7 +80,7 @@ const wstETH_HOLDER = "0x3991ADBDf461D6817734555efDC8ef056fEfBF21";
 const UST_WORMHOLE = "0xa693B19d2931d498c5B318dF961919BB4aee87a5";
 const UST_WORMHOLE_HOLDER = "0x54195F35c93E7CD74fA5345c179fD06223Cd9eDB";
 
-describe("VaultZapMainnetFork.spec", async () => {
+describe("AladdinConvexVault.deploy.14491915.spec", async () => {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
   let vault: AladdinConvexVault;

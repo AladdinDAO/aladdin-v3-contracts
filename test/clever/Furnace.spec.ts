@@ -1,11 +1,12 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { CLeverToken, IERC20, Furnace } from "../typechain";
-import { Action, encodePoolHintV2, PoolType, request_fork } from "./utils";
+import { CLeverToken, IERC20, Furnace } from "../../typechain";
+import { request_fork } from "../utils";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { constants } from "ethers";
+import { ZAP_ROUTES } from "../../scripts/utils";
 
 const FORK_BLOCK_NUMBER = 14386700;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
@@ -47,18 +48,7 @@ describe("Furnace.spec", async () => {
     // 1. cvxcrv ==> crv with CurveFactoryPlainPool
     // 2. crv ==> eth with CurveCryptoPool
     // 3. eth ==> cvx with UniswapV2
-    await zap.updateRoute(CVXCRV, CVX, [
-      encodePoolHintV2(
-        "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8",
-        PoolType.CurveFactoryPlainPool,
-        2,
-        1,
-        0,
-        Action.Swap
-      ),
-      encodePoolHintV2("0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511", PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
-      encodePoolHintV2("0x05767d9EF41dC40689678fFca0608878fb3dE906", PoolType.UniswapV2, 2, 1, 0, Action.Swap),
-    ]);
+    await zap.updateRoute(CVXCRV, CVX, ZAP_ROUTES.cvxCRV.CVX);
 
     const Furnace = await ethers.getContractFactory("Furnace", deployer);
     furnace = await Furnace.deploy();

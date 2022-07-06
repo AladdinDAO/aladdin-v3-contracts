@@ -2,7 +2,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { CLeverToken } from "../typechain";
+import { CLeverToken } from "../../typechain";
 
 describe("CLeverToken.spec", async () => {
   let deployer: SignerWithAddress;

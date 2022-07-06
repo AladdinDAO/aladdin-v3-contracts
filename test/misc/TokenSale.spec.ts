@@ -1,12 +1,12 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { CLeverToken, IERC20, TokenSale, Vesting } from "../typechain";
-import { Action, encodePoolHintV2, PoolType, request_fork } from "./utils";
+import { CLeverToken, IERC20, TokenSale, Vesting } from "../../typechain";
+import { request_fork } from "../utils";
 import { ethers, network } from "hardhat";
 import { expect } from "chai";
 import { constants } from "ethers";
-import { ADDRESS } from "../scripts/config";
+import { Action, ADDRESS, encodePoolHintV2, PoolType } from "../../scripts/utils";
 
 const FORK_BLOCK_NUMBER = 14648084;
 const FORK_TIMESTAMP = 1650812105;

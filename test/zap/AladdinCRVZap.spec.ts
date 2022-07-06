@@ -2,17 +2,18 @@
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
+import { TOKENS } from "../../scripts/utils";
 // eslint-disable-next-line camelcase
-import { request_fork } from "./utils";
+import { request_fork } from "../utils";
 
 const FORK_BLOCK_NUMBER = 14243290;
-const THREE_CRV = "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490";
+const THREE_CRV = TOKENS.TRICRV.address;
 const THREE_CRV_HOLDER = "0x7aCAeD42fD79AAF0cdEC641a2c59E06D996b96a0";
-const CVX = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
+const CVX = TOKENS.CVX.address;
 const CVX_HOLDER = "0x28C6c06298d514Db089934071355E5743bf21d60";
-const CRV = "0xD533a949740bb3306d119CC777fa900bA034cd52";
+const CRV = TOKENS.CRV.address;
 const CRV_HOLDER = "0x7a16fF8270133F063aAb6C9977183D9e72835428";
-const CVXCRV = "0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7";
+const CVXCRV = TOKENS.cvxCRV.address;
 const CVXCRV_HOLDER = "0xE4360E6e45F5b122586BCA3b9d7b222EA69C5568";
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 
