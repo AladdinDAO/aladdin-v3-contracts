@@ -118,6 +118,42 @@ export const VAULTS: {
     harvestBounty: 1e7,
     platformFee: 1e7,
   },
+  // susd, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "susd",
+    convexId: 4,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV, ADDRESS.SNX],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // sbtc, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "sbtc",
+    convexId: 7,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // sbtc, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "seth",
+    convexId: 23,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // fraxusdc, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "fraxusdc",
+    convexId: 100,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
 ];
 
 export const IFO_VAULTS: {
@@ -978,6 +1014,118 @@ export const ZAP_VAULT_ROUTES: {
             3,
             Action.AddLiquidity
           ),
+        ],
+      },
+    ],
+    remove: [],
+  },
+  susd: {
+    name: "CURVE_SUSD",
+    add: [
+      {
+        token: "DAI",
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_SUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 0, 0, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "USDC",
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_SUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 0, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "USDT",
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_SUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 2, 0, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "sUSD",
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_SUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 3, 0, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "WETH", // WETH ==(UniV3)==>USDC==(Curve)==> CURVE_SUSD
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_SUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 0, Action.AddLiquidity),
+        ],
+      },
+    ],
+    remove: [],
+  },
+  sbtc: {
+    name: "CURVE_SBTC",
+    add: [
+      {
+        token: "renBTC",
+        routes: [encodePoolHintV2(ADDRESS.CURVE_SBTC_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.AddLiquidity)],
+      },
+      {
+        token: "WBTC",
+        routes: [encodePoolHintV2(ADDRESS.CURVE_SBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.AddLiquidity)],
+      },
+      {
+        token: "sBTC",
+        routes: [encodePoolHintV2(ADDRESS.CURVE_SBTC_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.AddLiquidity)],
+      },
+      {
+        token: "WETH", // WETH==(CurveV2)==>WBTC==(Curve)==>CURVE_SBTC
+        routes: [
+          encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_SBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.AddLiquidity),
+        ],
+      },
+      {
+        token: "USDC", // USDC==(UniV3)==>WETH==(CurveV2)==>WBTC==(Curve)==>CURVE_SBTC
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_SBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.AddLiquidity),
+        ],
+      },
+    ],
+    remove: [],
+  },
+  seth: {
+    name: "CURVE_SETH",
+    add: [
+      {
+        token: "sETH",
+        routes: [encodePoolHintV2(ADDRESS.CURVE_SETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity)],
+      },
+      {
+        token: "WETH", // WETH==(Curve)==>CURVE_SBTC
+        routes: [encodePoolHintV2(ADDRESS.CURVE_SETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity)],
+      },
+      {
+        token: "USDC", // USDC==(UniV3)==>WETH==(Curve)==>CURVE_SBTC
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_SETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        ],
+      },
+    ],
+    remove: [],
+  },
+  fraxusdc: {
+    name: "CURVE_FRAXUSDC",
+    add: [
+      {
+        token: "FRAX",
+        routes: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity)],
+      },
+      {
+        token: "USDC",
+        routes: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 0, Action.AddLiquidity)],
+      },
+      {
+        token: "WETH", // WETH ==(UniV3)==>USDC==(Curve)==> CURVE_SUSD
+        routes: [
+          encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+          encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 0, Action.AddLiquidity),
         ],
       },
     ],
