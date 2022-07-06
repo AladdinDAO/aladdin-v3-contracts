@@ -36,4 +36,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   PUSD: { decimals: 18, address: "0x466a756E9A7401B5e2444a3fCB3c2C12FBEa0a54" },
   MTA: { decimals: 18, address: "0xa3BeD4E1c75D00fa6f4E5E6922DB7261B5E9AcD2" },
   GNO: { decimals: 18, address: "0x6810e776880C02933D47DB1b9fc05908e5386b96" },
+  sUSD: { decimals: 18, address: "0x57Ab1ec28D129707052df4dF418D58a2D46d5f51" },
+  sBTC: { decimals: 18, address: "0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6" },
+  sETH: { decimals: 18, address: "0x5e74C9036fb86BD7eCdcb084a0673EFc32eA31cb" },
 };
