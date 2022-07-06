@@ -7,13 +7,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import "./interfaces/IAladdinCRV.sol";
-import "../interfaces/IConvexBasicRewards.sol";
-import "../interfaces/IConvexCRVDepositor.sol";
-import "../interfaces/IConvexVirtualBalanceRewardPool.sol";
-import "../interfaces/ICVXMining.sol";
-import "../interfaces/IEllipsisMerkleDistributor.sol";
-import "../interfaces/IZap.sol";
+import "../interfaces/IAladdinCRV.sol";
+import "../../interfaces/IConvexBasicRewards.sol";
+import "../../interfaces/IConvexCRVDepositor.sol";
+import "../../interfaces/IConvexVirtualBalanceRewardPool.sol";
+import "../../interfaces/ICVXMining.sol";
+import "../../interfaces/IEllipsisMerkleDistributor.sol";
+import "../../interfaces/IZap.sol";
 
 // solhint-disable no-empty-blocks, reason-string
 contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable, IAladdinCRV {

@@ -5,7 +5,7 @@ pragma solidity ^0.7.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import "../concentrator/interfaces/IAladdinConvexVault.sol";
+import "../concentrator/interfaces/IAladdinCRVConvexVault.sol";
 import "../zap/TokenZapLogic.sol";
 import "./ZapGatewayBase.sol";
 
@@ -46,7 +46,7 @@ contract ConcentratorGateway is ZapGatewayBase {
     // 3. deposit into Concentrator vault
     IERC20(_lpToken).safeApprove(_vault, 0);
     IERC20(_lpToken).safeApprove(_vault, _amountLP);
-    uint256 _sharesOut = IAladdinConvexVault(_vault).deposit(_pid, msg.sender, _amountLP);
+    uint256 _sharesOut = IAladdinCRVConvexVault(_vault).deposit(_pid, msg.sender, _amountLP);
 
     require(_sharesOut >= _minShareOut, "insufficient share");
     return _sharesOut;

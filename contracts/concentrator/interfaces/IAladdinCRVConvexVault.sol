@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface IAladdinConvexVault {
+interface IAladdinCRVConvexVault {
   enum ClaimOption {
     None,
     Claim,
