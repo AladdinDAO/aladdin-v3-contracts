@@ -40,4 +40,18 @@ interface IBalancerVault {
     uint256 limit,
     uint256 deadline
   ) external payable returns (uint256 amountCalculated);
+
+  struct JoinPoolRequest {
+    address[] assets;
+    uint256[] maxAmountsIn;
+    bytes userData;
+    bool fromInternalBalance;
+  }
+
+  function joinPool(
+    bytes32 poolId,
+    address sender,
+    address recipient,
+    JoinPoolRequest memory request
+  ) external payable;
 }

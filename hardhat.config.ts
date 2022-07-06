@@ -41,13 +41,6 @@ const config: HardhatUserConfig = {
     compilers: [{ version: "0.3.1" }, { version: "0.2.7" }],
   },
   networks: {
-    hardhat: {
-      forking: {
-        url: process.env.HARDHAT_FORK_URL as string,
-        blockNumber: 14243290,
-      },
-      chainId: 1,
-    },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
@@ -57,10 +50,14 @@ const config: HardhatUserConfig = {
       chainId: 1,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
-    mainnetfork: {
-      url: "http://47.242.46.45:10547",
+    mainnet_fork_10548: {
+      url: process.env.MAINNET_FORK_10548_URL || "",
+      chainId: 10548,
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    mainnet_fork_10547: {
+      url: process.env.MAINNET_FORK_10547_URL || "",
       chainId: 10547,
-      gas: 6700000,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },

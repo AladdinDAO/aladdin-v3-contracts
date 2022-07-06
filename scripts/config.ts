@@ -41,6 +41,19 @@ export const DECIMALS: { [name: string]: number } = {
   GNO: 18,
 };
 
+export const V3_CONTRACTS = {
+  CommunityMultisig: "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F",
+  ManagementMultisig: "0x28c921adAC4c1072658eB01a28DA06b5F651eF62",
+  CLeverTreasury: "0xFC08757c505eA28709dF66E54870fB6dE09f0C5E",
+  ProxyAdmin: "0x12b1326459d72F2Ab081116bf27ca46cD97762A0",
+  AladdinConvexVault: "0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8",
+  aCRV: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
+  AladdinZap: "0x1104b4DF568fa7Af90B1Bed1D78A2F71e748dc8a",
+  clevCVX: "0xf05e58fCeA29ab4dA01A495140B349F8410Ba904",
+  FurnaceForCVX: "0xCe4dCc5028588377E279255c0335Effe2d7aB72a",
+  CLeverForCVX: "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
+};
+
 export const ADDRESS: { [name: string]: string } = {
   WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   CRV: "0xD533a949740bb3306d119CC777fa900bA034cd52",
@@ -268,6 +281,115 @@ export const VAULTS: {
   },
 ];
 
+export const IFO_VAULTS: {
+  name: string;
+  convexId: number;
+  rewards: string[];
+  withdrawFee: number;
+  harvestBounty: number;
+  platformFee: number;
+}[] = [
+  // steth, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "steth",
+    convexId: 25,
+    rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.LDO],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // frax, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "frax",
+    convexId: 32,
+    rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.FXS],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // tricrypto2, 0.10% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "tricrypto2",
+    convexId: 38,
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    withdrawFee: 10e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // cvxcrv, 0.30% withdraw fee, 1% harvest bounty, 8% platform fee
+  {
+    name: "cvxcrv",
+    convexId: 41,
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    withdrawFee: 30e5,
+    harvestBounty: 1e7,
+    platformFee: 8e7,
+  },
+  // crveth, 0.30% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "crveth",
+    convexId: 61,
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    withdrawFee: 30e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // cvxeth, 0.30% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "cvxeth",
+    convexId: 64,
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    withdrawFee: 30e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // cvxfxs, 0.30% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "cvxfxs",
+    convexId: 72,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV, ADDRESS.FXS],
+    withdrawFee: 30e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // 3pool, 0.01% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "3pool",
+    convexId: 9,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    withdrawFee: 1e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // ust-wormhole, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "ust-wormhole",
+    convexId: 59,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // RocketPoolETH, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "RocketPoolETH",
+    convexId: 73,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+  // ren, 0.05% withdraw fee, 1% harvest bounty, 1% platform fee
+  {
+    name: "ren",
+    convexId: 6,
+    rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    withdrawFee: 5e5,
+    harvestBounty: 1e7,
+    platformFee: 1e7,
+  },
+];
+
 export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }[] = [
   {
     from: "WETH",
@@ -440,6 +562,14 @@ export const ZAP_SWAP_ROUNTES: { from: string; to: string; routes: BigNumber[] }
     routes: [
       encodePoolHintV2(ADDRESS.MTA_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  {
+    from: "USDC", // USDC ==(UniV3)==> WETH ==(CurveV2)=> CRV
+    to: "CRV",
+    routes: [
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },
   {
@@ -1023,7 +1153,7 @@ export const ZAP_VAULT_ROUTES: {
       },
     ],
   },
-  rocketeth: {
+  RocketPoolETH: {
     name: "CURVE_ROCKETETH",
     add: [
       {
