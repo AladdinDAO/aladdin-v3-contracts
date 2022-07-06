@@ -1,15 +1,12 @@
 /* eslint-disable node/no-missing-import */
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
+import { DEPLOYED_CONTRACTS } from "../utils";
 import { Round17Rewards } from "./config";
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  const cvxLocker = await ethers.getContractAt(
-    "CLeverCVXLocker",
-    "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
-    deployer
-  );
+  const cvxLocker = await ethers.getContractAt("CLeverCVXLocker", DEPLOYED_CONTRACTS.CLeverForCVX, deployer);
 
   const estimate = BigNumber.from(
     await ethers.provider.call({

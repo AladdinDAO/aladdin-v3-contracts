@@ -3,7 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { CLeverToken, PlatformFeeDistributor } from "../typechain";
+import { CLeverToken, PlatformFeeDistributor } from "../../typechain";
 
 describe("PlatformFeeDistributor.spec", async () => {
   let deployer: SignerWithAddress;

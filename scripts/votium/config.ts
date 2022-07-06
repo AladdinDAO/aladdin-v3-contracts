@@ -1,6 +1,6 @@
 /* eslint-disable node/no-missing-import */
 import { BigNumberish } from "ethers";
-import { ADDRESS } from "../config";
+import { TOKENS } from "../utils";
 
 interface IClaimParam {
   token: string;
@@ -9,26 +9,26 @@ interface IClaimParam {
   merkleProof: string[];
 }
 
-const FXS = ADDRESS.FXS;
-const UST_WORMHOLE = ADDRESS.UST_WORMHOLE;
-const LDO = ADDRESS.LDO;
-const CVX = ADDRESS.CVX;
-const ALCX = ADDRESS.ALCX;
-const SPELL = ADDRESS.SPELL;
-const LYRA = ADDRESS.LYRA;
-const SNX = ADDRESS.SNX;
-const GRO = ADDRESS.GRO;
-const FLX = ADDRESS.FLX;
-const ANGLE = ADDRESS.ANGLE;
-const INV = ADDRESS.INV;
-const STG = ADDRESS.STG;
-const TRIBE = ADDRESS.TRIBE;
-const GEIST = ADDRESS.GEIST;
-const JPEG = ADDRESS.JPEG;
-const USDN = ADDRESS.USDN;
-const EURS = ADDRESS.EURS;
-const MTA = ADDRESS.MTA;
-const GNO = ADDRESS.GNO;
+const FXS = TOKENS.FXS.address;
+const UST_WORMHOLE = TOKENS.UST_WORMHOLE.address;
+const LDO = TOKENS.LDO.address;
+const CVX = TOKENS.CVX.address;
+const ALCX = TOKENS.ALCX.address;
+const SPELL = TOKENS.SPELL.address;
+const LYRA = TOKENS.LYRA.address;
+const SNX = TOKENS.SNX.address;
+const GRO = TOKENS.GRO.address;
+const FLX = TOKENS.FLX.address;
+const ANGLE = TOKENS.ANGLE.address;
+const INV = TOKENS.INV.address;
+const STG = TOKENS.STG.address;
+const TRIBE = TOKENS.TRIBE.address;
+const GEIST = TOKENS.GEIST.address;
+const JPEG = TOKENS.JPEG.address;
+const USDN = TOKENS.USDN.address;
+const EURS = TOKENS.EURS.address;
+const MTA = TOKENS.MTA.address;
+const GNO = TOKENS.GNO.address;
 
 export const Round17Rewards: IClaimParam[] = [
   {

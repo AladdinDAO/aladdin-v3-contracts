@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { ADDRESS } from "../scripts/config";
+import { ADDRESS } from "../../scripts/utils";
 import {
   AladdinConvexVault,
   CLeverToken,
@@ -12,14 +12,14 @@ import {
   IConvexBooster,
   PlatformFeeDistributor,
   VeCTRFeeDistributor,
-} from "../typechain";
-import { ConcentratorGaugeController } from "../typechain/ConcentratorGaugeController";
-import { ConcentratorLiquidityGauge } from "../typechain/ConcentratorLiquidityGauge";
-import { CTR } from "../typechain/CTR";
-import { CTRMinter } from "../typechain/CTRMinter";
-import { VeCTR } from "../typechain/VeCTR";
+} from "../../typechain";
+import { ConcentratorGaugeController } from "../../typechain/ConcentratorGaugeController";
+import { ConcentratorLiquidityGauge } from "../../typechain/ConcentratorLiquidityGauge";
+import { CTR } from "../../typechain/CTR";
+import { CTRMinter } from "../../typechain/CTRMinter";
+import { VeCTR } from "../../typechain/VeCTR";
 // eslint-disable-next-line camelcase
-import { request_fork } from "./utils";
+import { request_fork } from "../utils";
 
 const FORK_BLOCK_NUMBER = 14853058;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";

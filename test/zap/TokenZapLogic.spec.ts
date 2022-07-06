@@ -3,9 +3,10 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import { ethers } from "hardhat";
-import { IERC20, TokenZapLogic } from "../typechain";
+import { Action, encodePoolHintV2, PoolType } from "../../scripts/utils";
+import { IERC20, TokenZapLogic } from "../../typechain";
 // eslint-disable-next-line camelcase
-import { Action, encodePoolHintV2, PoolType, request_fork } from "./utils";
+import { request_fork } from "../utils";
 
 const Type2String: { [type: number]: string } = {
   [PoolType.UniswapV2]: "UniswapV2",

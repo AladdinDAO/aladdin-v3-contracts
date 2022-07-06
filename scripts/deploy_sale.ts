@@ -1,7 +1,7 @@
 /* eslint-disable node/no-missing-import */
 import { ethers } from "hardhat";
 import { AladdinZap, CLeverToken, ProxyAdmin, Vesting, TokenSale } from "../typechain";
-import { ADDRESS } from "./config";
+import { ADDRESS } from "./utils";
 
 const config: {
   proxyAdmin?: string;

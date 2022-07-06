@@ -12,7 +12,8 @@ import {
   ICurveGaugeV4V5,
 } from "../typechain";
 import { GaugeFactory } from "../typechain/GaugeFactory";
-import { ADDRESS, IFO_VAULTS, V3_CONTRACTS } from "./config";
+import { IFO_VAULTS } from "./config";
+import { ADDRESS, DEPLOYED_CONTRACTS } from "./utils";
 
 const config: {
   StartTimestamp: number;
@@ -39,7 +40,7 @@ const config: {
 } = {
   StartTimestamp: 1654444800,
   EndTimestamp: 1655105421 + 86400 * 10,
-  aCRV: V3_CONTRACTS.aCRV,
+  aCRV: DEPLOYED_CONTRACTS.aCRV,
   GaugeImpl: "0xdc892358d55d5ae1ec47a531130d62151eba36e5",
   BalancerVault: "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
   BalancerPoolFactory: "0x8E9aa87E45e92bad84D5F8DD1bff34Fb92637dE9",
@@ -147,15 +148,15 @@ async function main() {
     await ctr.approve(vault.address, constants.MaxUint256);
     await vault.joinPool(config.BalancerPoolId!, deployer.address, deployer.address, {
       assets:
-        ctr.address.toLowerCase() < V3_CONTRACTS.aCRV.toLowerCase()
-          ? [ctr.address, V3_CONTRACTS.aCRV]
-          : [V3_CONTRACTS.aCRV, ctr.address],
+        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.aCRV.toLowerCase()
+          ? [ctr.address, DEPLOYED_CONTRACTS.aCRV]
+          : [DEPLOYED_CONTRACTS.aCRV, ctr.address],
       maxAmountsIn: [constants.MaxUint256, constants.MaxUint256],
       userData: ethers.utils.defaultAbiCoder.encode(
         ["uint8", "uint256[]"],
         [
           0,
-          ctr.address.toLowerCase() < V3_CONTRACTS.aCRV.toLowerCase()
+          ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.aCRV.toLowerCase()
             ? [ethers.utils.parseEther("200"), ethers.utils.parseEther("1000")]
             : [ethers.utils.parseEther("1000"), ethers.utils.parseEther("200")],
         ]
@@ -241,7 +242,7 @@ async function main() {
     const PlatformFeeDistributor = await ethers.getContractFactory("PlatformFeeDistributor", deployer);
     platformFeeDistributor = await PlatformFeeDistributor.deploy(
       gaugeRewardDistributor.address,
-      V3_CONTRACTS.CommunityMultisig,
+      DEPLOYED_CONTRACTS.CommunityMultisig,
       veCTRFeeDistributor.address,
       [
         {
@@ -250,7 +251,7 @@ async function main() {
           treasuryPercentage: 0,
         },
         {
-          token: V3_CONTRACTS.aCRV,
+          token: DEPLOYED_CONTRACTS.aCRV,
           gaugePercentage: 0,
           treasuryPercentage: 1e9,
         },
@@ -278,8 +279,8 @@ async function main() {
     console.log("Deploy ConcentratorIFOVault Impl at:", impl.address);
 
     const data = impl.interface.encodeFunctionData("initialize", [
-      V3_CONTRACTS.aCRV,
-      V3_CONTRACTS.AladdinZap,
+      DEPLOYED_CONTRACTS.aCRV,
+      DEPLOYED_CONTRACTS.AladdinZap,
       platformFeeDistributor.address,
     ]);
     const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);

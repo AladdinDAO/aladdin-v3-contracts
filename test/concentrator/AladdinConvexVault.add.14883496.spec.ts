@@ -4,10 +4,11 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { ADDRESS, VAULTS, ZAP_VAULT_ROUTES } from "../scripts/config";
-import { AladdinConvexVault, IConvexBooster } from "../typechain";
+import { VAULTS, ZAP_VAULT_ROUTES } from "../../scripts/config";
+import { ADDRESS } from "../../scripts/utils";
+import { AladdinConvexVault, IConvexBooster } from "../../typechain";
 // eslint-disable-next-line camelcase
-import { request_fork } from "./utils";
+import { request_fork } from "../utils";
 
 const FORK_BLOCK_NUMBER = 14883496;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
@@ -37,7 +38,7 @@ const TRICRV_HOLDER = "0x5c00977a2002a3C9925dFDfb6815765F578a804f";
 
 let firstCall = true;
 
-describe("VaultZapMainnetFork.spec", async () => {
+describe("AladdinConvexVault.add.14883496.spec", async () => {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
   let vault: AladdinConvexVault;
@@ -79,7 +80,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       }
       await zap.updateRoute(ADDRESS[token], ADDRESS[name + "_TOKEN"], routes);
     }
-    /*for (const { token, routes } of removeRoutes) {
+    for (const { token, routes } of removeRoutes) {
       if (firstCall) {
         console.log(
           ` ${name + "_TOKEN"} to ${token} zap:`,
@@ -89,7 +90,7 @@ describe("VaultZapMainnetFork.spec", async () => {
         );
       }
       await zap.updateRoute(ADDRESS[name + "_TOKEN"], ADDRESS[token], routes);
-    }*/
+    }
     if (firstCall) {
       console.log(`updatePoolTokens: pools[${CURVE_PUSD3CRV_POOL}] tokens[${CURVE_PUSD3CRV_TOKEN}]`);
     }
@@ -122,9 +123,11 @@ describe("VaultZapMainnetFork.spec", async () => {
         const signer = await ethers.getSigner(PUSD_HOLDER);
         const pusd = await ethers.getContractAt("IERC20", PUSD, signer);
         await pusd.approve(vault.address, constants.MaxUint256);
-        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, pusd.address, amountIn, 0);
+        const shares = await vault
+          .connect(signer)
+          .callStatic["zapAndDeposit(uint256,address,uint256,uint256)"](pid, pusd.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
-        await vault.connect(signer).zapAndDeposit(pid, pusd.address, amountIn, 0);
+        await vault.connect(signer)["zapAndDeposit(uint256,address,uint256,uint256)"](pid, pusd.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
 
@@ -134,9 +137,11 @@ describe("VaultZapMainnetFork.spec", async () => {
         const signer = await ethers.getSigner(TRICRV_HOLDER);
         const tricrv = await ethers.getContractAt("IERC20", TRICRV, signer);
         await tricrv.approve(vault.address, constants.MaxUint256);
-        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, tricrv.address, amountIn, 0);
+        const shares = await vault
+          .connect(signer)
+          .callStatic["zapAndDeposit(uint256,address,uint256,uint256)"](pid, tricrv.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
-        await vault.connect(signer).zapAndDeposit(pid, tricrv.address, amountIn, 0);
+        await vault.connect(signer)["zapAndDeposit(uint256,address,uint256,uint256)"](pid, tricrv.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
 
@@ -146,9 +151,11 @@ describe("VaultZapMainnetFork.spec", async () => {
         const signer = await ethers.getSigner(DAI_HOLDER);
         const dai = await ethers.getContractAt("IERC20", DAI, signer);
         await dai.approve(vault.address, constants.MaxUint256);
-        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, dai.address, amountIn, 0);
+        const shares = await vault
+          .connect(signer)
+          .callStatic["zapAndDeposit(uint256,address,uint256,uint256)"](pid, dai.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
-        await vault.connect(signer).zapAndDeposit(pid, dai.address, amountIn, 0);
+        await vault.connect(signer)["zapAndDeposit(uint256,address,uint256,uint256)"](pid, dai.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
 
@@ -158,9 +165,11 @@ describe("VaultZapMainnetFork.spec", async () => {
         const signer = await ethers.getSigner(DAI_HOLDER);
         const usdc = await ethers.getContractAt("IERC20", USDC, signer);
         await usdc.approve(vault.address, constants.MaxUint256);
-        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, usdc.address, amountIn, 0);
+        const shares = await vault
+          .connect(signer)
+          .callStatic["zapAndDeposit(uint256,address,uint256,uint256)"](pid, usdc.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
-        await vault.connect(signer).zapAndDeposit(pid, usdc.address, amountIn, 0);
+        await vault.connect(signer)["zapAndDeposit(uint256,address,uint256,uint256)"](pid, usdc.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
 
@@ -170,9 +179,11 @@ describe("VaultZapMainnetFork.spec", async () => {
         const signer = await ethers.getSigner(USDT_HOLDER);
         const usdt = await ethers.getContractAt("IERC20", USDT, signer);
         await usdt.approve(vault.address, constants.MaxUint256);
-        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, usdt.address, amountIn, 0);
+        const shares = await vault
+          .connect(signer)
+          .callStatic["zapAndDeposit(uint256,address,uint256,uint256)"](pid, usdt.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
-        await vault.connect(signer).zapAndDeposit(pid, usdt.address, amountIn, 0);
+        await vault.connect(signer)["zapAndDeposit(uint256,address,uint256,uint256)"](pid, usdt.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
 
@@ -184,9 +195,15 @@ describe("VaultZapMainnetFork.spec", async () => {
 
         const shares = await vault
           .connect(signer)
-          .callStatic.zapAndDeposit(pid, constants.AddressZero, amountIn, 0, { value: amountIn });
+          .callStatic["zapAndDeposit(uint256,address,uint256,uint256)"](pid, constants.AddressZero, amountIn, 0, {
+            value: amountIn,
+          });
         expect(shares).to.eq(sharesOut);
-        await vault.connect(signer).zapAndDeposit(pid, constants.AddressZero, amountIn, 0, { value: amountIn });
+        await vault
+          .connect(signer)
+          ["zapAndDeposit(uint256,address,uint256,uint256)"](pid, constants.AddressZero, amountIn, 0, {
+            value: amountIn,
+          });
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
 
@@ -198,9 +215,11 @@ describe("VaultZapMainnetFork.spec", async () => {
 
         const weth = await ethers.getContractAt("IERC20", WETH, signer);
         await weth.approve(vault.address, constants.MaxUint256);
-        const shares = await vault.connect(signer).callStatic.zapAndDeposit(pid, weth.address, amountIn, 0);
+        const shares = await vault
+          .connect(signer)
+          .callStatic["zapAndDeposit(uint256,address,uint256,uint256)"](pid, weth.address, amountIn, 0);
         expect(shares).to.eq(sharesOut);
-        await vault.connect(signer).zapAndDeposit(pid, weth.address, amountIn, 0);
+        await vault.connect(signer)["zapAndDeposit(uint256,address,uint256,uint256)"](pid, weth.address, amountIn, 0);
         expect((await vault.userInfo(pid, signer.address)).shares).to.eq(sharesOut);
       });
     });
@@ -213,16 +232,23 @@ describe("VaultZapMainnetFork.spec", async () => {
         await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
         const frax3crv = await ethers.getContractAt("IERC20", CURVE_PUSD3CRV_TOKEN, signer);
         await frax3crv.approve(vault.address, constants.MaxUint256);
-        await vault.connect(signer).zapAndDeposit(pid, CURVE_PUSD3CRV_TOKEN, ethers.utils.parseEther("10000"), 0);
+        await vault
+          .connect(signer)
+          ["zapAndDeposit(uint256,address,uint256,uint256)"](
+            pid,
+            CURVE_PUSD3CRV_TOKEN,
+            ethers.utils.parseEther("10000"),
+            0
+          );
       });
 
-      /*it("should succeed, when harvest", async () => {
+      it("should succeed, when harvest", async () => {
         await booster.earmarkRewards(32);
         const amount = await vault.callStatic.harvest(pid, signer.address, 0);
         await vault.harvest(pid, signer.address, 0);
         console.log("rewards", amount.toString());
         expect(await ethers.provider.getBalance(vault.address)).to.eq(constants.Zero);
-      });*/
+      });
 
       it("should succeed, when withdraw to lp Token", async () => {
         const amountOut = ethers.utils.parseUnits("10000", 18);

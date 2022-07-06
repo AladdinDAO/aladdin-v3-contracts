@@ -1,7 +1,5 @@
 /* eslint-disable node/no-missing-import */
-import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { encodePoolHint } from "../test/utils";
 import {
   AladdinConvexVault,
   AladdinConvexVaultZap,
@@ -10,7 +8,8 @@ import {
   AladdinZap,
   ProxyAdmin,
 } from "../typechain";
-import { ADDRESS, VAULTS, ZAP_SWAP_ROUNTES, ZAP_VAULT_ROUTES } from "./config";
+import { VAULTS } from "./config";
+import { ADDRESS, encodePoolHint } from "./utils";
 
 const config: {
   acrv?: string;
@@ -74,126 +73,6 @@ async function setupRoutes() {
   ]);
   console.log("wait for tx:", tx.hash);
   await tx.wait();
-}
-
-// eslint-disable-next-line no-unused-vars
-async function showNewZap() {
-  const newZap = [
-    ["cvxeth", "USDC"],
-    ["cvxcrv", "USDC"],
-    ["steth", "USDC"],
-    ["tricrypto2", "USDC"],
-    ["cvxfxs", "USDC"],
-    ["rocketeth", "USDC"],
-    ["crveth", "USDC"],
-  ];
-  for (const [pool, token] of newZap) {
-    console.log(`zap for token[${token}] of pool[${pool}]:`);
-    const vault = ZAP_VAULT_ROUTES[pool];
-    const add = ZAP_VAULT_ROUTES[pool].add;
-    for (const { token: _token, routes } of add) {
-      if (token === _token) {
-        console.log(
-          `  from[${ADDRESS[token]}] to[${ADDRESS[vault.name + "_TOKEN"]}] routes[${routes.map((x) => x.toString())}]`
-        );
-      }
-    }
-  }
-}
-
-// eslint-disable-next-line no-unused-vars
-async function setupRouteForAladdinZap() {
-  console.log("update pool tokens");
-  const tx = await aladdinZap.updatePoolTokens(
-    [
-      ADDRESS.CURVE_STETH_POOL,
-      ADDRESS.CURVE_FRAX3CRV_POOL,
-      ADDRESS.CURVE_TRICRYPTO_POOL,
-      ADDRESS.CURVE_CVXCRV_POOL,
-      ADDRESS.CURVE_CRVETH_POOL,
-      ADDRESS.CURVE_CVXETH_POOL,
-      ADDRESS.CURVE_CVXFXS_POOL,
-      ADDRESS.CURVE_TRICRV_POOL,
-      ADDRESS.CURVE_UST_WORMHOLE_POOL,
-      ADDRESS.CURVE_ROCKETETH_POOL,
-    ],
-    [
-      ADDRESS.CURVE_STETH_TOKEN,
-      ADDRESS.CURVE_FRAX3CRV_TOKEN,
-      ADDRESS.CURVE_TRICRYPTO_TOKEN,
-      ADDRESS.CURVE_CVXCRV_TOKEN,
-      ADDRESS.CURVE_CRVETH_TOKEN,
-      ADDRESS.CURVE_CVXETH_TOKEN,
-      ADDRESS.CURVE_CVXFXS_TOKEN,
-      ADDRESS.CURVE_TRICRV_TOKEN,
-      ADDRESS.CURVE_UST_WORMHOLE_TOKEN,
-      ADDRESS.CURVE_ROCKETETH_TOKEN,
-    ]
-  );
-  console.log("waiting tx:", tx.hash);
-  await tx.wait();
-
-  // swap routes
-  for (const { from, to, routes } of ZAP_SWAP_ROUNTES) {
-    let update: boolean;
-    try {
-      update = (await aladdinZap.routes(ADDRESS[from], ADDRESS[to], 0)).eq(constants.AddressZero);
-    } catch (error) {
-      update = true;
-    }
-    if (update) {
-      console.log(`update ${from} => ${to} Swap routes`);
-      const tx = await aladdinZap.updateRoute(ADDRESS[from], ADDRESS[to], routes);
-      console.log("waiting tx:", tx.hash);
-      await tx.wait();
-    }
-  }
-  const pools = [
-    "steth",
-    "frax",
-    "tricrypto2",
-    "cvxcrv",
-    "crveth",
-    "cvxeth",
-    "cvxfxs",
-    "3pool",
-    "ust-wormhole",
-    "rocketeth",
-  ];
-  for (const pool of pools) {
-    const info = ZAP_VAULT_ROUTES[pool];
-    console.log(`setup routes for pool[${pool}], name[${info.name}]`);
-    // deposit
-    for (const { token, routes } of info.add) {
-      let update: boolean;
-      try {
-        update = (await aladdinZap.routes(ADDRESS[token], ADDRESS[`${info.name}_TOKEN`], 0)).eq(constants.AddressZero);
-      } catch (error) {
-        update = true;
-      }
-      if (update) {
-        console.log(`update ${token} => ${info.name}_TOKEN Deposit routes`);
-        const tx = await aladdinZap.updateRoute(ADDRESS[token], ADDRESS[`${info.name}_TOKEN`], routes);
-        console.log("waiting tx:", tx.hash);
-        await tx.wait();
-      }
-    }
-    // withdraw
-    for (const { token, routes } of info.remove) {
-      let update: boolean;
-      try {
-        update = (await aladdinZap.routes(ADDRESS[`${info.name}_TOKEN`], ADDRESS[token], 0)).eq(constants.AddressZero);
-      } catch (error) {
-        update = true;
-      }
-      if (update) {
-        console.log(`update ${info.name}_TOKEN => ${token} Withdraw routes`);
-        const tx = await aladdinZap.updateRoute(ADDRESS[`${info.name}_TOKEN`], ADDRESS[token], routes);
-        console.log("waiting tx:", tx.hash);
-        await tx.wait();
-      }
-    }
-  }
 }
 
 async function main() {
@@ -285,9 +164,7 @@ async function main() {
     console.log("Deploy AladdinZap at:", proxy.address);
   }
 
-  // await addVaults();
-  // await setupRouteForAladdinZap();
-  // await showNewZap();
+  await addVaults();
 }
 
 // We recommend this pattern to be able to use async/await everywhere
