@@ -24,7 +24,7 @@ contract ConcentratorIFOVault is AladdinConvexVault {
   uint256 private constant MAX_MINED_CTR = 2_500_000 ether;
 
   /// @dev The unlocked percentage of for CTR minted in IFO.
-  uint256 private constant UNLOCK_PERCENTAGE = 5e8;
+  uint256 private constant UNLOCK_PERCENTAGE = 1e9; // 100% will be unlocked to IFO miner.
 
   /// @dev The percentage CTR for liquidity mining.
   uint256 private constant LIQUIDITY_MINING_PERCENTAGE = 6e7;

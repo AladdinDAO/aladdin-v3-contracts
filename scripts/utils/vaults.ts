@@ -1013,9 +1013,9 @@ export const ACRV_IFO_VAULTS: {
   { name: "cvxfxs", fees: { withdraw: 3e6, harvest: 1e7, platform: 1e8 } }, // 6
   { name: "3pool", fees: { withdraw: 1e5, harvest: 1e7, platform: 1e8 } }, // 7
   { name: "ironbank", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 8
-  { name: "rocket-pool-eth", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 9
+  { name: "mim", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 9
   { name: "ren", fees: { withdraw: 1e5, harvest: 1e7, platform: 1e8 } }, // 10
-  { name: "mim", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 11
+  { name: "pusd", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 11
   { name: "susd", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 12
   { name: "sbtc", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 13
   { name: "seth", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 14
