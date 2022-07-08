@@ -12,7 +12,7 @@ import {
   ICurveGaugeV4V5,
 } from "../typechain";
 import { GaugeFactory } from "../typechain/GaugeFactory";
-import { ADDRESS, DEPLOYED_CONTRACTS, IFO_VAULTS, VAULT_CONFIG } from "./utils";
+import { ADDRESS, DEPLOYED_CONTRACTS, ACRV_IFO_VAULTS, VAULT_CONFIG } from "./utils";
 
 const config: {
   StartTimestamp: number;
@@ -72,7 +72,7 @@ let concentratorIFOVault: ConcentratorIFOVault;
 
 // eslint-disable-next-line no-unused-vars
 async function addVaults(from?: number, to?: number) {
-  for (const { name, fees } of IFO_VAULTS.slice(from, to)) {
+  for (const { name, fees } of ACRV_IFO_VAULTS.slice(from, to)) {
     const rewards = VAULT_CONFIG[name].rewards;
     const convexId = VAULT_CONFIG[name].convexId;
     console.log(`Adding pool[${name}] with convexId[${convexId}], rewards[${rewards.join("/")}]`);
