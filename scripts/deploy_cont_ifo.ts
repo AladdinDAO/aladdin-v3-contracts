@@ -12,8 +12,7 @@ import {
   ICurveGaugeV4V5,
 } from "../typechain";
 import { GaugeFactory } from "../typechain/GaugeFactory";
-import { IFO_VAULTS } from "./config";
-import { ADDRESS, DEPLOYED_CONTRACTS } from "./utils";
+import { ADDRESS, DEPLOYED_CONTRACTS, IFO_VAULTS, VAULT_CONFIG } from "./utils";
 
 const config: {
   StartTimestamp: number;
@@ -73,9 +72,11 @@ let concentratorIFOVault: ConcentratorIFOVault;
 
 // eslint-disable-next-line no-unused-vars
 async function addVaults(from?: number, to?: number) {
-  for (const { convexId, rewards, withdrawFee, harvestBounty, platformFee } of IFO_VAULTS.slice(from, to)) {
-    console.log("Adding pool with pid:", convexId, "rewards:", rewards.join("/"));
-    const tx = await concentratorIFOVault.addPool(convexId, rewards, withdrawFee, platformFee, harvestBounty);
+  for (const { name, fees } of IFO_VAULTS.slice(from, to)) {
+    const rewards = VAULT_CONFIG[name].rewards;
+    const convexId = VAULT_CONFIG[name].convexId;
+    console.log(`Adding pool[${name}] with convexId[${convexId}], rewards[${rewards.join("/")}]`);
+    const tx = await concentratorIFOVault.addPool(convexId, rewards, fees.withdraw, fees.platform, fees.harvest);
     console.log("wait for tx:", tx.hash);
     await tx.wait();
     console.log("Added with tx:", tx.hash);

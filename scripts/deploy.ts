@@ -8,8 +8,7 @@ import {
   AladdinZap,
   ProxyAdmin,
 } from "../typechain";
-import { VAULTS } from "./config";
-import { ADDRESS, encodePoolHint } from "./utils";
+import { ACRV_VAULTS, ADDRESS, encodePoolHint, VAULT_CONFIG } from "./utils";
 
 const config: {
   acrv?: string;
@@ -41,9 +40,11 @@ let aladdinZap: AladdinZap;
 
 // eslint-disable-next-line no-unused-vars
 async function addVaults() {
-  for (const { convexId, rewards, withdrawFee, harvestBounty, platformFee } of VAULTS) {
+  for (const { name, fees } of ACRV_VAULTS) {
+    const rewards = VAULT_CONFIG[name].rewards;
+    const convexId = VAULT_CONFIG[name].convexId;
     console.log("Adding pool with pid:", convexId, "rewards:", rewards.join("/"));
-    const tx = await vault.addPool(convexId, rewards, withdrawFee, platformFee, harvestBounty);
+    const tx = await vault.addPool(convexId, rewards, fees.withdraw, fees.platform, fees.harvest);
     console.log("wait for tx:", tx.hash);
     await tx.wait();
     console.log("Added with tx:", tx.hash);

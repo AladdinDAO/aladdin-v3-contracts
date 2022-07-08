@@ -39,4 +39,5 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   sUSD: { decimals: 18, address: "0x57Ab1ec28D129707052df4dF418D58a2D46d5f51" },
   sBTC: { decimals: 18, address: "0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6" },
   sETH: { decimals: 18, address: "0x5e74C9036fb86BD7eCdcb084a0673EFc32eA31cb" },
+  LQTY: { decimals: 18, address: "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D" },
 };
