@@ -12,7 +12,7 @@ import {
   SmartWalletWhitelist,
 } from "../typechain";
 import { GaugeFactory } from "../typechain/GaugeFactory";
-import { ADDRESS, DEPLOYED_CONTRACTS, ACRV_IFO_VAULTS, VAULT_CONFIG } from "./utils";
+import { DEPLOYED_CONTRACTS, ACRV_IFO_VAULTS, VAULT_CONFIG } from "./utils";
 
 const config: {
   StartTimestamp: number;
@@ -34,15 +34,15 @@ const config: {
   BalancerLPGauge?: string;
   BalancerLPGaugeGateway?: string;
 } = {
-  StartTimestamp: 1654444800,
-  EndTimestamp: 1655105421 + 86400 * 10,
+  StartTimestamp: 1657584000,
+  EndTimestamp: 1689120000,
   GaugeImpl: "0xdc892358d55d5ae1ec47a531130d62151eba36e5",
   BalancerPoolAddress: constants.AddressZero,
   BalancerPoolId: constants.HashZero,
-  ProxyAdmin: "0xDdf819a8c95b4788Dd1Ed31Db6E3726c229f3f8B",
+  ProxyAdmin: "0x1Ea204f50526429C7BcEd629EB402954Cf5eb760",
   GaugeRewardDistributor: "0xF57b53df7326e2c6bCFA81b4A128A92E69Cb87B0",
   PlatformFeeDistributor: "0xd2791781C367B2F512396105c8aB26479876e973",
-  ConcentratorIFOVault: "0x95Fa41D06e4A7f1E219dBae738e987893B64E194",
+  ConcentratorIFOVault: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
   TokenZapLogic: "0x6258B0fBC8D33d412f4C731B7D83879c3396c425",
   ConcentratorGateway: "0xD069866AceD882582b88E327E9E79Da4c88292B1",
   GaugeFactory: "0x9098E25a09EfA247EeD07ced3b46546c5A6e58ad",
@@ -105,8 +105,8 @@ async function main() {
     const PlatformFeeDistributor = await ethers.getContractFactory("PlatformFeeDistributor", deployer);
     platformFeeDistributor = await PlatformFeeDistributor.deploy(
       gaugeRewardDistributor.address,
-      DEPLOYED_CONTRACTS.ConcentratorTreasury,
-      DEPLOYED_CONTRACTS.ConcentratorTreasury, // should change after launch
+      DEPLOYED_CONTRACTS.Concentrator.Treasury,
+      DEPLOYED_CONTRACTS.Concentrator.Treasury, // should change after launch
       []
     );
     await platformFeeDistributor.deployed();
@@ -117,12 +117,17 @@ async function main() {
     concentratorIFOVault = await ethers.getContractAt("ConcentratorIFOVault", config.ConcentratorIFOVault, deployer);
     console.log("Found ConcentratorIFOVault at:", concentratorIFOVault.address);
   } else {
-    const ConcentratorIFOVault = await ethers.getContractFactory("ConcentratorIFOVault", deployer);
-    const impl = await ConcentratorIFOVault.deploy();
-    console.log("Deploy ConcentratorIFOVault Impl at:", impl.address);
+    // const ConcentratorIFOVault = await ethers.getContractFactory("ConcentratorIFOVault", deployer);
+    // const impl = await ConcentratorIFOVault.deploy();
+    // console.log("Deploy ConcentratorIFOVault Impl at:", impl.address);
+    const impl = await ethers.getContractAt(
+      "ConcentratorIFOVault",
+      "0x99373AE646ed89b9A466c4256b09b10dbCC07B40",
+      deployer
+    );
 
     const data = impl.interface.encodeFunctionData("initialize", [
-      DEPLOYED_CONTRACTS.aCRV,
+      DEPLOYED_CONTRACTS.Concentrator.aCRV,
       DEPLOYED_CONTRACTS.AladdinZap,
       platformFeeDistributor.address,
     ]);
@@ -181,9 +186,9 @@ async function main() {
     await tx.wait();
   }
 
-  if ((await ctr.admin()) !== DEPLOYED_CONTRACTS.ConcentratorTreasury) {
-    const tx = await ctr.set_admin(DEPLOYED_CONTRACTS.ConcentratorTreasury);
-    console.log(`CTR set_admin to ${DEPLOYED_CONTRACTS.ConcentratorTreasury}, hash:`, tx.hash);
+  if ((await ctr.admin()) !== DEPLOYED_CONTRACTS.Concentrator.Treasury) {
+    const tx = await ctr.set_admin(DEPLOYED_CONTRACTS.Concentrator.Treasury);
+    console.log(`CTR set_admin to ${DEPLOYED_CONTRACTS.Concentrator.Treasury}, hash:`, tx.hash);
     await tx.wait();
   }
 
@@ -207,11 +212,11 @@ async function main() {
   }
 
   if (
-    (await ve.admin()) !== DEPLOYED_CONTRACTS.ConcentratorTreasury &&
-    (await ve.future_admin()) !== DEPLOYED_CONTRACTS.ConcentratorTreasury
+    (await ve.admin()) !== DEPLOYED_CONTRACTS.Concentrator.Treasury &&
+    (await ve.future_admin()) !== DEPLOYED_CONTRACTS.Concentrator.Treasury
   ) {
-    const tx = await ve.commit_transfer_ownership(DEPLOYED_CONTRACTS.ConcentratorTreasury);
-    console.log(`veCTR set future admin to ${DEPLOYED_CONTRACTS.ConcentratorTreasury}, hash:`, tx.hash);
+    const tx = await ve.commit_transfer_ownership(DEPLOYED_CONTRACTS.Concentrator.Treasury);
+    console.log(`veCTR set future admin to ${DEPLOYED_CONTRACTS.Concentrator.Treasury}, hash:`, tx.hash);
     await tx.wait();
   }
 
@@ -258,7 +263,7 @@ async function main() {
       0,
       ctr.address,
       deployer.address,
-      DEPLOYED_CONTRACTS.ConcentratorTreasury
+      DEPLOYED_CONTRACTS.Concentrator.Treasury
     )) as VeCTRFeeDistributor;
     await veCTRFeeDistributor.deployed();
     console.log("Deploy ConcentratorFeeDistributor at:", veCTRFeeDistributor.address);

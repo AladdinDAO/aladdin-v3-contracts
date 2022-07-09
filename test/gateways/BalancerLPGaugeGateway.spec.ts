@@ -78,7 +78,7 @@ describe("BalancerLPGaugeGateway.spec", async () => {
     await request_fork(FORK_PARAMS.number, holders);
     deployer = await ethers.getSigner(DEPLOYER);
 
-    aCRV = await ethers.getContractAt("AladdinCRV", DEPLOYED_CONTRACTS.aCRV, deployer);
+    aCRV = await ethers.getContractAt("AladdinCRV", DEPLOYED_CONTRACTS.Concentrator.aCRV, deployer);
 
     const CTR = await ethers.getContractFactory("CTR", deployer);
     ctr = await CTR.deploy("Concentrator", "CTR", 18);
@@ -96,10 +96,10 @@ describe("BalancerLPGaugeGateway.spec", async () => {
       .callStatic.create(
         "X",
         "Y",
-        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.aCRV.toLowerCase()
-          ? [ctr.address, DEPLOYED_CONTRACTS.aCRV]
-          : [DEPLOYED_CONTRACTS.aCRV, ctr.address],
-        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.aCRV.toLowerCase()
+        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.Concentrator.aCRV.toLowerCase()
+          ? [ctr.address, DEPLOYED_CONTRACTS.Concentrator.aCRV]
+          : [DEPLOYED_CONTRACTS.Concentrator.aCRV, ctr.address],
+        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.Concentrator.aCRV.toLowerCase()
           ? [ethers.utils.parseEther("0.02"), ethers.utils.parseEther("0.98")]
           : [ethers.utils.parseEther("0.98"), ethers.utils.parseEther("0.02")],
         1e12,
@@ -110,10 +110,10 @@ describe("BalancerLPGaugeGateway.spec", async () => {
       .create(
         "X",
         "Y",
-        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.aCRV.toLowerCase()
-          ? [ctr.address, DEPLOYED_CONTRACTS.aCRV]
-          : [DEPLOYED_CONTRACTS.aCRV, ctr.address],
-        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.aCRV.toLowerCase()
+        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.Concentrator.aCRV.toLowerCase()
+          ? [ctr.address, DEPLOYED_CONTRACTS.Concentrator.aCRV]
+          : [DEPLOYED_CONTRACTS.Concentrator.aCRV, ctr.address],
+        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.Concentrator.aCRV.toLowerCase()
           ? [ethers.utils.parseEther("0.02"), ethers.utils.parseEther("0.98")]
           : [ethers.utils.parseEther("0.98"), ethers.utils.parseEther("0.02")],
         1e12,
@@ -128,15 +128,15 @@ describe("BalancerLPGaugeGateway.spec", async () => {
     await ctr.transfer(signer.address, ethers.utils.parseEther("200"));
     await vault.connect(signer).joinPool(poolId, signer.address, signer.address, {
       assets:
-        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.aCRV.toLowerCase()
-          ? [ctr.address, DEPLOYED_CONTRACTS.aCRV]
-          : [DEPLOYED_CONTRACTS.aCRV, ctr.address],
+        ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.Concentrator.aCRV.toLowerCase()
+          ? [ctr.address, DEPLOYED_CONTRACTS.Concentrator.aCRV]
+          : [DEPLOYED_CONTRACTS.Concentrator.aCRV, ctr.address],
       maxAmountsIn: [constants.MaxUint256, constants.MaxUint256],
       userData: defaultAbiCoder.encode(
         ["uint8", "uint256[]"],
         [
           0,
-          ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.aCRV.toLowerCase()
+          ctr.address.toLowerCase() < DEPLOYED_CONTRACTS.Concentrator.aCRV.toLowerCase()
             ? [ethers.utils.parseEther("200"), ethers.utils.parseEther("1000")]
             : [ethers.utils.parseEther("1000"), ethers.utils.parseEther("200")],
         ]
@@ -171,7 +171,7 @@ describe("BalancerLPGaugeGateway.spec", async () => {
 
   for (const symbol of ["WETH", "USDC", "CRV", "CVXCRV", "aCRV"]) {
     const { holder, amount } = FORK_PARAMS.tokens[symbol];
-    const address = symbol === "aCRV" ? DEPLOYED_CONTRACTS.aCRV : ADDRESS[symbol];
+    const address = symbol === "aCRV" ? DEPLOYED_CONTRACTS.Concentrator.aCRV : ADDRESS[symbol];
     let routes: BigNumber[] = [];
 
     if (symbol !== "CRV" && symbol !== "CVXCRV" && symbol !== "aCRV") {

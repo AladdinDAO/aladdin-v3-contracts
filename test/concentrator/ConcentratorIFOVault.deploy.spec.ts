@@ -145,6 +145,7 @@ describe("ConcentratorIFOVault.deploy.15103273.spec", async () => {
   let zap: AladdinZap;
   let gateway: ConcentratorGateway;
 
+  console.log("{");
   const genTests = async (
     name: string,
     fees: {
@@ -200,7 +201,7 @@ describe("ConcentratorIFOVault.deploy.15103273.spec", async () => {
 
         const ConcentratorIFOVault = await ethers.getContractFactory("ConcentratorIFOVault", deployer);
         vault = await ConcentratorIFOVault.deploy();
-        await vault.initialize(DEPLOYED_CONTRACTS.aCRV, DEPLOYED_CONTRACTS.AladdinZap, deployer.address);
+        await vault.initialize(DEPLOYED_CONTRACTS.Concentrator.aCRV, DEPLOYED_CONTRACTS.AladdinZap, deployer.address);
 
         await vault.addPool(config.convexId, config.rewards, fees.withdraw, fees.platform, fees.harvest);
       });
@@ -299,7 +300,7 @@ describe("ConcentratorIFOVault.deploy.15103273.spec", async () => {
 
         it("should succeed", async () => {
           await booster.earmarkRewards(config.convexId);
-          const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.aCRV, deployer);
+          const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.aCRV, deployer);
           const amount = await vault.callStatic.harvest(0, deployer.address, 0);
           const before = await token.balanceOf(vault.address);
           await vault.harvest(0, deployer.address, 0);
