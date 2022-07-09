@@ -30,15 +30,15 @@ const config: {
   CTR: string;
   veCTR: string;
   SmartWalletWhitelist: string;
+  BalancerLPGauge: string;
+  BalancerLPGaugeGateway: string;
   veCTRFeeDistributor?: string;
-  BalancerLPGauge?: string;
-  BalancerLPGaugeGateway?: string;
 } = {
   StartTimestamp: 1657584000,
   EndTimestamp: 1689120000,
   GaugeImpl: "0xdc892358d55d5ae1ec47a531130d62151eba36e5",
-  BalancerPoolAddress: constants.AddressZero,
-  BalancerPoolId: constants.HashZero,
+  BalancerPoolAddress: "0xf017335728C91b57b335D778f31358953f6eB748",
+  BalancerPoolId: "0xf017335728c91b57b335d778f31358953f6eb74800020000000000000000029f",
   ProxyAdmin: "0x1Ea204f50526429C7BcEd629EB402954Cf5eb760",
   GaugeRewardDistributor: "0xF57b53df7326e2c6bCFA81b4A128A92E69Cb87B0",
   PlatformFeeDistributor: "0xd2791781C367B2F512396105c8aB26479876e973",
@@ -49,8 +49,8 @@ const config: {
   CTR: "0xE73B8a36093850Fc2d7029d678CEe8ec482a79B3",
   veCTR: "0xC4763c35569f7ce0cE42B30EDebFc5bC80EB96b4",
   SmartWalletWhitelist: "0x3557bD058D674DD0981a3FF10515432159F63318",
-  BalancerLPGauge: constants.AddressZero,
-  BalancerLPGaugeGateway: constants.AddressZero,
+  BalancerLPGauge: "0xBFC61CB66Bb1e3eC7Ba5B2Bb6e9117C6fF46AA11",
+  BalancerLPGaugeGateway: "0xcfE4AD4B0960a3AAB7Dd4dD2cCAA0A721A76012f",
   veCTRFeeDistributor: constants.AddressZero,
 };
 
@@ -248,6 +248,32 @@ async function main() {
     await tx.wait();
   }
 
+  if (config.BalancerLPGauge !== "") {
+    gauge = await ethers.getContractAt("ICurveGaugeV4V5", config.BalancerLPGauge, deployer);
+    console.log("Found BalancerLPGauge at:", gauge.address);
+  } else {
+    const gaugeAddress = await gaugeFactory.callStatic.deploy_gauge(config.BalancerPoolAddress);
+    await gaugeFactory.deploy_gauge(config.BalancerPoolAddress);
+    gauge = await ethers.getContractAt("ICurveGaugeV4V5", gaugeAddress, deployer);
+    console.log("Deploy BalancerLPGauge at:", gauge.address);
+  }
+
+  if (config.BalancerLPGaugeGateway !== "") {
+    const gateway = await ethers.getContractAt("BalancerLPGaugeGateway", config.BalancerLPGaugeGateway, deployer);
+    console.log("Found BalancerLPGaugeGateway at:", gateway.address);
+  } else {
+    const BalancerLPGaugeGateway = await ethers.getContractFactory("BalancerLPGaugeGateway", deployer);
+    const gateway = await BalancerLPGaugeGateway.deploy(
+      ctr.address,
+      gauge.address,
+      config.BalancerPoolId,
+      config.TokenZapLogic
+    );
+    await gateway.deployed();
+    config.BalancerLPGaugeGateway = gateway.address;
+    console.log("Deploy BalancerLPGaugeGateway at:", gateway.address);
+  }
+
   /*if (config.veCTRFeeDistributor) {
     veCTRFeeDistributor = (await ethers.getContractAt(
       "veCTRFeeDistributor",
@@ -267,32 +293,6 @@ async function main() {
     )) as VeCTRFeeDistributor;
     await veCTRFeeDistributor.deployed();
     console.log("Deploy ConcentratorFeeDistributor at:", veCTRFeeDistributor.address);
-  }
-
-  if (config.BalancerLPGauge) {
-    gauge = await ethers.getContractAt("ICurveGaugeV4V5", config.BalancerLPGauge, deployer);
-    console.log("Found BalancerLPGauge at:", gauge.address);
-  } else {
-    const gaugeAddress = await gaugeFactory.callStatic.deploy_gauge(config.BalancerPoolAddress);
-    await gaugeFactory.deploy_gauge(config.BalancerPoolAddress);
-    gauge = await ethers.getContractAt("ICurveGaugeV4V5", gaugeAddress, deployer);
-    console.log("Deploy BalancerLPGauge at:", gauge.address);
-  }
-
-  if (config.BalancerLPGaugeGateway) {
-    const gateway = await ethers.getContractAt("BalancerLPGaugeGateway", config.BalancerLPGaugeGateway, deployer);
-    console.log("Found BalancerLPGaugeGateway at:", gateway.address);
-  } else {
-    const BalancerLPGaugeGateway = await ethers.getContractFactory("BalancerLPGaugeGateway", deployer);
-    const gateway = await BalancerLPGaugeGateway.deploy(
-      ctr.address,
-      gauge.address,
-      config.BalancerPoolId!,
-      config.TokenZapLogic!
-    );
-    await gateway.deployed();
-    config.BalancerLPGaugeGateway = gateway.address;
-    console.log("Deploy BalancerLPGaugeGateway at:", gateway.address);
   }
 
   await addVaults(0, 0);
