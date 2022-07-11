@@ -137,7 +137,7 @@ const POOL_HOLDERS: {
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 
-describe("ConcentratorIFOVault.deploy.15103273.spec", async () => {
+describe("ConcentratorIFOVault.deploy.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
   let lpToken: IERC20;
@@ -145,7 +145,6 @@ describe("ConcentratorIFOVault.deploy.15103273.spec", async () => {
   let zap: AladdinZap;
   let gateway: ConcentratorGateway;
 
-  console.log("{");
   const genTests = async (
     name: string,
     fees: {

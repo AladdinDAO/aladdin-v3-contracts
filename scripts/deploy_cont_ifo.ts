@@ -1,5 +1,6 @@
 /* eslint-disable node/no-missing-import */
 import { constants } from "ethers";
+import { defaultAbiCoder } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import {
   VeCTRFeeDistributor,
@@ -12,7 +13,7 @@ import {
   SmartWalletWhitelist,
 } from "../typechain";
 import { GaugeFactory } from "../typechain/GaugeFactory";
-import { DEPLOYED_CONTRACTS, ACRV_IFO_VAULTS, VAULT_CONFIG } from "./utils";
+import { DEPLOYED_CONTRACTS, ACRV_IFO_VAULTS, VAULT_CONFIG, ADDRESS } from "./utils";
 
 const config: {
   StartTimestamp: number;
@@ -34,11 +35,11 @@ const config: {
   BalancerLPGaugeGateway: string;
   veCTRFeeDistributor?: string;
 } = {
-  StartTimestamp: 1657584000,
+  StartTimestamp: 1657670400,
   EndTimestamp: 1689120000,
   GaugeImpl: "0xdc892358d55d5ae1ec47a531130d62151eba36e5",
-  BalancerPoolAddress: "0xf017335728C91b57b335D778f31358953f6eB748",
-  BalancerPoolId: "0xf017335728c91b57b335d778f31358953f6eb74800020000000000000000029f",
+  BalancerPoolAddress: "0x80A8eA2f9EBFC2Db9a093BD46E01471267914E49",
+  BalancerPoolId: "0x80a8ea2f9ebfc2db9a093bd46e01471267914e490002000000000000000002a2",
   ProxyAdmin: "0x1Ea204f50526429C7BcEd629EB402954Cf5eb760",
   GaugeRewardDistributor: "0xF57b53df7326e2c6bCFA81b4A128A92E69Cb87B0",
   PlatformFeeDistributor: "0xd2791781C367B2F512396105c8aB26479876e973",
@@ -46,16 +47,17 @@ const config: {
   TokenZapLogic: "0x6258B0fBC8D33d412f4C731B7D83879c3396c425",
   ConcentratorGateway: "0xD069866AceD882582b88E327E9E79Da4c88292B1",
   GaugeFactory: "0x9098E25a09EfA247EeD07ced3b46546c5A6e58ad",
-  CTR: "0xE73B8a36093850Fc2d7029d678CEe8ec482a79B3",
-  veCTR: "0xC4763c35569f7ce0cE42B30EDebFc5bC80EB96b4",
+  CTR: "0xb3Ad645dB386D7F6D753B2b9C3F4B853DA6890B8",
+  veCTR: "0xe4C09928d834cd58D233CD77B5af3545484B4968",
   SmartWalletWhitelist: "0x3557bD058D674DD0981a3FF10515432159F63318",
-  BalancerLPGauge: "0xBFC61CB66Bb1e3eC7Ba5B2Bb6e9117C6fF46AA11",
-  BalancerLPGaugeGateway: "0xcfE4AD4B0960a3AAB7Dd4dD2cCAA0A721A76012f",
+  BalancerLPGauge: "0x33e411ebE366D72d058F3eF22F1D0Cf8077fDaB0",
+  BalancerLPGaugeGateway: "0xb44f8Ba6CD9FfeE97F8482D064E62Ba55edD4D72",
   veCTRFeeDistributor: constants.AddressZero,
 };
 
 let ctr: CTR;
 let ve: VeCTR;
+// eslint-disable-next-line no-unused-vars
 let veCTRFeeDistributor: VeCTRFeeDistributor;
 let gaugeFactory: GaugeFactory;
 let gauge: ICurveGaugeV4V5;
@@ -63,6 +65,44 @@ let gaugeRewardDistributor: GaugeRewardDistributor;
 let platformFeeDistributor: PlatformFeeDistributor;
 let concentratorIFOVault: ConcentratorIFOVault;
 let whitelist: SmartWalletWhitelist;
+
+// eslint-disable-next-line no-unused-vars
+async function addLiquidity() {
+  const [deployer] = await ethers.getSigners();
+  const vault = await ethers.getContractAt("IBalancerVault", "0xBA12222222228d8Ba445958a75a0704d566BF2C8", deployer);
+  const aCRV = await ethers.getContractAt("IAladdinCRV", DEPLOYED_CONTRACTS.Concentrator.aCRV, deployer);
+  const crv = await ethers.getContractAt("IERC20", ADDRESS.CRV, deployer);
+  console.log(await crv.balanceOf(deployer.address));
+  if ((await crv.allowance(deployer.address, aCRV.address)).eq(constants.Zero)) {
+    const tx = await crv.approve(aCRV.address, constants.MaxUint256);
+    console.log("approve, tx:", tx.hash);
+  }
+  // await aCRV.depositWithCRV(deployer.address, ethers.utils.parseEther("50000"));
+  if ((await aCRV.allowance(deployer.address, vault.address)).eq(constants.Zero)) {
+    const tx = await aCRV.approve(vault.address, constants.MaxUint256);
+    console.log("approve, tx:", tx.hash);
+  }
+  if ((await ctr.allowance(deployer.address, vault.address)).eq(constants.Zero)) {
+    const tx = await ctr.approve(vault.address, constants.MaxUint256);
+    console.log("approve, tx:", tx.hash);
+  }
+  console.log(
+    vault.interface.encodeFunctionData("joinPool", [
+      config.BalancerPoolId,
+      "0xA0FB1b11ccA5871fb0225B64308e249B97804E99",
+      "0xA0FB1b11ccA5871fb0225B64308e249B97804E99",
+      {
+        assets: [DEPLOYED_CONTRACTS.Concentrator.aCRV, ctr.address],
+        maxAmountsIn: [constants.MaxUint256, constants.MaxUint256],
+        userData: defaultAbiCoder.encode(
+          ["uint8", "uint256[]"],
+          [0, [ethers.utils.parseEther("37800"), ethers.utils.parseEther("771.4285714")]]
+        ),
+        fromInternalBalance: false,
+      },
+    ])
+  );
+}
 
 // eslint-disable-next-line no-unused-vars
 async function addVaults(from?: number, to?: number) {
@@ -194,7 +234,8 @@ async function main() {
 
   if (
     !(await concentratorIFOVault.startTime()).eq(config.StartTimestamp) ||
-    !(await concentratorIFOVault.endTime()).eq(config.EndTimestamp)
+    !(await concentratorIFOVault.endTime()).eq(config.EndTimestamp) ||
+    (await concentratorIFOVault.ctr()) !== ctr.address
   ) {
     const tx = await concentratorIFOVault.updateIFOConfig(ctr.address, config.StartTimestamp, config.EndTimestamp);
     console.log("ConcentratorIFOVault update IFO config, hash:", tx.hash);
@@ -252,8 +293,8 @@ async function main() {
     gauge = await ethers.getContractAt("ICurveGaugeV4V5", config.BalancerLPGauge, deployer);
     console.log("Found BalancerLPGauge at:", gauge.address);
   } else {
-    const gaugeAddress = await gaugeFactory.callStatic.deploy_gauge(config.BalancerPoolAddress);
-    await gaugeFactory.deploy_gauge(config.BalancerPoolAddress);
+    const gaugeAddress = await gaugeFactory.callStatic.deploy_gauge(config.BalancerPoolAddress, { gasLimit: 500000 });
+    await gaugeFactory.deploy_gauge(config.BalancerPoolAddress, { gasLimit: 500000 });
     gauge = await ethers.getContractAt("ICurveGaugeV4V5", gaugeAddress, deployer);
     console.log("Deploy BalancerLPGauge at:", gauge.address);
   }
@@ -274,28 +315,6 @@ async function main() {
     console.log("Deploy BalancerLPGaugeGateway at:", gateway.address);
   }
 
-  /*if (config.veCTRFeeDistributor) {
-    veCTRFeeDistributor = (await ethers.getContractAt(
-      "veCTRFeeDistributor",
-      config.veCTRFeeDistributor,
-      deployer
-    )) as VeCTRFeeDistributor;
-    console.log("Found veFeeDistributor at:", veCTRFeeDistributor.address);
-  } else {
-    const VeCTRFeeDistributor = await ethers.getContractFactory("veCTRFeeDistributor", deployer);
-    // @todo change admin on mainnet deploy
-    veCTRFeeDistributor = (await VeCTRFeeDistributor.deploy(
-      ve.address,
-      0,
-      ctr.address,
-      deployer.address,
-      DEPLOYED_CONTRACTS.Concentrator.Treasury
-    )) as VeCTRFeeDistributor;
-    await veCTRFeeDistributor.deployed();
-    console.log("Deploy ConcentratorFeeDistributor at:", veCTRFeeDistributor.address);
-  }
-
-  await addVaults(0, 0);
   if ((await platformFeeDistributor.gauge()) !== gaugeRewardDistributor.address) {
     const tx = await platformFeeDistributor.updateGauge(gaugeRewardDistributor.address);
     console.log("PlatformFeeDistributor update gauge to GaugeRewardDistributor, hash:", tx.hash);
@@ -320,7 +339,42 @@ async function main() {
     const tx = await gauge.add_reward(ctr.address, gaugeRewardDistributor.address);
     console.log("Gauge add reward token, hash:", tx.hash);
     await tx.wait();
-  }*/
+  }
+  if ((await platformFeeDistributor.getRewardCount()).eq(constants.Zero)) {
+    const tx = await platformFeeDistributor.addRewardToken(ctr.address, 1e9, 0);
+    console.log("PlatformFeeDistributor add CTR, hash:", tx.hash);
+    await tx.wait();
+    console.log("✅ Done");
+  }
+  if ((await platformFeeDistributor.getRewardCount()).eq(constants.One)) {
+    const tx = await platformFeeDistributor.addRewardToken(DEPLOYED_CONTRACTS.Concentrator.aCRV, 0, 1e9);
+    console.log("PlatformFeeDistributor add aCRV, hash:", tx.hash);
+    await tx.wait();
+    console.log("✅ Done");
+  }
+
+  /*
+  if (config.veCTRFeeDistributor) {
+    veCTRFeeDistributor = (await ethers.getContractAt(
+      "veCTRFeeDistributor",
+      config.veCTRFeeDistributor,
+      deployer
+    )) as VeCTRFeeDistributor;
+    console.log("Found veFeeDistributor at:", veCTRFeeDistributor.address);
+  } else {
+    const VeCTRFeeDistributor = await ethers.getContractFactory("veCTRFeeDistributor", deployer);
+    // @todo change admin on mainnet deploy
+    veCTRFeeDistributor = (await VeCTRFeeDistributor.deploy(
+      ve.address,
+      0,
+      ctr.address,
+      deployer.address,
+      DEPLOYED_CONTRACTS.Concentrator.Treasury
+    )) as VeCTRFeeDistributor;
+    await veCTRFeeDistributor.deployed();
+    console.log("Deploy ConcentratorFeeDistributor at:", veCTRFeeDistributor.address);
+  }
+  */
 }
 
 // We recommend this pattern to be able to use async/await everywhere
