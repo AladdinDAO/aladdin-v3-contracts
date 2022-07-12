@@ -35,7 +35,7 @@ const config: {
   BalancerLPGaugeGateway: string;
   veCTRFeeDistributor?: string;
 } = {
-  StartTimestamp: 1657670400,
+  StartTimestamp: 1657796400,
   EndTimestamp: 1689120000,
   GaugeImpl: "0xdc892358d55d5ae1ec47a531130d62151eba36e5",
   BalancerPoolAddress: "0x80A8eA2f9EBFC2Db9a093BD46E01471267914E49",
