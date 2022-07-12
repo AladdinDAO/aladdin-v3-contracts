@@ -2,10 +2,10 @@
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 import { DEPLOYED_CONTRACTS, TOKENS } from "../utils";
-import { Round19Rewards } from "./config";
+import { RoundClaimParams } from "./config";
 
 async function main() {
-  for (const item of Round19Rewards) {
+  for (const item of RoundClaimParams[19]) {
     const symbol: string = Object.entries(TOKENS).filter(
       ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
     )[0][0];
@@ -24,17 +24,17 @@ async function main() {
     await ethers.provider.call({
       from: "0x11E91BB6d1334585AA37D8F4fde3932C7960B938",
       to: cvxLocker.address,
-      data: cvxLocker.interface.encodeFunctionData("harvestVotium", [Round19Rewards, 0]),
+      data: cvxLocker.interface.encodeFunctionData("harvestVotium", [RoundClaimParams[19], 0]),
     })
   );
   console.log("CVX:", ethers.utils.formatEther(estimate.toString()));
   const gasEstimate = await ethers.provider.estimateGas({
     from: "0x11E91BB6d1334585AA37D8F4fde3932C7960B938",
     to: cvxLocker.address,
-    data: cvxLocker.interface.encodeFunctionData("harvestVotium", [Round19Rewards, 0]),
+    data: cvxLocker.interface.encodeFunctionData("harvestVotium", [RoundClaimParams[19], 0]),
   });
   console.log("gas estimate:", gasEstimate.toString());
-  const tx = await cvxLocker.harvestVotium(Round19Rewards, estimate.mul(9).div(10), {
+  const tx = await cvxLocker.harvestVotium(RoundClaimParams[19], estimate.mul(9).div(10), {
     gasLimit: gasEstimate.mul(12).div(10),
   });
   console.log("waiting for tx:", tx.hash);
