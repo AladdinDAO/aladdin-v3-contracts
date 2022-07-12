@@ -4,8 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { VAULTS, ZAP_VAULT_ROUTES } from "../../scripts/config";
-import { ADDRESS } from "../../scripts/utils";
+import { ACRV_VAULTS, ADDRESS, VAULT_CONFIG } from "../../scripts/utils";
 import { AladdinConvexVault, IConvexBooster } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
@@ -66,8 +65,8 @@ describe("AladdinConvexVault.add.15055131.spec", async () => {
 
     const zap = await ethers.getContractAt("AladdinZap", ZAP, zapOwner);
     for (const pool of ["fraxusdc"]) {
-      const { name, add: addRoutes } = ZAP_VAULT_ROUTES[pool];
-      for (const { token, routes } of addRoutes) {
+      const { token: name, deposit: addRoutes } = VAULT_CONFIG[pool];
+      for (const [token, routes] of Object.entries(addRoutes)) {
         if (firstCall) {
           console.log(
             `${token} to ${name + "_TOKEN"} zap:`,
@@ -85,16 +84,17 @@ describe("AladdinConvexVault.add.15055131.spec", async () => {
     await zap.updatePoolTokens([CURVE_FRAXUSDC_POOL], [CURVE_FRAXUSDC_TOKEN]);
 
     for (let index = 15; index <= 15; index++) {
-      const { name: vaultNmae, convexId, rewards, withdrawFee, harvestBounty, platformFee } = VAULTS[index];
-      await vault.addPool(convexId, rewards, withdrawFee, platformFee, harvestBounty);
+      const { name: vaultNmae, fees } = ACRV_VAULTS[index];
+      const { convexId, rewards } = VAULT_CONFIG[vaultNmae];
+      await vault.addPool(convexId, rewards, fees.withdraw, fees.platform, fees.harvest);
       if (firstCall) {
         console.log(
           `add pool[${vaultNmae}]:`,
           `convexId[${convexId}]`,
           `rewards[${rewards.toString()}]`,
-          `withdrawFee[${withdrawFee}]`,
-          `harvestBounty[${harvestBounty}]`,
-          `platformFee[${platformFee}]`
+          `withdrawFee[${fees.withdraw}]`,
+          `platformFee[${fees.platform}]`,
+          `harvestBounty[${fees.harvest}]`
         );
       }
     }

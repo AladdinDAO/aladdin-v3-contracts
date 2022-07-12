@@ -39,7 +39,7 @@ const CRV_HOLDER = "0x7a16fF8270133F063aAb6C9977183D9e72835428";
 const CVX = ADDRESS.CVX;
 const CVX_HOLDER = "0x28C6c06298d514Db089934071355E5743bf21d60";
 
-const UNLOCK_PERCENTAGE = 5e8;
+const UNLOCK_PERCENTAGE = 1e9;
 
 describe("ConcentratorIFOVault.spec", async () => {
   let deployer: SignerWithAddress;

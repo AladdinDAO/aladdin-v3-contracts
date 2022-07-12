@@ -4,8 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { VAULTS, ZAP_VAULT_ROUTES } from "../../scripts/config";
-import { ADDRESS } from "../../scripts/utils";
+import { ACRV_VAULTS, ADDRESS, VAULT_CONFIG } from "../../scripts/utils";
 import { AladdinConvexVault, IConvexBooster } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
@@ -62,8 +61,8 @@ describe("AladdinConvexVault.add.14711167.spec", async () => {
     vault = await ethers.getContractAt("AladdinConvexVault", VAULT, owner);
 
     const zap = await ethers.getContractAt("AladdinZap", ZAP, zapOwner);
-    const { name, add: addRoutes, remove: removeRoutes } = ZAP_VAULT_ROUTES.ren;
-    for (const { token, routes } of addRoutes) {
+    const { token: name, deposit: addRoutes, withdraw: removeRoutes } = VAULT_CONFIG.ren;
+    for (const [token, routes] of Object.entries(addRoutes)) {
       if (firstCall) {
         console.log(
           `${token} to ${name + "_TOKEN"} zap:`,
@@ -74,7 +73,7 @@ describe("AladdinConvexVault.add.14711167.spec", async () => {
       }
       await zap.updateRoute(ADDRESS[token], ADDRESS[name + "_TOKEN"], routes);
     }
-    for (const { token, routes } of removeRoutes) {
+    for (const [token, routes] of Object.entries(removeRoutes)) {
       if (firstCall) {
         console.log(
           ` ${name + "_TOKEN"} to ${token} zap:`,
@@ -90,16 +89,17 @@ describe("AladdinConvexVault.add.14711167.spec", async () => {
     }
     await zap.updatePoolTokens([CURVE_REN_POOL], [CURVE_REN_TOKEN]);
 
-    const { name: vaultNmae, convexId, rewards, withdrawFee, harvestBounty, platformFee } = VAULTS[10];
-    await vault.addPool(convexId, rewards, withdrawFee, platformFee, harvestBounty);
+    const { name: vaultNmae, fees } = ACRV_VAULTS[10];
+    const { convexId, rewards } = VAULT_CONFIG[vaultNmae];
+    await vault.addPool(convexId, rewards, fees.withdraw, fees.platform, fees.harvest);
     if (firstCall) {
       console.log(
         `add pool[${vaultNmae}]:`,
         `convexId[${convexId}]`,
         `rewards[${rewards.toString()}]`,
-        `withdrawFee[${withdrawFee}]`,
-        `harvestBounty[${harvestBounty}]`,
-        `platformFee[${platformFee}]`
+        `withdrawFee[${fees.withdraw}]`,
+        `platformFee[${fees.platform}]`,
+        `harvestBounty[${fees.harvest}]`
       );
     }
     firstCall = false;

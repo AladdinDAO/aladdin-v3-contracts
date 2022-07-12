@@ -4,8 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { VAULTS, ZAP_VAULT_ROUTES } from "../../scripts/config";
-import { ADDRESS, DEPLOYED_CONTRACTS } from "../../scripts/utils";
+import { ACRV_VAULTS, ADDRESS, DEPLOYED_CONTRACTS, VAULT_CONFIG } from "../../scripts/utils";
 import { AladdinConvexVault, ConcentratorGateway } from "../../typechain";
 import { request_fork } from "../utils";
 
@@ -56,7 +55,7 @@ const FORK_PARAMS: {
       holder: "0xc564ee9f21ed8a2d8e7e76c085740d5e4c5fafbe",
       amount: "10000",
     },
-    CVXCRV: {
+    cvxCRV: {
       holder: "0x94dfce828c3daaf6492f1b6f66f9a1825254d24b",
       amount: "10000",
     },
@@ -68,7 +67,7 @@ const FORK_PARAMS: {
       holder: "0xc564ee9f21ed8a2d8e7e76c085740d5e4c5fafbe",
       amount: "1000",
     },
-    CVXFXS: {
+    cvxFXS: {
       holder: "0x6979e645b7cd48c7181ece3c931be9261394aa29",
       amount: "100",
     },
@@ -107,14 +106,14 @@ describe("ConcentratorGateway.spec", async () => {
   let vault: AladdinConvexVault;
   let gateway: ConcentratorGateway;
 
-  VAULTS.forEach(({ name }, pid) => {
-    // if (name !== "cvxcrv") return;
-    const { name: prefix, add } = ZAP_VAULT_ROUTES[name];
+  ACRV_VAULTS.forEach(({ name }, pid) => {
+    if (pid >= 12 || name === "ust-wormhole") return;
+    const { token: prefix, deposit: add } = VAULT_CONFIG[name];
     const lpAddress = ADDRESS[`${prefix}_TOKEN`];
 
     context(`gateway test for pool[${name}]`, async () => {
       beforeEach(async () => {
-        const holders = add.map(({ token }) => FORK_PARAMS.tokens[token].holder);
+        const holders = Object.keys(add).map((token) => FORK_PARAMS.tokens[token].holder);
         holders.push(DEPLOYER);
         holders.push(DEPLOYED_CONTRACTS.CommunityMultisig);
 
@@ -142,8 +141,9 @@ describe("ConcentratorGateway.spec", async () => {
         await gateway.deployed();
       });
 
-      add.forEach(({ token: symbol, routes }) => {
+      Object.entries(add).forEach(([symbol, routes]) => {
         const address = ADDRESS[symbol];
+        // console.log(symbol, address, FORK_PARAMS.tokens[symbol]);
         const { holder, amount } = FORK_PARAMS.tokens[symbol];
 
         it(`should succeed, when zap from [${symbol}]`, async () => {
