@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../zap/TokenZapLogic.sol";
+import "../interfaces/IWETH.sol";
 
 abstract contract ZapGatewayBase is Ownable {
   using SafeERC20 for IERC20;
@@ -17,6 +18,9 @@ abstract contract ZapGatewayBase is Ownable {
   /// @param _oldLogic The old logic address.
   /// @param _newLogic The new logic address.
   event UpdateLogic(address _oldLogic, address _newLogic);
+
+  /// @dev The address of WETH token.
+  address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   /// @notice The address of zap logic contract.
   address public logic;
@@ -28,12 +32,31 @@ abstract contract ZapGatewayBase is Ownable {
     if (_token == address(0)) {
       require(msg.value == _amount, "msg.value mismatch");
     } else {
+      require(msg.value == 0, "msg.value not zero");
       uint256 _balance = IERC20(_token).balanceOf(address(this));
       IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
       _amount = IERC20(_token).balanceOf(address(this)).sub(_balance);
     }
 
     return _amount;
+  }
+
+  function _transferTokenOut(address _token, uint256 _amount) internal {
+    if (_token == address(0)) {
+      uint256 _balance = address(this).balance;
+      if (_balance < _amount) {
+        IWETH(WETH).withdraw(_amount);
+      }
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool _success, ) = msg.sender.call{ value: _amount }("");
+      require(_success, "transfer ETH failed");
+    } else {
+      uint256 _balance = IERC20(_token).balanceOf(address(this));
+      if (_balance < _amount) {
+        IWETH(WETH).deposit{ value: _amount }();
+      }
+      IERC20(_token).safeTransfer(msg.sender, _amount);
+    }
   }
 
   /// @dev Internal function to do zap.

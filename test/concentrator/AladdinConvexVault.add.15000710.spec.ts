@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
 import { ACRV_VAULTS, ADDRESS, VAULT_CONFIG, ZAP_ROUTES } from "../../scripts/utils";
-import { AladdinConvexVault, IConvexBooster } from "../../typechain";
+import { AladdinCRVConvexVault, IConvexBooster } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
 
@@ -58,7 +58,7 @@ let firstCall = true;
 describe("VaultZapMainnetFork.spec", async () => {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
-  let vault: AladdinConvexVault;
+  let vault: AladdinCRVConvexVault;
   let booster: IConvexBooster;
 
   beforeEach(async () => {
@@ -87,7 +87,7 @@ describe("VaultZapMainnetFork.spec", async () => {
     await deployer.sendTransaction({ to: zapOwner.address, value: ethers.utils.parseEther("10") });
 
     booster = await ethers.getContractAt("IConvexBooster", BOOSTER, deployer);
-    vault = await ethers.getContractAt("AladdinConvexVault", VAULT, owner);
+    vault = await ethers.getContractAt("AladdinCRVConvexVault", VAULT, owner);
 
     const proxyAdmin = await ethers.getContractAt("ProxyAdmin", PROXY_ADMIN, owner);
     const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);

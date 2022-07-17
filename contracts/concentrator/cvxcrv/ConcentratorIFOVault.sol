@@ -6,13 +6,13 @@ pragma abicoder v2;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "./AladdinConvexVault.sol";
+import "./AladdinCRVConvexVault.sol";
 
 interface ICTR {
   function mint(address _to, uint256 _value) external returns (bool);
 }
 
-contract ConcentratorIFOVault is AladdinConvexVault {
+contract ConcentratorIFOVault is AladdinCRVConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -198,7 +198,7 @@ contract ConcentratorIFOVault is AladdinConvexVault {
 
   function _updateRewards(uint256 _pid, address _account) internal override {
     // 1. update aCRV rewards
-    AladdinConvexVault._updateRewards(_pid, _account);
+    AladdinCRVConvexVault._updateRewards(_pid, _account);
 
     // 2. update CTR rewards
     uint256 _ctrRewards = pendingCTR(_pid, _account);

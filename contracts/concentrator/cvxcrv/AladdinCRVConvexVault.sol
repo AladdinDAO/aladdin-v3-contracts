@@ -8,16 +8,16 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import "./interfaces/IAladdinConvexVault.sol";
-import "./interfaces/IAladdinCRV.sol";
-import "../interfaces/IConvexBooster.sol";
-import "../interfaces/IConvexBasicRewards.sol";
-import "../interfaces/IConvexCRVDepositor.sol";
-import "../interfaces/ICurveFactoryPlainPool.sol";
-import "../interfaces/IZap.sol";
+import "../interfaces/IAladdinCRVConvexVault.sol";
+import "../interfaces/IAladdinCRV.sol";
+import "../../interfaces/IConvexBooster.sol";
+import "../../interfaces/IConvexBasicRewards.sol";
+import "../../interfaces/IConvexCRVDepositor.sol";
+import "../../interfaces/ICurveFactoryPlainPool.sol";
+import "../../interfaces/IZap.sol";
 
 // solhint-disable no-empty-blocks, reason-string
-contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, IAladdinConvexVault {
+contract AladdinCRVConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, IAladdinCRVConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -133,7 +133,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     pools = poolInfo.length;
   }
 
-  /// @notice See {IAladdinConvexVault-pendingReward}
+  /// @notice See {IAladdinCRVConvexVault-pendingReward}
   function pendingReward(uint256 _pid, address _account) public view override returns (uint256) {
     PoolInfo storage _pool = poolInfo[_pid];
     UserInfo storage _userInfo = userInfo[_pid][_account];
@@ -143,7 +143,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
       );
   }
 
-  /// @notice See {IAladdinConvexVault-pendingRewardAll}
+  /// @notice See {IAladdinCRVConvexVault-pendingRewardAll}
   function pendingRewardAll(address _account) external view override returns (uint256) {
     uint256 _pending;
     for (uint256 i = 0; i < poolInfo.length; i++) {
@@ -152,30 +152,30 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     return _pending;
   }
 
-  /// @notice See {IAladdinConvexVault-getUserShare}
+  /// @notice See {IAladdinCRVConvexVault-getUserShare}
   function getUserShare(uint256 _pid, address _account) external view override returns (uint256) {
     return userInfo[_pid][_account].shares;
   }
 
-  /// @notice See {IAladdinConvexVault-getTotalUnderlying}
+  /// @notice See {IAladdinCRVConvexVault-getTotalUnderlying}
   function getTotalUnderlying(uint256 _pid) external view override returns (uint256) {
     return poolInfo[_pid].totalUnderlying;
   }
 
-  /// @notice See {IAladdinConvexVault-getTotalShare}
+  /// @notice See {IAladdinCRVConvexVault-getTotalShare}
   function getTotalShare(uint256 _pid) external view override returns (uint256) {
     return poolInfo[_pid].totalShare;
   }
 
   /********************************** Mutated Functions **********************************/
 
-  /// @notice See {IAladdinConvexVault-deposit}
+  /// @notice See {IAladdinCRVConvexVault-deposit}
   /// @dev This function is deprecated.
   function deposit(uint256 _pid, uint256 _amount) external override returns (uint256 share) {
     return deposit(_pid, msg.sender, _amount);
   }
 
-  /// @notice See {IAladdinConvexVault-deposit}
+  /// @notice See {IAladdinCRVConvexVault-deposit}
   function deposit(
     uint256 _pid,
     address _recipient,
@@ -200,19 +200,19 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     return _deposit(_pid, _recipient, _amount);
   }
 
-  /// @notice See {IAladdinConvexVault-depositAll}
+  /// @notice See {IAladdinCRVConvexVault-depositAll}
   function depositAll(uint256 _pid) external override returns (uint256 share) {
     return depositAll(_pid, msg.sender);
   }
 
-  /// @notice See {IAladdinConvexVault-depositAll}
+  /// @notice See {IAladdinCRVConvexVault-depositAll}
   function depositAll(uint256 _pid, address _recipient) public override returns (uint256 share) {
     PoolInfo storage _pool = poolInfo[_pid];
     uint256 _balance = IERC20Upgradeable(_pool.lpToken).balanceOf(msg.sender);
     return deposit(_pid, _recipient, _balance);
   }
 
-  /// @notice See {IAladdinConvexVault-zapAndDeposit}
+  /// @notice See {IAladdinCRVConvexVault-zapAndDeposit}
   function zapAndDeposit(
     uint256 _pid,
     address _token,
@@ -222,7 +222,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     return zapAndDeposit(_pid, msg.sender, _token, _amount, _minAmount);
   }
 
-  /// @notice See {IAladdinConvexVault-zapAndDeposit}
+  /// @notice See {IAladdinCRVConvexVault-zapAndDeposit}
   function zapAndDeposit(
     uint256 _pid,
     address _recipient,
@@ -266,7 +266,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     return share;
   }
 
-  /// @notice See {IAladdinConvexVault-zapAllAndDeposit}
+  /// @notice See {IAladdinCRVConvexVault-zapAllAndDeposit}
   function zapAllAndDeposit(
     uint256 _pid,
     address _token,
@@ -275,7 +275,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     return zapAllAndDeposit(_pid, msg.sender, _token, _minAmount);
   }
 
-  /// @notice See {IAladdinConvexVault-zapAllAndDeposit}
+  /// @notice See {IAladdinCRVConvexVault-zapAllAndDeposit}
   function zapAllAndDeposit(
     uint256 _pid,
     address _recipient,
@@ -286,7 +286,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     return zapAndDeposit(_pid, _recipient, _token, _balance, _minAmount);
   }
 
-  /// @notice See {IAladdinConvexVault-withdrawAndClaim}
+  /// @notice See {IAladdinCRVConvexVault-withdrawAndClaim}
   function withdrawAndClaim(
     uint256 _pid,
     uint256 _shares,
@@ -318,7 +318,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     }
   }
 
-  /// @notice See {IAladdinConvexVault-withdrawAllAndClaim}
+  /// @notice See {IAladdinCRVConvexVault-withdrawAllAndClaim}
   function withdrawAllAndClaim(
     uint256 _pid,
     uint256 _minOut,
@@ -363,12 +363,12 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     address _token = _pool.lpToken;
     IERC20Upgradeable(_token).approve(_migrator, 0);
     IERC20Upgradeable(_token).approve(_migrator, _withdrawable);
-    IAladdinConvexVault(_migrator).deposit(_newPid, _recipient, _withdrawable);
+    IAladdinCRVConvexVault(_migrator).deposit(_newPid, _recipient, _withdrawable);
 
     emit Migrate(_pid, msg.sender, _shares, _recipient, _migrator, _newPid);
   }
 
-  /// @notice See {IAladdinConvexVault-withdrawAndZap}
+  /// @notice See {IAladdinCRVConvexVault-withdrawAndZap}
   function withdrawAndZap(
     uint256 _pid,
     uint256 _shares,
@@ -411,7 +411,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     }
   }
 
-  /// @notice See {IAladdinConvexVault-withdrawAllAndZap}
+  /// @notice See {IAladdinCRVConvexVault-withdrawAllAndZap}
   function withdrawAllAndZap(
     uint256 _pid,
     address _token,
@@ -421,7 +421,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     return withdrawAndZap(_pid, _userInfo.shares, _token, _minOut);
   }
 
-  /// @notice See {IAladdinConvexVault-claim}
+  /// @notice See {IAladdinCRVConvexVault-claim}
   function claim(
     uint256 _pid,
     uint256 _minOut,
@@ -440,7 +440,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     return _rewards;
   }
 
-  /// @notice See {IAladdinConvexVault-claimAll}
+  /// @notice See {IAladdinCRVConvexVault-claimAll}
   function claimAll(uint256 _minOut, ClaimOption _option) external override nonReentrant returns (uint256 claimed) {
     uint256 _rewards;
     for (uint256 _pid = 0; _pid < poolInfo.length; _pid++) {
@@ -463,7 +463,7 @@ contract AladdinConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, I
     return _rewards;
   }
 
-  /// @notice See {IAladdinConvexVault-harvest}
+  /// @notice See {IAladdinCRVConvexVault-harvest}
   function harvest(
     uint256 _pid,
     address _recipient,

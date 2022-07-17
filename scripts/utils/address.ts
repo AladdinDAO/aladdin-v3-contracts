@@ -1,4 +1,5 @@
 /* eslint-disable node/no-missing-import */
+import { constants } from "ethers";
 import { TOKENS } from "./tokens";
 
 export const ADDRESS: { [name: string]: string } = {
@@ -88,6 +89,9 @@ export const ADDRESS: { [name: string]: string } = {
   // Curve LUSD/3CRV(DAI/USDC/USDT)
   CURVE_LUSD3CRV_POOL: "0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA",
   CURVE_LUSD3CRV_TOKEN: "0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA",
+  // Curve aCRV/CTR
+  CURVE_ACRVCTR_POOL: constants.AddressZero,
+  CURVE_ACRVCTR_TOKEN: constants.AddressZero,
   // Uniswap V2 pool
   LDO_WETH_UNIV2: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
   FXS_WETH_UNIV2: "0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23",

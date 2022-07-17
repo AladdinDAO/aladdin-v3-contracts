@@ -5,6 +5,8 @@ pragma solidity ^0.7.6;
 // solhint-disable func-name-mixedcase, var-name-mixedcase
 
 interface ICurveGaugeV4V5 {
+  function lp_token() external view returns (address);
+
   function reward_data(address _token)
     external
     view

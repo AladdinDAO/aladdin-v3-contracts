@@ -5,13 +5,13 @@ import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
 import { ACRV_VAULTS, ADDRESS, VAULT_CONFIG } from "../../scripts/utils";
-import { AladdinConvexVault, IConvexBooster } from "../../typechain";
+import { AladdinCRVConvexVault, IConvexBooster } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
 
 const FORK_BLOCK_NUMBER = 15055131;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
-const PROXY_ADMIN = "0x12b1326459d72F2Ab081116bf27ca46cD97762A0";
+// const PROXY_ADMIN = "0x12b1326459d72F2Ab081116bf27ca46cD97762A0";
 const VAULT = "0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8";
 const OWNER = "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F";
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
@@ -32,10 +32,10 @@ const FRAX_HOLDER = "0xC564EE9f21Ed8A2d8E7e76c085740d5e4c5FaFbE";
 
 let firstCall = true;
 
-describe("AladdinConvexVault.add.15055131.spec", async () => {
+describe("AladdinCRVConvexVault.add.15055131.spec", async () => {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
-  let vault: AladdinConvexVault;
+  let vault: AladdinCRVConvexVault;
   let booster: IConvexBooster;
 
   beforeEach(async () => {
@@ -56,7 +56,7 @@ describe("AladdinConvexVault.add.15055131.spec", async () => {
     await deployer.sendTransaction({ to: zapOwner.address, value: ethers.utils.parseEther("10") });
 
     booster = await ethers.getContractAt("IConvexBooster", BOOSTER, deployer);
-    vault = await ethers.getContractAt("AladdinConvexVault", VAULT, owner);
+    vault = await ethers.getContractAt("AladdinCRVConvexVault", VAULT, owner);
 
     // const proxyAdmin = await ethers.getContractAt("ProxyAdmin", PROXY_ADMIN, owner);
     // const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);

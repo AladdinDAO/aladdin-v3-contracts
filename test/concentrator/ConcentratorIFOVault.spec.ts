@@ -6,7 +6,7 @@ import { constants } from "ethers";
 import { ethers } from "hardhat";
 import { ADDRESS } from "../../scripts/utils";
 import {
-  AladdinConvexVault,
+  AladdinCRVConvexVault,
   CLeverToken,
   ConcentratorIFOVault,
   IConvexBooster,
@@ -45,7 +45,7 @@ describe("ConcentratorIFOVault.spec", async () => {
   let deployer: SignerWithAddress;
   let admin: SignerWithAddress;
   let holder: SignerWithAddress;
-  let vault: AladdinConvexVault;
+  let vault: AladdinCRVConvexVault;
   let mockLP: CLeverToken;
   let ctr: CTR;
   let ve: VeCTR;
@@ -65,12 +65,12 @@ describe("ConcentratorIFOVault.spec", async () => {
 
     await deployer.sendTransaction({ to: admin.address, value: ethers.utils.parseEther("100") });
 
-    vault = await ethers.getContractAt("AladdinConvexVault", VAULT, admin);
+    vault = await ethers.getContractAt("AladdinCRVConvexVault", VAULT, admin);
 
     const proxyAdmin = await ethers.getContractAt("ProxyAdmin", PROXY_ADMIN, admin);
 
-    const AladdinConvexVault = await ethers.getContractFactory("AladdinConvexVault", deployer);
-    const impl = await AladdinConvexVault.deploy();
+    const AladdinCRVConvexVault = await ethers.getContractFactory("AladdinCRVConvexVault", deployer);
+    const impl = await AladdinCRVConvexVault.deploy();
     await impl.deployed();
 
     await proxyAdmin.upgrade(vault.address, impl.address);
