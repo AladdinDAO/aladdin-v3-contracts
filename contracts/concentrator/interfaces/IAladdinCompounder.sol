@@ -77,11 +77,6 @@ interface IAladdinCompounder {
   /// @return shares The amount of pool shares received.
   function deposit(uint256 assets, address receiver) external returns (uint256 shares);
 
-  /// @notice Deposit all caller's assets into this contract.
-  /// @param receiver The address of account who will receive the pool share.
-  /// @return shares The amount of pool shares received.
-  function depositAll(address receiver) external returns (uint256 shares);
-
   /// @notice Return the maximum amount of pool shares that the user can mint.
   /// @dev See https://eips.ethereum.org/EIPS/eip-4626
   /// @param receiver The address of user to receive the pool share.
@@ -142,13 +137,6 @@ interface IAladdinCompounder {
     address receiver,
     address owner
   ) external returns (uint256 assets);
-
-  /// @notice Redeem all pool shares to underlying assets from this contract.
-  /// @dev See https://eips.ethereum.org/EIPS/eip-4626
-  /// @param receiver The address of account who will receive the assets.
-  /// @param owner The address of user to withdraw from.
-  /// @return assets The amount of assets withdrawn.
-  function redeemAll(address receiver, address owner) external returns (uint256 assets);
 
   /// @notice Harvest rewards and convert to underlying asset.
   /// @param recipient The address of account to recieve the harvest bounty.

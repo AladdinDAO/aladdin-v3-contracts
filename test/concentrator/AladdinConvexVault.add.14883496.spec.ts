@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
 import { ACRV_VAULTS, ADDRESS, VAULT_CONFIG } from "../../scripts/utils";
-import { AladdinConvexVault, IConvexBooster } from "../../typechain";
+import { AladdinCRVConvexVault, IConvexBooster } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
 
@@ -37,10 +37,10 @@ const TRICRV_HOLDER = "0x5c00977a2002a3C9925dFDfb6815765F578a804f";
 
 let firstCall = true;
 
-describe("AladdinConvexVault.add.14883496.spec", async () => {
+describe("AladdinCRVConvexVault.add.14883496.spec", async () => {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
-  let vault: AladdinConvexVault;
+  let vault: AladdinCRVConvexVault;
   let booster: IConvexBooster;
 
   beforeEach(async () => {
@@ -64,7 +64,7 @@ describe("AladdinConvexVault.add.14883496.spec", async () => {
     await deployer.sendTransaction({ to: zapOwner.address, value: ethers.utils.parseEther("10") });
 
     booster = await ethers.getContractAt("IConvexBooster", BOOSTER, deployer);
-    vault = await ethers.getContractAt("AladdinConvexVault", VAULT, owner);
+    vault = await ethers.getContractAt("AladdinCRVConvexVault", VAULT, owner);
 
     const zap = await ethers.getContractAt("AladdinZap", ZAP, zapOwner);
     const { token: name, deposit: addRoutes, withdraw: removeRoutes } = VAULT_CONFIG.pusd;

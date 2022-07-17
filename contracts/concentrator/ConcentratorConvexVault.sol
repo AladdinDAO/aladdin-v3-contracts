@@ -242,7 +242,7 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     uint256 _pid,
     address _recipient,
     uint256 _assetsIn
-  ) public override onlyExistPool(_pid) returns (uint256) {
+  ) public override onlyExistPool(_pid) nonReentrant returns (uint256) {
     require(_assetsIn > 0, "deposit zero amount");
 
     // 1. update rewards
@@ -577,7 +577,7 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     uint256 _pid,
     address _recipient,
     uint256 _assetsIn
-  ) internal nonReentrant returns (uint256) {
+  ) internal returns (uint256) {
     PoolInfo storage _pool = poolInfo[_pid];
 
     {

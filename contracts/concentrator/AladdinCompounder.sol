@@ -175,17 +175,15 @@ abstract contract AladdinCompounder is
 
   /// @inheritdoc IAladdinCompounder
   function deposit(uint256 _assets, address _receiver) public override nonReentrant returns (uint256) {
+    if (_assets == uint256(-1)) {
+      _assets = IERC20Upgradeable(asset()).balanceOf(msg.sender);
+    }
+
     _distributePendingReward();
 
     IERC20Upgradeable(asset()).safeTransferFrom(msg.sender, address(this), _assets);
 
     return _deposit(_assets, _receiver);
-  }
-
-  /// @inheritdoc IAladdinCompounder
-  function depositAll(address _receiver) external override returns (uint256) {
-    uint256 _balance = IERC20Upgradeable(asset()).balanceOf(msg.sender);
-    return deposit(_balance, _receiver);
   }
 
   /// @inheritdoc IAladdinCompounder
@@ -235,6 +233,9 @@ abstract contract AladdinCompounder is
     address _receiver,
     address _owner
   ) public override nonReentrant returns (uint256) {
+    if (_shares == uint256(-1)) {
+      _shares = balanceOf(_owner);
+    }
     _distributePendingReward();
 
     if (msg.sender != _owner) {
@@ -247,12 +248,6 @@ abstract contract AladdinCompounder is
     }
 
     return _withdraw(_shares, _receiver, _owner);
-  }
-
-  /// @inheritdoc IAladdinCompounder
-  function redeemAll(address _receiver, address _owner) external override returns (uint256) {
-    uint256 _shares = balanceOf(_owner);
-    return redeem(_shares, _receiver, _owner);
   }
 
   /********************************** Restricted Functions **********************************/
