@@ -32,6 +32,7 @@ abstract contract ZapGatewayBase is Ownable {
     if (_token == address(0)) {
       require(msg.value == _amount, "msg.value mismatch");
     } else {
+      require(msg.value == 0, "msg.value not zero");
       uint256 _balance = IERC20(_token).balanceOf(address(this));
       IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
       _amount = IERC20(_token).balanceOf(address(this)).sub(_balance);

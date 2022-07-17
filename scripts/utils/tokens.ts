@@ -1,3 +1,5 @@
+import { DEPLOYED_CONTRACTS } from "./deploys";
+
 export const TOKENS: { [symbol: string]: { address: string; decimals: number } } = {
   WETH: { decimals: 18, address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
   rETH: { decimals: 18, address: "0xae78736Cd615f374D3085123A210448E74Fc6393" },
@@ -52,4 +54,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   DOLA: { decimals: 18, address: "0x865377367054516e17014CcdED1e7d814EDC9ce4" },
   BUSD: { decimals: 18, address: "0x4Fabb145d64652a948d72533023f6E7A623C7C53" },
   LUSD: { decimals: 18, address: "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0" },
+  aCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.aCRV },
+  CTR: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.CTR },
 };
