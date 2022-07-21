@@ -208,36 +208,41 @@ contract ConcentratorIFOVault is AladdinConvexVault {
 
   function _harvestAsACRV(uint256 _pid, uint256 _minimumOut) internal returns (uint256, uint256) {
     PoolInfo storage _pool = poolInfo[_pid];
+    address[] memory _rewardsToken = _pool.convexRewardTokens;
+    uint256[] memory _balances = new uint256[](_rewardsToken.length);
+    for (uint256 i = 0; i < _rewardsToken.length; i++) {
+      _balances[i] = IERC20Upgradeable(_rewardsToken[i]).balanceOf(address(this));
+    }
     // 1. claim rewards
     IConvexBasicRewards(_pool.crvRewards).getReward();
 
     // 2. swap all rewards token to CRV
-    address[] memory _rewardsToken = _pool.convexRewardTokens;
-    uint256 _amount = address(this).balance;
+    uint256 _amountETH;
+    uint256 _amountCRV;
     address _token;
     address _zap = zap;
     for (uint256 i = 0; i < _rewardsToken.length; i++) {
       _token = _rewardsToken[i];
+      _balances[i] = IERC20Upgradeable(_rewardsToken[i]).balanceOf(address(this)).sub(_balances[i]);
       if (_token != CRV) {
-        uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
-        if (_balance > 0) {
-          // saving gas
-          IERC20Upgradeable(_token).safeTransfer(_zap, _balance);
-          _amount = _amount.add(IZap(_zap).zap(_token, _balance, address(0), 0));
+        if (_balances[i] > 0) {
+          IERC20Upgradeable(_token).safeTransfer(_zap, _balances[i]);
+          _amountETH = _amountETH.add(IZap(_zap).zap(_token, _balances[i], address(0), 0));
         }
+      } else {
+        _amountCRV += _balances[i];
       }
     }
-    if (_amount > 0) {
-      IZap(_zap).zap{ value: _amount }(address(0), _amount, CRV, 0);
+    if (_amountETH > 0) {
+      _amountCRV += IZap(_zap).zap{ value: _amountETH }(address(0), _amountETH, CRV, 0);
     }
-    _amount = IERC20Upgradeable(CRV).balanceOf(address(this));
-    _amount = _swapCRVToCvxCRV(_amount, _minimumOut);
+    uint256 _amountCVXCRV = _swapCRVToCvxCRV(_amountCRV, _minimumOut);
 
     // 3. deposit cvxCRV as aCRV
     _token = aladdinCRV; // gas saving
-    _approve(CVXCRV, _token, _amount);
-    uint256 _rewards = IAladdinCRV(_token).deposit(address(this), _amount);
+    _approve(CVXCRV, _token, _amountCVXCRV);
+    uint256 _rewards = IAladdinCRV(_token).deposit(address(this), _amountCVXCRV);
 
-    return (_amount, _rewards);
+    return (_amountCVXCRV, _rewards);
   }
 }
