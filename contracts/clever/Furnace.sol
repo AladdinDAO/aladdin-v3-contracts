@@ -6,9 +6,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+import "./interfaces/ICLeverToken.sol";
+import "./interfaces/IFurnace.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
-import "../interfaces/IFurnace.sol";
-import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IZap.sol";
 
 // solhint-disable reason-string

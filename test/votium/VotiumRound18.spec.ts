@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { ADDRESS, ZAP_ROUTES } from "../../scripts/utils";
-import { Round18Rewards } from "../../scripts/votium/config";
+import { RoundClaimParams } from "../../scripts/votium/config";
 import { AladdinZap, CLeverCVXLocker, IERC20 } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
@@ -24,6 +24,7 @@ const TRIBE_HOLDER = "0xf977814e90da44bfa03b6295a0616a897441acec";
 const GEIST = ADDRESS.GEIST;
 
 let firstCall = true;
+const Round18Rewards = RoundClaimParams[18];
 
 describe("VotiumRound18.spec", async () => {
   let deployer: SignerWithAddress;

@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../interfaces/ICLeverToken.sol";
+import "./interfaces/ICLeverToken.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract CLeverToken is Ownable, ERC20, ICLeverToken {
