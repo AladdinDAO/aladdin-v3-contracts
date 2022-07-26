@@ -29,8 +29,8 @@ async function main(round: number, manualStr: string) {
 
   const [deployer] = await ethers.getSigners();
   const cvx = await ethers.getContractAt("IERC20", ADDRESS.CVX, deployer);
-  const furnance = await ethers.getContractAt("Furnace", DEPLOYED_CONTRACTS.FurnaceForCVX, deployer);
-  const cvxLocker = await ethers.getContractAt("CLeverCVXLocker", DEPLOYED_CONTRACTS.CLeverForCVX, deployer);
+  const furnance = await ethers.getContractAt("Furnace", DEPLOYED_CONTRACTS.CLever.FurnaceForCVX, deployer);
+  const cvxLocker = await ethers.getContractAt("CLeverCVXLocker", DEPLOYED_CONTRACTS.CLever.CLeverForCVX, deployer);
 
   const estimate = BigNumber.from(
     await ethers.provider.call({
@@ -49,7 +49,7 @@ async function main(round: number, manualStr: string) {
 
   if (KEEPER === deployer.address) {
     const furnaceBefore = await furnance.totalCVXInPool();
-    const treasuryBefore = await cvx.balanceOf(DEPLOYED_CONTRACTS.CLeverTreasury);
+    const treasuryBefore = await cvx.balanceOf(DEPLOYED_CONTRACTS.CLever.Treasury);
     const tx = await cvxLocker.harvestVotium(RoundClaimParams[round], estimate.mul(9).div(10), {
       gasLimit: gasEstimate.mul(12).div(10),
     });
@@ -57,11 +57,11 @@ async function main(round: number, manualStr: string) {
     const receipt = await tx.wait();
     console.log("confirmed, gas used:", receipt.gasUsed.toString());
     const furnaceAfter = await furnance.totalCVXInPool();
-    const treasuryAfter = await cvx.balanceOf(DEPLOYED_CONTRACTS.CLeverTreasury);
+    const treasuryAfter = await cvx.balanceOf(DEPLOYED_CONTRACTS.CLever.Treasury);
     console.log(
       "actual furnace CVX:",
       ethers.utils.formatEther(furnaceAfter.sub(furnaceBefore)),
-      ", treasury CVX:",
+      "treasury CVX:",
       ethers.utils.formatEther(treasuryAfter.sub(treasuryBefore))
     );
     for (const symbol of manualTokens) {

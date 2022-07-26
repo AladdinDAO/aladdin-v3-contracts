@@ -1,7 +1,7 @@
 /* eslint-disable node/no-missing-import */
 import { ethers } from "hardhat";
 import { CLeverToken, ProxyAdmin, MetaFurnace, MetaCLever, AladdinCRVStrategy } from "../typechain";
-import { ADDRESS } from "./config";
+import { ADDRESS } from "./utils";
 
 const config: {
   proxyAdmin?: string;
@@ -10,11 +10,11 @@ const config: {
   furnace?: string;
   clever?: string;
 } = {
-  proxyAdmin: undefined,
-  clevCRV: undefined,
-  furnace: undefined,
-  clever: undefined,
-  strategy: undefined,
+  proxyAdmin: "0xeb5EB007Ab39e9831a1921E8116Bc353AFE5BA2C",
+  clevCRV: "0xDAF03D70Fe637b91bA6E521A32E1Fb39256d3EC9",
+  furnace: "0x7a5A9332638CD6846f17661851D7F472220dFdA8",
+  clever: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
+  strategy: "0xAe9D13Aab81c752290dfbE536931a4fec80C77D7",
 };
 
 const PLATFORM = "0xFC08757c505eA28709dF66E54870fB6dE09f0C5E";

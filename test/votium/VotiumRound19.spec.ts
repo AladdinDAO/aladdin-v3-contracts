@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { ADDRESS, ZAP_ROUTES } from "../../scripts/utils";
-import { Round19Rewards } from "../../scripts/votium/config";
+import { RoundClaimParams } from "../../scripts/votium/config";
 import { AladdinZap, CLeverCVXLocker, IERC20 } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
@@ -28,6 +28,7 @@ const EURS_HOLDER = "0x9362D27fD1827232754eeD59158264BA8a780CBF";
 const UPDATE_ZAP_IMPL = false;
 
 let firstCall = true;
+const Round19Rewards = RoundClaimParams[19];
 
 describe("VotiumRound19.spec", async () => {
   let deployer: SignerWithAddress;
