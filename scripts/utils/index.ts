@@ -23,6 +23,7 @@ export enum PoolType {
   CurveFactoryBTCMetaPoolUnderlying,
   LidoStake, // eth to stETH
   LidoWrap, // stETH to wstETH or wstETH to stETH
+  CurveFactoryFraxBPMetaPoolUnderlying,
   AladdinCompounder, // wrap/unrwap as aCRV/aFXS/...
 }
 

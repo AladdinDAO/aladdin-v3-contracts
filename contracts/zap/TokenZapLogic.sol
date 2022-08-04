@@ -72,6 +72,10 @@ contract TokenZapLogic {
   address private constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
   address private constant sBTC = 0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6;
 
+  /// @dev The address of Curve FraxBP Deposit Zap
+  address private constant CURVE_FRAXBP_DEPOSIT_ZAP = 0x08780fb7E580e492c1935bEe4fA5920b94AA95Da;
+  address private constant FRAX = 0x853d955aCEf822Db058eb8505911ED77F175b99e;
+
   /// @dev The address of Lido's stETH token.
   address private constant stETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
 
@@ -106,6 +110,7 @@ contract TokenZapLogic {
     CurveFactoryBTCMetaPoolUnderlying,
     LidoStake, // eth to stETH
     LidoWrap, // stETH to wstETH or wstETH to stETH
+    CurveFactoryFraxBPMetaPoolUnderlying,
     AladdinCompounder // wrap/unrwap as aCRV/aFXS/...
   }
 
@@ -348,6 +353,8 @@ contract TokenZapLogic {
       ICurveMetaPoolSwap(_pool).exchange_underlying(int128(_indexIn), int128(_indexOut), _amountIn, 0);
     } else if (_poolType == PoolType.CurveFactoryBTCMetaPoolUnderlying) {
       ICurveMetaPoolSwap(_pool).exchange_underlying(int128(_indexIn), int128(_indexOut), _amountIn, 0);
+    } else if (_poolType == PoolType.CurveFactoryFraxBPMetaPoolUnderlying) {
+      ICurveMetaPoolSwap(_pool).exchange_underlying(int128(_indexIn), int128(_indexOut), _amountIn, 0);
     } else {
       revert("AladdinZap: invalid poolType");
     }
@@ -368,6 +375,8 @@ contract TokenZapLogic {
       _approve(_tokenIn, CURVE_3POOL_DEPOSIT_ZAP, _amountIn);
     } else if (_poolType == PoolType.CurveFactoryBTCMetaPoolUnderlying) {
       _approve(_tokenIn, CURVE_SBTC_DEPOSIT_ZAP, _amountIn);
+    } else if (_poolType == PoolType.CurveFactoryFraxBPMetaPoolUnderlying) {
+      _approve(_tokenIn, CURVE_FRAXBP_DEPOSIT_ZAP, _amountIn);
     } else {
       _approve(_tokenIn, _pool, _amountIn);
     }
@@ -391,11 +400,15 @@ contract TokenZapLogic {
     } else if (_poolType == PoolType.CurveFactoryUSDMetaPoolUnderlying) {
       uint256[4] memory _amounts;
       _amounts[_indexIn] = _amountIn;
-      return ICurveDepositZap(CURVE_3POOL_DEPOSIT_ZAP).add_liquidity(_pool, _amounts, 0);
+      return ICurveDepositZap4Pool(CURVE_3POOL_DEPOSIT_ZAP).add_liquidity(_pool, _amounts, 0);
     } else if (_poolType == PoolType.CurveFactoryBTCMetaPoolUnderlying) {
       uint256[4] memory _amounts;
       _amounts[_indexIn] = _amountIn;
-      return ICurveDepositZap(CURVE_SBTC_DEPOSIT_ZAP).add_liquidity(_pool, _amounts, 0);
+      return ICurveDepositZap4Pool(CURVE_SBTC_DEPOSIT_ZAP).add_liquidity(_pool, _amounts, 0);
+    } else if (_poolType == PoolType.CurveFactoryFraxBPMetaPoolUnderlying) {
+      uint256[3] memory _amounts;
+      _amounts[_indexIn] = _amountIn;
+      return ICurveDepositZap3Pool(CURVE_FRAXBP_DEPOSIT_ZAP).add_liquidity(_pool, _amounts, 0);
     } else if (_poolType == PoolType.CurveETHPool) {
       if (_isETH(_tokenIn)) {
         _unwrapIfNeeded(_amountIn);
@@ -449,10 +462,13 @@ contract TokenZapLogic {
       ICurveTriCryptoPool(_pool).remove_liquidity_one_coin(_amountIn, _indexOut, 0);
     } else if (_poolType == PoolType.CurveFactoryUSDMetaPoolUnderlying) {
       _approve(_tokenIn, CURVE_3POOL_DEPOSIT_ZAP, _amountIn);
-      ICurveDepositZap(CURVE_3POOL_DEPOSIT_ZAP).remove_liquidity_one_coin(_pool, _amountIn, int128(_indexOut), 0);
+      ICurveDepositZap4Pool(CURVE_3POOL_DEPOSIT_ZAP).remove_liquidity_one_coin(_pool, _amountIn, int128(_indexOut), 0);
     } else if (_poolType == PoolType.CurveFactoryBTCMetaPoolUnderlying) {
       _approve(_tokenIn, CURVE_SBTC_DEPOSIT_ZAP, _amountIn);
-      ICurveDepositZap(CURVE_SBTC_DEPOSIT_ZAP).remove_liquidity_one_coin(_pool, _amountIn, int128(_indexOut), 0);
+      ICurveDepositZap4Pool(CURVE_SBTC_DEPOSIT_ZAP).remove_liquidity_one_coin(_pool, _amountIn, int128(_indexOut), 0);
+    } else if (_poolType == PoolType.CurveFactoryFraxBPMetaPoolUnderlying) {
+      _approve(_tokenIn, CURVE_FRAXBP_DEPOSIT_ZAP, _amountIn);
+      ICurveDepositZap3Pool(CURVE_FRAXBP_DEPOSIT_ZAP).remove_liquidity_one_coin(_pool, _amountIn, int128(_indexOut), 0);
     } else if (_poolType == PoolType.CurveMetaPoolUnderlying) {
       _approve(_tokenIn, _pool, _amountIn);
       ICurveMetaPoolDeposit(_pool).remove_liquidity_one_coin(_amountIn, int128(_indexOut), 0);
@@ -533,6 +549,9 @@ contract TokenZapLogic {
     } else if (_type == PoolType.CurveFactoryBTCMetaPoolUnderlying) {
       if (_index == 0) return ICurveBasePool(_pool).coins(_index);
       else return _getsBTCTokenByIndex(_index - 1);
+    } else if (_type == PoolType.CurveFactoryFraxBPMetaPoolUnderlying) {
+      if (_index == 0) return ICurveBasePool(_pool).coins(_index);
+      else return _getFraxBPTokenByIndex(_index - 1);
     } else {
       // vyper is weird, some use `int128`
       try ICurveBasePool(_pool).coins(_index) returns (address _token) {
@@ -547,6 +566,12 @@ contract TokenZapLogic {
     if (_index == 0) return DAI;
     else if (_index == 1) return USDC;
     else if (_index == 2) return USDT;
+    else return address(0);
+  }
+
+  function _getFraxBPTokenByIndex(uint256 _index) private pure returns (address) {
+    if (_index == 0) return FRAX;
+    else if (_index == 1) return USDC;
     else return address(0);
   }
 
