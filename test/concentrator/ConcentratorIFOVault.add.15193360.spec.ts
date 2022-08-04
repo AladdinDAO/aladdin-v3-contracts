@@ -53,6 +53,12 @@ const POOL_HOLDERS: {
     amount: "1000",
     harvest: false,
   },*/
+  lusdfraxbp: {
+    fork: 15238220,
+    holder: "0xb4d27b87a09ab76c47e342535a309a1176051481",
+    amount: "0.1",
+    harvest: false,
+  },
 };
 
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
