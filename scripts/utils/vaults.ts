@@ -2110,3 +2110,12 @@ export const ACRV_IFO_VAULTS: {
   { name: "tusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 29
   { name: "lusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 30
 ];
+
+export const AFXS_VAULTS: {
+  name: string;
+  fees: {
+    withdraw: number;
+    harvest: number;
+    platform: number;
+  };
+}[] = [];

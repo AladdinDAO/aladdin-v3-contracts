@@ -115,7 +115,7 @@ interface IConcentratorConvexVault {
   /// @notice Deposit some token to specific pool for someone.
   /// @param pid The pool id.
   /// @param recipient The address of recipient who will recieve the token.
-  /// @param assets The amount of token to deposit.
+  /// @param assets The amount of token to deposit. -1 means deposit all.
   /// @return share The amount of share after deposit.
   function deposit(
     uint256 pid,
@@ -123,32 +123,15 @@ interface IConcentratorConvexVault {
     uint256 assets
   ) external returns (uint256 share);
 
-  /// @notice Deposit all token of the caller to specific pool for someone.
-  /// @param pid The pool id.
-  /// @param recipient The address of recipient who will recieve the token.
-  /// @return shares The amount of share after deposit.
-  function depositAll(uint256 pid, address recipient) external returns (uint256 shares);
-
   /// @notice Withdraw some token from specific pool and zap to token.
   /// @param pid The pool id.
-  /// @param shares The share of token want to withdraw.
+  /// @param shares The share of token want to withdraw. -1 means withdraw all.
   /// @param recipient The address of account who will receive the assets.
   /// @param owner The address of user to withdraw from.
   /// @return assets The amount of token sent to recipient.
   function withdraw(
     uint256 pid,
     uint256 shares,
-    address recipient,
-    address owner
-  ) external returns (uint256 assets);
-
-  /// @notice Withdraw all token from specific pool and zap to token.
-  /// @param pid The pool id.
-  /// @param recipient The address of account who will receive the assets.
-  /// @param owner The address of user to withdraw from.
-  /// @return assets The amount of token sent to caller.
-  function withdrawAll(
-    uint256 pid,
     address recipient,
     address owner
   ) external returns (uint256 assets);

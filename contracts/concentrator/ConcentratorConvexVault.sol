@@ -37,6 +37,11 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
   /// @param _platform The new platform address.
   event UpdatePlatform(address indexed _platform);
 
+  /// @notice Emitted when the length of reward period is updated.
+  /// @param _pid The pool id to update.
+  /// @param _period The new reward period.
+  event UpdateRewardPeriod(uint256 indexed _pid, uint32 _period);
+
   /// @notice Emitted when the list of reward tokens is updated.
   /// @param _pid The pool id to update.
   /// @param _rewardTokens The new list of reward tokens.
@@ -143,7 +148,7 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
   address public platform;
 
   modifier onlyExistPool(uint256 _pid) {
-    require(_pid < poolInfo.length, "invalid pool");
+    require(_pid < poolInfo.length, "pool not exist");
     _;
   }
 
@@ -243,6 +248,9 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     address _recipient,
     uint256 _assetsIn
   ) public override onlyExistPool(_pid) nonReentrant returns (uint256) {
+    if (_assetsIn == uint256(-1)) {
+      _assetsIn = IERC20Upgradeable(poolInfo[_pid].lpToken).balanceOf(msg.sender);
+    }
     require(_assetsIn > 0, "deposit zero amount");
 
     // 1. update rewards
@@ -263,25 +271,21 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
   }
 
   /// @inheritdoc IConcentratorConvexVault
-  function depositAll(uint256 _pid, address _recipient) public override returns (uint256) {
-    PoolInfo storage _pool = poolInfo[_pid];
-    uint256 _balance = IERC20Upgradeable(_pool.lpToken).balanceOf(msg.sender);
-    return deposit(_pid, _recipient, _balance);
-  }
-
-  /// @inheritdoc IConcentratorConvexVault
   function withdraw(
     uint256 _pid,
     uint256 _sharesIn,
     address _recipient,
     address _owner
   ) public override onlyExistPool(_pid) nonReentrant returns (uint256) {
+    if (_sharesIn == uint256(-1)) {
+      _sharesIn = userInfo[_pid][_owner].shares;
+    }
     require(_sharesIn > 0, "withdraw zero share");
 
     if (msg.sender != _owner) {
       UserInfo storage _info = userInfo[_pid][_owner];
       uint256 _allowance = _info.allowances[msg.sender];
-      require(_allowance >= _sharesIn, "redeem exceeds allowance");
+      require(_allowance >= _sharesIn, "withdraw exceeds allowance");
       if (_allowance != uint256(-1)) {
         // decrease allowance if it is not max
         _approve(_pid, _owner, msg.sender, _allowance - _sharesIn);
@@ -295,16 +299,6 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
 
     // 2. withdraw lp token
     return _withdraw(_pid, _sharesIn, _owner, _recipient);
-  }
-
-  /// @inheritdoc IConcentratorConvexVault
-  function withdrawAll(
-    uint256 _pid,
-    address _recipient,
-    address _owner
-  ) external override returns (uint256 withdrawn) {
-    UserInfo storage _userInfo = userInfo[_pid][_owner];
-    return withdraw(_pid, _userInfo.shares, _recipient, _owner);
   }
 
   /// @inheritdoc IConcentratorConvexVault
@@ -401,9 +395,9 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
 
   /********************************** Restricted Functions **********************************/
 
-  /// @dev Update the withdraw fee percentage.
-  /// @param _pid - The pool id.
-  /// @param _feePercentage - The fee percentage to update.
+  /// @notice Update the withdraw fee percentage.
+  /// @param _pid The pool id.
+  /// @param _feePercentage The fee percentage to update.
   function updateWithdrawFeePercentage(uint256 _pid, uint256 _feePercentage) external onlyExistPool(_pid) onlyOwner {
     require(_feePercentage <= MAX_WITHDRAW_FEE, "fee too large");
 
@@ -412,9 +406,9 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     emit UpdateWithdrawalFeePercentage(_pid, _feePercentage);
   }
 
-  /// @dev Update the platform fee percentage.
-  /// @param _pid - The pool id.
-  /// @param _feePercentage - The fee percentage to update.
+  /// @notice Update the platform fee percentage.
+  /// @param _pid The pool id.
+  /// @param _feePercentage The fee percentage to update.
   function updatePlatformFeePercentage(uint256 _pid, uint256 _feePercentage) external onlyExistPool(_pid) onlyOwner {
     require(_feePercentage <= MAX_PLATFORM_FEE, "fee too large");
 
@@ -423,9 +417,9 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     emit UpdatePlatformFeePercentage(_pid, _feePercentage);
   }
 
-  /// @dev Update the harvest bounty percentage.
-  /// @param _pid - The pool id.
-  /// @param _percentage - The fee percentage to update.
+  /// @notice Update the harvest bounty percentage.
+  /// @param _pid The pool id.
+  /// @param _percentage The fee percentage to update.
   function updateHarvestBountyPercentage(uint256 _pid, uint256 _percentage) external onlyExistPool(_pid) onlyOwner {
     require(_percentage <= MAX_HARVEST_BOUNTY, "fee too large");
 
@@ -434,7 +428,8 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     emit UpdateHarvestBountyPercentage(_pid, _percentage);
   }
 
-  /// @dev Update the recipient
+  /// @notice Update the recipient
+  /// @param _platform The address of new platform.
   function updatePlatform(address _platform) external onlyOwner {
     require(_platform != address(0), "zero platform address");
     platform = _platform;
@@ -442,12 +437,12 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     emit UpdatePlatform(_platform);
   }
 
-  /// @dev Add new Convex pool.
-  /// @param _convexPid - The Convex pool id.
-  /// @param _rewardTokens - The list of addresses of reward tokens.
-  /// @param _withdrawFeePercentage - The withdraw fee percentage of the pool.
-  /// @param _platformFeePercentage - The platform fee percentage of the pool.
-  /// @param _harvestBountyPercentage - The harvest bounty percentage of the pool.
+  /// @notice Add new Convex pool.
+  /// @param _convexPid The Convex pool id.
+  /// @param _rewardTokens The list of addresses of reward tokens.
+  /// @param _withdrawFeePercentage The withdraw fee percentage of the pool.
+  /// @param _platformFeePercentage The platform fee percentage of the pool.
+  /// @param _harvestBountyPercentage The harvest bounty percentage of the pool.
   function addPool(
     uint256 _convexPid,
     address[] memory _rewardTokens,
@@ -481,14 +476,25 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
       })
     );
 
-    rewardInfo.push(RewardInfo({ rate: 0, periodLength: uint32(WEEK), lastUpdate: 0, finishAt: 0 }));
+    rewardInfo.push(RewardInfo({ rate: 0, periodLength: 0, lastUpdate: 0, finishAt: 0 }));
 
     emit AddPool(poolInfo.length - 1, _convexPid, _rewardTokens);
   }
 
-  /// @dev update reward tokens
-  /// @param _pid - The pool id.
-  /// @param _rewardTokens - The address list of new reward tokens.
+  /// @notice update reward period
+  /// @param _pid The pool id.
+  /// @param _period The length of the period
+  function updateRewardPeriod(uint256 _pid, uint32 _period) external onlyExistPool(_pid) onlyOwner {
+    require(_period <= WEEK, "reward period too long");
+
+    rewardInfo[_pid].periodLength = _period;
+
+    emit UpdateRewardPeriod(_pid, _period);
+  }
+
+  /// @notice update reward tokens
+  /// @param _pid The pool id.
+  /// @param _rewardTokens The address list of new reward tokens.
   function updatePoolRewardTokens(uint256 _pid, address[] memory _rewardTokens) external onlyExistPool(_pid) onlyOwner {
     delete poolInfo[_pid].convexRewardTokens;
     poolInfo[_pid].convexRewardTokens = _rewardTokens;
@@ -496,18 +502,18 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     emit UpdatePoolRewardTokens(_pid, _rewardTokens);
   }
 
-  /// @dev Pause withdraw for specific pool.
-  /// @param _pid - The pool id.
-  /// @param _status - The status to update.
+  /// @notice Pause withdraw for specific pool.
+  /// @param _pid The pool id.
+  /// @param _status The status to update.
   function pausePoolWithdraw(uint256 _pid, bool _status) external onlyExistPool(_pid) onlyOwner {
     poolInfo[_pid].pauseWithdraw = _status;
 
     emit PausePoolWithdraw(_pid, _status);
   }
 
-  /// @dev Pause deposit for specific pool.
-  /// @param _pid - The pool id.
-  /// @param _status - The status to update.
+  /// @notice Pause deposit for specific pool.
+  /// @param _pid The pool id.
+  /// @param _status The status to update.
   function pausePoolDeposit(uint256 _pid, bool _status) external onlyExistPool(_pid) onlyOwner {
     poolInfo[_pid].pauseDeposit = _status;
 
