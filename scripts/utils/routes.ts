@@ -60,9 +60,9 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
     ],
   },
   EURS: {
-    // EURS ==(UniV3)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX
+    // EURS ==(CurveV2)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX
     CVX: [
-      encodePoolHintV2(ADDRESS.USDC_EURS_POOL_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_USDCEURS_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],

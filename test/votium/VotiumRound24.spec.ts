@@ -9,7 +9,7 @@ import { AladdinZap, CLeverCVXLocker, IERC20 } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
 
-const FORK_BLOCK_NUMBER = 15302370;
+const FORK_BLOCK_NUMBER = 15306980;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const PROXY_ADMIN = "0x12b1326459d72F2Ab081116bf27ca46cD97762A0";
 const ZAP = "0x1104b4DF568fa7Af90B1Bed1D78A2F71e748dc8a";
@@ -60,7 +60,7 @@ describe("VotiumRound24.spec", async () => {
 
     locker = await ethers.getContractAt("CLeverCVXLocker", CVX_LOCKER, owner);
 
-    const rewards = ["APEFI", "USDD"];
+    const rewards = ["APEFI", "USDD", "EURS"];
     for (const from of rewards) {
       const routes = ZAP_ROUTES[from].CVX;
       if (routes !== undefined) {
@@ -75,7 +75,7 @@ describe("VotiumRound24.spec", async () => {
 
   it("APEFI => CVX", async () => {
     const amountIn = ethers.utils.parseUnits("10000", 18);
-    const expectCVX = ethers.utils.parseUnits("40", 18);
+    const expectCVX = ethers.utils.parseUnits("10", 18);
     const signer = await ethers.getSigner(APEFI_HOLDER);
     await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
 
@@ -91,7 +91,7 @@ describe("VotiumRound24.spec", async () => {
 
   it("USDD => CVX", async () => {
     const amountIn = ethers.utils.parseUnits("10000", 18);
-    const expectCVX = ethers.utils.parseUnits("1300", 18);
+    const expectCVX = ethers.utils.parseUnits("1000", 18);
     const signer = await ethers.getSigner(USDD_HOLDER);
     await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
 
@@ -105,11 +105,11 @@ describe("VotiumRound24.spec", async () => {
     expect(afterCVX.sub(beforeCVX)).gte(expectCVX);
   });
 
-  /*it("should harvest", async () => {
+  it("should harvest", async () => {
     const keeper = await ethers.getSigner(KEEPER);
     await deployer.sendTransaction({ to: keeper.address, value: ethers.utils.parseEther("10") });
     const amount = await locker.connect(keeper).callStatic.harvestVotium(Round24Rewards, 0);
     await locker.connect(keeper).harvestVotium(Round24Rewards, 0);
     console.log("CVX:", ethers.utils.formatEther(amount));
-  });*/
+  });
 });
