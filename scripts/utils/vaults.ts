@@ -2103,6 +2103,14 @@ export const ACRV_IFO_VAULTS: {
   { name: "aleth", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 21
   { name: "3eur", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 22
   { name: "lusd", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 23
+<<<<<<< HEAD
+  { name: "silofrax", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 24
+  { name: "tusd", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 25
+  { name: "susdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 26
+  { name: "busdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 27
+  { name: "alusdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 28
+  { name: "tusdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 29
+=======
   { name: "silofrax", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 24
   { name: "tusd", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 25
   { name: "susdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 26
@@ -2110,4 +2118,5 @@ export const ACRV_IFO_VAULTS: {
   { name: "alusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 28
   { name: "tusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 29
   { name: "lusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 30
+>>>>>>> main
 ];
