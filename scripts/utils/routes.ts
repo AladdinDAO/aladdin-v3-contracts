@@ -12,6 +12,13 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
     // ALCX ==(UniV2)==> WETH
     WETH: [encodePoolHintV2(ADDRESS.WETH_ALCX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap)],
   },
+  APEFI: {
+    // APEFI ==(UniV2)==> WETH ==(CurveV2)==> CVX
+    CVX: [
+      encodePoolHintV2(ADDRESS.APEFI_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
   ANGLE: {
     // ANGLE ==(Sushi)==> WETH ==(CurveV2)==> CVX
     CVX: [
@@ -64,9 +71,9 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
     ],
   },
   EURS: {
-    // EURS ==(UniV3)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX
+    // EURS ==(CurveV2)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX
     CVX: [
-      encodePoolHintV2(ADDRESS.USDC_EURS_POOL_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_USDCEURS_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
@@ -191,6 +198,14 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },
+  USDD: {
+    // USDD ==(Curve)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX
+    CVX: [
+      encodePoolHintV2(ADDRESS.CURVE_USDD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 0, 2, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
   UST_WORMHOLE: {
     // UST ==(UniV3)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX
     CVX: [
@@ -210,6 +225,14 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
       encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.AddLiquidity),
       encodePoolHintV2(ADDRESS.CURVE_ACRVCTR_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+    ],
+  },
+  TUSD: {
+    // TUSD ==(Curve)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX
+    CVX: [
+      encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 0, 2, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },
 };

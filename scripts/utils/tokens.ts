@@ -55,6 +55,8 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   DOLA: { decimals: 18, address: "0x865377367054516e17014CcdED1e7d814EDC9ce4" },
   BUSD: { decimals: 18, address: "0x4Fabb145d64652a948d72533023f6E7A623C7C53" },
   SILO: { decimals: 18, address: "0x6f80310CA7F2C654691D1383149Fa1A57d8AB1f8" },
+  APEFI: { decimals: 18, address: "0x4332f8a38f14bd3d8d1553af27d7c7ac6c27278d" },
+  USDD: { decimals: 18, address: "0x0C10bF8FcB7Bf5412187A595ab97a3609160b5c6" },
   crvFRAX: { decimals: 18, address: "0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC" },
   TUSD: { decimals: 18, address: "0x0000000000085d4780B73119b644AE5ecd22b376" },
   LUSD: { decimals: 18, address: "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0" },
