@@ -1957,6 +1957,92 @@ export const VAULT_CONFIG: {
       ],
     },
   },
+
+  lusdfraxbp: {
+    token: "CURVE_LUSDFRAXBP",
+    convexId: 102,
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      LUSD: [
+        encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
+      ],
+      crvFRAX: [
+        encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+      FRAX: [
+        encodePoolHintV2(
+          ADDRESS.CURVE_LUSDFRAXBP_POOL,
+          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          3,
+          1,
+          1,
+          Action.AddLiquidity
+        ),
+      ],
+      USDC: [
+        encodePoolHintV2(
+          ADDRESS.CURVE_LUSDFRAXBP_POOL,
+          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          3,
+          2,
+          2,
+          Action.AddLiquidity
+        ),
+      ],
+      // WETH ==(UniV3)==> USDC
+      WETH: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(
+          ADDRESS.CURVE_LUSDFRAXBP_POOL,
+          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          3,
+          2,
+          2,
+          Action.AddLiquidity
+        ),
+      ],
+    },
+    withdraw: {
+      LUSD: [
+        encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
+      ],
+      crvFRAX: [
+        encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
+      ],
+      FRAX: [
+        encodePoolHintV2(
+          ADDRESS.CURVE_LUSDFRAXBP_POOL,
+          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          3,
+          1,
+          1,
+          Action.RemoveLiquidity
+        ),
+      ],
+      USDC: [
+        encodePoolHintV2(
+          ADDRESS.CURVE_LUSDFRAXBP_POOL,
+          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          3,
+          2,
+          2,
+          Action.RemoveLiquidity
+        ),
+      ],
+      // USDC ==(UniV3)==> WETH
+      WETH: [
+        encodePoolHintV2(
+          ADDRESS.CURVE_LUSDFRAXBP_POOL,
+          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          3,
+          2,
+          2,
+          Action.RemoveLiquidity
+        ),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      ],
+    },
+  },
 };
 
 export const ACRV_VAULTS: {
@@ -2017,10 +2103,20 @@ export const ACRV_IFO_VAULTS: {
   { name: "aleth", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 21
   { name: "3eur", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 22
   { name: "lusd", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 23
+<<<<<<< HEAD
   { name: "silofrax", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 24
   { name: "tusd", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 25
   { name: "susdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 26
   { name: "busdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 27
   { name: "alusdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 28
   { name: "tusdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 29
+=======
+  { name: "silofrax", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 24
+  { name: "tusd", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 25
+  { name: "susdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 26
+  { name: "busdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 27
+  { name: "alusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 28
+  { name: "tusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 29
+  { name: "lusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 30
+>>>>>>> main
 ];
