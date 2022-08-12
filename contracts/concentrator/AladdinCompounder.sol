@@ -88,9 +88,10 @@ abstract contract AladdinCompounder is
     RewardInfo memory _info = rewardInfo;
     uint256 _period;
     if (block.timestamp > _info.finishAt) {
-      _period = _info.finishAt - _info.lastUpdate;
+      // finishAt >= lastUpdate will happen, if `_notifyHarvestedReward` is not called during current period.
+      _period = _info.finishAt >= _info.lastUpdate ? _info.finishAt - _info.lastUpdate : 0;
     } else {
-      _period = block.timestamp - _info.lastUpdate;
+      _period = block.timestamp - _info.lastUpdate; // never overflow
     }
     return totalAssetsStored + _period * _info.rate;
   }
@@ -307,9 +308,10 @@ abstract contract AladdinCompounder is
 
     uint256 _period;
     if (block.timestamp > _info.finishAt) {
-      _period = _info.finishAt - _info.lastUpdate;
+      // finishAt >= lastUpdate will happen, if `_notifyHarvestedReward` is not called during current period.
+      _period = _info.finishAt >= _info.lastUpdate ? _info.finishAt - _info.lastUpdate : 0;
     } else {
-      _period = block.timestamp - _info.lastUpdate;
+      _period = block.timestamp - _info.lastUpdate; // never overflow
     }
 
     uint256 _totalAssetsStored = totalAssetsStored;

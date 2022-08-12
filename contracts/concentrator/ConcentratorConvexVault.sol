@@ -180,10 +180,10 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
 
     uint256 _accRewardPerShare = _pool.accRewardPerShare;
     if (_rewardInfo.periodLength > 0) {
-      uint256 _lastUpdate = _rewardInfo.lastUpdate;
+      uint256 _currentTime = _rewardInfo.finishAt;
       // solhint-disable-next-line not-rely-on-time
-      if (_lastUpdate > block.timestamp) _lastUpdate = block.timestamp;
-      uint256 _duration = _lastUpdate - _rewardInfo.lastUpdate;
+      if (_currentTime > block.timestamp) _currentTime = block.timestamp;
+      uint256 _duration = _currentTime >= _rewardInfo.lastUpdate ? _currentTime - _rewardInfo.lastUpdate : 0;
       if (_duration > 0 && _pool.totalShare > 0) {
         _accRewardPerShare = _accRewardPerShare.add(_duration.mul(_rewardInfo.rate).mul(PRECISION) / _pool.totalShare);
       }
@@ -548,12 +548,14 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     RewardInfo memory _rewardInfo = rewardInfo[_pid];
     uint256 _accRewardPerShare = _pool.accRewardPerShare;
     if (_rewardInfo.periodLength > 0) {
-      uint256 _lastUpdate = _rewardInfo.lastUpdate;
+      uint256 _currentTime = _rewardInfo.finishAt;
       // solhint-disable-next-line not-rely-on-time
-      if (_lastUpdate > block.timestamp) _lastUpdate = block.timestamp;
-      uint256 _duration = _lastUpdate - _rewardInfo.lastUpdate;
+      if (_currentTime > block.timestamp) {
+        _currentTime = block.timestamp;
+      }
+      uint256 _duration = _currentTime >= _rewardInfo.lastUpdate ? _currentTime - _rewardInfo.lastUpdate : 0;
       if (_duration > 0) {
-        _rewardInfo.lastUpdate = uint48(_lastUpdate);
+        _rewardInfo.lastUpdate = uint48(block.timestamp);
         if (_pool.totalShare > 0) {
           _accRewardPerShare = _accRewardPerShare.add(
             _duration.mul(_rewardInfo.rate).mul(PRECISION) / _pool.totalShare
