@@ -128,6 +128,8 @@ contract AladdinFXSConvexVault is ConcentratorConvexVault {
     if (_amountFXS > 0) {
       uint256[2] memory _inputs;
       _inputs[0] = _amountFXS;
+      IERC20Upgradeable(FXS).safeApprove(CURVE_CVXFXS_POOL, 0);
+      IERC20Upgradeable(FXS).safeApprove(CURVE_CVXFXS_POOL, uint256(-1));
       _amountLP = ICurveCryptoPool(CURVE_CVXFXS_POOL).add_liquidity(_inputs, 0);
     }
 
