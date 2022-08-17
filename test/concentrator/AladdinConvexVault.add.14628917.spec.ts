@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
 import { ADDRESS } from "../../scripts/utils";
-import { AladdinConvexVault } from "../../typechain";
+import { AladdinCRVConvexVault } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
 
@@ -19,10 +19,10 @@ const USDC_HOLDER = "0xE78388b4CE79068e89Bf8aA7f218eF6b9AB0e9d0";
 
 // add zap from USDC support
 
-describe("AladdinConvexVault.add.14628917.spec", async () => {
+describe("AladdinCRVConvexVault.add.14628917.spec", async () => {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
-  let vault: AladdinConvexVault;
+  let vault: AladdinCRVConvexVault;
 
   beforeEach(async () => {
     request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, OWNER, USDC_HOLDER]);
@@ -31,7 +31,7 @@ describe("AladdinConvexVault.add.14628917.spec", async () => {
 
     await deployer.sendTransaction({ to: owner.address, value: ethers.utils.parseEther("10") });
 
-    vault = await ethers.getContractAt("AladdinConvexVault", VAULT, owner);
+    vault = await ethers.getContractAt("AladdinCRVConvexVault", VAULT, owner);
   });
 
   context("steth", async () => {

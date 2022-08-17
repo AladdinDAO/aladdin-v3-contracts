@@ -1,9 +1,10 @@
+/* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import { ethers } from "hardhat";
-import { Action, encodePoolHintV2, PoolType } from "../../scripts/utils";
+import { Action, ADDRESS, encodePoolHintV2, PoolType } from "../../scripts/utils";
 import { IERC20, TokenZapLogic } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
@@ -1543,6 +1544,63 @@ describe("TokenZapLogic.spec", async () => {
       const after = await steth.balanceOf(zap.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before).add(1)).to.eq(amountOut); // steth has some rounding error
+    });
+  });
+
+  describe("cvxCRV/aCRV [AladdinCompounder]", async () => {
+    const FORK_BLOCK_NUMBER = 15161370;
+    const cvxCRV = ADDRESS.cvxCRV;
+    const cvxCRV_HOLDER = "0x2b08254f95422d7fdbfde173e453e1f7e31c405b";
+    const aCRV = ADDRESS.aCRV;
+    const aCRV_HOLDER = "0x488b99c4a94bb0027791e8e0eeb421187ec9a487";
+
+    beforeEach(async () => {
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, cvxCRV_HOLDER, aCRV_HOLDER]);
+      deployer = await ethers.getSigner(DEPLOYER);
+
+      const TokenZapLogic = await ethers.getContractFactory("TokenZapLogic", deployer);
+      zap = await TokenZapLogic.deploy();
+      await zap.deployed();
+    });
+
+    it("should succeed, when wrap cvxCRV to aCRV", async () => {
+      const signer = await ethers.getSigner(cvxCRV_HOLDER);
+      await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
+      const amountIn = ethers.utils.parseEther("10");
+      const amountOut = ethers.utils.parseEther("8.787184978071716694");
+
+      const tokenIn = await ethers.getContractAt("IERC20", cvxCRV, signer);
+      const tokenOut = await ethers.getContractAt("IERC20", aCRV, signer);
+      await tokenIn.transfer(zap.address, amountIn);
+      const output = await zap.callStatic.swap(
+        encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.AddLiquidity),
+        amountIn
+      );
+      const before = await tokenOut.balanceOf(zap.address);
+      await zap.swap(encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.AddLiquidity), amountIn);
+      const after = await tokenOut.balanceOf(zap.address);
+      expect(output).to.eq(amountOut);
+      expect(after.sub(before)).to.eq(amountOut);
+    });
+
+    it("should succeed, when unwrap aCRV to cvxCRV", async () => {
+      const signer = await ethers.getSigner(aCRV_HOLDER);
+      await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
+      const amountIn = ethers.utils.parseEther("10");
+      const amountOut = ethers.utils.parseEther("11.351758299037128727");
+
+      const tokenIn = await ethers.getContractAt("IERC20", aCRV, signer);
+      const tokenOut = await ethers.getContractAt("IERC20", cvxCRV, signer);
+      await tokenIn.transfer(zap.address, amountIn);
+      const output = await zap.callStatic.swap(
+        encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.RemoveLiquidity),
+        amountIn
+      );
+      const before = await tokenOut.balanceOf(zap.address);
+      await zap.swap(encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.RemoveLiquidity), amountIn);
+      const after = await tokenOut.balanceOf(zap.address);
+      expect(output).to.eq(amountOut);
+      expect(after.sub(before)).to.eq(amountOut);
     });
   });
 

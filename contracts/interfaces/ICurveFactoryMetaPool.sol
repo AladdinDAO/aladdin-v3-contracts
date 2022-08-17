@@ -59,18 +59,6 @@ interface ICurveFactoryMetaPool {
 }
 
 interface ICurveDepositZap {
-  function add_liquidity(
-    address _pool,
-    uint256[4] memory _deposit_amounts,
-    uint256 _min_mint_amount
-  ) external returns (uint256);
-
-  function calc_token_amount(
-    address _pool,
-    uint256[4] memory _amounts,
-    bool _is_deposit
-  ) external view returns (uint256);
-
   function remove_liquidity_one_coin(
     address _pool,
     uint256 _burn_amount,
@@ -82,5 +70,33 @@ interface ICurveDepositZap {
     address _pool,
     uint256 _token_amount,
     int128 i
+  ) external view returns (uint256);
+}
+
+interface ICurveDepositZap3Pool is ICurveDepositZap {
+  function add_liquidity(
+    address _pool,
+    uint256[3] memory _deposit_amounts,
+    uint256 _min_mint_amount
+  ) external returns (uint256);
+
+  function calc_token_amount(
+    address _pool,
+    uint256[3] memory _amounts,
+    bool _is_deposit
+  ) external view returns (uint256);
+}
+
+interface ICurveDepositZap4Pool is ICurveDepositZap {
+  function add_liquidity(
+    address _pool,
+    uint256[4] memory _deposit_amounts,
+    uint256 _min_mint_amount
+  ) external returns (uint256);
+
+  function calc_token_amount(
+    address _pool,
+    uint256[4] memory _amounts,
+    bool _is_deposit
   ) external view returns (uint256);
 }

@@ -29,7 +29,7 @@ const POOL_HOLDERS: {
     amount: "1000",
     harvest: false,
   },
-  /*susdfraxbp: {
+  susdfraxbp: {
     fork: 15193360,
     holder: "0x99F4176EE457afedFfCB1839c7aB7A030a5e4A92",
     amount: "1000",
@@ -52,11 +52,11 @@ const POOL_HOLDERS: {
     holder: "0x5180db0237291a6449dda9ed33ad90a38787621c",
     amount: "1000",
     harvest: false,
-  },*/
+  },
   lusdfraxbp: {
-    fork: 15238220,
-    holder: "0xb4d27b87a09ab76c47e342535a309a1176051481",
-    amount: "0.1",
+    fork: 15190189,
+    holder: "0xb1748c79709f4ba2dd82834b8c82d4a505003f27",
+    amount: "1000",
     harvest: false,
   },
 };
@@ -129,19 +129,32 @@ describe("ConcentratorIFOVault.add.15193360.spec.spec", async () => {
         request_fork(holder.fork, [
           DEPLOYER,
           holder.holder,
+          DEPLOYED_CONTRACTS.CommunityMultisig,
           DEPLOYED_CONTRACTS.ManagementMultisig,
           DEPLOYED_CONTRACTS.Concentrator.Treasury,
         ]);
         deployer = await ethers.getSigner(DEPLOYER);
         signer = await ethers.getSigner(holder.holder);
+        const admin = await ethers.getSigner(DEPLOYED_CONTRACTS.CommunityMultisig);
         const manager = await ethers.getSigner(DEPLOYED_CONTRACTS.ManagementMultisig);
         const owner = await ethers.getSigner(DEPLOYED_CONTRACTS.Concentrator.Treasury);
 
         await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
         await deployer.sendTransaction({ to: manager.address, value: ethers.utils.parseEther("10") });
         await deployer.sendTransaction({ to: owner.address, value: ethers.utils.parseEther("10") });
+        await deployer.sendTransaction({ to: admin.address, value: ethers.utils.parseEther("10") });
 
         lpToken = await ethers.getContractAt("IERC20", ADDRESS[`${config.token}_TOKEN`]);
+
+        const TokenZapLogic = await ethers.getContractFactory("TokenZapLogic", deployer);
+        const logic = await TokenZapLogic.deploy();
+        await logic.deployed();
+
+        // upgrade zap contract
+        const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.ProxyAdmin, admin);
+        const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
+        const impl = await AladdinZap.deploy();
+        await proxyAdmin.upgrade(DEPLOYED_CONTRACTS.AladdinZap, impl.address);
         zap = await ethers.getContractAt("AladdinZap", DEPLOYED_CONTRACTS.AladdinZap, manager);
 
         // setup withdraw zap
@@ -156,8 +169,9 @@ describe("ConcentratorIFOVault.add.15193360.spec.spec", async () => {
         gateway = await ethers.getContractAt(
           "ConcentratorGateway",
           DEPLOYED_CONTRACTS.Concentrator.ConcentratorGateway,
-          deployer
+          owner
         );
+        await gateway.updateLogic(logic.address);
 
         vault = await ethers.getContractAt(
           "ConcentratorIFOVault",

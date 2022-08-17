@@ -20,23 +20,8 @@ contract AladdinZap is OwnableUpgradeable, TokenZapLogic, IZap {
 
   event UpdateRoute(address indexed _fromToken, address indexed _toToken, uint256[] route);
 
-  /// @dev This is the list of routes
-  /// encoding for single route
-  /// |   160 bits   |   8 bits  | 2 bits |  2 bits  |   2 bits  | 2 bits |
-  /// | pool address | pool type | tokens | index in | index out | action |
-  ///
-  /// If poolType is PoolType.CurveMetaCryptoPool, pool address is zap contract
-  /// If poolType is PoolType.CurveYPoolUnderlying: pool address is deposit contract
-  /// If poolType is PoolType.CurveMetaPoolUnderlying: pool address is deposit contract
-  /// If poolType is PoolType.LidoStake: only action = 1 is valid
-  /// If poolType is PoolType.LidoWrap: only action = 1 or is valid
-  /// Otherwise, pool address is swap contract
-  ///
-  /// tokens + 1 is the number of tokens of the pool
-  ///
-  /// action = 0: swap, index_in != index_out
-  /// action = 1: add liquidity, index_in == index_out
-  /// action = 2: remove liquidity, index_in == index_out
+  /// @notice Mapping from tokenIn to tokenOut to routes.
+  /// @dev See {TokenZapLogic-swap} for the meaning.
   mapping(address => mapping(address => uint256[])) public routes;
 
   mapping(address => address) public pool2token;

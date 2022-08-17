@@ -1,3 +1,6 @@
+/* eslint-disable node/no-missing-import */
+import { DEPLOYED_CONTRACTS } from "./deploys";
+
 export const TOKENS: { [symbol: string]: { address: string; decimals: number } } = {
   WETH: { decimals: 18, address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
   rETH: { decimals: 18, address: "0xae78736Cd615f374D3085123A210448E74Fc6393" },
@@ -57,4 +60,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   crvFRAX: { decimals: 18, address: "0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC" },
   TUSD: { decimals: 18, address: "0x0000000000085d4780B73119b644AE5ecd22b376" },
   LUSD: { decimals: 18, address: "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0" },
+  aCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.aCRV },
+  CTR: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.CTR },
 };

@@ -1617,7 +1617,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_SUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -1627,7 +1627,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_SUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1639,7 +1639,7 @@ export const VAULT_CONFIG: {
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(
           ADDRESS.CURVE_SUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1657,7 +1657,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_SUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -1667,7 +1667,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_SUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1678,7 +1678,7 @@ export const VAULT_CONFIG: {
       WETH: [
         encodePoolHintV2(
           ADDRESS.CURVE_SUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1702,7 +1702,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_BUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -1712,7 +1712,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_BUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1724,7 +1724,7 @@ export const VAULT_CONFIG: {
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(
           ADDRESS.CURVE_BUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1742,7 +1742,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_BUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -1752,7 +1752,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_BUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1763,7 +1763,7 @@ export const VAULT_CONFIG: {
       WETH: [
         encodePoolHintV2(
           ADDRESS.CURVE_BUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1787,7 +1787,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_ALUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -1797,7 +1797,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_ALUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1809,7 +1809,7 @@ export const VAULT_CONFIG: {
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(
           ADDRESS.CURVE_ALUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1841,7 +1841,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_ALUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -1851,7 +1851,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_ALUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1862,7 +1862,7 @@ export const VAULT_CONFIG: {
       WETH: [
         encodePoolHintV2(
           ADDRESS.CURVE_ALUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1886,7 +1886,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_TUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -1896,7 +1896,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_TUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1908,7 +1908,7 @@ export const VAULT_CONFIG: {
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(
           ADDRESS.CURVE_TUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1926,7 +1926,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_TUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -1936,7 +1936,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_TUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1947,7 +1947,7 @@ export const VAULT_CONFIG: {
       WETH: [
         encodePoolHintV2(
           ADDRESS.CURVE_TUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1957,7 +1957,6 @@ export const VAULT_CONFIG: {
       ],
     },
   },
-
   lusdfraxbp: {
     token: "CURVE_LUSDFRAXBP",
     convexId: 102,
@@ -1972,7 +1971,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_LUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -1982,7 +1981,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_LUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -1994,7 +1993,7 @@ export const VAULT_CONFIG: {
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(
           ADDRESS.CURVE_LUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -2012,7 +2011,7 @@ export const VAULT_CONFIG: {
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_LUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           1,
           1,
@@ -2022,7 +2021,7 @@ export const VAULT_CONFIG: {
       USDC: [
         encodePoolHintV2(
           ADDRESS.CURVE_LUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -2033,7 +2032,7 @@ export const VAULT_CONFIG: {
       WETH: [
         encodePoolHintV2(
           ADDRESS.CURVE_LUSDFRAXBP_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
+          PoolType.CurveFactoryFraxBPMetaPoolUnderlying,
           3,
           2,
           2,
@@ -2103,14 +2102,6 @@ export const ACRV_IFO_VAULTS: {
   { name: "aleth", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 21
   { name: "3eur", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 22
   { name: "lusd", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 23
-<<<<<<< HEAD
-  { name: "silofrax", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 24
-  { name: "tusd", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 25
-  { name: "susdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 26
-  { name: "busdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 27
-  { name: "alusdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 28
-  { name: "tusdfraxbp", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 29
-=======
   { name: "silofrax", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 24
   { name: "tusd", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 25
   { name: "susdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 26
@@ -2118,5 +2109,15 @@ export const ACRV_IFO_VAULTS: {
   { name: "alusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 28
   { name: "tusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 29
   { name: "lusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 30
->>>>>>> main
+];
+
+export const AFXS_VAULTS: {
+  name: string;
+  fees: {
+    withdraw: number;
+    harvest: number;
+    platform: number;
+  };
+}[] = [
+  { name: "frax", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 0
 ];

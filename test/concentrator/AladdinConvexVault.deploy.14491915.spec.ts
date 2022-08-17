@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { AladdinConvexVault, IConvexBooster } from "../../typechain";
+import { AladdinCRVConvexVault, IConvexBooster } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
 
@@ -80,10 +80,10 @@ const wstETH_HOLDER = "0x3991ADBDf461D6817734555efDC8ef056fEfBF21";
 const UST_WORMHOLE = "0xa693B19d2931d498c5B318dF961919BB4aee87a5";
 const UST_WORMHOLE_HOLDER = "0x54195F35c93E7CD74fA5345c179fD06223Cd9eDB";
 
-describe("AladdinConvexVault.deploy.14491915.spec", async () => {
+describe("AladdinCRVConvexVault.deploy.14491915.spec", async () => {
   let deployer: SignerWithAddress;
   let owner: SignerWithAddress;
-  let vault: AladdinConvexVault;
+  let vault: AladdinCRVConvexVault;
   let booster: IConvexBooster;
 
   beforeEach(async () => {
@@ -122,12 +122,12 @@ describe("AladdinConvexVault.deploy.14491915.spec", async () => {
 
     await deployer.sendTransaction({ to: owner.address, value: ethers.utils.parseEther("100") });
 
-    vault = await ethers.getContractAt("AladdinConvexVault", VAULT, owner);
+    vault = await ethers.getContractAt("AladdinCRVConvexVault", VAULT, owner);
 
     const proxyAdmin = await ethers.getContractAt("ProxyAdmin", PROXY_ADMIN, owner);
 
-    const AladdinConvexVault = await ethers.getContractFactory("AladdinConvexVault", deployer);
-    const impl = await AladdinConvexVault.deploy();
+    const AladdinCRVConvexVault = await ethers.getContractFactory("AladdinCRVConvexVault", deployer);
+    const impl = await AladdinCRVConvexVault.deploy();
     await impl.deployed();
 
     await proxyAdmin.upgrade(vault.address, impl.address);
