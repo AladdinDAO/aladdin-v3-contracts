@@ -52,6 +52,11 @@ const config: HardhatUserConfig = {
       chainId: 1,
       accounts,
     },
+    kovan: {
+      url: "https://kovan.infura.io/v3/5516520a57c34a3095cb9cf859bf2cd7",
+      chainId: 42,
+      accounts,
+    },
     mainnet_fork_10548: {
       url: process.env.MAINNET_FORK_10548_URL || "",
       chainId: 10548,

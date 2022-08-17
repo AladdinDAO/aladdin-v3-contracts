@@ -2118,4 +2118,6 @@ export const AFXS_VAULTS: {
     harvest: number;
     platform: number;
   };
-}[] = [];
+}[] = [
+  { name: "frax", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 0
+];

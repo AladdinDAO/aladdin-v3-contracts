@@ -7,18 +7,22 @@ import {
   AladdinFXS,
   AladdinFXSConvexVault,
   AladdinZap,
+  ConcentratorGateway,
   IConvexBasicRewards,
   IConvexBooster,
   IERC20,
 } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
-import { ADDRESS, TOKENS, ZAP_ROUTES } from "../../scripts/utils";
+import { ADDRESS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../scripts/utils";
 
 const FORK_BLOCK_NUMBER = 15302700;
 const FXS = TOKENS.FXS.address;
 const CVX = TOKENS.CVX.address;
 const CRV = TOKENS.CRV.address;
+
+const FRAX = TOKENS.FRAX.address;
+const FRAX_HOLDER = "0x10c6b61dbf44a083aec3780acf769c77be747e23";
 
 const CONVEX_FRAX3CRV_PID = 32;
 const CURVE_FRAX3CRV_TOKEN = ADDRESS.CURVE_FRAX3CRV_TOKEN;
@@ -45,7 +49,7 @@ describe("AladdinFXSConvexVault.spec", async () => {
   let rewarder: IConvexBasicRewards;
 
   beforeEach(async () => {
-    request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_FRAX3CRV_HOLDER]);
+    request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_FRAX3CRV_HOLDER, FRAX_HOLDER]);
     deployer = await ethers.getSigner(DEPLOYER);
     signer = await ethers.getSigner(CURVE_FRAX3CRV_HOLDER);
     await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
@@ -506,6 +510,45 @@ describe("AladdinFXSConvexVault.spec", async () => {
       expect(await vault.getUserShare(0, signer.address)).to.eq(amountIn.sub(share));
       expect(await vault.getTotalShare(0)).to.eq(amountIn.sub(share));
       expect(await vault.getTotalUnderlying(0)).to.eq(amountIn.sub(share.sub(fee)));
+    });
+  });
+
+  context("zap with ConcentratorGateway", async () => {
+    const config = VAULT_CONFIG.frax;
+
+    let gateway: ConcentratorGateway;
+
+    beforeEach(async () => {
+      const TokenZapLogic = await ethers.getContractFactory("TokenZapLogic", deployer);
+      const logic = await TokenZapLogic.deploy();
+      await logic.deployed();
+
+      const ConcentratorGateway = await ethers.getContractFactory("ConcentratorGateway", deployer);
+      gateway = await ConcentratorGateway.deploy(logic.address);
+      await gateway.deployed();
+
+      await vault.addPool(
+        CONVEX_FRAX3CRV_PID,
+        [CRV, CVX, FXS],
+        WITHDRAW_FEE_PERCENTAGE,
+        PLATFORM_FEE_PERCENTAGE,
+        HARVEST_BOUNTY_PERCENTAGE
+      );
+    });
+
+    it("should succeed, when deposit with FRAX", async () => {
+      const amountIn = ethers.utils.parseUnits("100", TOKENS.FRAX.decimals);
+      const sharesOut = ethers.utils.parseUnits("99.148734526204552604", 18);
+      const holder = await ethers.getSigner(FRAX_HOLDER);
+      await deployer.sendTransaction({ to: holder.address, value: ethers.utils.parseEther("10") });
+      const token = await ethers.getContractAt("IERC20", FRAX, holder);
+
+      await token.connect(holder).approve(gateway.address, amountIn);
+      await gateway
+        .connect(holder)
+        .deposit(vault.address, 0, token.address, CURVE_FRAX3CRV_TOKEN, amountIn, config.deposit.FRAX, sharesOut);
+      console.log(vault.address, 0, token.address, CURVE_FRAX3CRV_TOKEN, amountIn, config.deposit.FRAX, 0);
+      expect(await vault.getUserShare(0, holder.address)).to.eq(sharesOut);
     });
   });
 });
