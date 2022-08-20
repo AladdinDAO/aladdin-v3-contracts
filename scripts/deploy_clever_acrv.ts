@@ -1,20 +1,32 @@
 /* eslint-disable node/no-missing-import */
 import { ethers } from "hardhat";
-import { CLeverToken, ProxyAdmin, MetaFurnace, MetaCLever, AladdinCRVStrategy } from "../typechain";
+import {
+  CLeverToken,
+  ProxyAdmin,
+  MetaFurnace,
+  MetaCLever,
+  AladdinCRVStrategy,
+  CLeverGateway,
+  TokenZapLogic,
+} from "../typechain";
 import { ADDRESS } from "./utils";
 
 const config: {
-  proxyAdmin?: string;
-  clevCRV?: string;
-  strategy?: string;
-  furnace?: string;
-  clever?: string;
+  proxyAdmin: string;
+  clevCRV: string;
+  strategy: string;
+  furnace: string;
+  clever: string;
+  logic: string;
+  gateway: string;
 } = {
-  proxyAdmin: "0xeb5EB007Ab39e9831a1921E8116Bc353AFE5BA2C",
-  clevCRV: "0xDAF03D70Fe637b91bA6E521A32E1Fb39256d3EC9",
-  furnace: "0x7a5A9332638CD6846f17661851D7F472220dFdA8",
-  clever: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
-  strategy: "0xAe9D13Aab81c752290dfbE536931a4fec80C77D7",
+  proxyAdmin: "0xa592A121a3d50a7254429105dcb1Db1a9E991940",
+  clevCRV: "0xaEC1930358ADb5Dc8BD70e65F7cEed13162606a0",
+  furnace: "0xACb91CF69128A893D563e82AE9adf5327207E266",
+  clever: "0x402ef9f6727A0f9f457B6A2Da4b11a233De45167",
+  strategy: "0x6A8501c190E2C87a91FF7Cff66E3335801eCEF88",
+  logic: "",
+  gateway: "",
 };
 
 const PLATFORM = "0xFC08757c505eA28709dF66E54870fB6dE09f0C5E";
@@ -30,6 +42,8 @@ let clevCRV: CLeverToken;
 let furnace: MetaFurnace;
 let strategy: AladdinCRVStrategy;
 let clever: MetaCLever;
+let logic: TokenZapLogic;
+let gateway: CLeverGateway;
 
 async function initialSetup() {
   if (!(await clever.reserveRate()).eq(RESERVE_RATE)) {
@@ -90,7 +104,7 @@ async function initialSetup() {
 async function main() {
   const [deployer] = await ethers.getSigners();
 
-  if (config.proxyAdmin) {
+  if (config.proxyAdmin !== "") {
     proxyAdmin = await ethers.getContractAt("ProxyAdmin", config.proxyAdmin, deployer);
     console.log("Found ProxyAdmin at:", proxyAdmin.address);
   } else {
@@ -100,7 +114,7 @@ async function main() {
     console.log("Deploy ProxyAdmin at:", proxyAdmin.address);
   }
 
-  if (config.clevCRV) {
+  if (config.clevCRV !== "") {
     clevCRV = (await ethers.getContractAt("CLeverToken", config.clevCRV, deployer)) as CLeverToken;
     console.log("Found clevCRV at:", clevCRV.address);
   } else {
@@ -110,7 +124,7 @@ async function main() {
     console.log("Deploy clevCRV at:", clevCRV.address);
   }
 
-  if (config.furnace) {
+  if (config.furnace !== "") {
     furnace = await ethers.getContractAt("MetaFurnace", config.furnace, deployer);
     console.log("Found MetaFurnace at:", furnace.address);
   } else {
@@ -127,7 +141,7 @@ async function main() {
     console.log("Deploy MetaFurnace at:", furnace.address);
   }
 
-  if (config.clever) {
+  if (config.clever !== "") {
     clever = await ethers.getContractAt("MetaCLever", config.clever, deployer);
     console.log("Found MetaCLever at:", clever.address);
   } else {
@@ -144,7 +158,7 @@ async function main() {
     console.log("Deploy MetaCLever at:", clever.address);
   }
 
-  if (config.strategy) {
+  if (config.strategy !== "") {
     strategy = await ethers.getContractAt("AladdinCRVStrategy", config.strategy, deployer);
     console.log("Found AladdinCRVStrategy at:", strategy.address);
   } else {
@@ -152,6 +166,26 @@ async function main() {
     strategy = await AladdinCRVStrategy.deploy(clever.address);
     await strategy.deployed();
     console.log("Deploy AladdinCRVStrategy at:", strategy.address);
+  }
+
+  if (config.logic !== "") {
+    logic = await ethers.getContractAt("TokenZapLogic", config.logic, deployer);
+    console.log("Found TokenZapLogic at:", logic.address);
+  } else {
+    const TokenZapLogic = await ethers.getContractFactory("TokenZapLogic", deployer);
+    logic = await TokenZapLogic.deploy();
+    await logic.deployed();
+    console.log("Deploy TokenZapLogic at:", logic.address);
+  }
+
+  if (config.gateway !== "") {
+    gateway = await ethers.getContractAt("CLeverGateway", config.gateway, deployer);
+    console.log("Found CLeverGateway at:", gateway.address);
+  } else {
+    const CLeverGateway = await ethers.getContractFactory("CLeverGateway", deployer);
+    gateway = await CLeverGateway.deploy(logic.address);
+    await gateway.deployed();
+    console.log("Deploy CLeverGateway at:", gateway.address);
   }
 
   await initialSetup();

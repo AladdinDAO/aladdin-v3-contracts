@@ -8,11 +8,11 @@ import {
   MockYieldToken,
   MockYieldStrategyForCLever,
   MockFurnace,
-} from "../typechain";
+} from "../../typechain";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
-import "./utils";
+import "../utils";
 
 describe("MetaCLever.MockStrategy.spec", async () => {
   let admin: SignerWithAddress;

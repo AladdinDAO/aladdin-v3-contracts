@@ -31,9 +31,9 @@ contract TokenSale is Ownable, ReentrancyGuard {
   uint256 private constant RATIO_PRECISION = 1e9;
 
   address public immutable weth;
-  address public immutable quota;
   address public immutable base;
   address public immutable zap;
+  address public quota;
 
   struct PriceData {
     uint96 initialPrice;
@@ -67,13 +67,11 @@ contract TokenSale is Ownable, ReentrancyGuard {
 
   constructor(
     address _weth,
-    address _quota,
     address _base,
     address _zap,
     uint128 _cap
   ) {
     weth = _weth;
-    quota = _quota;
     base = _base;
     zap = _zap;
     cap = _cap;
@@ -297,6 +295,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
   /// @param _vestRatio The percentage of quota token to vest.
   /// @param _duration The vesting duration, in seconds.
   function updateVesting(
+    address _quota,
     address _vesting,
     uint32 _vestRatio,
     uint64 _duration
@@ -304,6 +303,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
     require(_vestRatio <= RATIO_PRECISION, "TokenSale: ratio too large");
     require(_duration > 0, "TokenSale: zero duration");
 
+    quota = _quota;
     vestingData = VestingData(_vesting, _vestRatio, _duration);
 
     emit UpdateVesting(_vesting, _vestRatio, _duration);
