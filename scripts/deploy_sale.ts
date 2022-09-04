@@ -1,26 +1,23 @@
 /* eslint-disable node/no-missing-import */
+import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { AladdinZap, CLeverToken, ProxyAdmin, Vesting, TokenSale } from "../typechain";
-import { ADDRESS } from "./utils";
+import { CLeverToken, Vesting, TokenSale } from "../typechain";
+import { ADDRESS, DEPLOYED_CONTRACTS, ZAP_ROUTES } from "./utils";
 
 const config: {
-  proxyAdmin?: string;
-  aladdinZap?: string;
-  token?: string;
-  vest?: string;
-  sale?: string;
+  token: string;
+  vest: string;
+  sale: string;
 } = {
-  proxyAdmin: "0xf05e58fCeA29ab4dA01A495140B349F8410Ba904",
-  aladdinZap: "0xCe4dCc5028588377E279255c0335Effe2d7aB72a",
-  token: "0xdC846CcbCe1Be474E6410445ef5223CA00eCed94",
-  vest: "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
-  sale: "0xf293d3281F1a4222E1547faf935b4a93d20556DA",
+  token: "0x544967DE46AfEFf2eeD153F5970992Fa95eF740B",
+  vest: "0x84C82d43f1Cc64730849f3E389fE3f6d776F7A4E",
+  sale: "0xB9CD9979718e7E4C341D8D99dA3F1290c908FBdd",
 };
 
 const WETH = ADDRESS.WETH;
+const CVX = ADDRESS.CVX;
+const USDC = ADDRESS.USDC;
 
-let proxyAdmin: ProxyAdmin;
-let aladdinZap: AladdinZap;
 let token: CLeverToken;
 let vest: Vesting;
 let sale: TokenSale;
@@ -28,34 +25,7 @@ let sale: TokenSale;
 async function main() {
   const [deployer] = await ethers.getSigners();
 
-  if (config.proxyAdmin) {
-    proxyAdmin = await ethers.getContractAt("ProxyAdmin", config.proxyAdmin, deployer);
-    console.log("Found ProxyAdmin at:", proxyAdmin.address);
-  } else {
-    const ProxyAdmin = await ethers.getContractFactory("ProxyAdmin", deployer);
-    proxyAdmin = await ProxyAdmin.deploy();
-    await proxyAdmin.deployed();
-    console.log("Deploy ProxyAdmin at:", proxyAdmin.address);
-  }
-
-  if (config.aladdinZap) {
-    aladdinZap = await ethers.getContractAt("AladdinZap", config.aladdinZap, deployer);
-    console.log("Found AladdinZap at:", aladdinZap.address);
-  } else {
-    const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
-    const impl = await AladdinZap.deploy();
-    await impl.deployed();
-    console.log("Deploy AladdinZap Impl at:", impl.address);
-
-    const data = impl.interface.encodeFunctionData("initialize");
-    const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
-    const proxy = await TransparentUpgradeableProxy.deploy(impl.address, proxyAdmin.address, data);
-    await proxy.deployed();
-    aladdinZap = await ethers.getContractAt("AladdinZap", proxy.address, deployer);
-    console.log("Deploy AladdinZap at:", proxy.address);
-  }
-
-  if (config.token) {
+  if (config.token !== "") {
     token = await ethers.getContractAt("CLeverToken", config.token, deployer);
     console.log("Found Token at:", token.address);
   } else {
@@ -66,7 +36,7 @@ async function main() {
     console.log("Deploy Token at:", token.address);
   }
 
-  if (config.vest) {
+  if (config.vest !== "") {
     vest = await ethers.getContractAt("Vesting", config.vest, deployer);
     console.log("Found Vesting at:", vest.address);
   } else {
@@ -77,24 +47,28 @@ async function main() {
     console.log("Deploy Vesting at:", vest.address);
   }
 
-  if (config.sale) {
+  if (config.sale !== "") {
     sale = await ethers.getContractAt("TokenSale", config.sale, deployer);
     console.log("Found TokenSale at:", sale.address);
   } else {
     const TokenSale = await ethers.getContractFactory("TokenSale", deployer);
-    sale = await TokenSale.deploy(WETH, token.address, WETH, aladdinZap.address, ethers.utils.parseEther("1000000"));
+    sale = await TokenSale.deploy(WETH, CVX, DEPLOYED_CONTRACTS.AladdinZap, ethers.utils.parseEther("1000000"));
     await sale.deployed();
     config.sale = sale.address;
     console.log("Deploy TokenSale at:", sale.address);
   }
 
-  await sale.updateSaleTime(1650758400 + 86400, 1651017600 + 86400, 432000);
+  const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+  await sale.updateSaleTime(timestamp + 1000, timestamp + 86400 * 5, 86400 * 5);
   await sale.updatePrice(
-    ethers.utils.parseEther("0.001"),
-    ethers.utils.parseUnits("0.05", 9),
+    ethers.utils.parseEther("1"),
+    ethers.utils.parseUnits("0", 9),
     ethers.utils.parseEther("100000")
   );
-  await sale.transferOwnership("0xb9a1649b31FC2De6bbE78672A3d6EbecFa69B56b");
+  await sale.updateSupportedTokens([WETH, constants.AddressZero, USDC, CVX], true);
+  // await sale.callStatic.buy(constants.AddressZero, 1, 0, { value: 1 });
+  console.log(`from[${WETH}]`, `to[${CVX}]`, `route[${ZAP_ROUTES.WETH.CVX.map((r) => `"${r.toHexString()}"`)}]`);
+  console.log(`from[${USDC}]`, `to[${CVX}]`, `route[${ZAP_ROUTES.USDC.CVX.map((r) => `"${r.toHexString()}"`)}]`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

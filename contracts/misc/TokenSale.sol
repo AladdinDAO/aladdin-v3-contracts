@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../interfaces/IWETH.sol";
 import "../interfaces/IZap.sol";
 
-import "../governance/Vesting.sol";
+import "./Vesting.sol";
 
 // solhint-disable reason-string, not-rely-on-time
 

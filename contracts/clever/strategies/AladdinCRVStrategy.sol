@@ -12,8 +12,6 @@ import "../../concentrator/interfaces/IAladdinCRV.sol";
 
 /// @title AladdinCRV Strategy for CLever.
 ///
-/// @author 0xChiaki
-///
 /// @notice In this strategy we use CRV as underlying token and aCRV as yield token.
 ///
 /// @dev The real underlying token for aCRV is cvxCRV, but we treat 1 cvxCRV as 1 CRV since we trust the Convex Contract.

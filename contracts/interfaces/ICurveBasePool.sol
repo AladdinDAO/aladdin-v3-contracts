@@ -34,8 +34,13 @@ interface ICurveBasePool {
 
   function coins(uint256 index) external view returns (address);
 
+  function balances(uint256 index) external view returns (uint256);
+
   // ren and sbtc pool
   function coins(int128 index) external view returns (address);
+
+  // ren and sbtc pool
+  function balances(int128 index) external view returns (uint256);
 }
 
 /// @dev This is the interface of Curve base-style Pool with 2 tokens, examples:

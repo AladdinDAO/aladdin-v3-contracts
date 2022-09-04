@@ -57,6 +57,11 @@ const config: HardhatUserConfig = {
       chainId: 42,
       accounts,
     },
+    mainnet_fork_10540: {
+      url: process.env.MAINNET_FORK_10540_URL || "",
+      chainId: 10540,
+      accounts,
+    },
     mainnet_fork_10548: {
       url: process.env.MAINNET_FORK_10548_URL || "",
       chainId: 10548,
