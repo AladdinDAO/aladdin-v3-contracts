@@ -14,7 +14,7 @@ import {
 } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
-import { ADDRESS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../scripts/utils";
+import { ADDRESS, AFXS_VAULTS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../scripts/utils";
 
 const FORK_BLOCK_NUMBER = 15302700;
 const FXS = TOKENS.FXS.address;
@@ -36,6 +36,36 @@ const PLATFORM = "0x07dA2d30E26802ED65a52859a50872cfA615bD0A";
 const WITHDRAW_FEE_PERCENTAGE = 1e7; // 1%
 const PLATFORM_FEE_PERCENTAGE = 2e8; // 20%
 const HARVEST_BOUNTY_PERCENTAGE = 5e7; // 5%
+
+const PRINT_ZAP = true;
+
+if (PRINT_ZAP) {
+  AFXS_VAULTS.forEach(({ name, fees }) => {
+    const config = VAULT_CONFIG[name];
+    console.log(
+      `add pool[${name}]:`,
+      `convexId[${config.convexId}]`,
+      `rewards[${config.rewards}]`,
+      `withdrawFee[${fees.withdraw}]`,
+      `platformFee[${fees.platform}]`,
+      `harvestBounty[${fees.harvest}]`
+    );
+  });
+  console.log("{");
+  AFXS_VAULTS.forEach(({ name }) => {
+    const config = VAULT_CONFIG[name];
+    console.log(`  "${name}": [`);
+    Object.entries(config.deposit).forEach(([symbol, routes]) => {
+      console.log(
+        `    {"symbol": "${symbol}", "address": "${TOKENS[symbol].address}", "routes": [${routes
+          .map((x) => `"${x.toHexString()}"`)
+          .join(",")}]},`
+      );
+    });
+    console.log(`  ],`);
+  });
+  console.log("}");
+}
 
 describe("AladdinFXSConvexVault.spec", async () => {
   let deployer: SignerWithAddress;
