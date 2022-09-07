@@ -2120,4 +2120,12 @@ export const AFXS_VAULTS: {
   };
 }[] = [
   { name: "frax", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 0
+  { name: "cvxfxs", fees: { withdraw: 3e6, harvest: 1e7, platform: 1e8 } }, // 1
+  { name: "fraxusdc", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 2
+  { name: "susdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 3
+  { name: "tusd", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 4
+  { name: "busdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 5
+  { name: "alusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 6
+  { name: "silofrax", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 7
+  { name: "tusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 8
 ];
