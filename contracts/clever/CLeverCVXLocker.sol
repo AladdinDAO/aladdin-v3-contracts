@@ -57,6 +57,8 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   address private constant VOTIUM_DISTRIBUTOR = 0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A;
   // The address of cvxFXS token.
   address private constant CVXFXS = 0xFEEf77d3f69374f66429C91d732A244f074bdf74;
+  /// @dev The address of WETH token.
+  address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   struct EpochUnlockInfo {
     // The number of CVX should unlocked at the start of epoch `unlockEpoch`.
@@ -582,14 +584,16 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
 
   /// @dev Harvest pending reward from Votium, then swap it to CVX.
   /// @param claims The parameters used by VotiumMultiMerkleStash contract.
+  /// @param _routes The routes used to swap token to ETH.
   /// @param _minimumOut - The minimum amount of CVX should get.
   /// @return The amount of CVX harvested.
-  function harvestVotium(IVotiumMultiMerkleStash.claimParam[] calldata claims, uint256 _minimumOut)
-    external
-    override
-    onlyKeeper
-    returns (uint256)
-  {
+  function harvestVotium(
+    IVotiumMultiMerkleStash.claimParam[] calldata claims,
+    uint256[][] calldata _routes,
+    uint256 _minimumOut
+  ) external onlyKeeper returns (uint256) {
+    // the last routes is ETH to CVX
+    require(claims.length + 1 == _routes.length, "length mismatch");
     // 1. claim reward from votium
     for (uint256 i = 0; i < claims.length; i++) {
       // in case someone has claimed the reward for this contract, we can still call this function to process reward.
@@ -612,7 +616,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     }
 
     // 2. swap all tokens to CVX
-    uint256 _amount = _swapToCVX(_rewardTokens, _amounts, _minimumOut);
+    uint256 _amount = _swapToCVX(_rewardTokens, _amounts, _routes, _minimumOut);
 
     // 3. distribute to platform
     uint256 _distributeAmount = _amount;
@@ -861,32 +865,40 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev Internal function used to swap tokens to CVX.
   /// @param _rewardTokens The address list of reward tokens.
   /// @param _amounts The amount list of reward tokens.
+  /// @param _routes The routes used to swap token to WETH.
   /// @param _minimumOut The minimum amount of CVX should get.
   /// @return The amount of CVX swapped.
   function _swapToCVX(
     address[] memory _rewardTokens,
     uint256[] memory _amounts,
+    uint256[][] calldata _routes,
     uint256 _minimumOut
   ) internal returns (uint256) {
-    uint256 _amount;
-    address _token;
+    uint256 _amountCVX;
+    uint256 _amountWETH;
     address _zap = zap;
-    // @todo we should better to swap to ETH first, then CVX
-    for (uint256 i = 0; i < _rewardTokens.length; i++) {
-      _token = _rewardTokens[i];
+    uint256 index;
+    // 1. swap all token to WETH
+    for (index = 0; index < _rewardTokens.length; index++) {
+      address _token = _rewardTokens[index];
       // skip manual swap token
       if (manualSwapRewardToken[_token]) continue;
       if (_token != CVX) {
-        if (_amounts[i] > 0) {
-          IERC20Upgradeable(_token).safeTransfer(_zap, _amounts[i]);
-          _amount = _amount.add(IZap(_zap).zap(_token, _amounts[i], CVX, 0));
+        if (_amounts[index] > 0) {
+          IERC20Upgradeable(_token).safeTransfer(_zap, _amounts[index]);
+          _amountWETH = _amountWETH.add(IZap(_zap).zapWithRoutes(_token, _amounts[index], WETH, _routes[index], 0));
         }
       } else {
-        _amount = _amount.add(_amounts[i]);
+        _amountCVX = _amountCVX.add(_amounts[index]);
       }
     }
-    require(_amount >= _minimumOut, "CLeverCVXLocker: insufficient output");
-    return _amount;
+    // 2. swap WETH to CVX
+    if (_amountWETH > 0) {
+      IERC20Upgradeable(WETH).safeTransfer(_zap, _amountWETH);
+      _amountCVX = _amountCVX.add(IZap(_zap).zapWithRoutes(WETH, _amountWETH, CVX, _routes[index], 0));
+    }
+    require(_amountCVX >= _minimumOut, "CLeverCVXLocker: insufficient output");
+    return _amountCVX;
   }
 
   /// @dev Internal function called by `harvest` and `harvestVotium`.
