@@ -143,8 +143,13 @@ async function main() {
     console.log("✅ Done, gas used", receipt.gasUsed.toString());
   }
 
-  await clev.transfer("0x866D12EE5DEd88fc4f585723Fd47B419C357a711", ethers.utils.parseUnits("10000"));
-  await clev.transfer("0xb9a1649b31FC2De6bbE78672A3d6EbecFa69B56b", ethers.utils.parseUnits("10000"));
+  console.log(await guageUSDC.callStatic.claimable_tokens("0xb9a1649b31FC2De6bbE78672A3d6EbecFa69B56b"));
+  const tx = await guageUSDC["claim_rewards(address)"]("0xb9a1649b31FC2De6bbE78672A3d6EbecFa69B56b");
+  const receipt = await tx.wait();
+  for (const log of receipt.logs) {
+    console.log(log);
+  }
+  console.log(await guageUSDC.callStatic.claimable_tokens("0xb9a1649b31FC2De6bbE78672A3d6EbecFa69B56b"));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

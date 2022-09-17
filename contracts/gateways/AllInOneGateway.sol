@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "../clever/interfaces/IMetaCLever.sol";
 import "../concentrator/interfaces/IAladdinCRVConvexVault.sol";
+import "../interfaces/IBalancerPool.sol";
+import "../interfaces/IBalancerVault.sol";
 import "../zap/TokenZapLogic.sol";
 import "./ZapGatewayBase.sol";
 
@@ -48,6 +51,13 @@ interface IMetaCLeverDetailed is IMetaCLever {
 
 contract AllInOneGateway is ZapGatewayBase {
   using SafeERC20 for IERC20;
+  using SafeMath for uint256;
+
+  /// @notice The version of the gateway.
+  string public constant VERSION = "1.0.0";
+
+  /// @dev The address of Balancer V2 Vault.
+  address private constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
   constructor(address _logic) {
     logic = _logic;
@@ -138,14 +148,14 @@ contract AllInOneGateway is ZapGatewayBase {
     return _sharesOut;
   }
 
-  /// @notice Deposit `_srcToken` into Curve Gauge with zap.
+  /// @notice Deposit `_srcToken` into Gauge with curve lp.
   /// @param _gauge The address of gauge.
   /// @param _srcToken The address of start token. Use zero address, if you want deposit with ETH.
   /// @param _amountIn The amount of `_srcToken` to deposit.
   /// @param _routes The routes used to do zap.
   /// @param _minLPOut The minimum amount of lp token should receive.
   /// @return The amount of lp token received.
-  function depositCurveGauge(
+  function depositGaugeWithCurveLP(
     address _gauge,
     address _srcToken,
     uint256 _amountIn,
@@ -163,7 +173,40 @@ contract AllInOneGateway is ZapGatewayBase {
     require(IERC20(_lpToken).balanceOf(address(this)) >= _amountLP, "zap to lp token failed");
     require(_amountLP >= _minLPOut, "insufficient share");
 
-    // 3. deposit into Concentrator vault
+    // 3. deposit into gauge
+    IERC20(_lpToken).safeApprove(_gauge, 0);
+    IERC20(_lpToken).safeApprove(_gauge, _amountLP);
+    IGauge(_gauge).deposit(_amountLP, msg.sender, false);
+    return _amountLP;
+  }
+
+  /// @notice Deposit `_srcToken` into Gauge with balancer lp.
+  /// @param _gauge The address of gauge.
+  /// @param _srcToken The address of start token. Use zero address, if you want deposit with ETH.
+  /// @param _amountIn The amount of `_srcToken` to deposit.
+  /// @param _routes The routes used to do zap.
+  /// @param _minLPOut The minimum amount of lp token should receive.
+  /// @return The amount of lp token received.
+  function depositGaugeWithBalancerLP(
+    address _gauge,
+    address _srcToken,
+    uint256 _amountIn,
+    uint256[] calldata _routes,
+    uint256 _minLPOut
+  ) external payable returns (uint256) {
+    require(_amountIn > 0, "deposit zero amount");
+
+    // 1. transfer srcToken into this contract
+    _amountIn = _transferTokenIn(_srcToken, _amountIn);
+
+    // 2. zap srcToken to some token
+    _zap(_routes, _amountIn);
+
+    // 3. join as Balancer LP
+    address _lpToken = IGauge(_gauge).lp_token();
+    uint256 _amountLP = _joinBalancerPool(_lpToken, _minLPOut);
+
+    // 4. deposit into gauge
     IERC20(_lpToken).safeApprove(_gauge, 0);
     IERC20(_lpToken).safeApprove(_gauge, _amountLP);
     IGauge(_gauge).deposit(_amountLP, msg.sender, false);
@@ -234,5 +277,31 @@ contract AllInOneGateway is ZapGatewayBase {
     _transferTokenOut(_dstToken, _amountOut);
 
     return _amountOut;
+  }
+
+  /// @dev Internal function to join as Balance Pool LP.
+  /// @param _lpToken The address of Balancer LP.
+  /// @param _minLPOut The minimum amount of LP token to receive.
+  /// @return The amount of Balancer LP received.
+  function _joinBalancerPool(address _lpToken, uint256 _minLPOut) internal returns (uint256) {
+    bytes32 _poolId = IBalancerPool(_lpToken).getPoolId();
+    IBalancerVault.JoinPoolRequest memory _request;
+    (_request.assets, , ) = IBalancerVault(BALANCER_VAULT).getPoolTokens(_poolId);
+    _request.maxAmountsIn = new uint256[](_request.assets.length);
+    uint256[] memory _amountsIn = new uint256[](_request.assets.length);
+    for (uint256 i = 0; i < _amountsIn.length; i++) {
+      address _token = _request.assets[i];
+      _amountsIn[i] = IERC20(_token).balanceOf(address(this));
+      _request.maxAmountsIn[i] = uint256(-1);
+      if (_amountsIn[i] > 0) {
+        IERC20(_token).safeApprove(BALANCER_VAULT, 0);
+        IERC20(_token).safeApprove(BALANCER_VAULT, _amountsIn[i]);
+      }
+    }
+    _request.userData = abi.encode(IBalancerVault.JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT, _amountsIn, _minLPOut);
+
+    uint256 _balance = IERC20(_lpToken).balanceOf(address(this));
+    IBalancerVault(BALANCER_VAULT).joinPool(_poolId, address(this), address(this), _request);
+    return IERC20(_lpToken).balanceOf(address(this)).sub(_balance);
   }
 }
