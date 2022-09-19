@@ -202,9 +202,9 @@ contract TokenSale is Ownable, ReentrancyGuard {
       IERC20(_quota).safeApprove(_vesting.vesting, _vestingAmount);
       Vesting(_vesting.vesting).newVesting(
         msg.sender,
-        _vestingAmount,
-        block.timestamp,
-        block.timestamp + _vesting.duration
+        uint128(_vestingAmount),
+        uint64(block.timestamp),
+        uint64(block.timestamp + _vesting.duration)
       );
     }
 
