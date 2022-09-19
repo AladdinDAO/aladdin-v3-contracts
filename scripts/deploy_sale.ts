@@ -9,9 +9,9 @@ const config: {
   vest: string;
   sale: string;
 } = {
-  token: "0x544967DE46AfEFf2eeD153F5970992Fa95eF740B",
-  vest: "0x84C82d43f1Cc64730849f3E389fE3f6d776F7A4E",
-  sale: "0xB9CD9979718e7E4C341D8D99dA3F1290c908FBdd",
+  token: "0x0AC7E02071Af18A0197a5c0Ab16023487BE4734E",
+  vest: "0x2D600CE0A135245F648Ff9343Be4ccDF0967C5A7",
+  sale: "0x2090E993d4435944c6DA42b45916B820C1e41e89",
 };
 
 const WETH = ADDRESS.WETH;
@@ -52,7 +52,7 @@ async function main() {
     console.log("Found TokenSale at:", sale.address);
   } else {
     const TokenSale = await ethers.getContractFactory("TokenSale", deployer);
-    sale = await TokenSale.deploy(WETH, CVX, DEPLOYED_CONTRACTS.AladdinZap, ethers.utils.parseEther("1000000"));
+    sale = await TokenSale.deploy(WETH, CVX, DEPLOYED_CONTRACTS.AladdinZap, ethers.utils.parseEther("100000"));
     await sale.deployed();
     config.sale = sale.address;
     console.log("Deploy TokenSale at:", sale.address);
@@ -63,7 +63,7 @@ async function main() {
   await sale.updatePrice(
     ethers.utils.parseEther("1"),
     ethers.utils.parseUnits("0", 9),
-    ethers.utils.parseEther("100000")
+    ethers.utils.parseEther("10000")
   );
   await sale.updateSupportedTokens([WETH, constants.AddressZero, USDC, CVX], true);
   // await sale.callStatic.buy(constants.AddressZero, 1, 0, { value: 1 });
