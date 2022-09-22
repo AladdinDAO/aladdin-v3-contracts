@@ -113,13 +113,7 @@ contract Vesting is Ownable {
 
     uint256 _index = vesting[_recipient].length;
     vesting[_recipient].push(
-      VestState({
-        vestingAmount: _amount,
-        claimedAmount: 0,
-        startTime: _startTime,
-        endTime: _endTime,
-        cancleTime: uint64(block.timestamp)
-      })
+      VestState({ vestingAmount: _amount, claimedAmount: 0, startTime: _startTime, endTime: _endTime, cancleTime: 0 })
     );
 
     emit Vest(_recipient, _index, _amount, _startTime, _endTime);
