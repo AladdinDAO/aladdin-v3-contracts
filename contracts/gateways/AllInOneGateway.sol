@@ -67,6 +67,7 @@ contract AllInOneGateway is ZapGatewayBase {
   /// @param _clever The address of MetaCLever.
   /// @param _srcToken The address of start token. Use zero address, if you want deposit with ETH.
   /// @param _amountIn The amount of `_srcToken` to deposit.
+  /// @param _dstToken The address of destination token.
   /// @param _routes The routes used to do zap.
   /// @param _minShareOut The minimum amount of pool shares should receive.
   /// @return The amount of pool shares received.

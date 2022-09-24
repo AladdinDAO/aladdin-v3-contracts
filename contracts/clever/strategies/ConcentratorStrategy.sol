@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./YieldStrategyBase.sol";
 import "../interfaces/ICurveSwapPool.sol";
-import "../interfaces/IConcentratorVault.sol";
+import "../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
 import "../../concentrator/interfaces/IAladdinCRV.sol";
 import "../../interfaces/IZap.sol";
 import "../../misc/checker/IPriceChecker.sol";
@@ -98,7 +98,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
   ) external virtual override onlyOperator returns (uint256 _yieldAmount) {
     _yieldAmount = _zapBeforeDeposit(_amount, _isUnderlying);
 
-    IConcentratorVault(vault).deposit(pid, _yieldAmount);
+    IAladdinCRVConvexVault(vault).deposit(pid, _yieldAmount);
   }
 
   /// @inheritdoc IYieldStrategy
@@ -125,7 +125,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     )
   {
     // 1. claim aCRV from Concentrator Vault
-    uint256 _aCRVAmount = IConcentratorVault(vault).claim(pid, 0, IConcentratorVault.ClaimOption.Claim);
+    uint256 _aCRVAmount = IAladdinCRVConvexVault(vault).claim(pid, 0, IAladdinCRVConvexVault.ClaimOption.Claim);
 
     address _underlyingToken = underlyingToken;
     // 2. sell part of aCRV as underlying token
@@ -155,7 +155,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
 
   /// @inheritdoc IYieldStrategy
   function migrate(address _strategy) external virtual override onlyOperator returns (uint256 _yieldAmount) {
-    IConcentratorVault(vault).withdrawAllAndClaim(pid, 0, IConcentratorVault.ClaimOption.None);
+    IAladdinCRVConvexVault(vault).withdrawAllAndClaim(pid, 0, IAladdinCRVConvexVault.ClaimOption.None);
 
     address _yieldToken = yieldToken;
     _yieldAmount = IERC20(_yieldToken).balanceOf(address(this));
@@ -164,7 +164,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
 
   /// @inheritdoc IYieldStrategy
   function onMigrateFinished(uint256 _yieldAmount) external virtual override onlyOperator {
-    IConcentratorVault(vault).deposit(pid, _yieldAmount);
+    IAladdinCRVConvexVault(vault).deposit(pid, _yieldAmount);
   }
 
   function updatePercentage(uint256 _percentage) external onlyOwner {
@@ -182,11 +182,17 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
   }
 
   function _withdrawFromConcentrator(uint256 _pid, uint256 _amount) internal returns (uint256) {
-    IConcentratorVault.PoolInfo memory _poolInfo = IConcentratorVault(vault).poolInfo(_pid);
-    uint256 _shares = (_amount * _poolInfo.totalShare) / _poolInfo.totalUnderlying;
+    uint256 _totalShare = IAladdinCRVConvexVault(vault).getTotalShare(_pid);
+    uint256 _totalUnderlying = IAladdinCRVConvexVault(vault).getTotalUnderlying(_pid);
+    uint256 _shares = (_amount * _totalShare) / _totalUnderlying;
 
     // @note reuse variable `_amount` to indicate the amount of yield token withdrawn.
-    (_amount, ) = IConcentratorVault(vault).withdrawAndClaim(_pid, _shares, 0, IConcentratorVault.ClaimOption.None);
+    (_amount, ) = IAladdinCRVConvexVault(vault).withdrawAndClaim(
+      _pid,
+      _shares,
+      0,
+      IAladdinCRVConvexVault.ClaimOption.None
+    );
     return _amount;
   }
 
@@ -228,10 +234,12 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
   }
 
   function _totalYieldTokenInConcentrator(uint256 _pid) internal view returns (uint256) {
-    IConcentratorVault.PoolInfo memory _poolInfo = IConcentratorVault(vault).poolInfo(_pid);
-    IConcentratorVault.UserInfo memory _userInfo = IConcentratorVault(vault).userInfo(_pid, address(this));
-    if (_userInfo.shares == 0) return 0;
-    return (uint256(_userInfo.shares) * _poolInfo.totalUnderlying) / _poolInfo.totalShare;
+    address _vault = vault;
+    uint256 _totalShare = IAladdinCRVConvexVault(_vault).getTotalShare(_pid);
+    uint256 _totalUnderlying = IAladdinCRVConvexVault(_vault).getTotalUnderlying(_pid);
+    uint256 _userShare = IAladdinCRVConvexVault(_vault).getUserShare(_pid, address(this));
+    if (_userShare == 0) return 0;
+    return (uint256(_userShare) * _totalUnderlying) / _totalShare;
   }
 
   function _totalYieldToken() internal view virtual returns (uint256) {

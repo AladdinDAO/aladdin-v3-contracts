@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./ConcentratorStrategy.sol";
-import "../interfaces/IConcentratorVault.sol";
 import "../interfaces/ICurveSwapPool.sol";
+import "../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
 import "../../concentrator/interfaces/IAladdinCRV.sol";
 import "../../interfaces/IZap.sol";
 
@@ -46,7 +46,7 @@ contract ConcentratorBatchStrategy is Ownable, ConcentratorStrategy {
     _yieldAmount = _zapBeforeDeposit(_amount, _isUnderlying);
 
     if (IERC20(yieldToken).balanceOf(address(this)) >= threshold) {
-      IConcentratorVault(vault).deposit(pid, IERC20(yieldToken).balanceOf(address(this)));
+      IAladdinCRVConvexVault(vault).deposit(pid, IERC20(yieldToken).balanceOf(address(this)));
     }
   }
 
