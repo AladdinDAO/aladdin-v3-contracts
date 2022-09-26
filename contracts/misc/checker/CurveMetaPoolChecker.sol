@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "../../interfaces/ICurveBasePool.sol";
 import "../../interfaces/ICurvePoolRegistry.sol";
+import "../../interfaces/IERC20Metadata.sol";
 import "./IPriceChecker.sol";
 
 contract CurveMetaPoolChecker is Ownable, IPriceChecker {
@@ -47,6 +48,10 @@ contract CurveMetaPoolChecker is Ownable, IPriceChecker {
     uint256 _minBalance = uint256(-1);
     for (uint256 i = 0; i < 2; i++) {
       uint256 _balance = ICurveBasePool(_pool).balances(i);
+      _token = ICurveBasePool(_pool).coins(i);
+      uint256 _decimals = IERC20Metadata(_token).decimals();
+      require(_decimals <= 18, "unsupported decimals");
+      _balance *= 10**(18 - _decimals);
       if (_balance > _maxBalance) _maxBalance = _balance;
       if (_balance < _minBalance) _minBalance = _balance;
     }

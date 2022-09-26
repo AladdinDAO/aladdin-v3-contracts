@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "../../interfaces/ICurveBasePool.sol";
 import "../../interfaces/ICurvePoolRegistry.sol";
+import "../../interfaces/IERC20Metadata.sol";
 import "./IPriceChecker.sol";
 
 contract CurveBasePoolChecker is Ownable, IPriceChecker {
@@ -37,18 +38,32 @@ contract CurveBasePoolChecker is Ownable, IPriceChecker {
     uint256 _maxBalance = 0;
     uint256 _minBalance = uint256(-1);
     for (uint256 i = 0; ; i++) {
+      uint256 _currentBalance;
       // vyper is weird, some use `int128`
       try ICurveBasePool(_pool).balances(i) returns (uint256 _balance) {
-        if (_balance > _maxBalance) _maxBalance = _balance;
-        if (_balance < _minBalance) _minBalance = _balance;
+        _currentBalance = _balance;
       } catch {
         try ICurveBasePool(_pool).balances(int128(i)) returns (uint256 _balance) {
-          if (_balance > _maxBalance) _maxBalance = _balance;
-          if (_balance < _minBalance) _minBalance = _balance;
+          _currentBalance = _balance;
         } catch {
           break;
         }
       }
+      address _currentToken;
+      try ICurveBasePool(_pool).coins(i) returns (address _coin) {
+        _currentToken = _coin;
+      } catch {
+        try ICurveBasePool(_pool).coins(int128(i)) returns (address _coin) {
+          _currentToken = _coin;
+        } catch {
+          break;
+        }
+      }
+      uint256 _decimals = IERC20Metadata(_currentToken).decimals();
+      require(_decimals <= 18, "unsupported decimals");
+      _currentBalance *= 10**(18 - _decimals);
+      if (_currentBalance > _maxBalance) _maxBalance = _currentBalance;
+      if (_currentBalance < _minBalance) _minBalance = _currentBalance;
     }
 
     // _maxBalance / _minBalance <= maxMultiple / PRECISION

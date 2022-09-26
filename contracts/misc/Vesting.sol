@@ -46,6 +46,9 @@ contract Vesting is Ownable {
   /// @notice Mapping from user address to vesting list.
   mapping(address => VestState[]) public vesting;
 
+  /// @notice The list of whilelist address.
+  mapping(address => bool) public isWhitelist;
+
   constructor(address _token) {
     require(_token != address(0), "Vesting: zero address token");
 
@@ -108,6 +111,7 @@ contract Vesting is Ownable {
     uint64 _endTime
   ) external {
     require(_startTime < _endTime, "Vesting: invalid timestamp");
+    require(isWhitelist[msg.sender], "Vesting: caller not whitelisted");
 
     IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -133,6 +137,15 @@ contract Vesting is Ownable {
     vesting[_user][_index].cancleTime = uint64(block.timestamp);
 
     emit Cancle(_user, _index, _unvested, block.timestamp);
+  }
+
+  /// @notice Update the whitelist status of given accounts.
+  /// @param _accounts The list of accounts to update.
+  /// @param _status The status to update.
+  function updateWhitelist(address[] memory _accounts, bool _status) external onlyOwner {
+    for (uint256 i = 0; i < _accounts.length; i++) {
+      isWhitelist[_accounts[i]] = _status;
+    }
   }
 
   /// @dev Internal function to calculate vested token amount for a single vest.
