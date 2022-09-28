@@ -43,6 +43,21 @@ contract AladdinCRVZap is IZap {
 
   /********************************** Mutated Functions **********************************/
 
+  function zapWithRoutes(
+    address _fromToken,
+    uint256 _amountIn,
+    address _toToken,
+    uint256[] calldata _routes,
+    uint256 _minOut
+  ) external payable override returns (uint256) {}
+
+  function zapFrom(
+    address _fromToken,
+    uint256 _amountIn,
+    address _toToken,
+    uint256 _minOut
+  ) external payable override returns (uint256) {}
+
   function zap(
     address _fromToken,
     uint256 _amountIn,

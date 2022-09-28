@@ -38,8 +38,4 @@ interface ICLeverCVXLocker {
   function donate(uint256 _amount) external;
 
   function harvest(address _recipient, uint256 _minimumOut) external returns (uint256);
-
-  function harvestVotium(IVotiumMultiMerkleStash.claimParam[] calldata claims, uint256 _minimumOut)
-    external
-    returns (uint256);
 }

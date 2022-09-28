@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
-import "../interfaces/IERC20Metadata.sol";
+import "../../interfaces/IERC20Metadata.sol";
 import "../interfaces/IMetaCLever.sol";
 import "../interfaces/IMetaFurnace.sol";
 import "../interfaces/ICLeverToken.sol";

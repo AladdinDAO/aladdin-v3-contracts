@@ -38,20 +38,26 @@ contract AladdinZap is OwnableUpgradeable, TokenZapLogic, IZap {
 
   /********************************** Mutated Functions **********************************/
 
+  function zapWithRoutes(
+    address _fromToken,
+    uint256 _amountIn,
+    address _toToken,
+    uint256[] calldata _routes,
+    uint256 _minOut
+  ) external payable override returns (uint256) {
+    _amountIn = _transferTokenIn(_fromToken, _amountIn);
+    uint256 _amount = _doZap(_amountIn, _routes, _minOut);
+    _transferTokenOut(_toToken, _amount, msg.sender);
+    return _amount;
+  }
+
   function zapFrom(
     address _fromToken,
     uint256 _amountIn,
     address _toToken,
     uint256 _minOut
-  ) external payable returns (uint256) {
-    if (_isETH(_fromToken)) {
-      require(_amountIn == msg.value, "AladdinZap: amount mismatch");
-    } else {
-      uint256 before = IERC20Upgradeable(_fromToken).balanceOf(address(this));
-      IERC20Upgradeable(_fromToken).safeTransferFrom(msg.sender, address(this), _amountIn);
-      _amountIn = IERC20Upgradeable(_fromToken).balanceOf(address(this)) - before;
-    }
-
+  ) external payable override returns (uint256) {
+    _amountIn = _transferTokenIn(_fromToken, _amountIn);
     return zap(_fromToken, _amountIn, _toToken, _minOut);
   }
 
@@ -65,20 +71,9 @@ contract AladdinZap is OwnableUpgradeable, TokenZapLogic, IZap {
     uint256[] memory _routes = routes[_isETH(_fromToken) ? WETH : _fromToken][_isETH(_toToken) ? WETH : _toToken];
     require(_routes.length > 0, "AladdinZap: route unavailable");
 
-    uint256 _amount = _amountIn;
-    for (uint256 i = 0; i < _routes.length; i++) {
-      _amount = swap(_routes[i], _amount);
-    }
-    require(_amount >= _minOut, "AladdinZap: insufficient output");
-    if (_isETH(_toToken)) {
-      _unwrapIfNeeded(_amount);
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool success, ) = msg.sender.call{ value: _amount }("");
-      require(success, "AladdinZap: ETH transfer failed");
-    } else {
-      _wrapTokenIfNeeded(_toToken, _amount);
-      IERC20Upgradeable(_toToken).safeTransfer(msg.sender, _amount);
-    }
+    uint256 _amount = _doZap(_amountIn, _routes, _minOut);
+
+    _transferTokenOut(_toToken, _amount, msg.sender);
     return _amount;
   }
 
@@ -107,6 +102,54 @@ contract AladdinZap is OwnableUpgradeable, TokenZapLogic, IZap {
   function rescue(address[] memory _tokens, address _recipient) external onlyOwner {
     for (uint256 i = 0; i < _tokens.length; i++) {
       IERC20Upgradeable(_tokens[i]).safeTransfer(_recipient, IERC20Upgradeable(_tokens[i]).balanceOf(address(this)));
+    }
+  }
+
+  /********************************** Internal Functions **********************************/
+
+  function _doZap(
+    uint256 _amount,
+    uint256[] memory _routes,
+    uint256 _minOut
+  ) internal returns (uint256) {
+    for (uint256 i = 0; i < _routes.length; i++) {
+      _amount = swap(_routes[i], _amount);
+    }
+    require(_amount >= _minOut, "AladdinZap: insufficient output");
+    return _amount;
+  }
+
+  function _transferTokenIn(address _token, uint256 _amount) internal returns (uint256) {
+    if (_isETH(_token)) {
+      uint256 _balance = address(this).balance;
+      if (_balance < _amount) {
+        require(msg.value == _amount, "AladdinZap: ETH amount mismatch");
+      }
+    } else {
+      uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
+      if (_balance < _amount) {
+        IERC20Upgradeable(_token).safeTransferFrom(msg.sender, address(this), _amount);
+        _amount = IERC20Upgradeable(_token).balanceOf(address(this)) - _balance;
+      }
+    }
+    return _amount;
+  }
+
+  function _transferTokenOut(
+    address _token,
+    uint256 _amount,
+    address _recipient
+  ) internal {
+    if (_recipient == address(this)) return;
+
+    if (_isETH(_token)) {
+      _unwrapIfNeeded(_amount);
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool success, ) = _recipient.call{ value: _amount }("");
+      require(success, "AladdinZap: ETH transfer failed");
+    } else {
+      _wrapTokenIfNeeded(_token, _amount);
+      IERC20Upgradeable(_token).safeTransfer(_recipient, _amount);
     }
   }
 }

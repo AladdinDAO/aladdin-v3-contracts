@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
-import "../interfaces/IERC20Metadata.sol";
+import "../../interfaces/IERC20Metadata.sol";
 import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IMetaFurnace.sol";
 import "../interfaces/IYieldStrategy.sol";

@@ -4,6 +4,13 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 interface IBalancerVault {
+  enum JoinKind {
+    INIT,
+    EXACT_TOKENS_IN_FOR_BPT_OUT,
+    TOKEN_IN_FOR_EXACT_BPT_OUT,
+    ALL_TOKENS_IN_FOR_EXACT_BPT_OUT
+  }
+
   enum SwapKind {
     GIVEN_IN,
     GIVEN_OUT

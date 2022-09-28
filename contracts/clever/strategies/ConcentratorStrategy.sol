@@ -9,19 +9,21 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./YieldStrategyBase.sol";
 import "../interfaces/ICurveSwapPool.sol";
-import "../interfaces/IConcentratorVault.sol";
+import "../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
 import "../../concentrator/interfaces/IAladdinCRV.sol";
 import "../../interfaces/IZap.sol";
+import "../../misc/checker/IPriceChecker.sol";
 
 // solhint-disable reason-string
 
 /// @title Concentrator Strategy for CLever.
 ///
-/// @author 0xChiaki
-///
 /// @dev The gas usage is very high when combining CLever and Concentrator, we need a batch deposit version.
 contract ConcentratorStrategy is Ownable, YieldStrategyBase {
   using SafeERC20 for IERC20;
+
+  event UpdatePercentage(uint256 _percentage);
+  event UpdateChecker(address _checker);
 
   uint256 internal constant PRECISION = 1e9;
 
@@ -33,20 +35,24 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
   // solhint-disable-next-line const-name-snakecase
   address internal constant cvxCRV = 0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7;
 
-  /// @dev The address of Concentrator Vault on mainnet.
-  address internal constant CONCENTRATOR_VAULT = 0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8;
-
   /// @notice The address of zap contract.
-  address public zap;
+  address public immutable zap;
+
+  /// @dev The address of Concentrator Vault on mainnet.
+  address public immutable vault;
 
   /// @notice The address of curve pool for corresponding yield token.
-  address public curvePool;
+  address public immutable curvePool;
 
-  uint256 public pid;
+  uint256 public immutable pid;
 
   uint256 public percentage;
 
+  address public checker;
+
   constructor(
+    address _zap,
+    address _vault,
     uint256 _pid,
     uint256 _percentage,
     address _curvePool,
@@ -57,12 +63,14 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     require(_curvePool != address(0), "ConcentratorStrategy: zero address");
     require(_percentage <= PRECISION, "ConcentratorStrategy: percentage too large");
 
+    zap = _zap;
+    vault = _vault;
     pid = _pid;
     percentage = _percentage;
     curvePool = _curvePool;
 
     // The Concentrator Vault is maintained by our team, it's safe to approve uint256.max.
-    IERC20(_yieldToken).safeApprove(CONCENTRATOR_VAULT, uint256(-1));
+    IERC20(_yieldToken).safeApprove(_vault, uint256(-1));
   }
 
   /// @inheritdoc IYieldStrategy
@@ -90,7 +98,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
   ) external virtual override onlyOperator returns (uint256 _yieldAmount) {
     _yieldAmount = _zapBeforeDeposit(_amount, _isUnderlying);
 
-    IConcentratorVault(CONCENTRATOR_VAULT).deposit(pid, _yieldAmount);
+    IAladdinCRVConvexVault(vault).deposit(pid, _yieldAmount);
   }
 
   /// @inheritdoc IYieldStrategy
@@ -117,7 +125,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     )
   {
     // 1. claim aCRV from Concentrator Vault
-    uint256 _aCRVAmount = IConcentratorVault(CONCENTRATOR_VAULT).claim(pid, 0, IConcentratorVault.ClaimOption.Claim);
+    uint256 _aCRVAmount = IAladdinCRVConvexVault(vault).claim(pid, 0, IAladdinCRVConvexVault.ClaimOption.Claim);
 
     address _underlyingToken = underlyingToken;
     // 2. sell part of aCRV as underlying token
@@ -147,7 +155,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
 
   /// @inheritdoc IYieldStrategy
   function migrate(address _strategy) external virtual override onlyOperator returns (uint256 _yieldAmount) {
-    IConcentratorVault(CONCENTRATOR_VAULT).withdrawAllAndClaim(pid, 0, IConcentratorVault.ClaimOption.None);
+    IAladdinCRVConvexVault(vault).withdrawAllAndClaim(pid, 0, IAladdinCRVConvexVault.ClaimOption.None);
 
     address _yieldToken = yieldToken;
     _yieldAmount = IERC20(_yieldToken).balanceOf(address(this));
@@ -156,31 +164,44 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
 
   /// @inheritdoc IYieldStrategy
   function onMigrateFinished(uint256 _yieldAmount) external virtual override onlyOperator {
-    IConcentratorVault(CONCENTRATOR_VAULT).deposit(pid, _yieldAmount);
+    IAladdinCRVConvexVault(vault).deposit(pid, _yieldAmount);
   }
 
   function updatePercentage(uint256 _percentage) external onlyOwner {
     require(_percentage <= PRECISION, "ConcentratorStrategy: percentage too large");
 
     percentage = _percentage;
+
+    emit UpdatePercentage(_percentage);
+  }
+
+  function updateChecker(address _checker) external onlyOwner {
+    checker = _checker;
+
+    emit UpdateChecker(_checker);
   }
 
   function _withdrawFromConcentrator(uint256 _pid, uint256 _amount) internal returns (uint256) {
-    IConcentratorVault.PoolInfo memory _poolInfo = IConcentratorVault(CONCENTRATOR_VAULT).poolInfo(_pid);
-    uint256 _shares = (_amount * _poolInfo.totalShare) / _poolInfo.totalUnderlying;
+    uint256 _totalShare = IAladdinCRVConvexVault(vault).getTotalShare(_pid);
+    uint256 _totalUnderlying = IAladdinCRVConvexVault(vault).getTotalUnderlying(_pid);
+    uint256 _shares = (_amount * _totalShare) / _totalUnderlying;
 
     // @note reuse variable `_amount` to indicate the amount of yield token withdrawn.
-    (_amount, ) = IConcentratorVault(CONCENTRATOR_VAULT).withdrawAndClaim(
+    (_amount, ) = IAladdinCRVConvexVault(vault).withdrawAndClaim(
       _pid,
       _shares,
       0,
-      IConcentratorVault.ClaimOption.None
+      IAladdinCRVConvexVault.ClaimOption.None
     );
     return _amount;
   }
 
   function _zapBeforeDeposit(uint256 _amount, bool _isUnderlying) internal returns (uint256) {
     if (_isUnderlying) {
+      address _checker = checker;
+      if (_checker != address(0)) {
+        require(IPriceChecker(_checker).check(yieldToken), "price is manipulated");
+      }
       // @todo add reserve check for curve lp to avoid flashloan attack.
       address _zap = zap;
       address _underlyingToken = underlyingToken;
@@ -198,7 +219,10 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
   ) internal returns (uint256) {
     address _token = yieldToken;
     if (_asUnderlying) {
-      // @todo add reserve check for curve lp to avoid flashloan attack.
+      address _checker = checker;
+      if (_checker != address(0)) {
+        require(IPriceChecker(_checker).check(yieldToken), "price is manipulated");
+      }
       address _zap = zap;
       address _underlyingToken = underlyingToken;
       IERC20(_token).safeTransfer(_zap, _amount);
@@ -210,10 +234,12 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
   }
 
   function _totalYieldTokenInConcentrator(uint256 _pid) internal view returns (uint256) {
-    IConcentratorVault.PoolInfo memory _poolInfo = IConcentratorVault(CONCENTRATOR_VAULT).poolInfo(_pid);
-    IConcentratorVault.UserInfo memory _userInfo = IConcentratorVault(CONCENTRATOR_VAULT).userInfo(_pid, address(this));
-    if (_userInfo.shares == 0) return 0;
-    return (uint256(_userInfo.shares) * _poolInfo.totalUnderlying) / _poolInfo.totalShare;
+    address _vault = vault;
+    uint256 _totalShare = IAladdinCRVConvexVault(_vault).getTotalShare(_pid);
+    uint256 _totalUnderlying = IAladdinCRVConvexVault(_vault).getTotalUnderlying(_pid);
+    uint256 _userShare = IAladdinCRVConvexVault(_vault).getUserShare(_pid, address(this));
+    if (_userShare == 0) return 0;
+    return (uint256(_userShare) * _totalUnderlying) / _totalShare;
   }
 
   function _totalYieldToken() internal view virtual returns (uint256) {

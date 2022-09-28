@@ -8,16 +8,14 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./ConcentratorStrategy.sol";
-import "../interfaces/IConcentratorVault.sol";
 import "../interfaces/ICurveSwapPool.sol";
+import "../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
 import "../../concentrator/interfaces/IAladdinCRV.sol";
 import "../../interfaces/IZap.sol";
 
 // solhint-disable reason-string
 
 /// @title Concentrator Batch Strategy for CLever.
-///
-/// @author 0xChiaki
 ///
 /// @dev This contract will wait the pending amount above threshold and do batch deposit.
 contract ConcentratorBatchStrategy is Ownable, ConcentratorStrategy {
@@ -26,6 +24,8 @@ contract ConcentratorBatchStrategy is Ownable, ConcentratorStrategy {
   uint256 public threshold;
 
   constructor(
+    address _zap,
+    address _vault,
     uint256 _pid,
     uint256 _percentage,
     uint256 _threshold,
@@ -33,7 +33,7 @@ contract ConcentratorBatchStrategy is Ownable, ConcentratorStrategy {
     address _token,
     address _underlyingToken,
     address _operator
-  ) ConcentratorStrategy(_pid, _percentage, _curvePool, _token, _underlyingToken, _operator) {
+  ) ConcentratorStrategy(_zap, _vault, _pid, _percentage, _curvePool, _token, _underlyingToken, _operator) {
     threshold = _threshold;
   }
 
@@ -46,7 +46,7 @@ contract ConcentratorBatchStrategy is Ownable, ConcentratorStrategy {
     _yieldAmount = _zapBeforeDeposit(_amount, _isUnderlying);
 
     if (IERC20(yieldToken).balanceOf(address(this)) >= threshold) {
-      IConcentratorVault(CONCENTRATOR_VAULT).deposit(pid, IERC20(yieldToken).balanceOf(address(this)));
+      IAladdinCRVConvexVault(vault).deposit(pid, IERC20(yieldToken).balanceOf(address(this)));
     }
   }
 

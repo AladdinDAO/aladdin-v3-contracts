@@ -19,6 +19,7 @@ import "../interfaces/ICurveETHPool.sol";
 import "../interfaces/ICurveFactoryMetaPool.sol";
 import "../interfaces/ICurveFactoryPlainPool.sol";
 import "../interfaces/ICurveMetaPool.sol";
+import "../interfaces/ICurvePoolRegistry.sol";
 import "../interfaces/ICurveYPool.sol";
 import "../interfaces/ILidoStETH.sol";
 import "../interfaces/ILidoWstETH.sol";
@@ -26,11 +27,6 @@ import "../interfaces/IUniswapV2Pair.sol";
 import "../interfaces/IUniswapV3Pool.sol";
 import "../interfaces/IUniswapV3Router.sol";
 import "../interfaces/IWETH.sol";
-
-interface ICurvePoolRegistry {
-  // solhint-disable-next-line func-name-mixedcase
-  function get_lp_token(address _pool) external view returns (address);
-}
 
 // solhint-disable reason-string, const-name-snakecase
 
