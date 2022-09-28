@@ -271,13 +271,13 @@ export const VAULT_CONFIG: {
       // WETH ==(UniV3)==> USDC ==(UniV3)==> FRAX ==(UniV2)==> FXS
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
       ],
       // USDC ==(UniV3)==> FRAX ==(UniV2)==> FXS
       USDC: [
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
       ],
@@ -289,14 +289,14 @@ export const VAULT_CONFIG: {
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
         encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
       // FXS ==(UniV2)==> FRAX ==(UniV3)==> USDC
       USDC: [
         encodePoolHintV2(ADDRESS.CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
         encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
   },
@@ -900,12 +900,12 @@ export const VAULT_CONFIG: {
       // WETH ==(UniV3)==> USDC ==(UniV3)==> FRAX
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
       ],
       // USDC ==(UniV3)==> FRAX
       USDC: [
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
       ],
     },
@@ -915,13 +915,13 @@ export const VAULT_CONFIG: {
       // FRAX ==(UniV3)==> USDC ==(UniV3)==> WETH
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
       // FRAX ==(UniV3)==> USDC
       USDC: [
         encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
   },
@@ -1472,13 +1472,13 @@ export const VAULT_CONFIG: {
       FRAX: [encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
       // USDC ==(UniV3)==> FRAX
       USDC: [
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
       ],
       // WETH ==(UniV3)==> USDC ==(UniV3)==> FRAX
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
       ],
     },
@@ -1488,12 +1488,12 @@ export const VAULT_CONFIG: {
       // FRAX ==(UniV3)==> USDC
       USDC: [
         encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
       // FRAX  ==(UniV3)==> USDC ==(UniV3)==> WETH
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },

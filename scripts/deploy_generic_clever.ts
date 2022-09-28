@@ -23,7 +23,7 @@ import {
   VeCLEV,
   Vesting,
 } from "../typechain";
-import { ADDRESS, DEPLOYED_CONTRACTS, ZAP_ROUTES } from "./utils";
+import { ADDRESS, DEPLOYED_CONTRACTS, VAULT_CONFIG, ZAP_ROUTES } from "./utils";
 
 const config: {
   CLeverBeacon: string;
@@ -46,7 +46,7 @@ const config: {
   };
   FRAX: {
     underlying: string;
-    clevFRAX: string;
+    clevUSD: string;
     Furnace: string;
     CLever: {
       FRAXUSDC: {
@@ -107,16 +107,16 @@ const config: {
   },
   FRAX: {
     underlying: ADDRESS.FRAX,
-    clevFRAX: "0x3CC69909Da81861A006106d10026e4869dAdA67e",
+    clevUSD: "0x3CC69909Da81861A006106d10026e4869dAdA67e",
     Furnace: "0x8fa020ee7446a86ced2FC0ed45d73797Da839f5f",
     CLever: {
       FRAXUSDC: {
-        clever: "0x9eDa2a19410ba61567ac252fB801bBC5d6e21122",
+        clever: "0x4FEe74f78Db3aff41f8783f94E3435abe511EcFa",
         reserveRate: 5e8, // 50%
         mintCeiling: ethers.utils.parseEther("10000000"),
         strategies: {
-          FRAXUSDC_All: "0xa1F74fE8F1E3b7E77D29e9A09A986683929416e6",
-          FRAXUSDC_Half: "0xd6446d12583566Af4816260269bcd6a22BeD7A1b",
+          FRAXUSDC_All: "0xaAB8CDfe24319BE5cE2d5eE1468fcC5205395Db5",
+          FRAXUSDC_Half: "0x8961af9cD94274ddC9b98A9a8813cA57F6EECF7E",
         },
       },
     },
@@ -144,7 +144,7 @@ const config: {
   Minter: "0xF3be7c9097275e525925aCb2BaC386C8D383a2f5",
   FeeDistributor: "0x6Cf43837F9ACB346A2EA5E55d1439559B112A34f",
   sale: "0x2090E993d4435944c6DA42b45916B820C1e41e89",
-  vest: "0x2D600CE0A135245F648Ff9343Be4ccDF0967C5A7",
+  vest: "0xbD54f6c8bE2dA6f733704cff1a1c99A8093B64f1",
 };
 
 const PLATFORM = "0xFC08757c505eA28709dF66E54870fB6dE09f0C5E";
@@ -162,7 +162,7 @@ let crvFurnace: MetaFurnace;
 let clever_aCRV: MetaCLever;
 let strategy_aCRV: AladdinCRVStrategy;
 
-let clevFRAX: CLeverToken;
+let clevUSD: CLeverToken;
 let fraxFurnace: MetaFurnace;
 let clever_FRAXUSDC: MetaCLever;
 let strategy_FRAXUSDC_All: ConcentratorStrategy;
@@ -296,16 +296,16 @@ async function deployCRV() {
 async function deployFRAX() {
   const [deployer] = await ethers.getSigners();
 
-  if (config.FRAX.clevFRAX !== "") {
-    clevFRAX = (await ethers.getContractAt("CLeverToken", config.FRAX.clevFRAX, deployer)) as CLeverToken;
-    console.log("Found clevFRAX at:", clevFRAX.address);
+  if (config.FRAX.clevUSD !== "") {
+    clevUSD = (await ethers.getContractAt("CLeverToken", config.FRAX.clevUSD, deployer)) as CLeverToken;
+    console.log("Found clevUSD at:", clevUSD.address);
   } else {
     const CLeverToken = await ethers.getContractFactory("CLeverToken", deployer);
-    clevFRAX = (await CLeverToken.deploy("CLever FRAX", "clevFRAX")) as CLeverToken;
-    console.log("Deploying clevFRAX, hash:", clevFRAX.deployTransaction.hash);
-    await clevFRAX.deployed();
-    console.log("✅ Deploy clevFRAX at:", clevFRAX.address);
-    config.FRAX.clevFRAX = clevFRAX.address;
+    clevUSD = (await CLeverToken.deploy("CLever USD", "clevUSD")) as CLeverToken;
+    console.log("Deploying clevUSD, hash:", clevUSD.deployTransaction.hash);
+    await clevUSD.deployed();
+    console.log("✅ Deploy clevUSD at:", clevUSD.address);
+    config.FRAX.clevUSD = clevUSD.address;
   }
 
   if (config.FRAX.Furnace !== "") {
@@ -314,7 +314,7 @@ async function deployFRAX() {
   } else {
     const data = MetaFurnace__factory.createInterface().encodeFunctionData("initialize", [
       ADDRESS.FRAX,
-      clevFRAX.address,
+      clevUSD.address,
     ]);
     const BeaconProxy = await ethers.getContractFactory("BeaconProxy", deployer);
     const proxy = await BeaconProxy.deploy(furnaceBeacon.address, data);
@@ -332,8 +332,8 @@ async function deployFRAX() {
       console.log("Found MetaCLever for FRAXUSDC at:", clever_FRAXUSDC.address);
     } else {
       const data = MetaCLever__factory.createInterface().encodeFunctionData("initialize", [
-        clevCRV.address,
-        crvFurnace.address,
+        clevUSD.address,
+        fraxFurnace.address,
       ]);
       const BeaconProxy = await ethers.getContractFactory("BeaconProxy", deployer);
       const proxy = await BeaconProxy.deploy(cleverBeacon.address, data);
@@ -429,15 +429,15 @@ async function deployFRAX() {
       console.log("✅ Done, gas used:", receipt.gasUsed.toString());
     }
 
-    if (!(await clevFRAX.isMinter(clever_FRAXUSDC.address))) {
-      const tx = await clevFRAX.updateMinters([clever_FRAXUSDC.address], true);
-      console.log("Setup clever_FRAXUSDC as minter of clevFRAX, hash:", tx.hash);
+    if (!(await clevUSD.isMinter(clever_FRAXUSDC.address))) {
+      const tx = await clevUSD.updateMinters([clever_FRAXUSDC.address], true);
+      console.log("Setup clever_FRAXUSDC as minter of clevUSD, hash:", tx.hash);
       const receipt = await tx.wait();
       console.log("✅ Done, gas used:", receipt.gasUsed.toString());
     }
 
-    if (!(await clevFRAX.minterInfo(clever_FRAXUSDC.address)).ceiling.eq(config.FRAX.CLever.FRAXUSDC.mintCeiling)) {
-      const tx = await clevFRAX.updateCeiling(clever_FRAXUSDC.address, config.FRAX.CLever.FRAXUSDC.mintCeiling);
+    if (!(await clevUSD.minterInfo(clever_FRAXUSDC.address)).ceiling.eq(config.FRAX.CLever.FRAXUSDC.mintCeiling)) {
+      const tx = await clevUSD.updateCeiling(clever_FRAXUSDC.address, config.FRAX.CLever.FRAXUSDC.mintCeiling);
       console.log("Setup minter ceiling for clever_FRAXUSDC, hash:", tx.hash);
       const receipt = await tx.wait();
       console.log("✅ Done, gas used:", receipt.gasUsed.toString());
@@ -459,6 +459,20 @@ async function deployFRAX() {
       console.log("✅ Done, gas used:", receipt.gasUsed.toString());
     }
   }
+
+  await gateway.depositCLever(
+    clever_FRAXUSDC.address,
+    0,
+    constants.AddressZero,
+    1000000000,
+    ADDRESS.CURVE_FRAXUSDC_TOKEN,
+    VAULT_CONFIG.fraxusdc.deposit.WETH,
+    0,
+    { value: 1000000000 }
+  );
+  const share = (await clever_FRAXUSDC.getUserInfo(deployer.address))._shares[0];
+  console.log("share", share);
+  await clever_FRAXUSDC.withdraw(0, deployer.address, share, 0, false, { gasLimit: 3000000 });
 }
 
 async function deployTokenAndVe() {
@@ -522,6 +536,13 @@ async function deployTokenAndVe() {
     await distributor.deployed();
     config.FeeDistributor = distributor.address;
     console.log("✅ Deploy FeeDistributor at:", distributor.address);
+  }
+
+  if ((await clev.minter()) !== minter.address) {
+    const tx = await clev.set_minter(minter.address);
+    console.log("set minter, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used", receipt.gasUsed.toString());
   }
 }
 
@@ -781,6 +802,57 @@ async function deployGauge() {
       (x) => `"${x.toHexString()}"`
     )}]}`
   );
+
+  console.log("gauge_type_names:", await controller.gauge_type_names(0));
+  if ((await controller.gauge_type_names(0)) !== "Liquidity") {
+    const tx = await controller["add_type(string,uint256)"]("Liquidity", "1000000000000000000", { gasLimit: 1000000 });
+    console.log("add type, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used", receipt.gasUsed.toString());
+  }
+  if ((await controller.get_gauge_weight(config.Gauge.Curve_CLEV_ETH.gauge)).isZero()) {
+    const tx = await controller["add_gauge(address,int128,uint256)"](config.Gauge.Curve_CLEV_ETH.gauge, 0, "50", {
+      gasLimit: 1000000,
+    });
+    console.log("add Curve CLEV/ETH Gauge, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used", receipt.gasUsed.toString());
+  }
+  if ((await controller.get_gauge_weight(config.Gauge.Curve_clevCVX_CVX.gauge)).isZero()) {
+    const tx = await controller["add_gauge(address,int128,uint256)"](config.Gauge.Curve_clevCVX_CVX.gauge, 0, "25", {
+      gasLimit: 1000000,
+    });
+    console.log("add Curve clevCVX/CVX Gauge, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used", receipt.gasUsed.toString());
+  }
+  if ((await controller.get_gauge_weight(config.Gauge.Balancer_clevCVX_CVX.gauge)).isZero()) {
+    const tx = await controller["add_gauge(address,int128,uint256)"](config.Gauge.Balancer_clevCVX_CVX.gauge, 0, "25", {
+      gasLimit: 1000000,
+    });
+    console.log("add Balancer clevCVX/CVX Gauge, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used", receipt.gasUsed.toString());
+  }
+
+  const gauge = await ethers.getContractAt("LiquidityGaugeV3", config.Gauge.Curve_CLEV_ETH.gauge, deployer);
+  console.log("balance:", await gauge.balanceOf(deployer.address));
+  console.log("working balance:", await gauge.working_balances(deployer.address));
+  console.log("integrate_fraction:", await gauge.integrate_fraction(deployer.address));
+  console.log("period:", await gauge.period());
+  console.log("inflation_rate:", await gauge.inflation_rate());
+  console.log("future_epoch_time:", await gauge.future_epoch_time());
+  console.log("integrate_inv_supply:", await gauge.integrate_inv_supply(0x0b));
+  console.log("period_timestamp:", await gauge.period_timestamp(0x0b));
+  console.log("timestamp:", (await ethers.provider.getBlock("latest")).timestamp);
+  console.log("reward:", await gauge.callStatic.claimable_tokens(deployer.address));
+  console.log(
+    "gauge_relative_weight:",
+    await controller["gauge_relative_weight(address,uint256)"](config.Gauge.Curve_CLEV_ETH.gauge, 1665014400)
+  );
+  console.log(await clev.balanceOf(deployer.address));
+  await minter.mint(config.Gauge.Curve_CLEV_ETH.gauge, { gasLimit: 2000000 });
+  console.log(await clev.balanceOf(deployer.address));
 }
 
 async function deployIDO() {
@@ -812,25 +884,6 @@ async function deployIDO() {
     config.sale = sale.address;
     console.log("Deploy TokenSale at:", sale.address);
   }
-
-  const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-  await sale.updateSaleTime(timestamp + 1000, timestamp + 86400 * 5, 86400 * 5);
-  await sale.updatePrice(
-    ethers.utils.parseEther("1"),
-    ethers.utils.parseUnits("0", 9),
-    ethers.utils.parseEther("10000")
-  );
-  await sale.updateSupportedTokens([ADDRESS.WETH, constants.AddressZero, ADDRESS.USDC, ADDRESS.CVX], true);
-  console.log(
-    `from[${ADDRESS.WETH}]`,
-    `to[${ADDRESS.CVX}]`,
-    `route[${ZAP_ROUTES.WETH.CVX.map((r) => `"${r.toHexString()}"`)}]`
-  );
-  console.log(
-    `from[${ADDRESS.USDC}]`,
-    `to[${ADDRESS.CVX}]`,
-    `route[${ZAP_ROUTES.USDC.CVX.map((r) => `"${r.toHexString()}"`)}]`
-  );
 }
 
 async function main() {

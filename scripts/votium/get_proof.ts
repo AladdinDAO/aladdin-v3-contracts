@@ -1,7 +1,7 @@
 /* eslint-disable node/no-missing-import */
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { ADDRESS, TOKENS, ZAP_ROUTES } from "../utils";
+import { TOKENS } from "../utils";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -31,11 +31,11 @@ const REWARDS: { [round: number]: string[] } = {
   24: ["ALCX", "APEFI", "CVX", "EURS", "FXS", "GNO", "INV", "JPEG", "SNX", "STG", "TUSD", "USDD"],
   25: ["ALCX", "APEFI", "CVX", "FXS", "GNO", "INV", "JPEG", "SNX", "TUSD", "USDD"],
   26: ["ALCX", "APEFI", "CVX", "cvxCRV", "EURS", "FXS", "GNO", "INV", "JPEG", "MTA", "T", "TUSD", "USDD"],
+  27: ["ALCX", "APEFI", "CVX", "FXS", "GNO", "INV", "JPEG", "T", "TUSD", "USDD"],
 };
 
 async function main() {
-  console.log(`from[${ADDRESS.T}], to[${ADDRESS.CVX}] routes[${ZAP_ROUTES.T.CVX.map((x) => `"${x.toHexString()}"`)}]`);
-  for (const token of REWARDS[26]) {
+  for (const token of REWARDS[27]) {
     const address = TOKENS[token].address;
     const amountRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/amount/");
     const proofRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/proof/");
