@@ -13,24 +13,31 @@ program.version("1.0.0");
 const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
 
 async function main(round: number, manualStr: string) {
+  const [deployer] = await ethers.getSigners();
+  const cvx = await ethers.getContractAt("IERC20", ADDRESS.CVX, deployer);
+  const furnance = await ethers.getContractAt("Furnace", DEPLOYED_CONTRACTS.CLever.FurnaceForCVX, deployer);
+  const cvxLocker = await ethers.getContractAt("CLeverCVXLocker", DEPLOYED_CONTRACTS.CLever.CLeverForCVX, deployer);
+
   const manualTokens = manualStr === "" ? [] : manualStr.split(",");
   console.log("Harvest Round:", round);
   for (const item of RoundClaimParams[round]) {
     const symbol: string = Object.entries(TOKENS).filter(
       ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
     )[0][0];
+    const estimate = BigNumber.from(
+      await ethers.provider.call({
+        from: KEEPER,
+        to: cvxLocker.address,
+        data: cvxLocker.interface.encodeFunctionData("harvestVotium", [[item], 0]),
+      })
+    );
     console.log(
       `  token[${symbol}], address[${item.token}], amount[${ethers.utils.formatUnits(
         item.amount,
         TOKENS[symbol].decimals
-      )}]`
+      )}] CVX[${ethers.utils.formatEther(estimate.toString())}]`
     );
   }
-
-  const [deployer] = await ethers.getSigners();
-  const cvx = await ethers.getContractAt("IERC20", ADDRESS.CVX, deployer);
-  const furnance = await ethers.getContractAt("Furnace", DEPLOYED_CONTRACTS.CLever.FurnaceForCVX, deployer);
-  const cvxLocker = await ethers.getContractAt("CLeverCVXLocker", DEPLOYED_CONTRACTS.CLever.CLeverForCVX, deployer);
 
   const estimate = BigNumber.from(
     await ethers.provider.call({
