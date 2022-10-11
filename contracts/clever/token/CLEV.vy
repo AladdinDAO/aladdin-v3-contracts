@@ -12,9 +12,9 @@
 # Curve Finance's ERC20CRV
 # https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/ERC20CRV.vy
 # This contract is an almost-identical fork of Curve's contract
-# The initial supply change to 478_399_958
-# The initial rate change to 2.671232876712328767 per second
-# The rate reduction coefficient change to 1/0.85 * 1e18, lead to 15% decay per year
+# The initial supply change to 1_035_000
+# The initial rate change to 0.003059994926433282 per second
+# The rate reduction coefficient change to 1/0.9 * 1e18, lead to 10% decay per year
 
 from vyper.interfaces import ERC20
 
@@ -59,17 +59,23 @@ YEAR: constant(uint256) = 86400 * 365
 
 # Allocation:
 # =========
-# * Aladdin DAO - 33%
+# * Community Contributors - 4%
+# * Reserve - 5%
+# * IDO - 5%
 # * Airdrop - 5%
-# * Reserve - 8%
-# == 46% ==
-# left for inflation: 54%
+# * Aladdin DAO - 30%
+# * Initial Liquidity - 1%
+# * Beta Bonus - 0.25%
+# * Stragetic Partnerships - 0.75%
+# * StakeDAO Partnership - 0.75%
+# == 51.75% ==
+# left for inflation: 48.25%
 
 # Supply parameters
-INITIAL_SUPPLY: constant(uint256) = 478_399_958
-INITIAL_RATE: constant(uint256) = 84_240_000 * 10 ** 18 / YEAR  # leading to 43% premine
+INITIAL_SUPPLY: constant(uint256) = 1_035_000
+INITIAL_RATE: constant(uint256) = 96_500 * 10 ** 18 / YEAR
 RATE_REDUCTION_TIME: constant(uint256) = YEAR
-RATE_REDUCTION_COEFFICIENT: constant(uint256) = 1176470588235294117  # 1/0.85 * 1e18
+RATE_REDUCTION_COEFFICIENT: constant(uint256) = 1111111111111111111  # 1/0.9 * 1e18
 RATE_DENOMINATOR: constant(uint256) = 10 ** 18
 INFLATION_DELAY: constant(uint256) = 86400
 
