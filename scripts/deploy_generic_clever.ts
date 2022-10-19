@@ -2,7 +2,6 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { BigNumber, constants } from "ethers";
-import { defaultAbiCoder } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import {
   AladdinCRVStrategy,
@@ -11,12 +10,15 @@ import {
   CLeverToken,
   ConcentratorStrategy,
   FeeDistributor,
+  FundraisingGaugeFactoryV1,
+  FundraisingGaugeV1,
   GaugeController,
   MetaCLever,
   MetaCLever__factory,
   MetaFurnace,
   MetaFurnace__factory,
   Minter,
+  MultipleVestHelper,
   TokenSale,
   TokenZapLogic,
   UpgradeableBeacon,
@@ -29,6 +31,9 @@ const config: {
   CLeverBeacon: string;
   FurnaceBeacon: string;
   TokenZapLogic: string;
+  FundraisingGaugeV1: string;
+  FundraisingGaugeFactoryV1: string;
+  MultipleVestHelper: string;
   CRV: {
     underlying: string;
     clevCRV: string;
@@ -86,10 +91,13 @@ const config: {
   sale: string;
   vest: string;
 } = {
-  CLeverBeacon: "0xc00DCc8BAf41cBb7cB8a9e2D9a63f3aBD4626053",
-  FurnaceBeacon: "0x71DCD832884Ff2c53785a74a50F92b270CF3f81f",
-  TokenZapLogic: "0x5e21ADB35C431F2B954918a985A6B9B0F99ba35f",
-  AllInOneGateway: "0xFd6404b7709BcC8903429F0d93a87798b20a6580",
+  CLeverBeacon: constants.AddressZero,
+  FurnaceBeacon: constants.AddressZero,
+  TokenZapLogic: "0x858D62CE483B8ab538d1f9254C3Fd3Efe1c5346F",
+  AllInOneGateway: "0x6e513d492Ded19AD8211a57Cc6B4493C9E6C857B",
+  FundraisingGaugeV1: "0xB9CD9979718e7E4C341D8D99dA3F1290c908FBdd",
+  FundraisingGaugeFactoryV1: "0x3abf0BE21E5020007B6e2e201E292a7119bC2b0d",
+  MultipleVestHelper: "",
   CRV: {
     underlying: ADDRESS.CRV,
     clevCRV: "0x45B0d6dA1fc14Ec78755Cd33Bdfa21c3B2b0D7c3",
@@ -123,28 +131,28 @@ const config: {
   },
   Gauge: {
     Curve_CLEV_ETH: {
-      pool: "0x19a0d1D428425ef397966Bce6c798bEDC3030035",
-      token: "0x167dE3887eDEbE5012544373C5871481bD95Cc4e",
-      gauge: "0xC823D1D7C35538F3325713cCbC78F102ce1Fe394",
+      pool: "0x342D1C4Aa76EA6F5E5871b7f11A019a0eB713A4f",
+      token: "0x6C280dB098dB673d30d5B34eC04B6387185D3620",
+      gauge: "0x86e917ad6Cb44F9E6C8D9fA012acF0d0CfcF114f",
     },
     Balancer_clevCVX_CVX: {
-      poolId: "0x3cc9dec81110abc5a221825573d32251eb6ccea2000200000000000000000372",
-      token: "0x3cc9DEc81110aBC5a221825573D32251eB6cCEa2",
-      gauge: "0x2138c10D3BD2AE140A6f9Fd45C1EF32720fc1064",
+      poolId: "0x69671c808c8f1c1490a4c9e0145884dfb5631378000200000000000000000392",
+      token: "0x69671c808c8f1c1490a4c9e0145884dfb5631378",
+      gauge: "0x9b02548De409D7aAeE228BfA3ff2bCa70e7a2fe8",
     },
     Curve_clevCVX_CVX: {
-      pool: "0x930792bd0fb4593063Ad2ee12E86d768bD8DF7a1",
-      token: "0x930792bd0fb4593063Ad2ee12E86d768bD8DF7a1",
-      gauge: "0xBcE37B360Ac2F0bcE43E741c8C83299019326916",
+      pool: "0xF9078Fb962A7D13F55d40d49C8AA6472aBD1A5a6",
+      token: "0xF9078Fb962A7D13F55d40d49C8AA6472aBD1A5a6",
+      gauge: "0xF758BE28E93672d1a8482BE15EAf21aa5450F979",
     },
   },
-  CLEV: "0xfAf31FD8e0CE11C754966416bFd8D60FbE39f612",
-  veCLEV: "0xB99d40D1F799d11751c11b501b1A06EF28362EF4",
-  GaugeController: "0xa909ED65eA10F59c61aF6ed4D457AAb70a889E04",
-  Minter: "0xF3be7c9097275e525925aCb2BaC386C8D383a2f5",
-  FeeDistributor: "0x6Cf43837F9ACB346A2EA5E55d1439559B112A34f",
-  sale: "0x2090E993d4435944c6DA42b45916B820C1e41e89",
-  vest: "0xbD54f6c8bE2dA6f733704cff1a1c99A8093B64f1",
+  CLEV: "0x72953a5C32413614d24C29c84a66AE4B59581Bbf",
+  veCLEV: "0x94be07d45d57c7973A535C1c517Bd79E602E051e",
+  GaugeController: "0xB992E8E1943f40f89301aB89A5C254F567aF5b63",
+  Minter: "0x4aa2afd5616bEEC2321a9EfD7349400d4F18566A",
+  FeeDistributor: constants.AddressZero,
+  sale: "0x07867298d99B95772008583bd603cfA68B8C75E7",
+  vest: "0x84C82d43f1Cc64730849f3E389fE3f6d776F7A4E",
 };
 
 const PLATFORM = "0xFC08757c505eA28709dF66E54870fB6dE09f0C5E";
@@ -156,6 +164,9 @@ let cleverBeacon: UpgradeableBeacon;
 let furnaceBeacon: UpgradeableBeacon;
 let logic: TokenZapLogic;
 let gateway: AllInOneGateway;
+let vefunder: FundraisingGaugeV1;
+let factory: FundraisingGaugeFactoryV1;
+let helper: MultipleVestHelper;
 
 let clevCRV: CLeverToken;
 let crvFurnace: MetaFurnace;
@@ -549,19 +560,9 @@ async function deployTokenAndVe() {
 async function deployGauge() {
   const [deployer] = await ethers.getSigners();
 
-  const clevcvx = await ethers.getContractAt("IERC20", ADDRESS.clevCVX, deployer);
-  const cvx = await ethers.getContractAt("IERC20", ADDRESS.CVX, deployer);
   const clev = await ethers.getContractAt("IERC20", config.CLEV, deployer);
   const weth = await ethers.getContractAt("IERC20", ADDRESS.WETH, deployer);
-  // await weth.deposit({ value: ethers.utils.parseEther("0.1") });
 
-  if ((await clevcvx.balanceOf(deployer.address)).eq(constants.Zero)) {
-    const clever = await ethers.getContractAt("CLeverCVXLocker", DEPLOYED_CONTRACTS.CLever.CLeverForCVX, deployer);
-    await cvx.approve(clever.address, ethers.utils.parseEther("12.2"));
-    await clever.deposit(ethers.utils.parseEther("12.2"));
-    await clever.borrow(ethers.utils.parseEther("6.1"), false);
-  }
-  console.log("clevCVX:", ethers.utils.formatEther(await clevcvx.balanceOf(deployer.address)));
   console.log("WETH:", ethers.utils.formatEther(await weth.balanceOf(deployer.address)));
 
   // Deploy Curve CLEV/ETH Crypto Pool
@@ -611,9 +612,13 @@ async function deployGauge() {
     const pool = await ethers.getContractAt("ICurveCryptoPool", config.Gauge.Curve_CLEV_ETH.pool, deployer);
     console.log("clev in pool:", ethers.utils.formatEther(await clev.balanceOf(pool.address)));
     if ((await clev.balanceOf(pool.address)).eq(constants.Zero)) {
+      console.log("clev allowance", (await clev.allowance(deployer.address, pool.address)).toString());
+      console.log("weth allowance", (await weth.allowance(deployer.address, pool.address)).toString());
       // await clev.approve(pool.address, constants.MaxUint256);
       // await weth.approve(pool.address, constants.MaxUint256);
-      await pool.add_liquidity([ethers.utils.parseEther("0.01"), ethers.utils.parseEther("3")], 0);
+      await pool.add_liquidity([ethers.utils.parseEther("0.43203125"), ethers.utils.parseEther("100")], 0, {
+        gasLimit: 2000000,
+      });
     }
   }
   // Deploy Curve CLEV/ETH Gauge
@@ -647,45 +652,6 @@ async function deployGauge() {
     )}]}`
   );
 
-  // Deploy Curve clevCVX/CVX Plain Pool
-  if (config.Gauge.Curve_clevCVX_CVX.token === "") {
-    const factory = await ethers.getContractAt(
-      "ICurvePlainPoolFactory",
-      "0xb9fc157394af804a3578134a6585c0dc9cc990d4",
-      deployer
-    );
-    const token = await factory.callStatic.deploy_plain_pool(
-      "clevCVX/CVX",
-      "clevCVX",
-      [ADDRESS.clevCVX, ADDRESS.CVX, constants.AddressZero, constants.AddressZero],
-      "200",
-      "30000000",
-      3,
-      3
-    );
-    const tx = await factory.deploy_plain_pool(
-      "clevCVX/CVX",
-      "clevCVX",
-      [ADDRESS.clevCVX, ADDRESS.CVX, constants.AddressZero, constants.AddressZero],
-      "200",
-      "30000000",
-      3,
-      3
-    );
-    console.log("Deploying Curve clevCVX/CVX LP, hash:", tx.hash);
-    await tx.wait();
-    console.log("✅ Done, Curve clevCVX/CVX LP:", token);
-    config.Gauge.Curve_clevCVX_CVX.pool = token;
-    config.Gauge.Curve_clevCVX_CVX.token = token;
-  } else {
-    const pool = await ethers.getContractAt("ICurveFactoryPlain2Pool", config.Gauge.Curve_clevCVX_CVX.pool, deployer);
-    console.log("cvx in pool:", ethers.utils.formatEther(await cvx.balanceOf(pool.address)));
-    if ((await cvx.balanceOf(pool.address)).eq(constants.Zero)) {
-      await cvx.approve(pool.address, constants.MaxUint256);
-      await clevcvx.approve(pool.address, constants.MaxUint256);
-      await pool.add_liquidity([ethers.utils.parseEther("2"), ethers.utils.parseEther("2")], 0);
-    }
-  }
   // Deploy Curve clevCVX/CVX Gauge
   if (config.Gauge.Curve_clevCVX_CVX.gauge === "") {
     const LiquidityGaugeV3 = await ethers.getContractFactory("LiquidityGaugeV3", deployer);
@@ -723,53 +689,6 @@ async function deployGauge() {
     )}]}`
   );
 
-  // Balancer clevCVX/CVX Weighted Pool
-  if (config.Gauge.Balancer_clevCVX_CVX.token === "") {
-    const factory = await ethers.getContractAt(
-      "IBalancerWeightedPoolFactory",
-      "0x8E9aa87E45e92bad84D5F8DD1bff34Fb92637dE9",
-      deployer
-    );
-    const token = await factory.callStatic.create(
-      "clevCVX/CVX",
-      "B-90clevCVX-10CVX",
-      [ADDRESS.CVX, ADDRESS.clevCVX],
-      [ethers.utils.parseEther("0.1"), ethers.utils.parseEther("0.9")],
-      "3000000000000000",
-      "0xBA1BA1ba1BA1bA1bA1Ba1BA1ba1BA1bA1ba1ba1B"
-    );
-    const tx = await factory.create(
-      "clevCVX/CVX",
-      "B-90clevCVX-10CVX",
-      [ADDRESS.CVX, ADDRESS.clevCVX],
-      [ethers.utils.parseEther("0.1"), ethers.utils.parseEther("0.9")],
-      "3000000000000000",
-      "0xBA1BA1ba1BA1bA1bA1Ba1BA1ba1BA1bA1ba1ba1B"
-    );
-    console.log("Deploying Balancer clevCVX/CVX LP, hash:", tx.hash);
-    await tx.wait();
-    const pool = await ethers.getContractAt("IBalancerPool", token, deployer);
-    const poolId = await pool.getPoolId();
-    console.log("✅ Done, Balancer clevCVX/CVX LP:", token, "poolId:", poolId);
-    config.Gauge.Balancer_clevCVX_CVX.token = token;
-    config.Gauge.Balancer_clevCVX_CVX.poolId = poolId;
-  } else {
-    const vault = await ethers.getContractAt("IBalancerVault", "0xBA12222222228d8Ba445958a75a0704d566BF2C8", deployer);
-    console.log("clevcvx in vault:", ethers.utils.formatEther(await clevcvx.balanceOf(vault.address)));
-    if ((await clevcvx.balanceOf(vault.address)).eq(constants.Zero)) {
-      await cvx.approve(vault.address, constants.MaxUint256);
-      await clevcvx.approve(vault.address, constants.MaxUint256);
-      await vault.joinPool(config.Gauge.Balancer_clevCVX_CVX.poolId, deployer.address, deployer.address, {
-        assets: [ADDRESS.CVX, ADDRESS.clevCVX],
-        maxAmountsIn: [constants.MaxUint256, constants.MaxUint256],
-        userData: defaultAbiCoder.encode(
-          ["uint8", "uint256[]"],
-          [0, [ethers.utils.parseEther("0.1"), ethers.utils.parseEther("1")]]
-        ),
-        fromInternalBalance: false,
-      });
-    }
-  }
   // Deploy Balancer clevCVX/CVX Gauge
   if (config.Gauge.Balancer_clevCVX_CVX.gauge === "") {
     const LiquidityGaugeV3 = await ethers.getContractFactory("LiquidityGaugeV3", deployer);
@@ -804,21 +723,18 @@ async function deployGauge() {
   );
 
   console.log("gauge_type_names:", await controller.gauge_type_names(0));
-  if ((await controller.gauge_type_names(0)) !== "Liquidity") {
-    const tx = await controller["add_type(string,uint256)"]("Liquidity", "1000000000000000000", { gasLimit: 1000000 });
-    console.log("add type, hash:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("✅ Done, gas used", receipt.gasUsed.toString());
-  }
   if ((await controller.get_gauge_weight(config.Gauge.Curve_CLEV_ETH.gauge)).isZero()) {
-    const tx = await controller["add_gauge(address,int128,uint256)"](config.Gauge.Curve_CLEV_ETH.gauge, 0, "50", {
-      gasLimit: 1000000,
-    });
+    const tx = await controller["add_gauge(address,int128,uint256)"](
+      config.Gauge.Curve_CLEV_ETH.gauge,
+      0,
+      "1000000000000000000",
+      { gasLimit: 1000000 }
+    );
     console.log("add Curve CLEV/ETH Gauge, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done, gas used", receipt.gasUsed.toString());
   }
-  if ((await controller.get_gauge_weight(config.Gauge.Curve_clevCVX_CVX.gauge)).isZero()) {
+  /* if ((await controller.get_gauge_weight(config.Gauge.Curve_clevCVX_CVX.gauge)).isZero()) {
     const tx = await controller["add_gauge(address,int128,uint256)"](config.Gauge.Curve_clevCVX_CVX.gauge, 0, "25", {
       gasLimit: 1000000,
     });
@@ -833,26 +749,7 @@ async function deployGauge() {
     console.log("add Balancer clevCVX/CVX Gauge, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done, gas used", receipt.gasUsed.toString());
-  }
-
-  const gauge = await ethers.getContractAt("LiquidityGaugeV3", config.Gauge.Curve_CLEV_ETH.gauge, deployer);
-  console.log("balance:", await gauge.balanceOf(deployer.address));
-  console.log("working balance:", await gauge.working_balances(deployer.address));
-  console.log("integrate_fraction:", await gauge.integrate_fraction(deployer.address));
-  console.log("period:", await gauge.period());
-  console.log("inflation_rate:", await gauge.inflation_rate());
-  console.log("future_epoch_time:", await gauge.future_epoch_time());
-  console.log("integrate_inv_supply:", await gauge.integrate_inv_supply(0x0b));
-  console.log("period_timestamp:", await gauge.period_timestamp(0x0b));
-  console.log("timestamp:", (await ethers.provider.getBlock("latest")).timestamp);
-  console.log("reward:", await gauge.callStatic.claimable_tokens(deployer.address));
-  console.log(
-    "gauge_relative_weight:",
-    await controller["gauge_relative_weight(address,uint256)"](config.Gauge.Curve_CLEV_ETH.gauge, 1665014400)
-  );
-  console.log(await clev.balanceOf(deployer.address));
-  await minter.mint(config.Gauge.Curve_CLEV_ETH.gauge, { gasLimit: 2000000 });
-  console.log(await clev.balanceOf(deployer.address));
+  } */
 }
 
 async function deployIDO() {
@@ -937,7 +834,7 @@ async function main() {
 
   if (config.AllInOneGateway !== "") {
     gateway = await ethers.getContractAt("AllInOneGateway", config.AllInOneGateway, deployer);
-    console.log("Found AllInOneGateway at:", logic.address);
+    console.log("Found AllInOneGateway at:", gateway.address);
   } else {
     const AllInOneGateway = await ethers.getContractFactory("AllInOneGateway", deployer);
     gateway = await AllInOneGateway.deploy(logic.address);
@@ -945,6 +842,42 @@ async function main() {
     await gateway.deployed();
     config.AllInOneGateway = gateway.address;
     console.log("✅ Deploy AllInOneGateway at:", gateway.address);
+  }
+
+  if (config.FundraisingGaugeV1 !== "") {
+    vefunder = await ethers.getContractAt("FundraisingGaugeV1", config.FundraisingGaugeV1, deployer);
+    console.log("Found FundraisingGaugeV1 at:", vefunder.address);
+  } else {
+    const FundraisingGaugeV1 = await ethers.getContractFactory("FundraisingGaugeV1", deployer);
+    vefunder = await FundraisingGaugeV1.deploy(DEPLOYED_CONTRACTS.CLever.Treasury);
+    console.log("Deploying FundraisingGaugeV1, hash:", vefunder.deployTransaction.hash);
+    await vefunder.deployed();
+    config.FundraisingGaugeV1 = vefunder.address;
+    console.log("✅ Deploy FundraisingGaugeV1 at:", vefunder.address);
+  }
+
+  if (config.FundraisingGaugeFactoryV1 !== "") {
+    factory = await ethers.getContractAt("FundraisingGaugeFactoryV1", config.FundraisingGaugeFactoryV1, deployer);
+    console.log("Found FundraisingGaugeFactoryV1 at:", factory.address);
+  } else {
+    const FundraisingGaugeFactoryV1 = await ethers.getContractFactory("FundraisingGaugeFactoryV1", deployer);
+    factory = await FundraisingGaugeFactoryV1.deploy(vefunder.address);
+    console.log("Deploying FundraisingGaugeFactoryV1, hash:", factory.deployTransaction.hash);
+    await factory.deployed();
+    config.FundraisingGaugeFactoryV1 = factory.address;
+    console.log("✅ Deploy FundraisingGaugeFactoryV1 at:", factory.address);
+  }
+
+  if (config.MultipleVestHelper !== "") {
+    helper = await ethers.getContractAt("MultipleVestHelper", config.MultipleVestHelper, deployer);
+    console.log("Found MultipleVestHelper at:", helper.address);
+  } else {
+    const MultipleVestHelper = await ethers.getContractFactory("MultipleVestHelper", deployer);
+    helper = await MultipleVestHelper.deploy();
+    console.log("Deploying MultipleVestHelper, hash:", helper.deployTransaction.hash);
+    await helper.deployed();
+    config.MultipleVestHelper = helper.address;
+    console.log("✅ Deploy MultipleVestHelper at:", helper.address);
   }
 
   await deployCRV();

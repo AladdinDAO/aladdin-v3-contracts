@@ -63,5 +63,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   T: { decimals: 18, address: "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5" },
   aCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.aCRV },
   CTR: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.CTR },
-  clevCVX: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.clevCVX },
+  clevCVX: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLeverCVX.clevCVX },
+  OGN: { decimals: 18, address: "0x8207c1FfC5B6804F6024322CcF34F29c3541Ae26" },
 };

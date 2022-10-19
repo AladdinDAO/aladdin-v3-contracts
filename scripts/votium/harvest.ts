@@ -15,8 +15,12 @@ const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
 async function main(round: number, manualStr: string) {
   const [deployer] = await ethers.getSigners();
   const cvx = await ethers.getContractAt("IERC20", ADDRESS.CVX, deployer);
-  const furnance = await ethers.getContractAt("Furnace", DEPLOYED_CONTRACTS.CLever.FurnaceForCVX, deployer);
-  const cvxLocker = await ethers.getContractAt("CLeverCVXLocker", DEPLOYED_CONTRACTS.CLever.CLeverForCVX, deployer);
+  const furnance = await ethers.getContractAt("Furnace", DEPLOYED_CONTRACTS.CLever.CLeverCVX.FurnaceForCVX, deployer);
+  const cvxLocker = await ethers.getContractAt(
+    "CLeverCVXLocker",
+    DEPLOYED_CONTRACTS.CLever.CLeverCVX.CLeverForCVX,
+    deployer
+  );
 
   const manualTokens = manualStr === "" ? [] : manualStr.split(",");
   console.log("Harvest Round:", round);
