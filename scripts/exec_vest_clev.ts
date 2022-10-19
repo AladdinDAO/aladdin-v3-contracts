@@ -234,7 +234,22 @@ async function main() {
     sum = sum.add(amount);
   }
   console.log("total CLEV:", ethers.utils.formatEther(sum));
-  const tx = await helper.call("0x84C82d43f1Cc64730849f3E389fE3f6d776F7A4E", recipients, amounts, startTimes, endTimes);
+  const estimateGas = await helper.estimateGas.call(
+    "0x84C82d43f1Cc64730849f3E389fE3f6d776F7A4E",
+    recipients,
+    amounts,
+    startTimes,
+    endTimes
+  );
+  console.log("estimate gas:", estimateGas.toString());
+  const tx = await helper.call(
+    "0x84C82d43f1Cc64730849f3E389fE3f6d776F7A4E",
+    recipients,
+    amounts,
+    startTimes,
+    endTimes,
+    { gasLimit: estimateGas.mul(11).div(10) }
+  );
   console.log("run multiple vests, hash:", tx.hash);
   const receipt = await tx.wait();
   console.log("✅ Done, gas used", receipt.gasUsed.toString());
