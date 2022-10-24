@@ -19,13 +19,14 @@ import {
   MetaFurnace__factory,
   Minter,
   MultipleVestHelper,
+  PlatformFeeDistributor,
   TokenSale,
   TokenZapLogic,
   UpgradeableBeacon,
   VeCLEV,
   Vesting,
 } from "../typechain";
-import { ADDRESS, DEPLOYED_CONTRACTS, VAULT_CONFIG, ZAP_ROUTES } from "./utils";
+import { ADDRESS, DEPLOYED_CONTRACTS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "./utils";
 
 const config: {
   CLeverBeacon: string;
@@ -87,7 +88,8 @@ const config: {
   veCLEV: string;
   Minter: string;
   GaugeController: string;
-  FeeDistributor: string;
+  FeeDistributor: { [reward: string]: string };
+  PlatformFeeDistributor: string;
   sale: string;
   vest: string;
 } = {
@@ -97,7 +99,7 @@ const config: {
   AllInOneGateway: "0x6e513d492Ded19AD8211a57Cc6B4493C9E6C857B",
   FundraisingGaugeV1: "0xB9CD9979718e7E4C341D8D99dA3F1290c908FBdd",
   FundraisingGaugeFactoryV1: "0x3abf0BE21E5020007B6e2e201E292a7119bC2b0d",
-  MultipleVestHelper: "",
+  MultipleVestHelper: "0x572DeCa882f4C9ABCBDc6f020601A1b789D11983",
   CRV: {
     underlying: ADDRESS.CRV,
     clevCRV: "0x45B0d6dA1fc14Ec78755Cd33Bdfa21c3B2b0D7c3",
@@ -150,7 +152,13 @@ const config: {
   veCLEV: "0x94be07d45d57c7973A535C1c517Bd79E602E051e",
   GaugeController: "0xB992E8E1943f40f89301aB89A5C254F567aF5b63",
   Minter: "0x4aa2afd5616bEEC2321a9EfD7349400d4F18566A",
-  FeeDistributor: constants.AddressZero,
+  FeeDistributor: {
+    aCRV: "0xA5D9358c60fC9Bd2b508eDa17c78C67A43A4458C",
+    CVX: "0xEA99147773782cc88a03d76a7c9E30152D97Fc0b",
+    CRV: constants.AddressZero,
+    FRAX: constants.AddressZero,
+  },
+  PlatformFeeDistributor: "0xD6eFa5B63531e9ae61e225b02CbACD59092a35bE",
   sale: "0x07867298d99B95772008583bd603cfA68B8C75E7",
   vest: "0x84C82d43f1Cc64730849f3E389fE3f6d776F7A4E",
 };
@@ -167,6 +175,7 @@ let gateway: AllInOneGateway;
 let vefunder: FundraisingGaugeV1;
 let factory: FundraisingGaugeFactoryV1;
 let helper: MultipleVestHelper;
+let platform: PlatformFeeDistributor;
 
 let clevCRV: CLeverToken;
 let crvFurnace: MetaFurnace;
@@ -537,16 +546,35 @@ async function deployTokenAndVe() {
     console.log("✅ Deploy Minter at:", minter.address);
   }
 
-  if (config.FeeDistributor !== "") {
-    distributor = await ethers.getContractAt("FeeDistributor", config.FeeDistributor, deployer);
-    console.log("Found FeeDistributor at:", distributor.address);
-  } else {
-    const FeeDistributor = await ethers.getContractFactory("FeeDistributor", deployer);
-    distributor = await FeeDistributor.deploy(ve.address, 0, clev.address, deployer.address, deployer.address);
-    console.log("Deploying FeeDistributor, hash:", distributor.deployTransaction.hash);
-    await distributor.deployed();
-    config.FeeDistributor = distributor.address;
-    console.log("✅ Deploy FeeDistributor at:", distributor.address);
+  for (const reward of ["aCRV", "CVX", "CRV", "FRAX"]) {
+    if (config.FeeDistributor[reward] !== "") {
+      distributor = await ethers.getContractAt("FeeDistributor", config.FeeDistributor[reward], deployer);
+      console.log(`Found FeeDistributor for ${reward} at:`, distributor.address);
+    } else {
+      const FeeDistributor = await ethers.getContractFactory("FeeDistributor", deployer);
+      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+      if (reward === "aCRV") {
+        distributor = await FeeDistributor.deploy(
+          DEPLOYED_CONTRACTS.Concentrator.veCTR,
+          timestamp,
+          TOKENS[reward].address,
+          DEPLOYED_CONTRACTS.Concentrator.Treasury,
+          DEPLOYED_CONTRACTS.Concentrator.Treasury
+        );
+      } else {
+        distributor = await FeeDistributor.deploy(
+          ve.address,
+          timestamp,
+          TOKENS[reward].address,
+          DEPLOYED_CONTRACTS.CLever.Treasury,
+          DEPLOYED_CONTRACTS.CLever.Treasury
+        );
+      }
+      console.log(`Deploying FeeDistributor for ${reward}, hash:`, distributor.deployTransaction.hash);
+      await distributor.deployed();
+      config.FeeDistributor[reward] = distributor.address;
+      console.log(`✅ Deploy FeeDistributor for ${reward} at:`, distributor.address);
+    }
   }
 
   if ((await clev.minter()) !== minter.address) {
@@ -878,6 +906,23 @@ async function main() {
     await helper.deployed();
     config.MultipleVestHelper = helper.address;
     console.log("✅ Deploy MultipleVestHelper at:", helper.address);
+  }
+
+  if (config.PlatformFeeDistributor !== "") {
+    platform = await ethers.getContractAt("PlatformFeeDistributor", config.PlatformFeeDistributor, deployer);
+    console.log("Found PlatformFeeDistributor at:", platform.address);
+  } else {
+    const PlatformFeeDistributor = await ethers.getContractFactory("PlatformFeeDistributor", deployer);
+    platform = await PlatformFeeDistributor.deploy(
+      "0x11E91BB6d1334585AA37D8F4fde3932C7960B938",
+      DEPLOYED_CONTRACTS.CLever.Treasury,
+      config.FeeDistributor.CVX,
+      [{ token: TOKENS.CVX.address, gaugePercentage: 0, treasuryPercentage: 250000000 }]
+    );
+    console.log("Deploying PlatformFeeDistributor, hash:", platform.deployTransaction.hash);
+    await platform.deployed();
+    config.PlatformFeeDistributor = platform.address;
+    console.log("✅ Deploy PlatformFeeDistributor at:", platform.address);
   }
 
   await deployCRV();
