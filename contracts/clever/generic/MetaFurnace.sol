@@ -12,6 +12,8 @@ import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IMetaFurnace.sol";
 import "../interfaces/IYieldStrategy.sol";
 
+import "../CLeverConfiguration.sol";
+
 // solhint-disable reason-string
 
 contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
@@ -22,6 +24,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   event UpdateFeeInfo(address indexed _platform, uint32 _platformPercentage, uint32 _bountyPercentage);
   event UpdateYieldInfo(uint16 _percentage, uint80 _threshold);
   event MigrateYieldStrategy(address _oldStrategy, address _newStrategy);
+  event UpdateCLeverConfiguration(address _config);
 
   uint256 private constant E128 = 2**128;
   uint256 private constant PRECISION = 1e9;
@@ -114,6 +117,9 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
 
   /// @notice The yield information for free base token in this contract.
   YieldInfo public yieldInfo;
+
+  /// @notice The address of configuration contract.
+  CLeverConfiguration public config;
 
   modifier onlyWhitelisted() {
     require(isWhitelisted[msg.sender], "Furnace: only whitelisted");
@@ -327,6 +333,14 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     emit UpdateFeeInfo(_platform, _platformPercentage, _bountyPercentage);
   }
 
+  /// @dev Update the clever configuration contract.
+  /// @param _config The address to update.
+  function updateCLeverConfiguration(address _config) external onlyOwner {
+    config = CLeverConfiguration(_config);
+
+    emit UpdateCLeverConfiguration(_config);
+  }
+
   /********************************** Internal Functions **********************************/
 
   /// @dev Internal function called when user interacts with the contract.
@@ -423,7 +437,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     // scale to base token
     address _baseToken = baseToken;
     uint256 _scale = 10**(18 - IERC20Metadata(_baseToken).decimals());
-    uint256 _baseAmount = _debtAmount / _scale;
+    uint256 _baseAmount = ((_debtAmount / _scale) * PRECISION) / config.burnRatio(_baseToken);
 
     uint256 _balanceInContract = IERC20Upgradeable(_baseToken).balanceOf(address(this));
     if (_balanceInContract < _baseAmount) {
@@ -450,11 +464,11 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
 
     // scale to debt token
     uint256 _scale = 10**(18 - IERC20Metadata(baseToken).decimals());
-    _amount *= _scale;
+    uint256 _debtAmount = ((_amount * _scale) * config.burnRatio(baseToken)) / PRECISION;
 
     _furnaceInfo.distributeIndex += 1;
     // 1. distribute baseToken rewards
-    if (_amount >= _furnaceInfo.totalUnrealised) {
+    if (_debtAmount >= _furnaceInfo.totalUnrealised) {
       // In this case, all unrealised debtToken are paid off.
       _furnaceInfo.totalRealised = SafeCastUpgradeable.toUint128(
         _furnaceInfo.totalUnrealised + _furnaceInfo.totalRealised
@@ -465,11 +479,11 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
       _furnaceInfo.lastPaidOffDistributeIndex = _furnaceInfo.distributeIndex;
     } else {
       uint128 _fraction = SafeCastUpgradeable.toUint128(
-        ((_furnaceInfo.totalUnrealised - _amount) * E128) / _furnaceInfo.totalUnrealised
+        ((_furnaceInfo.totalUnrealised - _debtAmount) * E128) / _furnaceInfo.totalUnrealised
       ); // mul never overflow
 
-      _furnaceInfo.totalUnrealised = uint128(_furnaceInfo.totalUnrealised - _amount);
-      _furnaceInfo.totalRealised = SafeCastUpgradeable.toUint128(_furnaceInfo.totalRealised + _amount);
+      _furnaceInfo.totalUnrealised = uint128(_furnaceInfo.totalUnrealised - _debtAmount);
+      _furnaceInfo.totalRealised = SafeCastUpgradeable.toUint128(_furnaceInfo.totalRealised + _debtAmount);
       _furnaceInfo.accUnrealisedFraction = _mul128(_furnaceInfo.accUnrealisedFraction, _fraction);
     }
 
@@ -489,7 +503,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
       }
     }
 
-    emit Distribute(_origin, _amount / _scale);
+    emit Distribute(_origin, _amount);
   }
 
   /// @dev Compute the value of (_a / 2^128) * (_b / 2^128) with precision 2^128.

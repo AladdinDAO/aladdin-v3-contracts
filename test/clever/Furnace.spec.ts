@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { CLeverToken, IERC20, Furnace } from "../../typechain";
+import { CLeverToken, IERC20, Furnace, CLeverConfiguration } from "../../typechain";
 import { request_fork } from "../utils";
 import { ethers } from "hardhat";
 import { expect } from "chai";
@@ -23,6 +23,7 @@ describe("Furnace.spec", async () => {
   let clevCVX: CLeverToken;
   let cvx: IERC20;
   let furnace: Furnace;
+  let config: CLeverConfiguration;
 
   beforeEach(async () => {
     request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CVX_HOLDER]);
@@ -50,6 +51,13 @@ describe("Furnace.spec", async () => {
     // 3. eth ==> cvx with UniswapV2
     await zap.updateRoute(CVXCRV, CVX, ZAP_ROUTES.cvxCRV.CVX);
 
+    const CLeverConfiguration = await ethers.getContractFactory("CLeverConfiguration", deployer);
+    config = await CLeverConfiguration.deploy();
+    await config.deployed();
+    await config.initialize();
+
+    await config.updateBurnRatio(cvx.address, "1000000000");
+
     const Furnace = await ethers.getContractFactory("Furnace", deployer);
     furnace = await Furnace.deploy();
     await furnace.deployed();
@@ -61,6 +69,7 @@ describe("Furnace.spec", async () => {
       PLATFORM_FEE_PERCENTAGE,
       HARVEST_BOUNTY_PERCENTAGE
     );
+    await furnace.updateCLeverConfiguration(config.address);
   });
 
   context("furnace has free CVX", async () => {
