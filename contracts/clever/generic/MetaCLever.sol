@@ -14,6 +14,8 @@ import "../interfaces/IMetaFurnace.sol";
 import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IYieldStrategy.sol";
 
+import "../CLeverConfiguration.sol";
+
 // solhint-disable not-rely-on-time, max-states-count, reason-string
 
 contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLever {
@@ -31,6 +33,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
   event SetStrategyActive(uint256 _index, bool _isActive);
   event UpdateReserveRate(uint256 _reserveRate);
   event UpdateFurnace(address _furnace);
+  event UpdateCLeverConfiguration(address _config);
 
   // The precision used to calculate accumulated rewards.
   uint256 private constant PRECISION = 1e18;
@@ -115,6 +118,9 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
 
   /// @notice The fee information, including platform fee, bounty fee and repay fee.
   FeeInfo public feeInfo;
+
+  /// @notice The address of configuration contract.
+  CLeverConfiguration public config;
 
   modifier onlyExistingStrategy(uint256 _strategyIndex) {
     require(_strategyIndex < yieldStrategyIndex, "CLever: strategy not exist");
@@ -449,7 +455,10 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
       require(_debt > 0, "CLever: no debt to repay");
       uint256 _scale = 10**(18 - IERC20Metadata(_underlyingToken).decimals());
       uint256 _maximumAmount = uint256(_debt) / _scale;
-      if (_amount > _maximumAmount) _amount = _maximumAmount;
+      uint256 _burnRatio = config.burnRatio(_underlyingToken);
+      uint256 _clevAmount = (_amount * _burnRatio) / FEE_PRECISION;
+      if (_clevAmount > _maximumAmount) _clevAmount = _maximumAmount;
+      _amount = (_clevAmount * FEE_PRECISION) / _burnRatio;
       uint256 _debtPaid = _amount * _scale;
       _userInfo.totalDebt = int128(_debt - int256(_debtPaid)); // safe to do cast
     }
@@ -742,6 +751,14 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     emit UpdateFurnace(_furnace);
   }
 
+  /// @dev Update the clever configuration contract.
+  /// @param _config The address to update.
+  function updateCLeverConfiguration(address _config) external onlyOwner {
+    config = CLeverConfiguration(_config);
+
+    emit UpdateCLeverConfiguration(_config);
+  }
+
   /********************************** Internal Functions **********************************/
 
   /// @dev Internal function to claim pending extra rewards.
@@ -889,15 +906,17 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
   function _distribute(uint256 _strategyIndex, uint256 _amount) internal {
     address _furnace = furnace;
     address _underlyingToken = yieldStrategies[_strategyIndex].underlyingToken;
+
     IERC20Upgradeable(_underlyingToken).safeTransfer(_furnace, _amount);
     IMetaFurnace(_furnace).distribute(address(this), _underlyingToken, _amount);
 
     uint256 _totalShare = yieldStrategies[_strategyIndex].totalShare;
     if (_totalShare == 0) return;
 
+    uint256 _clevAmount = (_amount * config.burnRatio(_underlyingToken)) / FEE_PRECISION;
     uint256 _accRewardPerShare = yieldStrategies[_strategyIndex].accRewardPerShare[_underlyingToken];
     yieldStrategies[_strategyIndex].accRewardPerShare[_underlyingToken] = _accRewardPerShare.add(
-      _amount.mul(PRECISION) / _totalShare
+      _clevAmount.mul(PRECISION) / _totalShare
     );
   }
 
@@ -982,7 +1001,8 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
         uint256 _underlyingTokenPerShare = _getUnderlyingTokenPerShare(i);
         uint256 _underlyingTokenAmount = _share.mul(_underlyingTokenPerShare) / PRECISION;
         uint256 _scale = 10**(18 - IERC20Metadata(yieldStrategies[i].underlyingToken).decimals());
-        totalValue = totalValue.add(_underlyingTokenAmount.mul(_scale));
+        uint256 _burnRatio = config.burnRatio(yieldStrategies[i].underlyingToken);
+        totalValue = totalValue.add(_underlyingTokenAmount.mul(_scale).mul(_burnRatio).div(FEE_PRECISION));
       }
       _depositMask >>= 1;
     }
@@ -992,9 +1012,9 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
 
   /// @dev Internal function to check the health of account.
   ///      And account is health if and only if
-  ///                                         borrowed
-  ///                      sum deposited >= ------------
-  ///                                       reserve_rate
+  ///                                          borrowed
+  ///          sum deposited * burn_ratio >= ------------
+  ///                                        reserve_rate
   function _checkAccountHealth(address _account) internal view {
     uint256 _totalValue = _getTotalValue(_account);
     int256 _totalDebt = userInfo[_account].totalDebt;

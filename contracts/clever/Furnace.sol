@@ -11,6 +11,8 @@ import "./interfaces/IFurnace.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
 import "../interfaces/IZap.sol";
 
+import "./CLeverConfiguration.sol";
+
 // solhint-disable reason-string
 
 contract Furnace is OwnableUpgradeable, IFurnace {
@@ -25,9 +27,10 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   event UpdatePlatform(address indexed _platform);
   event UpdateZap(address indexed _zap);
   event UpdateGovernor(address indexed _governor);
+  event UpdateCLeverConfiguration(address _config);
 
   uint256 private constant E128 = 2**128;
-  uint256 private constant FEE_DENOMINATOR = 1e9;
+  uint256 private constant FEE_PRECISION = 1e9;
   uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
 
@@ -97,6 +100,9 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   uint256 public harvestBountyPercentage;
   /// @dev The address of recipient of platform fee
   address public platform;
+
+  /// @notice The address of configuration contract.
+  CLeverConfiguration public config;
 
   modifier onlyWhitelisted() {
     require(isWhitelisted[msg.sender], "Furnace: only whitelisted");
@@ -259,13 +265,13 @@ contract Furnace is OwnableUpgradeable, IFurnace {
       // 3. take platform fee and harvest bounty
       uint256 _platformFee = platformFeePercentage;
       if (_platformFee > 0) {
-        _platformFee = (_platformFee * _distributeAmount) / FEE_DENOMINATOR;
+        _platformFee = (_platformFee * _distributeAmount) / FEE_PRECISION;
         IERC20Upgradeable(CVX).safeTransfer(platform, _platformFee);
         _distributeAmount = _distributeAmount - _platformFee; // never overflow here
       }
       uint256 _harvestBounty = harvestBountyPercentage;
       if (_harvestBounty > 0) {
-        _harvestBounty = (_harvestBounty * _distributeAmount) / FEE_DENOMINATOR;
+        _harvestBounty = (_harvestBounty * _distributeAmount) / FEE_PRECISION;
         _distributeAmount = _distributeAmount - _harvestBounty; // never overflow here
         IERC20Upgradeable(CVX).safeTransfer(_recipient, _harvestBounty);
       }
@@ -303,7 +309,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Update stake percentage for CVX in this contract.
   /// @param _percentage The stake percentage to be updated, multipled by 1e9.
   function updateStakePercentage(uint256 _percentage) external onlyGovernorOrOwner {
-    require(_percentage <= FEE_DENOMINATOR, "Furnace: percentage too large");
+    require(_percentage <= FEE_PRECISION, "Furnace: percentage too large");
     stakePercentage = _percentage;
 
     emit UpdateStakePercentage(_percentage);
@@ -351,6 +357,14 @@ contract Furnace is OwnableUpgradeable, IFurnace {
     zap = _zap;
 
     emit UpdateZap(_zap);
+  }
+
+  /// @dev Update the clever configuration contract.
+  /// @param _config The address to update.
+  function updateCLeverConfiguration(address _config) external onlyOwner {
+    config = CLeverConfiguration(_config);
+
+    emit UpdateCLeverConfiguration(_config);
   }
 
   /********************************** Internal Functions **********************************/
@@ -440,21 +454,23 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Internal function called by `claim`.
   /// @param _recipient The address of user who will recieve the CVX.
   function _claim(address _recipient) internal {
-    uint256 _amount = userInfo[msg.sender].realised;
+    uint256 _clevCVXAmount = userInfo[msg.sender].realised;
     // should not overflow, but just in case, we use safe math.
-    totalRealised = uint128(uint256(totalRealised).sub(_amount));
+    totalRealised = uint128(uint256(totalRealised).sub(_clevCVXAmount));
     userInfo[msg.sender].realised = 0;
 
-    uint256 _balanceInContract = IERC20Upgradeable(CVX).balanceOf(address(this));
-    if (_balanceInContract < _amount) {
-      // balance is not enough, with from reward pool
-      IConvexCVXRewardPool(CVX_REWARD_POOL).withdraw(_amount - _balanceInContract, false);
-    }
-    IERC20Upgradeable(CVX).safeTransfer(_recipient, _amount);
-    // burn realised clevCVX
-    ICLeverToken(clevCVX).burn(_amount);
+    uint256 _cvxAmount = (_clevCVXAmount * FEE_PRECISION) / config.burnRatio(CVX);
 
-    emit Claim(msg.sender, _recipient, _amount);
+    uint256 _balanceInContract = IERC20Upgradeable(CVX).balanceOf(address(this));
+    if (_balanceInContract < _cvxAmount) {
+      // balance is not enough, with from reward pool
+      IConvexCVXRewardPool(CVX_REWARD_POOL).withdraw(_cvxAmount - _balanceInContract, false);
+    }
+    IERC20Upgradeable(CVX).safeTransfer(_recipient, _cvxAmount);
+    // burn realised clevCVX
+    ICLeverToken(clevCVX).burn(_clevCVXAmount);
+
+    emit Claim(msg.sender, _recipient, _cvxAmount);
   }
 
   /// @dev Internal function called by `distribute` and `harvest`.
@@ -463,11 +479,12 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   function _distribute(address _origin, uint256 _amount) internal {
     distributeIndex += 1;
 
+    uint256 _clevCVXAmount = (_amount * config.burnRatio(CVX)) / FEE_PRECISION;
     uint256 _totalUnrealised = totalUnrealised;
     uint256 _totalRealised = totalRealised;
     uint128 _accUnrealisedFraction = accUnrealisedFraction;
-    // 1. distribute CVX rewards
-    if (_amount >= _totalUnrealised) {
+    // 1. distribute clevCVX rewards
+    if (_clevCVXAmount >= _totalUnrealised) {
       // In this case, all unrealised clevCVX are paid off.
       totalUnrealised = 0;
       totalRealised = _toU128(_totalUnrealised + _totalRealised);
@@ -475,15 +492,15 @@ contract Furnace is OwnableUpgradeable, IFurnace {
       accUnrealisedFraction = 0;
       lastPaidOffDistributeIndex = distributeIndex;
     } else {
-      totalUnrealised = uint128(_totalUnrealised - _amount);
-      totalRealised = _toU128(_totalRealised + _amount);
+      totalUnrealised = uint128(_totalUnrealised - _clevCVXAmount);
+      totalRealised = _toU128(_totalRealised + _clevCVXAmount);
 
-      uint128 _fraction = _toU128(((_totalUnrealised - _amount) * E128) / _totalUnrealised); // mul never overflow
+      uint128 _fraction = _toU128(((_totalUnrealised - _clevCVXAmount) * E128) / _totalUnrealised); // mul never overflow
       accUnrealisedFraction = _mul128(_accUnrealisedFraction, _fraction);
     }
 
     // 2. stake extra CVX to cvxRewardPool
-    uint256 _toStake = totalCVXInPool().mul(stakePercentage).div(FEE_DENOMINATOR);
+    uint256 _toStake = totalCVXInPool().mul(stakePercentage).div(FEE_PRECISION);
     uint256 _balanceStaked = IConvexCVXRewardPool(CVX_REWARD_POOL).balanceOf(address(this));
     if (_balanceStaked < _toStake) {
       _toStake = _toStake - _balanceStaked;
