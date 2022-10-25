@@ -28,8 +28,11 @@ contract VeFeeGateway is Ownable {
   function distribute(address[] memory _distributors) external {
     for (uint256 i = 0; i < _distributors.length; i++) {
       address _token = distributor2token[_distributors[i]];
+      require(_token != address(0), "invalid distributor");
       uint256 _balance = IERC20(_token).balanceOf(address(this));
-      IERC20(_token).safeTransfer(_distributors[i], _balance);
+      if (_balance > 0) {
+        IERC20(_token).safeTransfer(_distributors[i], _balance);
+      }
     }
   }
 
