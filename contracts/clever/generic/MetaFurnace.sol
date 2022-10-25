@@ -21,7 +21,12 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event UpdateWhitelist(address indexed _whitelist, bool _status);
-  event UpdateFeeInfo(address indexed _platform, uint32 _platformPercentage, uint32 _bountyPercentage);
+  event UpdateFeeInfo(
+    address indexed _platform,
+    uint32 _platformPercentage,
+    uint32 _bountyPercentage,
+    uint32 _withdrawPercentage
+  );
   event UpdateYieldInfo(uint16 _percentage, uint80 _threshold);
   event MigrateYieldStrategy(address _oldStrategy, address _newStrategy);
   event UpdateCLeverConfiguration(address _config);
@@ -30,6 +35,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   uint256 private constant PRECISION = 1e9;
   uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
+  uint256 private constant MAX_WITHDRAW_FEE = 1e8; // 10%
 
   /// @notice If the unrealised is not paid off,
   /// the realised token in n sequential distribute is
@@ -85,6 +91,8 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     uint32 platformPercentage;
     // The percentage of rewards to take for caller on harvest, multipled by 1e9.
     uint32 bountyPercentage;
+    // The percentage of withdraw fee to take when withdraw debt token, multipled by 1e9.
+    uint32 withdrawPercentage;
   }
 
   /// @dev Compiler will pack this into single `uint256`.
@@ -322,15 +330,17 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   function updatePlatformInfo(
     address _platform,
     uint32 _platformPercentage,
-    uint32 _bountyPercentage
+    uint32 _bountyPercentage,
+    uint32 _withdrawPercentage
   ) external onlyOwner {
     require(_platform != address(0), "Furnace: zero address");
     require(_platformPercentage <= MAX_PLATFORM_FEE, "Furnace: fee too large");
     require(_bountyPercentage <= MAX_HARVEST_BOUNTY, "Furnace: fee too large");
+    require(_withdrawPercentage <= MAX_WITHDRAW_FEE, "Furnace: fee too large");
 
-    feeInfo = FeeInfo(_platform, _platformPercentage, _bountyPercentage);
+    feeInfo = FeeInfo(_platform, _platformPercentage, _bountyPercentage, _withdrawPercentage);
 
-    emit UpdateFeeInfo(_platform, _platformPercentage, _bountyPercentage);
+    emit UpdateFeeInfo(_platform, _platformPercentage, _bountyPercentage, _withdrawPercentage);
   }
 
   /// @dev Update the clever configuration contract.
@@ -421,7 +431,10 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     userInfo[msg.sender].unrealised = uint128(uint256(userInfo[msg.sender].unrealised) - _amount); // never overflow here
     furnaceInfo.totalUnrealised = uint128(uint256(furnaceInfo.totalUnrealised) - _amount); // never overflow here
 
-    IERC20Upgradeable(debtToken).safeTransfer(_recipient, _amount);
+    FeeInfo memory _info = feeInfo;
+    uint256 _fee = (_amount * _info.withdrawPercentage) / PRECISION;
+    IERC20Upgradeable(debtToken).safeTransfer(_recipient, _amount - _fee);
+    IERC20Upgradeable(debtToken).safeTransfer(_info.platform, _fee);
 
     emit Withdraw(msg.sender, _recipient, _amount);
   }

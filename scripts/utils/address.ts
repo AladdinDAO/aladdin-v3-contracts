@@ -1,5 +1,5 @@
 /* eslint-disable node/no-missing-import */
-import { constants } from "ethers";
+import { DEPLOYED_CONTRACTS } from "./deploys";
 import { TOKENS } from "./tokens";
 
 export const ADDRESS: { [name: string]: string } = {
@@ -92,8 +92,8 @@ export const ADDRESS: { [name: string]: string } = {
   CURVE_LUSD3CRV_POOL: "0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA",
   CURVE_LUSD3CRV_TOKEN: "0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA",
   // Curve aCRV/CTR, to be changed
-  CURVE_ACRVCTR_POOL: constants.AddressZero,
-  CURVE_ACRVCTR_TOKEN: constants.AddressZero,
+  CURVE_CTRETH_POOL: DEPLOYED_CONTRACTS.Concentrator.Gauge.Curve_CTR_ETH.pool,
+  CURVE_CTRETH_TOKEN: DEPLOYED_CONTRACTS.Concentrator.Gauge.Curve_CTR_ETH.token,
   // Curve ETH/CLEV, to be changed
   CURVE_CLEVETH_POOL: "0x342D1C4Aa76EA6F5E5871b7f11A019a0eB713A4f",
   CURVE_CLEVETH_TOKEN: "0x6C280dB098dB673d30d5B34eC04B6387185D3620",
