@@ -24,6 +24,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   event UpdateStakeThreshold(uint256 _threshold);
   event UpdatePlatformFeePercentage(uint256 _feePercentage);
   event UpdateHarvestBountyPercentage(uint256 _percentage);
+  event UpdateWithdrawPercentage(uint256 _percentage);
   event UpdatePlatform(address indexed _platform);
   event UpdateZap(address indexed _zap);
   event UpdateGovernor(address indexed _governor);
@@ -33,6 +34,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   uint256 private constant FEE_PRECISION = 1e9;
   uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
+  uint256 private constant MAX_WITHDRAW_FEE = 1e8; // 10%
 
   address private constant CVX = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
   // The address of cvxCRV token.
@@ -94,12 +96,15 @@ contract Furnace is OwnableUpgradeable, IFurnace {
 
   /// @dev The address of zap contract.
   address public zap;
-  /// @dev The percentage of rewards to take for platform on harvest
+  /// @dev The percentage of rewards to take for platform on harvest, multipled by 1e9.
   uint256 public platformFeePercentage;
-  /// @dev The percentage of rewards to take for caller on harvest
+  /// @dev The percentage of rewards to take for caller on harvest, multipled by 1e9.
   uint256 public harvestBountyPercentage;
   /// @dev The address of recipient of platform fee
   address public platform;
+
+  // @notice The percentage of withdraw fee to take when withdraw debt token, multipled by 1e9.
+  uint256 public withdrawPercentage;
 
   /// @notice The address of configuration contract.
   CLeverConfiguration public config;
@@ -326,7 +331,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Update the platform fee percentage.
   /// @param _feePercentage The fee percentage to be updated, multipled by 1e9.
   function updatePlatformFeePercentage(uint256 _feePercentage) external onlyOwner {
-    require(_feePercentage <= MAX_PLATFORM_FEE, "AladdinCRV: fee too large");
+    require(_feePercentage <= MAX_PLATFORM_FEE, "Furnace: fee too large");
     platformFeePercentage = _feePercentage;
 
     emit UpdatePlatformFeePercentage(_feePercentage);
@@ -335,16 +340,25 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Update the harvest bounty percentage.
   /// @param _percentage - The fee percentage to be updated, multipled by 1e9.
   function updateHarvestBountyPercentage(uint256 _percentage) external onlyOwner {
-    require(_percentage <= MAX_HARVEST_BOUNTY, "AladdinCRV: fee too large");
+    require(_percentage <= MAX_HARVEST_BOUNTY, "Furnace: fee too large");
     harvestBountyPercentage = _percentage;
 
     emit UpdateHarvestBountyPercentage(_percentage);
   }
 
+  /// @dev Update the withdraw fee percentage.
+  /// @param _percentage - The fee percentage to be updated, multipled by 1e9.
+  function updateWithdrawPercentage(uint256 _percentage) external onlyOwner {
+    require(_percentage <= MAX_WITHDRAW_FEE, "Furnace: fee too large");
+    withdrawPercentage = _percentage;
+
+    emit UpdateWithdrawPercentage(_percentage);
+  }
+
   /// @dev Update the platform fee recipient
   /// @dev _platform The platform address to be updated.
   function updatePlatform(address _platform) external onlyOwner {
-    require(_platform != address(0), "AladdinCRV: zero platform address");
+    require(_platform != address(0), "Furnace: zero platform address");
     platform = _platform;
 
     emit UpdatePlatform(_platform);
@@ -446,7 +460,9 @@ contract Furnace is OwnableUpgradeable, IFurnace {
     userInfo[msg.sender].unrealised = uint128(uint256(userInfo[msg.sender].unrealised) - _amount); // never overflow here
     totalUnrealised = uint128(uint256(totalUnrealised) - _amount); // never overflow here
 
-    IERC20Upgradeable(clevCVX).safeTransfer(_recipient, _amount);
+    uint256 _fee = (_amount * withdrawPercentage) / FEE_PRECISION;
+    IERC20Upgradeable(clevCVX).safeTransfer(_recipient, _amount - _fee);
+    IERC20Upgradeable(clevCVX).safeTransfer(platform, _fee);
 
     emit Withdraw(msg.sender, _recipient, _amount);
   }
