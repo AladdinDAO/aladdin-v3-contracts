@@ -12,8 +12,6 @@ import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IMetaFurnace.sol";
 import "../interfaces/IYieldStrategy.sol";
 
-import "../CLeverConfiguration.sol";
-
 // solhint-disable reason-string
 
 contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
@@ -21,21 +19,14 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event UpdateWhitelist(address indexed _whitelist, bool _status);
-  event UpdateFeeInfo(
-    address indexed _platform,
-    uint32 _platformPercentage,
-    uint32 _bountyPercentage,
-    uint32 _withdrawPercentage
-  );
+  event UpdateFeeInfo(address indexed _platform, uint32 _platformPercentage, uint32 _bountyPercentage);
   event UpdateYieldInfo(uint16 _percentage, uint80 _threshold);
   event MigrateYieldStrategy(address _oldStrategy, address _newStrategy);
-  event UpdateCLeverConfiguration(address _config);
 
   uint256 private constant E128 = 2**128;
   uint256 private constant PRECISION = 1e9;
   uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
-  uint256 private constant MAX_WITHDRAW_FEE = 1e8; // 10%
 
   /// @notice If the unrealised is not paid off,
   /// the realised token in n sequential distribute is
@@ -91,8 +82,6 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     uint32 platformPercentage;
     // The percentage of rewards to take for caller on harvest, multipled by 1e9.
     uint32 bountyPercentage;
-    // The percentage of withdraw fee to take when withdraw debt token, multipled by 1e9.
-    uint32 withdrawPercentage;
   }
 
   /// @dev Compiler will pack this into single `uint256`.
@@ -125,9 +114,6 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
 
   /// @notice The yield information for free base token in this contract.
   YieldInfo public yieldInfo;
-
-  /// @notice The address of configuration contract.
-  CLeverConfiguration public config;
 
   modifier onlyWhitelisted() {
     require(isWhitelisted[msg.sender], "Furnace: only whitelisted");
@@ -330,25 +316,15 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   function updatePlatformInfo(
     address _platform,
     uint32 _platformPercentage,
-    uint32 _bountyPercentage,
-    uint32 _withdrawPercentage
+    uint32 _bountyPercentage
   ) external onlyOwner {
     require(_platform != address(0), "Furnace: zero address");
     require(_platformPercentage <= MAX_PLATFORM_FEE, "Furnace: fee too large");
     require(_bountyPercentage <= MAX_HARVEST_BOUNTY, "Furnace: fee too large");
-    require(_withdrawPercentage <= MAX_WITHDRAW_FEE, "Furnace: fee too large");
 
-    feeInfo = FeeInfo(_platform, _platformPercentage, _bountyPercentage, _withdrawPercentage);
+    feeInfo = FeeInfo(_platform, _platformPercentage, _bountyPercentage);
 
-    emit UpdateFeeInfo(_platform, _platformPercentage, _bountyPercentage, _withdrawPercentage);
-  }
-
-  /// @dev Update the clever configuration contract.
-  /// @param _config The address to update.
-  function updateCLeverConfiguration(address _config) external onlyOwner {
-    config = CLeverConfiguration(_config);
-
-    emit UpdateCLeverConfiguration(_config);
+    emit UpdateFeeInfo(_platform, _platformPercentage, _bountyPercentage);
   }
 
   /********************************** Internal Functions **********************************/
@@ -431,10 +407,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     userInfo[msg.sender].unrealised = uint128(uint256(userInfo[msg.sender].unrealised) - _amount); // never overflow here
     furnaceInfo.totalUnrealised = uint128(uint256(furnaceInfo.totalUnrealised) - _amount); // never overflow here
 
-    FeeInfo memory _info = feeInfo;
-    uint256 _fee = (_amount * _info.withdrawPercentage) / PRECISION;
-    IERC20Upgradeable(debtToken).safeTransfer(_recipient, _amount - _fee);
-    IERC20Upgradeable(debtToken).safeTransfer(_info.platform, _fee);
+    IERC20Upgradeable(debtToken).safeTransfer(_recipient, _amount);
 
     emit Withdraw(msg.sender, _recipient, _amount);
   }
@@ -450,7 +423,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     // scale to base token
     address _baseToken = baseToken;
     uint256 _scale = 10**(18 - IERC20Metadata(_baseToken).decimals());
-    uint256 _baseAmount = ((_debtAmount / _scale) * PRECISION) / config.burnRatio(_baseToken);
+    uint256 _baseAmount = _debtAmount / _scale;
 
     uint256 _balanceInContract = IERC20Upgradeable(_baseToken).balanceOf(address(this));
     if (_balanceInContract < _baseAmount) {
@@ -477,11 +450,11 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
 
     // scale to debt token
     uint256 _scale = 10**(18 - IERC20Metadata(baseToken).decimals());
-    uint256 _debtAmount = ((_amount * _scale) * config.burnRatio(baseToken)) / PRECISION;
+    _amount *= _scale;
 
     _furnaceInfo.distributeIndex += 1;
     // 1. distribute baseToken rewards
-    if (_debtAmount >= _furnaceInfo.totalUnrealised) {
+    if (_amount >= _furnaceInfo.totalUnrealised) {
       // In this case, all unrealised debtToken are paid off.
       _furnaceInfo.totalRealised = SafeCastUpgradeable.toUint128(
         _furnaceInfo.totalUnrealised + _furnaceInfo.totalRealised
@@ -492,11 +465,11 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
       _furnaceInfo.lastPaidOffDistributeIndex = _furnaceInfo.distributeIndex;
     } else {
       uint128 _fraction = SafeCastUpgradeable.toUint128(
-        ((_furnaceInfo.totalUnrealised - _debtAmount) * E128) / _furnaceInfo.totalUnrealised
+        ((_furnaceInfo.totalUnrealised - _amount) * E128) / _furnaceInfo.totalUnrealised
       ); // mul never overflow
 
-      _furnaceInfo.totalUnrealised = uint128(_furnaceInfo.totalUnrealised - _debtAmount);
-      _furnaceInfo.totalRealised = SafeCastUpgradeable.toUint128(_furnaceInfo.totalRealised + _debtAmount);
+      _furnaceInfo.totalUnrealised = uint128(_furnaceInfo.totalUnrealised - _amount);
+      _furnaceInfo.totalRealised = SafeCastUpgradeable.toUint128(_furnaceInfo.totalRealised + _amount);
       _furnaceInfo.accUnrealisedFraction = _mul128(_furnaceInfo.accUnrealisedFraction, _fraction);
     }
 
@@ -516,7 +489,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
       }
     }
 
-    emit Distribute(_origin, _amount);
+    emit Distribute(_origin, _amount / _scale);
   }
 
   /// @dev Compute the value of (_a / 2^128) * (_b / 2^128) with precision 2^128.

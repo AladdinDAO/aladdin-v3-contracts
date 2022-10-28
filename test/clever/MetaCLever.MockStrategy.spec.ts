@@ -8,7 +8,6 @@ import {
   MockYieldToken,
   MockYieldStrategyForCLever,
   MockFurnace,
-  CLeverConfiguration,
 } from "../../typechain";
 import { ethers } from "hardhat";
 import { expect } from "chai";
@@ -30,7 +29,6 @@ describe("MetaCLever.MockStrategy.spec", async () => {
   let rewardToken12: MockERC20;
   let strategy06: MockYieldStrategyForCLever;
   let strategy18: MockYieldStrategyForCLever;
-  let config: CLeverConfiguration;
   let furnace: MockFurnace;
   let clever: MetaCLever;
 
@@ -40,11 +38,6 @@ describe("MetaCLever.MockStrategy.spec", async () => {
     const CLeverToken = await ethers.getContractFactory("CLeverToken", deployer);
     clevToken = await CLeverToken.deploy("clevX", "clevX");
     await clevToken.deployed();
-
-    const CLeverConfiguration = await ethers.getContractFactory("CLeverConfiguration", deployer);
-    config = await CLeverConfiguration.deploy();
-    await config.deployed();
-    await config.initialize();
 
     const MockFurnace = await ethers.getContractFactory("MockFurnace", deployer);
     furnace = await MockFurnace.deploy(clevToken.address);
@@ -90,11 +83,6 @@ describe("MetaCLever.MockStrategy.spec", async () => {
     await clever.connect(admin).addYieldStrategy(strategy06.address, [rewardToken12.address, rewardToken18.address]);
     await clever.connect(admin).addYieldStrategy(strategy18.address, [rewardToken12.address, rewardToken18.address]);
     await clever.connect(admin).updateFeeInfo(platform.address, 1e8, 1e7, 5e7);
-    await clever.connect(admin).updateCLeverConfiguration(config.address);
-
-    await config.transferOwnership(admin.address);
-    await config.connect(admin).updateBurnRatio(underlyingToken06.address, "1000000000");
-    await config.connect(admin).updateBurnRatio(underlyingToken18.address, "1000000000");
 
     await clevToken.updateMinters([clever.address], true);
     await clevToken.updateCeiling(clever.address, ethers.utils.parseEther("100000"));

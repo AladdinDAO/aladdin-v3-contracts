@@ -15,8 +15,6 @@ import "../interfaces/IConvexCVXLocker.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
 import "../interfaces/IZap.sol";
 
-import "./CLeverConfiguration.sol";
-
 // solhint-disable not-rely-on-time, max-states-count, reason-string
 
 contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
@@ -33,7 +31,6 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   event UpdateZap(address indexed _zap);
   event UpdateGovernor(address indexed _governor);
   event UpdatePauseTimestamp(uint256 _startTimestamp, uint256 _finishTimestamp);
-  event UpdateCLeverConfiguration(address _config);
 
   // The precision used to calculate accumulated rewards.
   uint256 private constant PRECISION = 1e18;
@@ -134,28 +131,25 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev The list of tokens which will swap manually.
   mapping(address => bool) public manualSwapRewardToken;
 
-  /// @notice The address of zap contract.
+  /// @dev The address of zap contract.
   address public zap;
-  /// @notice The percentage of repay fee.
+  /// @dev The percentage of repay fee.
   uint256 public repayFeePercentage;
-  /// @notice The percentage of rewards to take for caller on harvest
+  /// @dev The percentage of rewards to take for caller on harvest
   uint256 public harvestBountyPercentage;
-  /// @notice The percentage of rewards to take for platform on harvest
+  /// @dev The percentage of rewards to take for platform on harvest
   uint256 public platformFeePercentage;
-  /// @notice The address of recipient of platform fee
+  /// @dev The address of recipient of platform fee
   address public platform;
 
-  /// @notice The list of whitelist keeper.
+  /// @dev The list of whitelist keeper.
   mapping(address => bool) public isKeeper;
 
-  /// @notice The start timestamp to pause deposit
+  /// @dev The start timestamp to pause deposit
   uint128 public pauseStartTimestamp;
 
-  /// @notice The finish timestamp to pause deposit
+  /// @dev The finish timestamp to pause deposit
   uint128 public pauseFinishTimestamp;
-
-  /// @notice The address of configuration contract.
-  CLeverConfiguration public config;
 
   modifier onlyGovernorOrOwner() {
     require(msg.sender == governor || msg.sender == owner(), "CLeverCVXLocker: only governor or owner");
@@ -450,14 +444,11 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
 
     // 3. check repay with cvx and take fee
     if (_cvxAmount > 0 && _totalDebt > 0) {
-      uint256 _burnRatio = config.burnRatio(CVX);
-      uint256 _clevCVXPaidExpected = (_cvxAmount * _burnRatio) / FEE_PRECISION;
-      if (_clevCVXPaidExpected > _totalDebt) _clevCVXPaidExpected = _totalDebt;
-      _cvxAmount = (_clevCVXPaidExpected * FEE_PRECISION) / _burnRatio;
+      if (_cvxAmount > _totalDebt) _cvxAmount = _totalDebt;
 
       uint256 _fee = _cvxAmount.mul(repayFeePercentage) / FEE_PRECISION;
-      _totalDebt = _totalDebt - _clevCVXPaidExpected; // never overflow
-      _totalDebtGlobal = _totalDebtGlobal - _clevCVXPaidExpected; // never overflow
+      _totalDebt = _totalDebt - _cvxAmount; // never overflow
+      _totalDebtGlobal = _totalDebtGlobal - _cvxAmount; // never overflow
 
       // distribute to furnace and transfer fee to platform
       IERC20Upgradeable(CVX).safeTransferFrom(msg.sender, address(this), _cvxAmount + _fee);
@@ -777,14 +768,6 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     emit UpdateZap(_zap);
   }
 
-  /// @dev Update the clever configuration contract.
-  /// @param _config The address to update.
-  function updateCLeverConfiguration(address _config) external onlyOwner {
-    config = CLeverConfiguration(_config);
-
-    emit UpdateCLeverConfiguration(_config);
-  }
-
   function updateReserveRate(uint256 _reserveRate) external onlyOwner {
     require(_reserveRate <= FEE_PRECISION, "CLeverCVXLocker: invalid reserve rate");
     reserveRate = _reserveRate;
@@ -921,12 +904,11 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
 
   /// @dev Internal function called by `harvest` and `harvestVotium`.
   function _distribute(uint256 _amount) internal {
-    uint256 _clevCVXAmount = (_amount * config.burnRatio(CVX)) / FEE_PRECISION;
     // 1. update reward info
     uint256 _totalLockedGlobal = totalLockedGlobal; // gas saving
     // It's ok to donate when on one is locking in this contract.
     if (_totalLockedGlobal > 0) {
-      accRewardPerShare = accRewardPerShare.add(_clevCVXAmount.mul(PRECISION) / uint256(_totalLockedGlobal));
+      accRewardPerShare = accRewardPerShare.add(_amount.mul(PRECISION) / uint256(_totalLockedGlobal));
     }
 
     // 2. distribute reward CVX to Furnace
@@ -970,9 +952,9 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
 
   /// @dev Internal function to check the health of account.
   ///      And account is health if and only if
-  ///                                       clevCVXBorrowed / BurnRatio
-  ///                      cvxDeposited >= ----------------------------
-  ///                                           cvxReserveRate
+  ///                                       cvxBorrowed
+  ///                      cvxDeposited >= --------------
+  ///                                      cvxReserveRate
   /// @param _totalDeposited The amount of CVX currently deposited.
   /// @param _totalDebt The amount of clevCVX currently borrowed.
   /// @param _newUnlock The amount of CVX to unlock.
@@ -983,10 +965,8 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     uint256 _newUnlock,
     uint256 _newBorrow
   ) internal view {
-    uint256 _burnRatio = config.burnRatio(CVX);
     require(
-      _totalDeposited.sub(_newUnlock).mul(reserveRate).mul(_burnRatio) >=
-        _totalDebt.add(_newBorrow).mul(FEE_PRECISION).mul(FEE_PRECISION),
+      _totalDeposited.sub(_newUnlock).mul(reserveRate) >= _totalDebt.add(_newBorrow).mul(FEE_PRECISION),
       "CLeverCVXLocker: unlock or borrow exceeds limit"
     );
   }

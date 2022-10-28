@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { CLeverToken, MockERC20, MetaFurnace, MockYieldStrategy, CLeverConfiguration } from "../../typechain";
+import { CLeverToken, MockERC20, MetaFurnace, MockYieldStrategy } from "../../typechain";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
@@ -15,7 +15,6 @@ describe("Furnace.spec", async () => {
   let baseToken: MockERC20;
   let debtToken: CLeverToken;
   let furnace: MetaFurnace;
-  let config: CLeverConfiguration;
   let strategy: MockYieldStrategy;
 
   const run = async (baseDecimals: number) => {
@@ -35,11 +34,6 @@ describe("Furnace.spec", async () => {
 
         await baseToken.mint(signer.address, constants.MaxUint256.div(2));
 
-        const CLeverConfiguration = await ethers.getContractFactory("CLeverConfiguration", deployer);
-        config = await CLeverConfiguration.deploy();
-        await config.deployed();
-        await config.initialize();
-
         await debtToken.updateMinters([deployer.address], true);
         await debtToken.updateCeiling(deployer.address, ethers.utils.parseEther("10000000"));
 
@@ -52,12 +46,9 @@ describe("Furnace.spec", async () => {
         strategy = await MockYieldStrategy.deploy(baseToken.address, furnace.address);
         await strategy.deployed();
 
-        await config.updateBurnRatio(baseToken.address, "1000000000");
-
         await furnace.updateYieldInfo(50000, 0);
         await furnace.migrateStrategy(strategy.address);
         await furnace.updatePlatformInfo(deployer.address, 2e8, 5e7);
-        await furnace.updateCLeverConfiguration(config.address);
       });
 
       context("furnace has free baseToken", async () => {
