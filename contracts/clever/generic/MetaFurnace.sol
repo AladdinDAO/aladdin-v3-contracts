@@ -12,7 +12,7 @@ import "../interfaces/ICLeverToken.sol";
 import "../interfaces/IMetaFurnace.sol";
 import "../interfaces/IYieldStrategy.sol";
 
-// solhint-disable reason-string
+// solhint-disable reason-string, not-rely-on-time
 
 contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   using SafeMathUpgradeable for uint256;
@@ -22,6 +22,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   event UpdateFeeInfo(address indexed _platform, uint32 _platformPercentage, uint32 _bountyPercentage);
   event UpdateYieldInfo(uint16 _percentage, uint80 _threshold);
   event MigrateYieldStrategy(address _oldStrategy, address _newStrategy);
+  event UpdatePeriodLength(uint256 _length);
 
   uint256 private constant E128 = 2**128;
   uint256 private constant PRECISION = 1e9;
@@ -114,6 +115,22 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
 
   /// @notice The yield information for free base token in this contract.
   YieldInfo public yieldInfo;
+
+  /// @dev Compiler will pack this into single `uint256`.
+  struct LinearReward {
+    // The number of debt token to pay each second.
+    uint128 ratePerSecond;
+    // The length of reward period in seconds.
+    // If the value is zero, the reward will be distributed immediately.
+    uint32 periodLength;
+    // The timesamp in seconds when reward is updated.
+    uint48 lastUpdate;
+    // The finish timestamp in seconds of current reward period.
+    uint48 finishAt;
+  }
+
+  /// @notice The reward distribute information.
+  LinearReward public rewardInfo;
 
   modifier onlyWhitelisted() {
     require(isWhitelisted[msg.sender], "Furnace: only whitelisted");
@@ -257,6 +274,11 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     return _amount;
   }
 
+  /// @notice External helper function to update global debt.
+  function updatePendingDistribution() external {
+    _updatePendingDistribution();
+  }
+
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update the status of a list of whitelisted accounts.
@@ -327,11 +349,41 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     emit UpdateFeeInfo(_platform, _platformPercentage, _bountyPercentage);
   }
 
+  /// @notice Update the reward period length.
+  /// @dev The modification will be effictive after next reward distribution.
+  /// @param _length The period length to be updated.
+  function updatePeriodLength(uint32 _length) external onlyOwner {
+    rewardInfo.periodLength = _length;
+
+    emit UpdatePeriodLength(_length);
+  }
+
   /********************************** Internal Functions **********************************/
+
+  /// @dev Internal function to reduce global debt based on pending rewards.
+  /// This function should be called before any mutable state change.
+  function _updatePendingDistribution() internal {
+    LinearReward memory _info = rewardInfo;
+    if (_info.periodLength > 0) {
+      uint256 _currentTime = _info.finishAt;
+      if (_currentTime > block.timestamp) {
+        _currentTime = block.timestamp;
+      }
+      uint256 _duration = _currentTime >= _info.lastUpdate ? _currentTime - _info.lastUpdate : 0;
+      if (_duration > 0) {
+        _info.lastUpdate = uint48(block.timestamp);
+        rewardInfo = _info;
+
+        _reduceGlobalDebt(_duration.mul(_info.ratePerSecond));
+      }
+    }
+  }
 
   /// @dev Internal function called when user interacts with the contract.
   /// @param _account The address of user to update.
   function _updateUserInfo(address _account) internal {
+    _updatePendingDistribution();
+
     UserInfo memory _userInfo = userInfo[_account];
     uint128 _accUnrealisedFraction = furnaceInfo.accUnrealisedFraction;
     uint64 _distributeIndex = furnaceInfo.distributeIndex;
@@ -446,11 +498,53 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
   /// @param _origin The address of the user who will provide baseToken.
   /// @param _amount The amount of baseToken will be provided.
   function _distribute(address _origin, uint256 _amount) internal {
-    FurnaceInfo memory _furnaceInfo = furnaceInfo;
+    // reduct pending debt
+    _updatePendingDistribution();
 
     // scale to debt token
     uint256 _scale = 10**(18 - IERC20Metadata(baseToken).decimals());
     _amount *= _scale;
+
+    // distribute clevCVX rewards
+    LinearReward memory _info = rewardInfo;
+    if (_info.periodLength == 0) {
+      _reduceGlobalDebt(_amount);
+    } else {
+      if (block.timestamp >= _info.finishAt) {
+        _info.ratePerSecond = SafeCastUpgradeable.toUint128(_amount / _info.periodLength);
+      } else {
+        uint256 _remaining = _info.finishAt - block.timestamp;
+        uint256 _leftover = _remaining * _info.ratePerSecond;
+        _info.ratePerSecond = SafeCastUpgradeable.toUint128((_amount + _leftover) / _info.periodLength);
+      }
+
+      _info.lastUpdate = uint48(block.timestamp);
+      _info.finishAt = uint48(block.timestamp + _info.periodLength);
+
+      rewardInfo = _info;
+    }
+
+    // 2. stake extra baseToken to yield strategy
+    YieldInfo memory _yieldInfo = yieldInfo;
+    if (_yieldInfo.strategy != address(0)) {
+      uint256 _exepctToStake = totalBaseTokenInPool().mul(_yieldInfo.percentage) / 1e5;
+      uint256 _balanceStaked = IYieldStrategy(_yieldInfo.strategy).totalUnderlyingToken();
+      if (_balanceStaked < _exepctToStake) {
+        _exepctToStake = _exepctToStake - _balanceStaked;
+        if (_exepctToStake >= _yieldInfo.threshold) {
+          IERC20Upgradeable(baseToken).safeTransfer(_yieldInfo.strategy, _exepctToStake);
+          IYieldStrategy(_yieldInfo.strategy).deposit(address(this), _exepctToStake, true);
+        }
+      }
+    }
+
+    emit Distribute(_origin, _amount / _scale);
+  }
+
+  /// @dev Internal function to reduce global debt based on CVX rewards.
+  /// @param _amount The new paid clevCVX debt.
+  function _reduceGlobalDebt(uint256 _amount) internal {
+    FurnaceInfo memory _furnaceInfo = furnaceInfo;
 
     _furnaceInfo.distributeIndex += 1;
     // 1. distribute baseToken rewards
@@ -474,22 +568,6 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     }
 
     furnaceInfo = _furnaceInfo;
-
-    // 2. stake extra baseToken to yield strategy
-    YieldInfo memory _yieldInfo = yieldInfo;
-    if (_yieldInfo.strategy != address(0)) {
-      uint256 _exepctToStake = totalBaseTokenInPool().mul(_yieldInfo.percentage) / 1e5;
-      uint256 _balanceStaked = IYieldStrategy(_yieldInfo.strategy).totalUnderlyingToken();
-      if (_balanceStaked < _exepctToStake) {
-        _exepctToStake = _exepctToStake - _balanceStaked;
-        if (_exepctToStake >= _yieldInfo.threshold) {
-          IERC20Upgradeable(baseToken).safeTransfer(_yieldInfo.strategy, _exepctToStake);
-          IYieldStrategy(_yieldInfo.strategy).deposit(address(this), _exepctToStake, true);
-        }
-      }
-    }
-
-    emit Distribute(_origin, _amount / _scale);
   }
 
   /// @dev Compute the value of (_a / 2^128) * (_b / 2^128) with precision 2^128.
