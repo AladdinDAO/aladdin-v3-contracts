@@ -61,8 +61,11 @@ async function main(round: number, manualStr: string) {
   if (KEEPER === deployer.address) {
     const furnaceBefore = await furnance.totalCVXInPool();
     const treasuryBefore = await cvx.balanceOf(DEPLOYED_CONTRACTS.CLever.Treasury);
-    const tx = await cvxLocker.harvestVotium(RoundClaimParams[round], estimate.mul(99).div(100), {
+    const fee = await ethers.provider.getFeeData();
+    const tx = await cvxLocker.harvestVotium(RoundClaimParams[round], estimate.mul(995).div(1000), {
       gasLimit: gasEstimate.mul(12).div(10),
+      maxFeePerGas: fee.maxFeePerGas,
+      maxPriorityFeePerGas: ethers.utils.parseUnits("2", "gwei"),
     });
     console.log("waiting for tx:", tx.hash);
     const receipt = await tx.wait();
