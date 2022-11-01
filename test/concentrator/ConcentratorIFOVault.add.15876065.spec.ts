@@ -17,56 +17,32 @@ const POOL_HOLDERS: {
     harvest: boolean;
   };
 } = {
-  silofrax: {
-    fork: 15193360,
-    holder: "0xabc508dda7517f195e416d77c822a4861961947a",
-    amount: "1000",
+  peth: {
+    fork: 15876065,
+    holder: "0x51c2cef9efa48e08557a361b52db34061c025a1b",
+    amount: "10",
     harvest: true,
   },
-  tusd: {
-    fork: 15193360,
-    holder: "0xd34f3e85bb7c8020c7959b80a4b87a369d639dc0",
-    amount: "1000",
+  cbeth: {
+    fork: 15876065,
+    holder: "0x7a16ff8270133f063aab6c9977183d9e72835428",
+    amount: "10",
     harvest: false,
   },
-  susdfraxbp: {
-    fork: 15193360,
-    holder: "0x99F4176EE457afedFfCB1839c7aB7A030a5e4A92",
-    amount: "1000",
-    harvest: false,
-  },
-  busdfraxbp: {
-    fork: 15193360,
-    holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
-    amount: "1000",
-    harvest: false,
-  },
-  alusdfraxbp: {
-    fork: 15193360,
-    holder: "0x5180db0237291a6449dda9ed33ad90a38787621c",
-    amount: "1000",
-    harvest: false,
-  },
-  tusdfraxbp: {
-    fork: 15193360,
-    holder: "0x5180db0237291a6449dda9ed33ad90a38787621c",
-    amount: "1000",
-    harvest: false,
-  },
-  lusdfraxbp: {
-    fork: 15190189,
-    holder: "0xb1748c79709f4ba2dd82834b8c82d4a505003f27",
-    amount: "1000",
+  frxeth: {
+    fork: 15876065,
+    holder: "0xda035641151d42aa4a25ce51de8f6e53eae0ded7",
+    amount: "10",
     harvest: false,
   },
 };
 
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
-const PID = 24;
+const PID = 31;
 const PRINT_ZAP = true;
 
-describe("ConcentratorIFOVault.add.15193360.spec", async () => {
+describe("ConcentratorIFOVault.add.15876065.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
   let lpToken: IERC20;
@@ -135,14 +111,12 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
         ]);
         deployer = await ethers.getSigner(DEPLOYER);
         signer = await ethers.getSigner(holder.holder);
-        const admin = await ethers.getSigner(DEPLOYED_CONTRACTS.CommunityMultisig);
         const manager = await ethers.getSigner(DEPLOYED_CONTRACTS.ManagementMultisig);
         const owner = await ethers.getSigner(DEPLOYED_CONTRACTS.Concentrator.Treasury);
 
         await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
         await deployer.sendTransaction({ to: manager.address, value: ethers.utils.parseEther("10") });
         await deployer.sendTransaction({ to: owner.address, value: ethers.utils.parseEther("10") });
-        await deployer.sendTransaction({ to: admin.address, value: ethers.utils.parseEther("10") });
 
         lpToken = await ethers.getContractAt("IERC20", ADDRESS[`${config.token}_TOKEN`]);
 
@@ -151,7 +125,7 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
         await logic.deployed();
 
         // upgrade zap contract
-        const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.ProxyAdmin, admin);
+        const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.ProxyAdmin, owner);
         const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
         const impl = await AladdinZap.deploy();
         await proxyAdmin.upgrade(DEPLOYED_CONTRACTS.AladdinZap, impl.address);
@@ -175,7 +149,7 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
 
         vault = await ethers.getContractAt(
           "ConcentratorIFOVault",
-          DEPLOYED_CONTRACTS.Concentrator.ConcentratorIFOVault,
+          DEPLOYED_CONTRACTS.Concentrator.cvxCRV.ConcentratorIFOVault,
           owner
         );
         await vault.addPool(config.convexId, config.rewards, fees.withdraw, fees.platform, fees.harvest);
@@ -194,10 +168,12 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
           const tx = await vault.connect(signer).withdrawAndZap(PID, sharesOut, constants.AddressZero, 0);
           expect(await vault.getUserShare(PID, signer.address)).to.eq(constants.Zero);
           const receipt = await tx.wait();
+          const baseFee = (await ethers.provider.getFeeData()).lastBaseFeePerGas!;
+          const effectiveGasPrice = tx.gasPrice ? tx.gasPrice : baseFee.add(tx.maxPriorityFeePerGas!);
           const etherAfter = await signer.getBalance();
-          expect(etherAfter.add(receipt.gasUsed.mul(receipt.effectiveGasPrice))).gt(etherBefore);
+          expect(etherAfter.add(receipt.gasUsed.mul(effectiveGasPrice))).gt(etherBefore);
           // zap from ETH
-          const amountIn = etherAfter.add(receipt.gasUsed.mul(receipt.effectiveGasPrice)).sub(etherBefore);
+          const amountIn = etherAfter.add(receipt.gasUsed.mul(effectiveGasPrice)).sub(etherBefore);
           await gateway
             .connect(signer)
             .deposit(vault.address, PID, constants.AddressZero, lpToken.address, amountIn, config.deposit.WETH, 0, {
@@ -276,7 +252,7 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
 
           it("should succeed", async () => {
             await booster.earmarkRewards(config.convexId);
-            const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.aCRV, deployer);
+            const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, deployer);
             const amount = await vault.callStatic.harvest(PID, deployer.address, 0);
             const before = await token.balanceOf(vault.address);
             await vault.harvest(PID, deployer.address, 0);
