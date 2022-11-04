@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
@@ -370,33 +371,33 @@ describe("AladdinZap.spec", async () => {
   });
 
   describe("curve steth pool [CurveETHPool]", async () => {
-    const CURVE_STETH_POOL = "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022";
-    const CURVE_STETH_TOKEN = "0x06325440D014e39736583c165C2963BA99fAf14E";
-    const CURVE_STETH_HOLDER = "0x56c915758Ad3f76Fd287FFF7563ee313142Fb663";
+    const CURVE_stETH_POOL = "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022";
+    const CURVE_stETH_TOKEN = "0x06325440D014e39736583c165C2963BA99fAf14E";
+    const CURVE_stETH_HOLDER = "0x56c915758Ad3f76Fd287FFF7563ee313142Fb663";
     const STETH = "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84";
     const STETH_HOLDER = "0x06920C9fC643De77B99cB7670A944AD31eaAA260";
     const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     const WETH_HOLDER = "0xE78388b4CE79068e89Bf8aA7f218eF6b9AB0e9d0";
 
     it("should succeed, when AddLiquidity ETH => steCRV", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const amountIn = ethers.utils.parseEther("10");
       const amountOut = ethers.utils.parseEther("9.668895315773807465");
 
-      const stecrv = await ethers.getContractAt("IERC20", CURVE_STETH_TOKEN, deployer);
+      const stecrv = await ethers.getContractAt("IERC20", CURVE_stETH_TOKEN, deployer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_STETH_POOL], [CURVE_STETH_TOKEN]);
-      await zap.updateRoute(WETH, CURVE_STETH_TOKEN, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+      await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
+      await zap.updateRoute(WETH, CURVE_stETH_TOKEN, [
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
       ]);
       await zap.deployed();
-      const output = await zap.callStatic.zap(WETH, amountIn, CURVE_STETH_TOKEN, amountOut, {
+      const output = await zap.callStatic.zap(WETH, amountIn, CURVE_stETH_TOKEN, amountOut, {
         value: amountIn,
       });
-      await zap.zap(WETH, amountIn, CURVE_STETH_TOKEN, amountOut, {
+      await zap.zap(WETH, amountIn, CURVE_stETH_TOKEN, amountOut, {
         value: amountIn,
       });
       expect(await stecrv.balanceOf(DEPLOYER)).to.eq(amountOut);
@@ -404,73 +405,73 @@ describe("AladdinZap.spec", async () => {
     });
 
     it("should succeed, when AddLiquidity WETH => steCRV", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL, WETH, WETH_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL, WETH, WETH_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const signer = await ethers.getSigner(WETH_HOLDER);
       const amountIn = ethers.utils.parseEther("10");
       const amountOut = ethers.utils.parseEther("9.668895315773807465");
 
-      const stecrv = await ethers.getContractAt("IERC20", CURVE_STETH_TOKEN, signer);
+      const stecrv = await ethers.getContractAt("IERC20", CURVE_stETH_TOKEN, signer);
       const weth = await ethers.getContractAt("IERC20", WETH, signer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_STETH_POOL], [CURVE_STETH_TOKEN]);
-      await zap.updateRoute(WETH, CURVE_STETH_TOKEN, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+      await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
+      await zap.updateRoute(WETH, CURVE_stETH_TOKEN, [
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
       ]);
       await zap.deployed();
       await weth.transfer(zap.address, amountIn);
-      const output = await zap.callStatic.zap(WETH, amountIn, CURVE_STETH_TOKEN, amountOut);
-      await zap.zap(WETH, amountIn, CURVE_STETH_TOKEN, amountOut);
+      const output = await zap.callStatic.zap(WETH, amountIn, CURVE_stETH_TOKEN, amountOut);
+      await zap.zap(WETH, amountIn, CURVE_stETH_TOKEN, amountOut);
       expect(await stecrv.balanceOf(DEPLOYER)).to.eq(amountOut);
       expect(output).to.eq(amountOut);
     });
 
     it("should succeed, when AddLiquidity stETH => steCRV", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL, STETH, STETH_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL, STETH, STETH_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const signer = await ethers.getSigner(STETH_HOLDER);
       const amountIn = ethers.utils.parseEther("10");
       const amountOut = ethers.utils.parseEther("9.661921478612428224");
 
-      const stecrv = await ethers.getContractAt("IERC20", CURVE_STETH_TOKEN, signer);
+      const stecrv = await ethers.getContractAt("IERC20", CURVE_stETH_TOKEN, signer);
       const steth = await ethers.getContractAt("IERC20", STETH, signer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_STETH_POOL], [CURVE_STETH_TOKEN]);
-      await zap.updateRoute(STETH, CURVE_STETH_TOKEN, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity),
+      await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
+      await zap.updateRoute(STETH, CURVE_stETH_TOKEN, [
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity),
       ]);
       await zap.deployed();
       await steth.transfer(zap.address, amountIn);
-      const output = await zap.callStatic.zap(STETH, amountIn, CURVE_STETH_TOKEN, amountOut);
-      await zap.zap(STETH, amountIn, CURVE_STETH_TOKEN, amountOut);
+      const output = await zap.callStatic.zap(STETH, amountIn, CURVE_stETH_TOKEN, amountOut);
+      await zap.zap(STETH, amountIn, CURVE_stETH_TOKEN, amountOut);
       expect(await stecrv.balanceOf(DEPLOYER)).to.eq(amountOut);
       expect(output).to.eq(amountOut);
     });
 
     it("should succeed, when RemoveLiquidity steCRV => ETH", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL, CURVE_STETH_TOKEN, CURVE_STETH_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL, CURVE_stETH_TOKEN, CURVE_stETH_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
-      const signer = await ethers.getSigner(CURVE_STETH_HOLDER);
+      const signer = await ethers.getSigner(CURVE_stETH_HOLDER);
       const amountIn = ethers.utils.parseEther("10");
       const amountOut = ethers.utils.parseEther("10.338229483764242723");
 
-      const stecrv = await ethers.getContractAt("IERC20", CURVE_STETH_TOKEN, signer);
+      const stecrv = await ethers.getContractAt("IERC20", CURVE_stETH_TOKEN, signer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_STETH_POOL], [CURVE_STETH_TOKEN]);
-      await zap.updateRoute(CURVE_STETH_TOKEN, WETH, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+      await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
+      await zap.updateRoute(CURVE_stETH_TOKEN, WETH, [
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
       ]);
       await zap.deployed();
       await stecrv.transfer(zap.address, amountIn);
-      const output = await zap.callStatic.zap(CURVE_STETH_TOKEN, amountIn, constants.AddressZero, amountOut);
+      const output = await zap.callStatic.zap(CURVE_stETH_TOKEN, amountIn, constants.AddressZero, amountOut);
       const before = await deployer.getBalance();
-      const tx = await zap.zap(CURVE_STETH_TOKEN, amountIn, constants.AddressZero, amountOut);
+      const tx = await zap.zap(CURVE_stETH_TOKEN, amountIn, constants.AddressZero, amountOut);
       const receipt = await tx.wait();
       const after = await deployer.getBalance();
       expect(output).to.eq(amountOut);
@@ -478,59 +479,59 @@ describe("AladdinZap.spec", async () => {
     });
 
     it("should succeed, when RemoveLiquidity steCRV => WETH", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL, CURVE_STETH_TOKEN, CURVE_STETH_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL, CURVE_stETH_TOKEN, CURVE_stETH_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
-      const signer = await ethers.getSigner(CURVE_STETH_HOLDER);
+      const signer = await ethers.getSigner(CURVE_stETH_HOLDER);
       const amountIn = ethers.utils.parseEther("10");
       const amountOut = ethers.utils.parseEther("10.338229483764242723");
 
-      const stecrv = await ethers.getContractAt("IERC20", CURVE_STETH_TOKEN, signer);
+      const stecrv = await ethers.getContractAt("IERC20", CURVE_stETH_TOKEN, signer);
       const weth = await ethers.getContractAt("IERC20", WETH, signer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_STETH_POOL], [CURVE_STETH_TOKEN]);
-      await zap.updateRoute(CURVE_STETH_TOKEN, WETH, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+      await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
+      await zap.updateRoute(CURVE_stETH_TOKEN, WETH, [
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
       ]);
       await zap.deployed();
       await stecrv.transfer(zap.address, amountIn);
-      const output = await zap.callStatic.zap(CURVE_STETH_TOKEN, amountIn, WETH, amountOut);
+      const output = await zap.callStatic.zap(CURVE_stETH_TOKEN, amountIn, WETH, amountOut);
       const before = await weth.balanceOf(deployer.address);
-      await zap.zap(CURVE_STETH_TOKEN, amountIn, WETH, amountOut);
+      await zap.zap(CURVE_stETH_TOKEN, amountIn, WETH, amountOut);
       const after = await weth.balanceOf(deployer.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before)).to.eq(amountOut);
     });
 
     it("should succeed, when RemoveLiquidity steCRV => stETH", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL, CURVE_STETH_TOKEN, CURVE_STETH_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL, CURVE_stETH_TOKEN, CURVE_stETH_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
-      const signer = await ethers.getSigner(CURVE_STETH_HOLDER);
+      const signer = await ethers.getSigner(CURVE_stETH_HOLDER);
       const amountIn = ethers.utils.parseEther("10");
       const amountOut = ethers.utils.parseEther("10.345842327893113486");
 
-      const stecrv = await ethers.getContractAt("IERC20", CURVE_STETH_TOKEN, signer);
+      const stecrv = await ethers.getContractAt("IERC20", CURVE_stETH_TOKEN, signer);
       const steth = await ethers.getContractAt("IERC20", STETH, signer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_STETH_POOL], [CURVE_STETH_TOKEN]);
-      await zap.updateRoute(CURVE_STETH_TOKEN, STETH, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity),
+      await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
+      await zap.updateRoute(CURVE_stETH_TOKEN, STETH, [
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity),
       ]);
       await zap.deployed();
       await stecrv.transfer(zap.address, amountIn);
-      const output = await zap.callStatic.zap(CURVE_STETH_TOKEN, amountIn, STETH, amountOut);
+      const output = await zap.callStatic.zap(CURVE_stETH_TOKEN, amountIn, STETH, amountOut);
       const before = await steth.balanceOf(deployer.address);
-      await zap.zap(CURVE_STETH_TOKEN, amountIn, STETH, amountOut);
+      await zap.zap(CURVE_stETH_TOKEN, amountIn, STETH, amountOut);
       const after = await steth.balanceOf(deployer.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before).add(1)).to.eq(amountOut); // steth has some rounding error
     });
 
     it("should succeed, when Swap ETH => stETH", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const amountIn = ethers.utils.parseEther("10");
       const amountOut = ethers.utils.parseEther("10.003284637254618581");
@@ -540,7 +541,7 @@ describe("AladdinZap.spec", async () => {
       const zap = await AladdinZap.deploy();
       await zap.initialize();
       await zap.updateRoute(WETH, STETH, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
       ]);
       await zap.deployed();
       const output = await zap.callStatic.zap(WETH, amountIn, STETH, amountOut, { value: amountIn });
@@ -552,7 +553,7 @@ describe("AladdinZap.spec", async () => {
     });
 
     it("should succeed, when Swap WETH => stETH", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL, WETH, WETH_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL, WETH, WETH_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const signer = await ethers.getSigner(WETH_HOLDER);
       const amountIn = ethers.utils.parseEther("10");
@@ -564,7 +565,7 @@ describe("AladdinZap.spec", async () => {
       const zap = await AladdinZap.deploy();
       await zap.initialize();
       await zap.updateRoute(WETH, STETH, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
       ]);
       await zap.deployed();
       await weth.transfer(zap.address, amountIn);
@@ -577,7 +578,7 @@ describe("AladdinZap.spec", async () => {
     });
 
     it("should succeed, when Swap stETH => WETH", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL, STETH, STETH_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL, STETH, STETH_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const signer = await ethers.getSigner(STETH_HOLDER);
       const amountIn = ethers.utils.parseEther("10");
@@ -589,7 +590,7 @@ describe("AladdinZap.spec", async () => {
       const zap = await AladdinZap.deploy();
       await zap.initialize();
       await zap.updateRoute(STETH, WETH, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
       ]);
       await zap.deployed();
       await steth.transfer(zap.address, amountIn);
@@ -602,7 +603,7 @@ describe("AladdinZap.spec", async () => {
     });
 
     it("should succeed, when Swap stETH => ETH", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_STETH_POOL, STETH, STETH_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_stETH_POOL, STETH, STETH_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const signer = await ethers.getSigner(STETH_HOLDER);
       const amountIn = ethers.utils.parseEther("10");
@@ -613,7 +614,7 @@ describe("AladdinZap.spec", async () => {
       const zap = await AladdinZap.deploy();
       await zap.initialize();
       await zap.updateRoute(STETH, WETH, [
-        encodePoolHintV2(CURVE_STETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
       ]);
       await zap.deployed();
       await steth.transfer(zap.address, amountIn);
@@ -1160,120 +1161,120 @@ describe("AladdinZap.spec", async () => {
   describe("curve cvxfxs pool [CurveCryptoPool Factory]", async () => {
     // override fork number, since this pool doesn't exsit at original block
     const FORK_BLOCK_NUMBER = 14386700;
-    const CURVE_CVXFXS_POOL = "0xd658A338613198204DCa1143Ac3F01A722b5d94A";
-    const CURVE_CVXFXS_TOKEN = "0xF3A43307DcAFa93275993862Aae628fCB50dC768";
-    const CURVE_CVXFXS_HOLDER = "0x289c23Cd7cACAFD4bFee6344EF376FA14f1bF42D";
+    const CURVE_cvxFXS_POOL = "0xd658A338613198204DCa1143Ac3F01A722b5d94A";
+    const CURVE_cvxFXS_TOKEN = "0xF3A43307DcAFa93275993862Aae628fCB50dC768";
+    const CURVE_cvxFXS_HOLDER = "0x289c23Cd7cACAFD4bFee6344EF376FA14f1bF42D";
     const CVXFXS = "0xFEEf77d3f69374f66429C91d732A244f074bdf74";
     const CVXFXS_HOLDER = "0x5028D77B91a3754fb38B2FBB726AF02d1FE44Db6";
     const FXS = "0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0";
     const FXS_HOLDER = "0xF977814e90dA44bFA03b6295A0616a897441aceC";
 
     it("should succeed, when AddLiquidity FXS => Curve cvxfxs Pool", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_CVXFXS_POOL, FXS, FXS_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_cvxFXS_POOL, FXS, FXS_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const signer = await ethers.getSigner(FXS_HOLDER);
       const amountIn = ethers.utils.parseEther("100");
       const amountOut = ethers.utils.parseEther("51.029733163247604572");
 
-      const cvxfxscrv = await ethers.getContractAt("IERC20", CURVE_CVXFXS_TOKEN, signer);
+      const cvxfxscrv = await ethers.getContractAt("IERC20", CURVE_cvxFXS_TOKEN, signer);
       const fxs = await ethers.getContractAt("IERC20", FXS, signer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_CVXFXS_POOL], [CURVE_CVXFXS_TOKEN]);
-      await zap.updateRoute(FXS, CURVE_CVXFXS_TOKEN, [
-        encodePoolHintV2(CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+      await zap.updatePoolTokens([CURVE_cvxFXS_POOL], [CURVE_cvxFXS_TOKEN]);
+      await zap.updateRoute(FXS, CURVE_cvxFXS_TOKEN, [
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
       ]);
       await zap.deployed();
       await fxs.transfer(zap.address, amountIn);
-      const output = await zap.callStatic.zap(FXS, amountIn, CURVE_CVXFXS_TOKEN, amountOut);
+      const output = await zap.callStatic.zap(FXS, amountIn, CURVE_cvxFXS_TOKEN, amountOut);
       const before = await cvxfxscrv.balanceOf(deployer.address);
-      await zap.zap(FXS, amountIn, CURVE_CVXFXS_TOKEN, amountOut);
+      await zap.zap(FXS, amountIn, CURVE_cvxFXS_TOKEN, amountOut);
       const after = await cvxfxscrv.balanceOf(deployer.address);
       expect(after.sub(before)).to.eq(amountOut);
       expect(output).to.eq(amountOut);
     });
 
     it("should succeed, when AddLiquidity CVXFXS => Curve cvxfxs Pool", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_CVXFXS_POOL, CVXFXS, CVXFXS_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_cvxFXS_POOL, CVXFXS, CVXFXS_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const signer = await ethers.getSigner(CVXFXS_HOLDER);
       const amountIn = ethers.utils.parseEther("100");
       const amountOut = ethers.utils.parseEther("48.914033769572423682");
 
-      const cvxfxscrv = await ethers.getContractAt("IERC20", CURVE_CVXFXS_TOKEN, signer);
+      const cvxfxscrv = await ethers.getContractAt("IERC20", CURVE_cvxFXS_TOKEN, signer);
       const cvxfxs = await ethers.getContractAt("IERC20", CVXFXS, signer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_CVXFXS_POOL], [CURVE_CVXFXS_TOKEN]);
-      await zap.updateRoute(CVXFXS, CURVE_CVXFXS_TOKEN, [
-        encodePoolHintV2(CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+      await zap.updatePoolTokens([CURVE_cvxFXS_POOL], [CURVE_cvxFXS_TOKEN]);
+      await zap.updateRoute(CVXFXS, CURVE_cvxFXS_TOKEN, [
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
       ]);
       await zap.deployed();
       await cvxfxs.transfer(zap.address, amountIn);
-      const output = await zap.callStatic.zap(CVXFXS, amountIn, CURVE_CVXFXS_TOKEN, amountOut);
+      const output = await zap.callStatic.zap(CVXFXS, amountIn, CURVE_cvxFXS_TOKEN, amountOut);
       const before = await cvxfxscrv.balanceOf(deployer.address);
-      await zap.zap(CVXFXS, amountIn, CURVE_CVXFXS_TOKEN, amountOut);
+      await zap.zap(CVXFXS, amountIn, CURVE_cvxFXS_TOKEN, amountOut);
       const after = await cvxfxscrv.balanceOf(deployer.address);
       expect(after.sub(before)).to.eq(amountOut);
       expect(output).to.eq(amountOut);
     });
 
     it("should succeed, when RemoveLiquidity Curve cvxfxs Pool => FXS", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_CVXFXS_POOL, CURVE_CVXFXS_TOKEN, CURVE_CVXFXS_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_cvxFXS_POOL, CURVE_cvxFXS_TOKEN, CURVE_cvxFXS_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
-      const signer = await ethers.getSigner(CURVE_CVXFXS_HOLDER);
+      const signer = await ethers.getSigner(CURVE_cvxFXS_HOLDER);
       const amountIn = ethers.utils.parseEther("50");
       const amountOut = ethers.utils.parseEther("97.691736873124356606");
 
-      const cvxfxscrv = await ethers.getContractAt("IERC20", CURVE_CVXFXS_TOKEN, signer);
+      const cvxfxscrv = await ethers.getContractAt("IERC20", CURVE_cvxFXS_TOKEN, signer);
       const fxs = await ethers.getContractAt("IERC20", FXS, signer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_CVXFXS_POOL], [CURVE_CVXFXS_TOKEN]);
-      await zap.updateRoute(CURVE_CVXFXS_TOKEN, FXS, [
-        encodePoolHintV2(CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+      await zap.updatePoolTokens([CURVE_cvxFXS_POOL], [CURVE_cvxFXS_TOKEN]);
+      await zap.updateRoute(CURVE_cvxFXS_TOKEN, FXS, [
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
       ]);
       await zap.deployed();
       await cvxfxscrv.transfer(zap.address, amountIn);
-      const output = await zap.callStatic.zap(CURVE_CVXFXS_TOKEN, amountIn, FXS, amountOut);
+      const output = await zap.callStatic.zap(CURVE_cvxFXS_TOKEN, amountIn, FXS, amountOut);
       const before = await fxs.balanceOf(deployer.address);
-      await zap.zap(CURVE_CVXFXS_TOKEN, amountIn, FXS, amountOut);
+      await zap.zap(CURVE_cvxFXS_TOKEN, amountIn, FXS, amountOut);
       const after = await fxs.balanceOf(deployer.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before)).to.eq(amountOut);
     });
 
     it("should succeed, when RemoveLiquidity Curve cvxfxs Pool => CVXFXS", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_CVXFXS_POOL, CURVE_CVXFXS_TOKEN, CURVE_CVXFXS_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_cvxFXS_POOL, CURVE_cvxFXS_TOKEN, CURVE_cvxFXS_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
-      const signer = await ethers.getSigner(CURVE_CVXFXS_HOLDER);
+      const signer = await ethers.getSigner(CURVE_cvxFXS_HOLDER);
       const amountIn = ethers.utils.parseEther("50");
       const amountOut = ethers.utils.parseEther("101.917549894100147150");
 
-      const cvxfxscrv = await ethers.getContractAt("IERC20", CURVE_CVXFXS_TOKEN, signer);
+      const cvxfxscrv = await ethers.getContractAt("IERC20", CURVE_cvxFXS_TOKEN, signer);
       const cvxfxs = await ethers.getContractAt("IERC20", CVXFXS, signer);
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updatePoolTokens([CURVE_CVXFXS_POOL], [CURVE_CVXFXS_TOKEN]);
-      await zap.updateRoute(CURVE_CVXFXS_TOKEN, CVXFXS, [
-        encodePoolHintV2(CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+      await zap.updatePoolTokens([CURVE_cvxFXS_POOL], [CURVE_cvxFXS_TOKEN]);
+      await zap.updateRoute(CURVE_cvxFXS_TOKEN, CVXFXS, [
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
       ]);
       await zap.deployed();
       await cvxfxscrv.transfer(zap.address, amountIn);
-      const output = await zap.callStatic.zap(CURVE_CVXFXS_TOKEN, amountIn, CVXFXS, amountOut);
+      const output = await zap.callStatic.zap(CURVE_cvxFXS_TOKEN, amountIn, CVXFXS, amountOut);
       const before = await cvxfxs.balanceOf(deployer.address);
-      await zap.zap(CURVE_CVXFXS_TOKEN, amountIn, CVXFXS, amountOut);
+      await zap.zap(CURVE_cvxFXS_TOKEN, amountIn, CVXFXS, amountOut);
       const after = await cvxfxs.balanceOf(deployer.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before)).to.eq(amountOut);
     });
 
     it("should succeed, when Swap FXS => CVXFXS", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_CVXFXS_POOL, FXS, FXS_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_cvxFXS_POOL, FXS, FXS_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const signer = await ethers.getSigner(FXS_HOLDER);
       const amountIn = ethers.utils.parseEther("100");
@@ -1285,7 +1286,7 @@ describe("AladdinZap.spec", async () => {
       const zap = await AladdinZap.deploy();
       await zap.initialize();
       await zap.updateRoute(FXS, CVXFXS, [
-        encodePoolHintV2(CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
       ]);
       await zap.deployed();
       await fxs.transfer(zap.address, amountIn);
@@ -1298,7 +1299,7 @@ describe("AladdinZap.spec", async () => {
     });
 
     it("should succeed, when Swap CVXFXS => FXS", async () => {
-      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_CVXFXS_POOL, CVXFXS, CVXFXS_HOLDER]);
+      request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CURVE_cvxFXS_POOL, CVXFXS, CVXFXS_HOLDER]);
       const deployer = await ethers.getSigner(DEPLOYER);
       const signer = await ethers.getSigner(CVXFXS_HOLDER);
       const amountIn = ethers.utils.parseEther("100");
@@ -1310,7 +1311,7 @@ describe("AladdinZap.spec", async () => {
       const zap = await AladdinZap.deploy();
       await zap.initialize();
       await zap.updateRoute(CVXFXS, FXS, [
-        encodePoolHintV2(CURVE_CVXFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
       ]);
       await zap.deployed();
       await cvxfxs.transfer(zap.address, amountIn);

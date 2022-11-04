@@ -22,10 +22,10 @@ contract AladdinFXS is AladdinCompounder {
   event UpdateZap(address _zap);
 
   /// @dev The address of Curve cvxfxs pool.
-  address private constant CURVE_CVXFXS_POOL = 0xd658A338613198204DCa1143Ac3F01A722b5d94A;
+  address private constant CURVE_cvxFXS_POOL = 0xd658A338613198204DCa1143Ac3F01A722b5d94A;
 
   /// @dev The address of Curve cvxfxs pool token.
-  address private constant CURVE_CVXFXS_TOKEN = 0xF3A43307DcAFa93275993862Aae628fCB50dC768;
+  address private constant CURVE_cvxFXS_TOKEN = 0xF3A43307DcAFa93275993862Aae628fCB50dC768;
 
   /// @dev The address of FXS token.
   address private constant FXS = 0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0;
@@ -38,7 +38,7 @@ contract AladdinFXS is AladdinCompounder {
   address private constant BOOSTER = 0xF403C135812408BFbE8713b5A23a04b3D48AAE31;
 
   /// @dev The pool id of cvxFXS-f pool in Convex Booster.
-  uint256 private constant CURVE_CVXFXS_POOLID = 72;
+  uint256 private constant CURVE_cvxFXS_POOLID = 72;
 
   /// @dev The address of cvxFXS/FXS-f reward contract.
   address private constant CONVEX_REWARDER = 0xf27AFAD0142393e4b3E5510aBc5fe3743Ad669Cb;
@@ -60,14 +60,14 @@ contract AladdinFXS is AladdinCompounder {
     zap = _zap;
     rewards = _rewards;
 
-    IERC20Upgradeable(FXS).safeApprove(CURVE_CVXFXS_POOL, uint256(-1));
+    IERC20Upgradeable(FXS).safeApprove(CURVE_cvxFXS_POOL, uint256(-1));
   }
 
   /********************************** View Functions **********************************/
 
   /// @inheritdoc IAladdinCompounder
   function asset() public pure override returns (address) {
-    return CURVE_CVXFXS_TOKEN;
+    return CURVE_cvxFXS_TOKEN;
   }
 
   /********************************** Mutated Functions **********************************/
@@ -97,7 +97,7 @@ contract AladdinFXS is AladdinCompounder {
         uint256 _pending = IERC20Upgradeable(_token).balanceOf(address(this)).sub(_balances[i]);
         if (_token == cvxFXS) {
           _amounts[1] += _pending;
-        } else if (_token == CURVE_CVXFXS_TOKEN) {
+        } else if (_token == CURVE_cvxFXS_TOKEN) {
           _amountLP += _pending;
         } else if (_token == FXS) {
           _amounts[0] += _pending;
@@ -107,7 +107,7 @@ contract AladdinFXS is AladdinCompounder {
         }
       }
       if (_amounts[0] > 0 || _amounts[1] > 0) {
-        _amountLP = _amountLP.add(ICurveCryptoPool(CURVE_CVXFXS_POOL).add_liquidity(_amounts, 0));
+        _amountLP = _amountLP.add(ICurveCryptoPool(CURVE_cvxFXS_POOL).add_liquidity(_amounts, 0));
       }
     }
     require(_amountLP >= _minAssets, "aFXS: insufficient rewards");
@@ -234,9 +234,9 @@ contract AladdinFXS is AladdinCompounder {
   /// @param _amount The amount of assets to deposit.
   function _depositToConvex(uint256 _amount) internal {
     // @todo should do lazy deposit
-    IERC20Upgradeable(CURVE_CVXFXS_TOKEN).safeApprove(BOOSTER, 0);
-    IERC20Upgradeable(CURVE_CVXFXS_TOKEN).safeApprove(BOOSTER, _amount);
-    IConvexBooster(BOOSTER).deposit(CURVE_CVXFXS_POOLID, _amount, true);
+    IERC20Upgradeable(CURVE_cvxFXS_TOKEN).safeApprove(BOOSTER, 0);
+    IERC20Upgradeable(CURVE_cvxFXS_TOKEN).safeApprove(BOOSTER, _amount);
+    IConvexBooster(BOOSTER).deposit(CURVE_cvxFXS_POOLID, _amount, true);
   }
 
   /// @dev Internal function to withdraw assets from Convex Booster.
@@ -244,6 +244,6 @@ contract AladdinFXS is AladdinCompounder {
   /// @param _receiver The address of the account to receive the assets.
   function _withdrawFromConvex(uint256 _amount, address _receiver) internal {
     IConvexBasicRewards(CONVEX_REWARDER).withdrawAndUnwrap(_amount, false);
-    IERC20Upgradeable(CURVE_CVXFXS_TOKEN).safeTransfer(_receiver, _amount);
+    IERC20Upgradeable(CURVE_cvxFXS_TOKEN).safeTransfer(_receiver, _amount);
   }
 }

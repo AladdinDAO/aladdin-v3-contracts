@@ -17,8 +17,8 @@ const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const ZAP = "0x1104b4DF568fa7Af90B1Bed1D78A2F71e748dc8a";
 
 // pid = 0
-const CURVE_STETH_TOKEN = "0x06325440D014e39736583c165C2963BA99fAf14E";
-const CURVE_STETH_HOLDER = "0x56c915758Ad3f76Fd287FFF7563ee313142Fb663";
+const CURVE_stETH_TOKEN = "0x06325440D014e39736583c165C2963BA99fAf14E";
+const CURVE_stETH_HOLDER = "0x56c915758Ad3f76Fd287FFF7563ee313142Fb663";
 // pid = 1
 const CURVE_FRAX3CRV_TOKEN = "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B";
 const CURVE_FRAX3CRV_HOLDER = "0x47Bc10781E8f71c0e7cf97B0a5a88F4CFfF21309";
@@ -35,8 +35,8 @@ const CURVE_CRVETH_HOLDER = "0x279a7DBFaE376427FFac52fcb0883147D42165FF";
 const CURVE_CVXETH_TOKEN = "0x3A283D9c08E8b55966afb64C515f5143cf907611";
 const CURVE_CVXETH_HOLDER = "0x38eE5F5A39c01cB43473992C12936ba1219711ab";
 // pid = 6
-const CURVE_CVXFXS_TOKEN = "0xF3A43307DcAFa93275993862Aae628fCB50dC768";
-const CURVE_CVXFXS_HOLDER = "0xdc88d12721F9cA1404e9e6E6389aE0AbDd54fc6C";
+const CURVE_cvxFXS_TOKEN = "0xF3A43307DcAFa93275993862Aae628fCB50dC768";
+const CURVE_cvxFXS_HOLDER = "0xdc88d12721F9cA1404e9e6E6389aE0AbDd54fc6C";
 // pid = 7
 const CURVE_TRICRV_TOKEN = "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490";
 const CURVE_TRICRV_HOLDER = "0x5c00977a2002a3C9925dFDfb6815765F578a804f";
@@ -103,14 +103,14 @@ describe("AladdinCRVConvexVault.deploy.14491915.spec", async () => {
       CRV_HOLDER,
       CVXCRV_HOLDER,
       CVX_HOLDER,
-      CURVE_STETH_HOLDER,
+      CURVE_stETH_HOLDER,
       CURVE_FRAX3CRV_HOLDER,
       CURVE_TRICRYPTO_HOLDER,
       CURVE_CVXCRV_HOLDER,
       CURVE_CRVETH_HOLDER,
       CURVE_CVXETH_HOLDER,
       CURVE_TRICRV_HOLDER,
-      CURVE_CVXFXS_HOLDER,
+      CURVE_cvxFXS_HOLDER,
       CURVE_ROCKETETH_HOLDER,
       CURVE_UST_WORMHOLE_HOLDER,
       rETH_HOLDER,
@@ -195,12 +195,12 @@ describe("AladdinCRVConvexVault.deploy.14491915.spec", async () => {
       let signer: SignerWithAddress;
 
       beforeEach(async () => {
-        signer = await ethers.getSigner(CURVE_STETH_HOLDER);
-        const stecrv = await ethers.getContractAt("IERC20", CURVE_STETH_TOKEN, signer);
+        signer = await ethers.getSigner(CURVE_stETH_HOLDER);
+        const stecrv = await ethers.getContractAt("IERC20", CURVE_stETH_TOKEN, signer);
         await stecrv.approve(vault.address, constants.MaxUint256);
         await vault
           .connect(signer)
-          ["zapAndDeposit(uint256,address,uint256,uint256)"](pid, CURVE_STETH_TOKEN, ethers.utils.parseEther("10"), 0);
+          ["zapAndDeposit(uint256,address,uint256,uint256)"](pid, CURVE_stETH_TOKEN, ethers.utils.parseEther("10"), 0);
       });
 
       it("should succeed, when harvest", async () => {
@@ -870,16 +870,16 @@ describe("AladdinCRVConvexVault.deploy.14491915.spec", async () => {
       let signer: SignerWithAddress;
 
       beforeEach(async () => {
-        signer = await ethers.getSigner(CURVE_CVXFXS_HOLDER);
+        signer = await ethers.getSigner(CURVE_cvxFXS_HOLDER);
         await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
 
-        const cvxfxs = await ethers.getContractAt("IERC20", CURVE_CVXFXS_TOKEN, signer);
+        const cvxfxs = await ethers.getContractAt("IERC20", CURVE_cvxFXS_TOKEN, signer);
         await cvxfxs.approve(vault.address, constants.MaxUint256);
         await vault
           .connect(signer)
           ["zapAndDeposit(uint256,address,uint256,uint256)"](
             pid,
-            CURVE_CVXFXS_TOKEN,
+            CURVE_cvxFXS_TOKEN,
             ethers.utils.parseEther("100"),
             0
           );
