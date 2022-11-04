@@ -75,6 +75,13 @@ describe("ConcentratorIFOVault.add.15876065.spec", async () => {
       }
       console.log(`  "${name}": [`);
       Object.entries(config.deposit).forEach(([symbol, routes]) => {
+        if (symbol === "WETH") {
+          console.log(
+            `    {"symbol": "ETH", "address": "${constants.AddressZero}", "routes": [${routes
+              .map((x) => `"${x.toHexString()}"`)
+              .join(",")}]},`
+          );
+        }
         console.log(
           `    {"symbol": "${symbol}", "address": "${TOKENS[symbol].address}", "routes": [${routes
             .map((x) => `"${x.toHexString()}"`)

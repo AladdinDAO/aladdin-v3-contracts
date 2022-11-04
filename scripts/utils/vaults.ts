@@ -2178,9 +2178,9 @@ export const ACRV_IFO_VAULTS: {
   { name: "alusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 28
   { name: "tusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 29
   { name: "lusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 30
-  { name: "peth", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 31
-  { name: "cbeth", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 32
-  { name: "frxeth", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 33
+  { name: "peth", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 31
+  { name: "cbeth", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 32
+  { name: "frxeth", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 33
 ];
 
 export const AFXS_VAULTS: {
