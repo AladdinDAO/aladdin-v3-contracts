@@ -188,21 +188,14 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
 
   /// @inheritdoc IStakeDAOVault
   function deposit(uint256 _amount, address _recipient) external virtual override {
-    _checkpoint(_recipient);
-
     address _token = stakingToken;
     if (_amount == uint256(-1)) {
-      _amount = IERC20Upgradeable(_token).balanceOf(address(this));
+      _amount = IERC20Upgradeable(_token).balanceOf(msg.sender);
     }
-    address _gauge = gauge;
-    IERC20Upgradeable(_token).safeTransferFrom(msg.sender, _gauge, _amount);
-    uint256 _staked = IStakeDAOLockerProxy(stakeDAOProxy).deposit(_gauge, _token);
-    require(_staked >= _amount, "staked amount mismatch");
+    require(_amount > 0, "deposit zero amount");
 
-    userInfo[_recipient].balance += _amount;
-    totalSupply += _amount;
-
-    emit Deposit(msg.sender, _recipient, _amount);
+    IERC20Upgradeable(_token).safeTransferFrom(msg.sender, stakeDAOProxy, _amount);
+    _deposit(_amount, _recipient);
   }
 
   /// @inheritdoc IStakeDAOVault
@@ -214,6 +207,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
       _amount = _balance;
     }
     require(_amount <= _balance, "insufficient staked token");
+    require(_amount > 0, "withdraw zero amount");
 
     userInfo[_recipient].balance = _balance - _amount;
     totalSupply -= _amount;
@@ -418,6 +412,21 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
       );
       _userInfo.rewardPerSharePaid[_token] = _rewardInfo.accRewardPerShare;
     }
+  }
+
+  /// @dev Internal function to deposit staking token to proxy.
+  /// @param _amount The amount of staking token to deposit.
+  /// @param _recipient The address of recipient who will receive the deposited staking token.
+  function _deposit(uint256 _amount, address _recipient) internal {
+    _checkpoint(_recipient);
+
+    uint256 _staked = IStakeDAOLockerProxy(stakeDAOProxy).deposit(gauge, stakingToken);
+    require(_staked >= _amount, "staked amount mismatch");
+
+    userInfo[_recipient].balance += _amount;
+    totalSupply += _amount;
+
+    emit Deposit(msg.sender, _recipient, _amount);
   }
 
   /// @dev Internal function to distribute new harvested rewards.

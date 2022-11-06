@@ -6,86 +6,112 @@ pragma abicoder v2;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
+import "./interfaces/IStakeDAOCRVDepositor.sol";
+import "./interfaces/IStakeDAOCRVVault.sol";
+import "../../interfaces/ICurveFactoryPlainPool.sol";
+
+import "./SdCRVLocker.sol";
 import "./StakeDAOVaultBase.sol";
 
 // solhint-disable not-rely-on-time
 
-contract StakeDAOCRVVault is StakeDAOVaultBase {
+contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
   using SafeERC20Upgradeable for IERC20Upgradeable;
-
-  /// @notice Emmited when someone withdraw staking token from contract.
-  /// @param _owner The address of the owner of the staking token.
-  /// @param _recipient The address of the recipient of the locked staking token.
-  /// @param _amount The amount of staking token withdrawn.
-  /// @param _expiredAt The timestamp in second then the lock expired
-  event Lock(address indexed _owner, address indexed _recipient, uint256 _amount, uint256 _expiredAt);
-
-  /// @notice Emitted when someone withdraw expired locked staking token.
-  /// @param _owner The address of the owner of the locked staking token.
-  /// @param _recipient The address of the recipient of the staking token.
-  /// @param _amount The amount of staking token withdrawn.
-  event WithdrawExpired(address indexed _owner, address indexed _recipient, uint256 _amount);
-
-  /// @notice Emitted when the withdraw lock time is updated.
-  /// @param _withdrawLockTime The new withdraw lock time in seconds.
-  event UpdateWithdrawLockTime(uint256 _withdrawLockTime);
-
-  /// @notice Emitted when someone harvest pending sdCRV bribe rewards.
-  /// @param _token The address of the reward token.
-  /// @param _reward The amount of harvested rewards.
-  /// @param _platformFee The amount of platform fee taken.
-  /// @param _boostFee The amount SDT for veSDT boost delegation fee.
-  event HarvestBribe(address _token, uint256 _reward, uint256 _platformFee, uint256 _boostFee);
-
-  /// @dev Compiler will pack this into single `uint256`.
-  struct LockedBalance {
-    // The amount of staking token locked.
-    uint128 amount;
-    // The timestamp in seconds when the lock expired.
-    uint128 expireAt;
-  }
 
   /// @dev The minimum number of seconds needed to lock.
   uint256 private constant MIN_WITHDRAW_LOCK_TIME = 86400;
 
-  /// @notice The number of seconds to lock for withdrawing assets from the contract.
-  uint256 public withdrawLockTime;
+  /// @dev The address of CRV Token.
+  address private constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
 
-  /// @dev Mapping from user address to list of locked staking tokens.
-  mapping(address => LockedBalance[]) private locks;
+  /// @dev The address of legacy sdveCRV Token.
+  address private constant SD_VE_CRV = 0x478bBC744811eE8310B461514BDc29D03739084D;
 
-  /// @dev Mapping from user address to next index in `LockedBalance` lists.
-  mapping(address => uint256) private nextLockIndex;
+  /// @dev The address of StakeDAO CRV Depositor contract.
+  address private constant DEPOSITOR = 0xc1e3Ca8A3921719bE0aE3690A0e036feB4f69191;
+
+  /// @dev The address of Curve CRV/sdCRV factory plain pool.
+  address private constant CURVE_POOL = 0xf7b55C3732aD8b2c2dA7c24f30A69f55c54FB717;
+
+  /// @dev The number of seconds to lock for withdrawing assets from the contract.
+  uint256 private _withdrawLockTime;
 
   /********************************** Constructor **********************************/
 
   constructor(address _stakeDAOProxy, address _delegation) StakeDAOVaultBase(_stakeDAOProxy, _delegation) {}
 
-  function _initialize(address _gauge, uint256 _withdrawLockTime) external initializer {
+  function _initialize(address _gauge, uint256 __withdrawLockTime) external initializer {
     require(_withdrawLockTime >= MIN_WITHDRAW_LOCK_TIME, "lock time too small");
 
     StakeDAOVaultBase._initialize(_gauge);
 
-    withdrawLockTime = _withdrawLockTime;
+    _withdrawLockTime = __withdrawLockTime;
   }
 
   /********************************** View Functions **********************************/
 
-  /// @notice Return the list of locked staking token in the contract.
-  /// @param _user The address of user to query.
-  function getUserLocks(address _user) external view returns (LockedBalance[] memory _locks) {
-    uint256 _nextIndex = nextLockIndex[_user];
-    uint256 _length = locks[_user].length;
-    _locks = new LockedBalance[](_length - _nextIndex);
-    for (uint256 i = _nextIndex; i < _length; i++) {
-      _locks[i - _nextIndex] = locks[_user][i];
-    }
+  /// @inheritdoc SdCRVLocker
+  function withdrawLockTime() public view override returns (uint256) {
+    return _withdrawLockTime;
   }
 
   /********************************** Mutated Functions **********************************/
 
+  /// @inheritdoc IStakeDAOCRVVault
+  function depositWithCRV(
+    uint256 _amount,
+    address _recipient,
+    uint256 _minOut
+  ) external override returns (uint256 _amountOut) {
+    if (_amount == uint256(-1)) {
+      _amount = IERC20Upgradeable(CRV).balanceOf(msg.sender);
+    }
+    require(_amount > 0, "deposit zero amount");
+
+    IERC20Upgradeable(CRV).safeTransferFrom(msg.sender, address(this), _amount);
+
+    // swap to sdCRV
+    uint256 _lockReturn = _amount + IStakeDAOCRVDepositor(DEPOSITOR).incentiveToken();
+    uint256 _swapReturn = ICurveFactoryPlainPool(CURVE_POOL).get_dy(0, 1, _amount);
+    if (_lockReturn >= _swapReturn) {
+      IERC20Upgradeable(CRV).safeApprove(DEPOSITOR, 0);
+      IERC20Upgradeable(CRV).safeApprove(DEPOSITOR, _amount);
+      IStakeDAOCRVDepositor(DEPOSITOR).deposit(_amount, true, false, stakeDAOProxy);
+      _amountOut = _lockReturn;
+    } else {
+      IERC20Upgradeable(CRV).safeApprove(CURVE_POOL, 0);
+      IERC20Upgradeable(CRV).safeApprove(CURVE_POOL, _amount);
+      _amountOut = ICurveFactoryPlainPool(CURVE_POOL).exchange(0, 1, _amount, 0, stakeDAOProxy);
+    }
+    require(_amountOut >= _minOut, "insufficient amount out");
+
+    // deposit
+    _deposit(_amountOut, _recipient);
+  }
+
+  /// @inheritdoc IStakeDAOCRVVault
+  function depositWithSdVeCRV(uint256 _amount, address _recipient) external override {
+    if (_amount == uint256(-1)) {
+      _amount = IERC20Upgradeable(SD_VE_CRV).balanceOf(msg.sender);
+    }
+    require(_amount > 0, "deposit zero amount");
+
+    IERC20Upgradeable(SD_VE_CRV).safeTransferFrom(msg.sender, address(this), _amount);
+
+    // lock to sdCRV
+    IERC20Upgradeable(SD_VE_CRV).safeApprove(DEPOSITOR, 0);
+    IERC20Upgradeable(SD_VE_CRV).safeApprove(DEPOSITOR, _amount);
+    IStakeDAOCRVDepositor(DEPOSITOR).lockSdveCrvToSdCrv(_amount);
+
+    // transfer to proxy
+    IERC20Upgradeable(stakingToken).safeTransfer(stakeDAOProxy, _amount);
+
+    // deposit
+    _deposit(_amount, _recipient);
+  }
+
   /// @inheritdoc IStakeDAOVault
-  function withdraw(uint256 _amount, address _recipient) external override {
+  function withdraw(uint256 _amount, address _recipient) external override(StakeDAOVaultBase, IStakeDAOVault) {
     _checkpoint(msg.sender);
 
     uint256 _balance = userInfo[_recipient].balance;
@@ -105,45 +131,13 @@ contract StakeDAOCRVVault is StakeDAOVaultBase {
       _amount -= _withdrawFee;
     }
 
-    uint256 _expiredAt = block.timestamp + withdrawLockTime;
-    locks[_recipient].push(LockedBalance({ amount: uint128(_amount), expireAt: uint128(_expiredAt) }));
-
-    emit Lock(msg.sender, _recipient, _amount, _expiredAt);
+    _lockToken(_amount, _recipient);
 
     emit Withdraw(msg.sender, _recipient, _amount, _withdrawFee);
   }
 
-  /// @notice Withdraw all expired locks from contract.
-  /// @param _user The address of user to withdraw.
-  /// @param _recipient The address of recipient who will receive the token.
-  /// @return _amount The amount of staking token withdrawn.
-  function withdrawExpired(address _user, address _recipient) external returns (uint256 _amount) {
-    if (_user != msg.sender) {
-      require(_recipient == _user, "withdraw from others to others");
-    }
-
-    LockedBalance[] storage _locks = locks[_user];
-    uint256 _nextIndex = nextLockIndex[_user];
-    uint256 _length = _locks.length;
-    while (_nextIndex < _length) {
-      LockedBalance memory _lock = _locks[_nextIndex];
-      if (_lock.expireAt > block.timestamp) break;
-      _amount += _lock.amount;
-
-      delete _locks[_nextIndex]; // clear to refund gas
-      _nextIndex += 1;
-    }
-    nextLockIndex[_user] = _nextIndex;
-
-    IStakeDAOLockerProxy(stakeDAOProxy).withdraw(gauge, stakingToken, _amount, _recipient);
-
-    emit WithdrawExpired(_user, _recipient, _amount);
-  }
-
-  /// @notice Harvest sdCRV bribes.
-  /// @dev No harvest bounty when others call this function.
-  /// @param _claims The claim parameters passing to StakeDAOMultiMerkleStash contract.
-  function harvestBribes(IStakeDAOMultiMerkleStash.claimParam[] memory _claims) external {
+  /// @inheritdoc IStakeDAOCRVVault
+  function harvestBribes(IStakeDAOMultiMerkleStash.claimParam[] memory _claims) external override {
     IStakeDAOLockerProxy(stakeDAOProxy).claimBribeRewards(_claims, address(this));
 
     FeeInfo memory _fee = feeInfo;
@@ -180,11 +174,11 @@ contract StakeDAOCRVVault is StakeDAOVaultBase {
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update the withdraw lock time.
-  /// @param _withdrawLockTime The new withdraw lock time in seconds.
-  function updateWithdrawLockTime(uint256 _withdrawLockTime) external onlyOwner {
+  /// @param __withdrawLockTime The new withdraw lock time in seconds.
+  function updateWithdrawLockTime(uint256 __withdrawLockTime) external onlyOwner {
     require(_withdrawLockTime >= MIN_WITHDRAW_LOCK_TIME, "lock time too small");
 
-    withdrawLockTime = _withdrawLockTime;
+    _withdrawLockTime = __withdrawLockTime;
 
     emit UpdateWithdrawLockTime(_withdrawLockTime);
   }
@@ -198,5 +192,10 @@ contract StakeDAOCRVVault is StakeDAOVaultBase {
       _checkpoint(SDT, userInfo[_user], userInfo[_user].balance);
     }
     return true;
+  }
+
+  /// @inheritdoc SdCRVLocker
+  function _unlockToken(uint256 _amount, address _recipient) internal override {
+    IStakeDAOLockerProxy(stakeDAOProxy).withdraw(gauge, stakingToken, _amount, _recipient);
   }
 }
