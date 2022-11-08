@@ -177,10 +177,18 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Return the total amount of free CVX in this contract, including staked in CVXRewardPool.
   /// @return The amount of CVX in this contract now.
   function totalCVXInPool() public view returns (uint256) {
+    LinearReward memory _info = rewardInfo;
+    uint256 _leftover = 0;
+    if (_info.periodLength != 0) {
+      if (block.timestamp < _info.finishAt) {
+        _leftover = (_info.finishAt - block.timestamp) * _info.ratePerSecond;
+      }
+    }
     return
-      IERC20Upgradeable(CVX).balanceOf(address(this)).add(
-        IConvexCVXRewardPool(CVX_REWARD_POOL).balanceOf(address(this))
-      );
+      IERC20Upgradeable(CVX)
+        .balanceOf(address(this))
+        .add(IConvexCVXRewardPool(CVX_REWARD_POOL).balanceOf(address(this)))
+        .sub(_leftover);
   }
 
   /********************************** Mutated Functions **********************************/

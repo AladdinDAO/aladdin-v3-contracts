@@ -177,8 +177,15 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
 
   /// @notice Return the total amount of free baseToken in this contract, including staked in YieldStrategy.
   function totalBaseTokenInPool() public view returns (uint256) {
+    uint256 _leftover = 0;
+    LinearReward memory _rewardInfo = rewardInfo;
+    if (_rewardInfo.periodLength != 0) {
+      if (block.timestamp < _rewardInfo.finishAt) {
+        _leftover = (_rewardInfo.finishAt - block.timestamp) * _rewardInfo.ratePerSecond;
+      }
+    }
     YieldInfo memory _info = yieldInfo;
-    uint256 _balanceInContract = IERC20Upgradeable(baseToken).balanceOf(address(this));
+    uint256 _balanceInContract = IERC20Upgradeable(baseToken).balanceOf(address(this)).sub(_leftover);
     if (_info.strategy == address(0)) {
       return _balanceInContract;
     } else {
