@@ -33,6 +33,18 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
   /// @dev The address of Curve CRV/sdCRV factory plain pool.
   address private constant CURVE_POOL = 0xf7b55C3732aD8b2c2dA7c24f30A69f55c54FB717;
 
+  /// @notice The name of the vault.
+  // solhint-disable-next-line const-name-snakecase
+  string public constant name = "Aladdin sdCRV Vault";
+
+  /// @notice The symbol of the vault.
+  // solhint-disable-next-line const-name-snakecase
+  string public constant symbol = "sdCRV-vault";
+
+  /// @notice The decimal of the vault share.
+  // solhint-disable-next-line const-name-snakecase
+  uint8 public constant decimals = 18;
+
   /// @dev The number of seconds to lock for withdrawing assets from the contract.
   uint256 private _withdrawLockTime;
 
