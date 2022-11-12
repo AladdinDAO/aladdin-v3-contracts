@@ -170,6 +170,10 @@ contract VeSDTDelegation is OwnableUpgradeable {
     _boost(_amount, _endtime, _recipient);
   }
 
+  /// @notice Claim SDT rewards for some user.
+  /// @param _user The address of user to claim.
+  /// @param _recipient The address of recipient who will receive the SDT.
+  /// @return The amount of SDT claimed.
   function claim(address _user, address _recipient) external returns (uint256) {
     if (_user != msg.sender) {
       require(_recipient == _user, "claim from others to others");
@@ -193,14 +197,18 @@ contract VeSDTDelegation is OwnableUpgradeable {
     // checkpoint weekly reward
     _checkpointReward(false);
 
-    // distribute reward
-    _claim(_user, _recipient);
+    // claim reward
+    return _claim(_user, _recipient);
   }
 
+  /// @notice Force checkpoint SDT reward status.
   function checkpointReward() external {
     _checkpointReward(true);
   }
 
+  /// @notice Force checkpoint user information.
+  /// @dev User `_user=address(0)` to checkpoint total supply.
+  /// @param _user The address of user to checkpoint.
   function checkpoint(address _user) external {
     Point memory p = boosts[_user];
     _checkpointWrite(_user, p);
@@ -209,6 +217,10 @@ contract VeSDTDelegation is OwnableUpgradeable {
 
   /********************************** Internal Functions **********************************/
 
+  /// @dev Internal function to update boost records
+  /// @param _amount The amount of veSDT to boost.
+  /// @param _endtime The timestamp in seconds when the boost will end.
+  /// @param _recipient The address of recipient who will receive the pool share.
   function _boost(
     uint256 _amount,
     uint256 _endtime,
@@ -232,6 +244,11 @@ contract VeSDTDelegation is OwnableUpgradeable {
     emit Boost(msg.sender, _recipient, _amount, _endtime);
   }
 
+  /// @dev Internal function to update veBoost point
+  /// @param _bias The bias delta of the point.
+  /// @param _slope The slope delta of the point.
+  /// @param _endtime The endtime in seconds for the boost.
+  /// @param _user The address of user to update.
   function _update(
     uint256 _bias,
     uint256 _slope,
@@ -251,6 +268,10 @@ contract VeSDTDelegation is OwnableUpgradeable {
     }
   }
 
+  /// @dev Internal function to claim user rewards.
+  /// @param _user The address of user to claim.
+  /// @param _recipient The address of recipient who will receive the SDT.
+  /// @return The amount of SDT claimed.
   function _claim(address _user, address _recipient) internal returns (uint256) {
     uint256 _index = claimIndex[_user];
     uint256 _lastTime = lastSDTReward.timestamp;
@@ -277,6 +298,9 @@ contract VeSDTDelegation is OwnableUpgradeable {
     return _amount;
   }
 
+  /// @dev Internal function to read checkpoint result without change state.
+  /// @param _user The address of user to checkpoint.
+  /// @return The result point for the user.
   function _checkpointRead(address _user) internal view returns (Point memory) {
     Point memory p = boosts[_user];
 
@@ -308,6 +332,8 @@ contract VeSDTDelegation is OwnableUpgradeable {
     return p;
   }
 
+  /// @dev Internal function to read checkpoint result and change state.
+  /// @param _user The address of user to checkpoint.
   function _checkpointWrite(address _user, Point memory p) internal {
     if (p.ts == 0) p.ts = uint32(block.timestamp);
     if (p.ts == block.timestamp) return;
@@ -336,6 +362,8 @@ contract VeSDTDelegation is OwnableUpgradeable {
     }
   }
 
+  /// @dev Internal function to checkpoint SDT rewards
+  /// @param _force Whether to do force checkpoint.
   function _checkpointReward(bool _force) internal {
     RewardData memory _last = lastSDTReward;
     // We only claim in the next week, so the update can delay 1 day.
