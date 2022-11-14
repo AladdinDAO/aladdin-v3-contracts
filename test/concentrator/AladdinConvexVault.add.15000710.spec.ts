@@ -19,10 +19,10 @@ const ZAP = "0x1104b4DF568fa7Af90B1Bed1D78A2F71e748dc8a";
 const ZAP_OWNER = "0x28c921adAC4c1072658eB01a28DA06b5F651eF62";
 
 // pid = 12
-const CURVE_SUSD_TOKEN = ADDRESS.CURVE_SUSD_TOKEN;
-const CURVE_SUSD_POOL = ADDRESS.CURVE_SUSD_POOL;
-const CURVE_SUSD_DEPOSIT = ADDRESS.CURVE_SUSD_DEPOSIT;
-const CURVE_SUSD_HOLDER = "0xa2747b3135e7b3c7af80d5b76f4d15385ae33def";
+const CURVE_sUSD_TOKEN = ADDRESS.CURVE_sUSD_TOKEN;
+const CURVE_sUSD_POOL = ADDRESS.CURVE_sUSD_POOL;
+const CURVE_sUSD_DEPOSIT = ADDRESS.CURVE_sUSD_DEPOSIT;
+const CURVE_sUSD_HOLDER = "0xa2747b3135e7b3c7af80d5b76f4d15385ae33def";
 // pid = 13
 const CURVE_SBTC_TOKEN = ADDRESS.CURVE_SBTC_TOKEN;
 const CURVE_SBTC_POOL = ADDRESS.CURVE_SBTC_POOL;
@@ -75,7 +75,7 @@ describe("VaultZapMainnetFork.spec", async () => {
       WBTC_HOLDER,
       sBTC_HOLDER,
       sETH_HOLDER,
-      CURVE_SUSD_HOLDER,
+      CURVE_sUSD_HOLDER,
       CURVE_SBTC_HOLDER,
       CURVE_SETH_HOLDER,
     ]);
@@ -116,12 +116,12 @@ describe("VaultZapMainnetFork.spec", async () => {
     await zap.updateRoute(ADDRESS.SNX, ADDRESS.WETH, routes);
     if (firstCall) {
       console.log(
-        `updatePoolTokens: pools[${CURVE_SUSD_POOL}, ${CURVE_SBTC_POOL}, ${CURVE_SETH_POOL}] tokens[${CURVE_SUSD_TOKEN},${CURVE_SBTC_TOKEN},${CURVE_SETH_TOKEN}]`
+        `updatePoolTokens: pools[${CURVE_sUSD_POOL}, ${CURVE_SBTC_POOL}, ${CURVE_SETH_POOL}] tokens[${CURVE_sUSD_TOKEN},${CURVE_SBTC_TOKEN},${CURVE_SETH_TOKEN}]`
       );
     }
     await zap.updatePoolTokens(
-      [CURVE_SUSD_DEPOSIT, CURVE_SUSD_POOL, CURVE_SBTC_POOL, CURVE_SETH_POOL],
-      [CURVE_SUSD_TOKEN, CURVE_SUSD_TOKEN, CURVE_SBTC_TOKEN, CURVE_SETH_TOKEN]
+      [CURVE_sUSD_DEPOSIT, CURVE_sUSD_POOL, CURVE_SBTC_POOL, CURVE_SETH_POOL],
+      [CURVE_sUSD_TOKEN, CURVE_sUSD_TOKEN, CURVE_SBTC_TOKEN, CURVE_SETH_TOKEN]
     );
 
     for (let index = 12; index <= 14; index++) {
@@ -245,15 +245,15 @@ describe("VaultZapMainnetFork.spec", async () => {
       let signer: SignerWithAddress;
 
       beforeEach(async () => {
-        signer = await ethers.getSigner(CURVE_SUSD_HOLDER);
+        signer = await ethers.getSigner(CURVE_sUSD_HOLDER);
         await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
-        const susdcrv = await ethers.getContractAt("IERC20", CURVE_SUSD_TOKEN, signer);
+        const susdcrv = await ethers.getContractAt("IERC20", CURVE_sUSD_TOKEN, signer);
         await susdcrv.approve(vault.address, constants.MaxUint256);
         await vault
           .connect(signer)
           ["zapAndDeposit(uint256,address,uint256,uint256)"](
             pid,
-            CURVE_SUSD_TOKEN,
+            CURVE_sUSD_TOKEN,
             ethers.utils.parseEther("10000"),
             0
           );
@@ -269,9 +269,9 @@ describe("VaultZapMainnetFork.spec", async () => {
 
       it("should succeed, when withdraw to lp Token", async () => {
         const amountOut = ethers.utils.parseUnits("10000", 18);
-        const susdcrv = await ethers.getContractAt("IERC20", CURVE_SUSD_TOKEN);
+        const susdcrv = await ethers.getContractAt("IERC20", CURVE_sUSD_TOKEN);
         const before = await susdcrv.balanceOf(signer.address);
-        await vault.connect(signer).withdrawAllAndZap(pid, CURVE_SUSD_TOKEN, amountOut);
+        await vault.connect(signer).withdrawAllAndZap(pid, CURVE_sUSD_TOKEN, amountOut);
         const after = await susdcrv.balanceOf(signer.address);
         expect(after.sub(before)).to.eq(amountOut);
       });

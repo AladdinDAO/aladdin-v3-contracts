@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
@@ -22,8 +23,8 @@ const cvxFXS_HOLDER = "0x6979e645b7cd48c7181ece3c931be9261394aa29";
 const CVX = TOKENS.CVX.address;
 const CRV = TOKENS.CRV.address;
 
-const CURVE_CVXFXS_TOKEN = ADDRESS.CURVE_CVXFXS_TOKEN;
-const CURVE_CVXFXS_HOLDER = "0xdc88d12721f9ca1404e9e6e6389ae0abdd54fc6c";
+const CURVE_cvxFXS_TOKEN = ADDRESS.CURVE_cvxFXS_TOKEN;
+const CURVE_cvxFXS_HOLDER = "0xdc88d12721f9ca1404e9e6e6389ae0abdd54fc6c";
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const REWARDER = "0xf27AFAD0142393e4b3E5510aBc5fe3743Ad669Cb";
@@ -43,7 +44,7 @@ describe("AladdinFXS.spec", async () => {
   beforeEach(async () => {
     request_fork(FORK_BLOCK_NUMBER, [
       DEPLOYER,
-      CURVE_CVXFXS_HOLDER,
+      CURVE_cvxFXS_HOLDER,
       WETH_HOLDER,
       USDC_HOLDER,
       FXS_HOLDER,
@@ -51,7 +52,7 @@ describe("AladdinFXS.spec", async () => {
       cvxFXS_HOLDER,
     ]);
     deployer = await ethers.getSigner(DEPLOYER);
-    signer = await ethers.getSigner(CURVE_CVXFXS_HOLDER);
+    signer = await ethers.getSigner(CURVE_cvxFXS_HOLDER);
     await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
 
     booster = await ethers.getContractAt("IConvexBooster", BOOSTER, deployer);
@@ -86,7 +87,7 @@ describe("AladdinFXS.spec", async () => {
   });
 
   it("should initialize correctly", async () => {
-    expect(await afxs.asset()).to.eq(CURVE_CVXFXS_TOKEN);
+    expect(await afxs.asset()).to.eq(CURVE_cvxFXS_TOKEN);
     expect(await afxs.totalSupply()).to.eq(constants.Zero);
     expect(await afxs.totalAssets()).to.eq(constants.Zero);
   });
@@ -195,7 +196,7 @@ describe("AladdinFXS.spec", async () => {
     let token: IERC20;
 
     beforeEach(async () => {
-      token = await ethers.getContractAt("IERC20", CURVE_CVXFXS_TOKEN, signer);
+      token = await ethers.getContractAt("IERC20", CURVE_cvxFXS_TOKEN, signer);
       await token.approve(afxs.address, constants.MaxUint256);
     });
 
