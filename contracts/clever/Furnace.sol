@@ -11,7 +11,7 @@ import "./interfaces/IFurnace.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
 import "../interfaces/IZap.sol";
 
-// solhint-disable reason-string
+// solhint-disable reason-string, not-rely-on-time, max-states-count
 
 contract Furnace is OwnableUpgradeable, IFurnace {
   using SafeMathUpgradeable for uint256;
@@ -25,9 +25,10 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   event UpdatePlatform(address indexed _platform);
   event UpdateZap(address indexed _zap);
   event UpdateGovernor(address indexed _governor);
+  event UpdatePeriodLength(uint256 _length);
 
   uint256 private constant E128 = 2**128;
-  uint256 private constant FEE_DENOMINATOR = 1e9;
+  uint256 private constant FEE_PRECISION = 1e9;
   uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
 
@@ -91,12 +92,28 @@ contract Furnace is OwnableUpgradeable, IFurnace {
 
   /// @dev The address of zap contract.
   address public zap;
-  /// @dev The percentage of rewards to take for platform on harvest
+  /// @dev The percentage of rewards to take for platform on harvest, multipled by 1e9.
   uint256 public platformFeePercentage;
-  /// @dev The percentage of rewards to take for caller on harvest
+  /// @dev The percentage of rewards to take for caller on harvest, multipled by 1e9.
   uint256 public harvestBountyPercentage;
   /// @dev The address of recipient of platform fee
   address public platform;
+
+  /// @dev Compiler will pack this into single `uint256`.
+  struct LinearReward {
+    // The number of debt token to pay each second.
+    uint128 ratePerSecond;
+    // The length of reward period in seconds.
+    // If the value is zero, the reward will be distributed immediately.
+    uint32 periodLength;
+    // The timesamp in seconds when reward is updated.
+    uint48 lastUpdate;
+    // The finish timestamp in seconds of current reward period.
+    uint48 finishAt;
+  }
+
+  /// @notice The reward distribute information.
+  LinearReward public rewardInfo;
 
   modifier onlyWhitelisted() {
     require(isWhitelisted[msg.sender], "Furnace: only whitelisted");
@@ -160,10 +177,18 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Return the total amount of free CVX in this contract, including staked in CVXRewardPool.
   /// @return The amount of CVX in this contract now.
   function totalCVXInPool() public view returns (uint256) {
+    LinearReward memory _info = rewardInfo;
+    uint256 _leftover = 0;
+    if (_info.periodLength != 0) {
+      if (block.timestamp < _info.finishAt) {
+        _leftover = (_info.finishAt - block.timestamp) * _info.ratePerSecond;
+      }
+    }
     return
-      IERC20Upgradeable(CVX).balanceOf(address(this)).add(
-        IConvexCVXRewardPool(CVX_REWARD_POOL).balanceOf(address(this))
-      );
+      IERC20Upgradeable(CVX)
+        .balanceOf(address(this))
+        .add(IConvexCVXRewardPool(CVX_REWARD_POOL).balanceOf(address(this)))
+        .sub(_leftover);
   }
 
   /********************************** Mutated Functions **********************************/
@@ -259,13 +284,13 @@ contract Furnace is OwnableUpgradeable, IFurnace {
       // 3. take platform fee and harvest bounty
       uint256 _platformFee = platformFeePercentage;
       if (_platformFee > 0) {
-        _platformFee = (_platformFee * _distributeAmount) / FEE_DENOMINATOR;
+        _platformFee = (_platformFee * _distributeAmount) / FEE_PRECISION;
         IERC20Upgradeable(CVX).safeTransfer(platform, _platformFee);
         _distributeAmount = _distributeAmount - _platformFee; // never overflow here
       }
       uint256 _harvestBounty = harvestBountyPercentage;
       if (_harvestBounty > 0) {
-        _harvestBounty = (_harvestBounty * _distributeAmount) / FEE_DENOMINATOR;
+        _harvestBounty = (_harvestBounty * _distributeAmount) / FEE_PRECISION;
         _distributeAmount = _distributeAmount - _harvestBounty; // never overflow here
         IERC20Upgradeable(CVX).safeTransfer(_recipient, _harvestBounty);
       }
@@ -274,6 +299,11 @@ contract Furnace is OwnableUpgradeable, IFurnace {
       _distribute(address(this), _distributeAmount);
     }
     return _amount;
+  }
+
+  /// @notice External helper function to update global debt.
+  function updatePendingDistribution() external {
+    _updatePendingDistribution();
   }
 
   /********************************** Restricted Functions **********************************/
@@ -303,7 +333,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Update stake percentage for CVX in this contract.
   /// @param _percentage The stake percentage to be updated, multipled by 1e9.
   function updateStakePercentage(uint256 _percentage) external onlyGovernorOrOwner {
-    require(_percentage <= FEE_DENOMINATOR, "Furnace: percentage too large");
+    require(_percentage <= FEE_PRECISION, "Furnace: percentage too large");
     stakePercentage = _percentage;
 
     emit UpdateStakePercentage(_percentage);
@@ -320,7 +350,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Update the platform fee percentage.
   /// @param _feePercentage The fee percentage to be updated, multipled by 1e9.
   function updatePlatformFeePercentage(uint256 _feePercentage) external onlyOwner {
-    require(_feePercentage <= MAX_PLATFORM_FEE, "AladdinCRV: fee too large");
+    require(_feePercentage <= MAX_PLATFORM_FEE, "Furnace: fee too large");
     platformFeePercentage = _feePercentage;
 
     emit UpdatePlatformFeePercentage(_feePercentage);
@@ -329,7 +359,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Update the harvest bounty percentage.
   /// @param _percentage - The fee percentage to be updated, multipled by 1e9.
   function updateHarvestBountyPercentage(uint256 _percentage) external onlyOwner {
-    require(_percentage <= MAX_HARVEST_BOUNTY, "AladdinCRV: fee too large");
+    require(_percentage <= MAX_HARVEST_BOUNTY, "Furnace: fee too large");
     harvestBountyPercentage = _percentage;
 
     emit UpdateHarvestBountyPercentage(_percentage);
@@ -338,7 +368,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @dev Update the platform fee recipient
   /// @dev _platform The platform address to be updated.
   function updatePlatform(address _platform) external onlyOwner {
-    require(_platform != address(0), "AladdinCRV: zero platform address");
+    require(_platform != address(0), "Furnace: zero platform address");
     platform = _platform;
 
     emit UpdatePlatform(_platform);
@@ -353,11 +383,41 @@ contract Furnace is OwnableUpgradeable, IFurnace {
     emit UpdateZap(_zap);
   }
 
+  /// @notice Update the reward period length.
+  /// @dev The modification will be effictive after next reward distribution.
+  /// @param _length The period length to be updated.
+  function updatePeriodLength(uint32 _length) external onlyGovernorOrOwner {
+    rewardInfo.periodLength = _length;
+
+    emit UpdatePeriodLength(_length);
+  }
+
   /********************************** Internal Functions **********************************/
+
+  /// @dev Internal function to reduce global debt based on pending rewards.
+  /// This function should be called before any mutable state change.
+  function _updatePendingDistribution() internal {
+    LinearReward memory _info = rewardInfo;
+    if (_info.periodLength > 0) {
+      uint256 _currentTime = _info.finishAt;
+      if (_currentTime > block.timestamp) {
+        _currentTime = block.timestamp;
+      }
+      uint256 _duration = _currentTime >= _info.lastUpdate ? _currentTime - _info.lastUpdate : 0;
+      if (_duration > 0) {
+        _info.lastUpdate = uint48(block.timestamp);
+        rewardInfo = _info;
+
+        _reduceGlobalDebt(_duration.mul(_info.ratePerSecond));
+      }
+    }
+  }
 
   /// @dev Internal function called when user interacts with the contract.
   /// @param _account The address of user to update.
   function _updateUserInfo(address _account) internal {
+    _updatePendingDistribution();
+
     UserInfo memory _info = userInfo[_account];
     uint128 _accUnrealisedFraction = accUnrealisedFraction;
     uint64 _distributeIndex = distributeIndex;
@@ -461,12 +521,52 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @param _origin The address of the user who will provide CVX.
   /// @param _amount The amount of CVX will be provided.
   function _distribute(address _origin, uint256 _amount) internal {
+    // reduct pending debt
+    _updatePendingDistribution();
+
+    // distribute clevCVX rewards
+    LinearReward memory _info = rewardInfo;
+    if (_info.periodLength == 0) {
+      _reduceGlobalDebt(_amount);
+    } else {
+      if (block.timestamp >= _info.finishAt) {
+        _info.ratePerSecond = _toU128(_amount / _info.periodLength);
+      } else {
+        uint256 _remaining = _info.finishAt - block.timestamp;
+        uint256 _leftover = _remaining * _info.ratePerSecond;
+        _info.ratePerSecond = _toU128((_amount + _leftover) / _info.periodLength);
+      }
+
+      _info.lastUpdate = uint48(block.timestamp);
+      _info.finishAt = uint48(block.timestamp + _info.periodLength);
+
+      rewardInfo = _info;
+    }
+
+    // 2. stake extra CVX to cvxRewardPool
+    uint256 _toStake = totalCVXInPool().mul(stakePercentage).div(FEE_PRECISION);
+    uint256 _balanceStaked = IConvexCVXRewardPool(CVX_REWARD_POOL).balanceOf(address(this));
+    if (_balanceStaked < _toStake) {
+      _toStake = _toStake - _balanceStaked;
+      if (_toStake >= stakeThreshold) {
+        IERC20Upgradeable(CVX).safeApprove(CVX_REWARD_POOL, 0);
+        IERC20Upgradeable(CVX).safeApprove(CVX_REWARD_POOL, _toStake);
+        IConvexCVXRewardPool(CVX_REWARD_POOL).stake(_toStake);
+      }
+    }
+
+    emit Distribute(_origin, _amount);
+  }
+
+  /// @dev Internal function to reduce global debt based on CVX rewards.
+  /// @param _amount The new paid clevCVX debt.
+  function _reduceGlobalDebt(uint256 _amount) internal {
     distributeIndex += 1;
 
     uint256 _totalUnrealised = totalUnrealised;
     uint256 _totalRealised = totalRealised;
     uint128 _accUnrealisedFraction = accUnrealisedFraction;
-    // 1. distribute CVX rewards
+    // 1. distribute clevCVX rewards
     if (_amount >= _totalUnrealised) {
       // In this case, all unrealised clevCVX are paid off.
       totalUnrealised = 0;
@@ -481,20 +581,6 @@ contract Furnace is OwnableUpgradeable, IFurnace {
       uint128 _fraction = _toU128(((_totalUnrealised - _amount) * E128) / _totalUnrealised); // mul never overflow
       accUnrealisedFraction = _mul128(_accUnrealisedFraction, _fraction);
     }
-
-    // 2. stake extra CVX to cvxRewardPool
-    uint256 _toStake = totalCVXInPool().mul(stakePercentage).div(FEE_DENOMINATOR);
-    uint256 _balanceStaked = IConvexCVXRewardPool(CVX_REWARD_POOL).balanceOf(address(this));
-    if (_balanceStaked < _toStake) {
-      _toStake = _toStake - _balanceStaked;
-      if (_toStake >= stakeThreshold) {
-        IERC20Upgradeable(CVX).safeApprove(CVX_REWARD_POOL, 0);
-        IERC20Upgradeable(CVX).safeApprove(CVX_REWARD_POOL, _toStake);
-        IConvexCVXRewardPool(CVX_REWARD_POOL).stake(_toStake);
-      }
-    }
-
-    emit Distribute(_origin, _amount);
   }
 
   /// @dev Convert uint256 value to uint128 value.

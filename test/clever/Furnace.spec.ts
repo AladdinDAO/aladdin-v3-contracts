@@ -4,6 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { CLeverToken, IERC20, Furnace } from "../../typechain";
 import { request_fork } from "../utils";
 import { ethers } from "hardhat";
+import * as hre from "hardhat";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ZAP_ROUTES } from "../../scripts/utils";
@@ -292,5 +293,70 @@ describe("Furnace.spec", async () => {
     });
 
     // TODO: test on two or more users
+  });
+
+  context("linear reward emission", async () => {
+    let alice: SignerWithAddress;
+
+    beforeEach(async () => {
+      [alice] = await ethers.getSigners();
+
+      // linear distribute reward in 2 days
+      await furnace.updatePeriodLength(86400 * 2);
+      await furnace.updateWhitelists([deployer.address], true);
+      await furnace.updateStakePercentage(5e8);
+      await cvx.approve(furnace.address, constants.MaxUint256);
+
+      await clevCVX.mint(alice.address, ethers.utils.parseEther("2000"));
+    });
+
+    it("should distribute correctly", async () => {
+      // deposit 100 clevCVX
+      await clevCVX.connect(alice).approve(furnace.address, ethers.utils.parseEther("100"));
+      await furnace.connect(alice).deposit(ethers.utils.parseEther("100"));
+      let [unrealised, realised] = await furnace.getUserInfo(alice.address);
+      expect(realised).to.closeToBn(ethers.utils.parseEther("0"), 0);
+      expect(unrealised).to.closeToBn(ethers.utils.parseEther("100"), 0);
+      expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
+      expect(await furnace.totalRealised()).to.eq(ethers.utils.parseEther("0"));
+      expect(await furnace.totalUnrealised()).to.eq(ethers.utils.parseEther("100"));
+      expect(await clevCVX.balanceOf(furnace.address)).to.eq(ethers.utils.parseEther("100"));
+
+      // distribute 6 CVX
+      await furnace.distribute(signer.address, ethers.utils.parseEther("6"));
+      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400]);
+      await furnace.updatePendingDistribution();
+
+      [unrealised, realised] = await furnace.getUserInfo(alice.address);
+      expect(realised).to.closeToBn(ethers.utils.parseEther("3"), 1000000);
+      expect(unrealised).to.closeToBn(ethers.utils.parseEther("97"), 1000000);
+      expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
+      expect(await furnace.totalRealised()).to.closeToBn(ethers.utils.parseEther("3"), 1000000);
+      expect(await furnace.totalUnrealised()).to.closeToBn(ethers.utils.parseEther("97"), 1000000);
+      expect(await clevCVX.balanceOf(furnace.address)).to.eq(ethers.utils.parseEther("100"));
+
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 2]);
+      await furnace.updatePendingDistribution();
+
+      [unrealised, realised] = await furnace.getUserInfo(alice.address);
+      expect(realised).to.closeToBn(ethers.utils.parseEther("6"), 1000000);
+      expect(unrealised).to.closeToBn(ethers.utils.parseEther("94"), 1000000);
+      expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
+      expect(await furnace.totalRealised()).to.closeToBn(ethers.utils.parseEther("6"), 1000000);
+      expect(await furnace.totalUnrealised()).to.closeToBn(ethers.utils.parseEther("94"), 1000000);
+      expect(await clevCVX.balanceOf(furnace.address)).to.eq(ethers.utils.parseEther("100"));
+
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 3]);
+      await furnace.updatePendingDistribution();
+
+      [unrealised, realised] = await furnace.getUserInfo(alice.address);
+      expect(realised).to.closeToBn(ethers.utils.parseEther("6"), 1000000);
+      expect(unrealised).to.closeToBn(ethers.utils.parseEther("94"), 1000000);
+      expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
+      expect(await furnace.totalRealised()).to.closeToBn(ethers.utils.parseEther("6"), 1000000);
+      expect(await furnace.totalUnrealised()).to.closeToBn(ethers.utils.parseEther("94"), 1000000);
+      expect(await clevCVX.balanceOf(furnace.address)).to.eq(ethers.utils.parseEther("100"));
+    });
   });
 });

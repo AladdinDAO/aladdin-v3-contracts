@@ -889,6 +889,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
   function _distribute(uint256 _strategyIndex, uint256 _amount) internal {
     address _furnace = furnace;
     address _underlyingToken = yieldStrategies[_strategyIndex].underlyingToken;
+
     IERC20Upgradeable(_underlyingToken).safeTransfer(_furnace, _amount);
     IMetaFurnace(_furnace).distribute(address(this), _underlyingToken, _amount);
 

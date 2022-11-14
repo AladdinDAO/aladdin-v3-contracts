@@ -1,11 +1,12 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { CLeverToken, MockERC20, MetaFurnace, MockYieldStrategy } from "../typechain";
+import { CLeverToken, MockERC20, MetaFurnace, MockYieldStrategy } from "../../typechain";
 import { ethers } from "hardhat";
+import * as hre from "hardhat";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
-import "./utils";
+import "../utils";
 
 describe("Furnace.spec", async () => {
   let deployer: SignerWithAddress;
@@ -32,7 +33,7 @@ describe("Furnace.spec", async () => {
         baseToken = await MockERC20.deploy("X", "Y", baseDecimals);
         await baseToken.deployed();
 
-        await baseToken.mint(signer.address, constants.MaxInt256);
+        await baseToken.mint(signer.address, constants.MaxUint256.div(2));
 
         await debtToken.updateMinters([deployer.address], true);
         await debtToken.updateCeiling(deployer.address, ethers.utils.parseEther("10000000"));
@@ -278,6 +279,67 @@ describe("Furnace.spec", async () => {
         });
 
         // TODO: test on two or more users
+      });
+
+      context("linear reward emission", async () => {
+        beforeEach(async () => {
+          // linear distribute reward in 2 days
+          await furnace.updatePeriodLength(86400 * 2);
+          await furnace.updateWhitelists([deployer.address], true);
+          await baseToken.approve(furnace.address, constants.MaxUint256);
+
+          await debtToken.mint(alice.address, ethers.utils.parseEther("2000"));
+        });
+
+        it("should distribute correctly, when only one user", async () => {
+          // deposit 100 debtToken
+          await debtToken.connect(alice).approve(furnace.address, ethers.utils.parseEther("100"));
+          await furnace.connect(alice).deposit(alice.address, ethers.utils.parseEther("100"));
+          let [unrealised, realised] = await furnace.getUserInfo(alice.address);
+          expect(realised).to.closeToBn(ethers.utils.parseEther("0"), 0);
+          expect(unrealised).to.closeToBn(ethers.utils.parseEther("100"), 0);
+          expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
+          expect((await furnace.furnaceInfo()).totalRealised).to.eq(ethers.utils.parseEther("0"));
+          expect((await furnace.furnaceInfo()).totalUnrealised).to.eq(ethers.utils.parseEther("100"));
+          expect(await debtToken.balanceOf(furnace.address)).to.eq(ethers.utils.parseEther("100"));
+
+          // distribute 6 baseToken
+          await baseToken.transfer(furnace.address, ethers.utils.parseUnits("6", baseDecimals));
+          await furnace.distribute(signer.address, baseToken.address, ethers.utils.parseUnits("6", baseDecimals));
+          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+          await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400]);
+          await furnace.updatePendingDistribution();
+
+          [unrealised, realised] = await furnace.getUserInfo(alice.address);
+          expect(realised).to.closeToBn(ethers.utils.parseEther("3"), 1000000);
+          expect(unrealised).to.closeToBn(ethers.utils.parseEther("97"), 1000000);
+          expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
+          expect((await furnace.furnaceInfo()).totalRealised).to.closeToBn(ethers.utils.parseEther("3"), 1000000);
+          expect((await furnace.furnaceInfo()).totalUnrealised).to.closeToBn(ethers.utils.parseEther("97"), 1000000);
+          expect(await debtToken.balanceOf(furnace.address)).to.eq(ethers.utils.parseEther("100"));
+
+          await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 2]);
+          await furnace.updatePendingDistribution();
+
+          [unrealised, realised] = await furnace.getUserInfo(alice.address);
+          expect(realised).to.closeToBn(ethers.utils.parseEther("6"), 1000000);
+          expect(unrealised).to.closeToBn(ethers.utils.parseEther("94"), 1000000);
+          expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
+          expect((await furnace.furnaceInfo()).totalRealised).to.closeToBn(ethers.utils.parseEther("6"), 1000000);
+          expect((await furnace.furnaceInfo()).totalUnrealised).to.closeToBn(ethers.utils.parseEther("94"), 1000000);
+          expect(await debtToken.balanceOf(furnace.address)).to.eq(ethers.utils.parseEther("100"));
+
+          await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 3]);
+          await furnace.updatePendingDistribution();
+
+          [unrealised, realised] = await furnace.getUserInfo(alice.address);
+          expect(realised).to.closeToBn(ethers.utils.parseEther("6"), 1000000);
+          expect(unrealised).to.closeToBn(ethers.utils.parseEther("94"), 1000000);
+          expect(unrealised.add(realised)).to.eq(ethers.utils.parseEther("100"));
+          expect((await furnace.furnaceInfo()).totalRealised).to.closeToBn(ethers.utils.parseEther("6"), 1000000);
+          expect((await furnace.furnaceInfo()).totalUnrealised).to.closeToBn(ethers.utils.parseEther("94"), 1000000);
+          expect(await debtToken.balanceOf(furnace.address)).to.eq(ethers.utils.parseEther("100"));
+        });
       });
     });
   };

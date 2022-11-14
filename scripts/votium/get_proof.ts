@@ -34,21 +34,30 @@ const REWARDS: { [round: number]: string[] } = {
   27: ["ALCX", "APEFI", "CVX", "FXS", "GNO", "INV", "JPEG", "T", "TUSD", "USDD"],
   28: ["ALCX", "APEFI", "CRV", "CVX", "FXS", "GNO", "INV", "JPEG", "T", "TUSD", "USDD"],
   29: ["ALCX", "APEFI", "CRV", "CVX", "FXS", "INV", "JPEG", "OGN", "T"],
+  30: ["ALCX", "APEFI", "CRV", "CVX", "FXS", "GNO", "INV", "OGN", "T", "TUSD", "USDD"],
 };
 
 async function main() {
-  for (const token of REWARDS[29]) {
+  for (const token of REWARDS[30]) {
     const address = TOKENS[token].address;
     const amountRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/amount/");
     const proofRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/proof/");
     const indexRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/index/");
 
+    onValue(indexRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data !== null) {
+        console.log("token:", token, "index:", data.toString());
+      } else {
+        console.log("tolen:", token, "Couldn't get index from db");
+      }
+    });
     onValue(amountRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         console.log("token:", token, "amount:", data.toString());
       } else {
-        console.log("Couldn't get earned balance from db");
+        console.log("tolen:", token, "Couldn't get earned balance from db");
       }
     });
     onValue(proofRef, (snapshot) => {
@@ -56,15 +65,7 @@ async function main() {
       if (data) {
         console.log("token:", token, "proof:", data);
       } else {
-        console.log("Couldn't get merkle proof from db");
-      }
-    });
-    onValue(indexRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data !== null) {
-        console.log("token:", token, "index:", data.toString());
-      } else {
-        console.log("Couldn't get index from db");
+        console.log("tolen:", token, "Couldn't get merkle proof from db");
       }
     });
   }

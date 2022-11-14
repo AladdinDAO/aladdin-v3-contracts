@@ -228,13 +228,16 @@ describe("MetaCLever.MockStrategy.spec", async () => {
       });
 
       it("should succeed", async () => {
-        expect((await clever.getActiveYieldStrategies())._indices).to.deep.eq([BigNumber.from(0), BigNumber.from(1)]);
+        expect((await clever.getActiveYieldStrategies())._indices.length).to.eq(2);
+        expect((await clever.getActiveYieldStrategies())._indices[0]).to.eq(BigNumber.from(0));
+        expect((await clever.getActiveYieldStrategies())._indices[1]).to.eq(BigNumber.from(1));
         expect((await clever.yieldStrategies(0)).isActive).to.eq(true);
         await expect(clever.connect(admin).setIsActive(0, false))
           .to.emit(clever, "SetStrategyActive")
           .withArgs(0, false);
         expect((await clever.yieldStrategies(0)).isActive).to.eq(false);
-        expect((await clever.getActiveYieldStrategies())._indices).to.deep.eq([BigNumber.from(1)]);
+        expect((await clever.getActiveYieldStrategies())._indices.length).to.deep.eq(1);
+        expect((await clever.getActiveYieldStrategies())._indices[0]).to.deep.eq(BigNumber.from(1));
       });
     });
 
@@ -317,7 +320,9 @@ describe("MetaCLever.MockStrategy.spec", async () => {
   context("getActiveYieldStrategies", async () => {
     it("should succeed", async () => {
       const [indices, strategies, underlyingTokens, yieldTokens] = await clever.getActiveYieldStrategies();
-      expect(indices).to.deep.eq([BigNumber.from(0), BigNumber.from(1)]);
+      expect(indices.length).to.eq(2);
+      expect(indices[0]).to.eq(BigNumber.from(0));
+      expect(indices[1]).to.eq(BigNumber.from(1));
       expect(strategies).to.deep.eq([strategy06.address, strategy18.address]);
       expect(underlyingTokens).to.deep.eq([underlyingToken06.address, underlyingToken18.address]);
       expect(yieldTokens).to.deep.eq([yieldToken06.address, yieldToken18.address]);
@@ -326,7 +331,8 @@ describe("MetaCLever.MockStrategy.spec", async () => {
     it("should succeed, when disable 0", async () => {
       await clever.connect(admin).setIsActive(0, false);
       const [indices, strategies, underlyingTokens, yieldTokens] = await clever.getActiveYieldStrategies();
-      expect(indices).to.deep.eq([BigNumber.from(1)]);
+      expect(indices.length).to.eq(1);
+      expect(indices[0]).to.eq(BigNumber.from(1));
       expect(strategies).to.deep.eq([strategy18.address]);
       expect(underlyingTokens).to.deep.eq([underlyingToken18.address]);
       expect(yieldTokens).to.deep.eq([yieldToken18.address]);
@@ -335,7 +341,8 @@ describe("MetaCLever.MockStrategy.spec", async () => {
     it("should succeed, when disable 1", async () => {
       await clever.connect(admin).setIsActive(1, false);
       const [indices, strategies, underlyingTokens, yieldTokens] = await clever.getActiveYieldStrategies();
-      expect(indices).to.deep.eq([BigNumber.from(0)]);
+      expect(indices.length).to.eq(1);
+      expect(indices[0]).to.eq(BigNumber.from(0));
       expect(strategies).to.deep.eq([strategy06.address]);
       expect(underlyingTokens).to.deep.eq([underlyingToken06.address]);
       expect(yieldTokens).to.deep.eq([yieldToken06.address]);
@@ -345,7 +352,7 @@ describe("MetaCLever.MockStrategy.spec", async () => {
       await clever.connect(admin).setIsActive(0, false);
       await clever.connect(admin).setIsActive(1, false);
       const [indices, strategies, underlyingTokens, yieldTokens] = await clever.getActiveYieldStrategies();
-      expect(indices).to.deep.eq([]);
+      expect(indices.length).to.eq(0);
       expect(strategies).to.deep.eq([]);
       expect(underlyingTokens).to.deep.eq([]);
       expect(yieldTokens).to.deep.eq([]);
