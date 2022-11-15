@@ -42,6 +42,10 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
   /// @param _status The status of account updated.
   event UpdateWhitelist(address indexed _account, bool _status);
 
+  /// @notice Emitted when owner take withdraw fee from contract.
+  /// @param _amount The amount of fee withdrawn.
+  event TakeWithdrawFee(uint256 _amount);
+
   /// @dev Compiler will pack this into two `uint256`.
   struct RewardData {
     // The current reward rate per second.
@@ -312,6 +316,8 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
     if (_amount > 0) {
       IStakeDAOLockerProxy(stakeDAOProxy).withdraw(gauge, stakingToken, _amount, _recipient);
       withdrawFeeAccumulated = 0;
+
+      emit TakeWithdrawFee(_amount);
     }
   }
 

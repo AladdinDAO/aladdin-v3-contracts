@@ -52,7 +52,7 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
 
   constructor(address _stakeDAOProxy, address _delegation) StakeDAOVaultBase(_stakeDAOProxy, _delegation) {}
 
-  function _initialize(address _gauge, uint256 __withdrawLockTime) external initializer {
+  function initialize(address _gauge, uint256 __withdrawLockTime) external initializer {
     require(_withdrawLockTime >= MIN_WITHDRAW_LOCK_TIME, "lock time too small");
 
     StakeDAOVaultBase._initialize(_gauge);

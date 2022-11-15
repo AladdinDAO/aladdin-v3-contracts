@@ -100,7 +100,7 @@ contract VeSDTDelegation is OwnableUpgradeable {
     stakeDAOProxy = _stakeDAOProxy;
   }
 
-  function _initialize() external initializer {
+  function initialize() external initializer {
     OwnableUpgradeable.__Ownable_init();
 
     boosts[address(0)] = Point({ bias: 0, slope: 0, ts: uint32(block.timestamp) });
