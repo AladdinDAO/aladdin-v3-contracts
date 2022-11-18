@@ -2200,4 +2200,5 @@ export const AFXS_VAULTS: {
   { name: "alusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 6
   { name: "silofrax", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 7
   { name: "tusdfraxbp", fees: { withdraw: 5e6, harvest: 1e7, platform: 1e8 } }, // 8
+  { name: "frxeth", fees: { withdraw: 5e5, harvest: 1e7, platform: 1e8 } }, // 9
 ];
