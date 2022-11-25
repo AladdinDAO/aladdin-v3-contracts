@@ -133,8 +133,8 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
       uint256 _sellAmount = (_aCRVAmount * percentage) / PRECISION;
       _aCRVAmount -= _sellAmount;
 
-      address _zap;
-      uint256 _cvxCRVAmount = IAladdinCRV(aCRV).withdraw(_zap, _aCRVAmount, 0, IAladdinCRV.WithdrawOption.Withdraw);
+      address _zap = zap;
+      uint256 _cvxCRVAmount = IAladdinCRV(aCRV).withdraw(_zap, _sellAmount, 0, IAladdinCRV.WithdrawOption.Withdraw);
       _underlyingAmount = IZap(_zap).zap(cvxCRV, _cvxCRVAmount, _underlyingToken, 0);
     }
 
