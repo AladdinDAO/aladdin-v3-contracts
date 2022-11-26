@@ -27,6 +27,12 @@ interface ICurveFactoryPlainPool {
   ) external view returns (uint256);
 
   function coins(uint256 index) external view returns (address);
+
+  function balances(uint256 index) external view returns (uint256);
+
+  function A_precise() external view returns (uint256);
+
+  function fee() external view returns (uint256);
 }
 
 /// @dev This is the interface of Curve Factory Plain Pool with 2 tokens, examples:
