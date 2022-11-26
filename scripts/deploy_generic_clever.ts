@@ -26,7 +26,7 @@ import {
   VeCLEV,
   Vesting,
 } from "../typechain";
-import { ADDRESS, DEPLOYED_CONTRACTS, TOKENS, ZAP_ROUTES } from "./utils";
+import { ADDRESS, DEPLOYED_CONTRACTS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "./utils";
 
 const config: {
   CLeverBeacon: string;
@@ -126,7 +126,7 @@ const config: {
     clevUSD: "0x3C20Ac688410bE8F391bE1fb00AFc5C212972F86",
     Furnace: "0x7f160EFC2436F1aF4E9E8a57d0a5beB8345761a9",
     platformFeePercentage: 2e8, // 20%
-    harvestBountyPercentage: 1e7, // 1%
+    harvestBountyPercentage: 1e7, // 0%
     rewardPeriod: 86400 * 14, // 14 days
     CLever: {
       FRAXUSDC: {
@@ -136,39 +136,39 @@ const config: {
         reserveRate: 3e8, // 30%
         repayFeePercentage: 5e6, // 0.5%
         platformFeePercentage: 2e8, // 20%
-        harvestBountyPercentage: 1e7, // 1%
-        mintCeiling: ethers.utils.parseEther("50000000"),
+        harvestBountyPercentage: 0, // 0%
+        mintCeiling: ethers.utils.parseEther("50000"),
         concentratorPID: 15,
         strategies: {
-          FRAXUSDC_100: "0xbFb1476FB02f60C809AEb8cBc0b00898eD370422", // 100% aCRV are zapped to FRAX
+          FRAXUSDC_100: "0xAdC6A89d6Df7374629eA3cFd0737843709d29F66", // 100% aCRV are zapped to FRAX
         },
       },
       LUSDFRAXBP: {
-        clever: "",
+        clever: "0xb2Fcee71b25B62baFE442c58AF58c42143673cC1",
         token: ADDRESS.CURVE_LUSDFRAXBP_TOKEN,
         pool: ADDRESS.CURVE_LUSDFRAXBP_POOL,
         reserveRate: 3e8, // 30%
         repayFeePercentage: 5e6, // 0.5%
         platformFeePercentage: 2e8, // 20%
-        harvestBountyPercentage: 1e7, // 1%
-        mintCeiling: ethers.utils.parseEther("50000000"),
+        harvestBountyPercentage: 0, // 0%
+        mintCeiling: ethers.utils.parseEther("25000"),
         concentratorPID: 30,
         strategies: {
-          LUSDFRAXBP_100: "", // 100% aCRV are zapped to FRAX
+          LUSDFRAXBP_100: "0xC65D58A33D9917Df3e1a4033eD73506D9b6aCE6c", // 100% aCRV are zapped to FRAX
         },
       },
       TUSDFRAXBP: {
-        clever: "",
+        clever: "0xad4caC207A0BFEd10dF8A4FC6A28D377caC730E0",
         token: ADDRESS.CURVE_TUSDFRAXBP_TOKEN,
         pool: ADDRESS.CURVE_TUSDFRAXBP_POOL,
         reserveRate: 3e8, // 30%
         repayFeePercentage: 5e6, // 0.5%
         platformFeePercentage: 2e8, // 20%
-        harvestBountyPercentage: 1e7, // 1%
-        mintCeiling: ethers.utils.parseEther("50000000"),
+        harvestBountyPercentage: 0, // 0%
+        mintCeiling: ethers.utils.parseEther("25000"),
         concentratorPID: 29,
         strategies: {
-          TUSDFRAXBP_100: "", // 100% aCRV are zapped to FRAX
+          TUSDFRAXBP_100: "0xa7625Dd9F2D8a95a0D1Ac7E8671547197e9fcAf0", // 100% aCRV are zapped to FRAX
         },
       },
     },
@@ -360,6 +360,24 @@ async function deployFRAX() {
     `to[${ADDRESS.FRAX}]`,
     `routes[${ZAP_ROUTES.cvxCRV.FRAX.map((x) => x.toHexString())}]`
   );
+  console.log(
+    "Zap from FRAXUSDC => FRAX:",
+    `from[${ADDRESS.CURVE_FRAXUSDC_TOKEN}]`,
+    `to[${ADDRESS.FRAX}]`,
+    `routes[${VAULT_CONFIG.fraxusdc.withdraw.FRAX.map((x) => x.toHexString())}]`
+  );
+  console.log(
+    "Zap from TUSDFRAXBP => FRAX:",
+    `from[${ADDRESS.CURVE_TUSDFRAXBP_TOKEN}]`,
+    `to[${ADDRESS.FRAX}]`,
+    `routes[${VAULT_CONFIG.tusdfraxbp.withdraw.FRAX.map((x) => x.toHexString())}]`
+  );
+  console.log(
+    "Zap from LUSDFRAXBP => FRAX:",
+    `from[${ADDRESS.CURVE_LUSDFRAXBP_TOKEN}]`,
+    `to[${ADDRESS.FRAX}]`,
+    `routes[${VAULT_CONFIG.lusdfraxbp.withdraw.FRAX.map((x) => x.toHexString())}]`
+  );
 
   if (config.FRAX.clevUSD !== "") {
     clevUSD = (await ethers.getContractAt("CLeverToken", config.FRAX.clevUSD, deployer)) as CLeverToken;
@@ -431,7 +449,7 @@ async function deployFRAX() {
     }
   }
 
-  for (const underlying of ["FRAXUSDC"]) {
+  for (const underlying of ["FRAXUSDC", "TUSDFRAXBP", "LUSDFRAXBP"]) {
     let clever: MetaCLever;
     // deploy CLever and strategies
     if (config.FRAX.CLever[underlying].clever !== "") {
