@@ -1,6 +1,6 @@
 /* eslint-disable node/no-missing-import */
 import { Command } from "commander";
-import { BigNumber } from "ethers";
+import { BigNumber, constants } from "ethers";
 import * as hre from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { ADDRESS, DEPLOYED_CONTRACTS, TOKENS } from "../utils";
@@ -59,8 +59,6 @@ async function main(round: number, manualStr: string) {
   console.log("gas estimate:", gasEstimate.toString());
 
   if (KEEPER === deployer.address) {
-    const furnaceBefore = await furnance.totalCVXInPool();
-    const treasuryBefore = await cvx.balanceOf(DEPLOYED_CONTRACTS.CLever.Treasury);
     const fee = await ethers.provider.getFeeData();
     const tx = await cvxLocker.harvestVotium(RoundClaimParams[round], estimate.mul(999).div(1000), {
       gasLimit: gasEstimate.mul(12).div(10),
@@ -70,13 +68,22 @@ async function main(round: number, manualStr: string) {
     console.log("waiting for tx:", tx.hash);
     const receipt = await tx.wait();
     console.log("confirmed, gas used:", receipt.gasUsed.toString());
+    let furnaceCVX = constants.Zero;
+    let treasuryCVX = constants.Zero;
+    for (const log of receipt.logs) {
+      if (log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef") {
+        const [to, value] = ethers.utils.defaultAbiCoder.decode(["address", "uint256"], log.data);
+        if (to === DEPLOYED_CONTRACTS.CLever.Treasury) treasuryCVX = value;
+        if (to === furnance.address) furnaceCVX = value;
+      }
+    }
     const furnaceAfter = await furnance.totalCVXInPool();
     const treasuryAfter = await cvx.balanceOf(DEPLOYED_CONTRACTS.CLever.Treasury);
     console.log(
       "actual furnace CVX:",
-      ethers.utils.formatEther(furnaceAfter.sub(furnaceBefore)),
+      ethers.utils.formatEther(furnaceAfter.sub(furnaceCVX)),
       "treasury CVX:",
-      ethers.utils.formatEther(treasuryAfter.sub(treasuryBefore))
+      ethers.utils.formatEther(treasuryAfter.sub(treasuryCVX))
     );
     for (const symbol of manualTokens) {
       const { address, decimals } = TOKENS[symbol];
