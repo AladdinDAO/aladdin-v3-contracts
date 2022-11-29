@@ -47,4 +47,8 @@ interface IStakeDAOBoostDelegation {
   function received_balance(address _user) external view returns (uint256);
 
   function delegable_balance(address _user) external view returns (uint256);
+
+  function allowance(address _owner, address _spender) external view returns (uint256);
+
+  function nonces(address _user) external view returns (uint256);
 }
