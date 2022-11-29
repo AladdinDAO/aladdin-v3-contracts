@@ -35,11 +35,11 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
 
   /// @notice The name of the vault.
   // solhint-disable-next-line const-name-snakecase
-  string public constant name = "Aladdin sdCRV Vault";
+  string public constant name = "Concentrator sdCRV Vault";
 
   /// @notice The symbol of the vault.
   // solhint-disable-next-line const-name-snakecase
-  string public constant symbol = "sdCRV-vault";
+  string public constant symbol = "CTR-sdCRV-Vault";
 
   /// @notice The decimal of the vault share.
   // solhint-disable-next-line const-name-snakecase
@@ -53,7 +53,7 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
   constructor(address _stakeDAOProxy, address _delegation) StakeDAOVaultBase(_stakeDAOProxy, _delegation) {}
 
   function initialize(address _gauge, uint256 __withdrawLockTime) external initializer {
-    require(_withdrawLockTime >= MIN_WITHDRAW_LOCK_TIME, "lock time too small");
+    require(__withdrawLockTime >= MIN_WITHDRAW_LOCK_TIME, "lock time too small");
 
     StakeDAOVaultBase._initialize(_gauge);
 
@@ -126,13 +126,14 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
   function withdraw(uint256 _amount, address _recipient) external override(StakeDAOVaultBase, IStakeDAOVault) {
     _checkpoint(msg.sender);
 
-    uint256 _balance = userInfo[_recipient].balance;
+    uint256 _balance = userInfo[msg.sender].balance;
     if (_amount == uint256(-1)) {
       _amount = _balance;
     }
     require(_amount <= _balance, "insufficient staked token");
+    require(_amount > 0, "withdraw zero amount");
 
-    userInfo[_recipient].balance = _balance - _amount;
+    userInfo[msg.sender].balance = _balance - _amount;
     totalSupply -= _amount;
 
     // take withdraw fee here
@@ -141,6 +142,8 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
       _withdrawFee = (_amount * _withdrawFee) / FEE_PRECISION;
       withdrawFeeAccumulated += _withdrawFee;
       _amount -= _withdrawFee;
+    } else {
+      _withdrawFee = 0;
     }
 
     _lockToken(_amount, _recipient);
@@ -188,7 +191,7 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
   /// @notice Update the withdraw lock time.
   /// @param __withdrawLockTime The new withdraw lock time in seconds.
   function updateWithdrawLockTime(uint256 __withdrawLockTime) external onlyOwner {
-    require(_withdrawLockTime >= MIN_WITHDRAW_LOCK_TIME, "lock time too small");
+    require(__withdrawLockTime >= MIN_WITHDRAW_LOCK_TIME, "lock time too small");
 
     _withdrawLockTime = __withdrawLockTime;
 

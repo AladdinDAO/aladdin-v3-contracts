@@ -149,6 +149,8 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
   }
 
   function _initialize(address _gauge) internal {
+    OwnableUpgradeable.__Ownable_init();
+
     gauge = _gauge;
     stakingToken = IStakeDAOGauge(_gauge).staking_token();
 
@@ -275,7 +277,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
         _harvestBounties[i] = (_amounts[i] * _fee.bountyPercentage) / FEE_PRECISION;
         IERC20Upgradeable(_token).safeTransfer(_recipient, _harvestBounties[i]);
       }
-      if (_tokens[i] == SDT && _fee.bountyPercentage > 0) {
+      if (_tokens[i] == SDT && _fee.boostPercentage > 0) {
         _boostFee = (_amounts[i] * _fee.boostPercentage) / FEE_PRECISION;
         IERC20Upgradeable(_token).safeTransfer(delegation, _boostFee);
       }

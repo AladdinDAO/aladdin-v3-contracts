@@ -103,7 +103,7 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     // This will claim all rewards including SDT.
     IStakeDAOGauge(_gauge).claim_rewards();
     for (uint256 i = 0; i < _length; i++) {
-      _amounts[i] -= IERC20Upgradeable(_tokens[i]).balanceOf(address(this));
+      _amounts[i] = IERC20Upgradeable(_tokens[i]).balanceOf(address(this)) - _amounts[i];
       if (_amounts[i] > 0) {
         IERC20Upgradeable(_tokens[i]).safeTransfer(msg.sender, _amounts[i]);
       }

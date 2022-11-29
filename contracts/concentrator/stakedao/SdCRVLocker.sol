@@ -62,6 +62,8 @@ abstract contract SdCRVLocker {
     uint256 _length = _locks.length;
     while (_nextIndex < _length) {
       LockedBalance memory _lock = _locks[_nextIndex];
+      // The list may not be ordered by expireAt, since `withdrawLockTime` could be changed.
+      // However, we will still wait the first one to expire just for the sake of simplicity.
       if (_lock.expireAt > block.timestamp) break;
       _amount += _lock.amount;
 
