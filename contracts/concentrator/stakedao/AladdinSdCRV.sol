@@ -19,6 +19,9 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
   /// @param _zap The address of the zap contract.
   event UpdateZap(address _zap);
 
+  /// @dev The type for withdraw fee in StakeDAOVaultBase
+  bytes32 private constant VAULT_WITHDRAW_FEE_TYPE = keccak256("StakeDAOVaultBase.WithdrawFee");
+
   /// @dev The address of CRV Token.
   address private constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
 
@@ -59,6 +62,9 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
     IERC20Upgradeable(SD_VE_CRV).safeApprove(vault, uint256(-1));
     IERC20Upgradeable(sdCRV).safeApprove(vault, uint256(-1));
   }
+
+  // receive ETH from zap
+  receive() external payable {}
 
   /********************************** View Functions **********************************/
 
@@ -160,13 +166,13 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
     uint256 _totalShare = totalSupply();
     uint256 _platformFee = _fee.platformPercentage;
     if (_platformFee > 0) {
-      _platformFee = (_platformFee * assets) / FEE_DENOMINATOR;
+      _platformFee = (_platformFee * assets) / FEE_PRECISION;
       // share will be a little more than the actual percentage since minted before distribute rewards
       _mint(_fee.platform, _platformFee.mul(_totalShare) / _totalAssets);
     }
     uint256 _harvestBounty = _fee.bountyPercentage;
     if (_harvestBounty > 0) {
-      _harvestBounty = (_harvestBounty * assets) / FEE_DENOMINATOR;
+      _harvestBounty = (_harvestBounty * assets) / FEE_PRECISION;
       // share will be a little more than the actual percentage since minted before distribute rewards
       _mint(_recipient, _harvestBounty.mul(_totalShare) / _totalAssets);
     }
@@ -213,6 +219,9 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
     _mint(_receiver, _shares);
 
     totalAssetsStored = _totalAssets + _assets;
+
+    emit Deposit(msg.sender, _receiver, _assets, _shares);
+
     return _shares;
   }
 
@@ -231,7 +240,8 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
 
     if (_totalShare != _shares) {
       // take withdraw fee if it is not the last user.
-      uint256 _withdrawFee = (_amount * feeInfo.withdrawPercentage) / FEE_DENOMINATOR;
+      uint256 _withdrawPercentage = getFeeRate(WITHDRAW_FEE_TYPE, _owner);
+      uint256 _withdrawFee = (_amount * _withdrawPercentage) / FEE_PRECISION;
       _amount = _amount - _withdrawFee; // never overflow here
     } else {
       // @note If it is the last user, some extra rewards still pending.
@@ -239,6 +249,14 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
     }
 
     totalAssetsStored = _totalAssets - _amount; // never overflow here
+
+    // vault has withdraw fee, we need to subtract from it
+    IStakeDAOCRVVault(vault).withdraw(_amount, address(this));
+    uint256 _vaultWithdrawFee = FeeCustomization(vault).getFeeRate(VAULT_WITHDRAW_FEE_TYPE, address(this));
+    if (_vaultWithdrawFee > 0) {
+      _vaultWithdrawFee = (_amount * _vaultWithdrawFee) / FEE_PRECISION;
+      _amount = _amount - _vaultWithdrawFee;
+    }
 
     _lockToken(_amount, _receiver);
 

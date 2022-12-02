@@ -70,6 +70,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   CLEV: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLEV },
   clevCVX: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLeverCVX.clevCVX },
   clevUSD: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLeverUSD.clevUSD },
+  SDT: { decimals: 18, address: "0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F" },
   OGN: { decimals: 18, address: "0x8207c1FfC5B6804F6024322CcF34F29c3541Ae26" },
   BADGER: { decimals: 18, address: "0x3472a5a71965499acd81997a54bba8d852c6e53d" },
   bLUSD: { decimals: 18, address: "0xb9d7dddca9a4ac480991865efef82e01273f79c3" },
