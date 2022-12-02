@@ -24,6 +24,8 @@ const SDCRV_GAUGE = "0x7f50786A0b15723D741727882ee99a0BF34e3466";
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const OPERATOR = "0x66c57bF505A85A74609D2C83E94Aabb26d691E1F";
 
+const WITHDRAW_FEE_TYPE = "0x44348323fbba5bd7468c04e14f94511bb9dacbe9d1c917894dc7a6fb5c078462";
+
 describe("StakeDAOCRVVault.spec", async () => {
   let deployer: SignerWithAddress;
   let operator: SignerWithAddress;
@@ -123,23 +125,23 @@ describe("StakeDAOCRVVault.spec", async () => {
       });
     });
 
-    context("#updateWhitelist", async () => {
-      it("should revert, when call updateWhitelist and caller is not owner", async () => {
-        await expect(vault.connect(operator).updateWhitelist([], true)).to.revertedWith(
+    context("setWithdrawFeeForUser", async () => {
+      it("should revert, when non-owner call", async () => {
+        await expect(vault.connect(operator).setWithdrawFeeForUser(constants.AddressZero, 0)).to.revertedWith(
           "Ownable: caller is not the owner"
         );
       });
 
+      it("should revert, when fee too large", async () => {
+        await expect(vault.setWithdrawFeeForUser(deployer.address, 1e8 + 1)).to.revertedWith("withdraw fee too large");
+      });
+
       it("should succeed", async () => {
-        expect(await vault.whitelist(operator.address)).to.eq(false);
-        await expect(vault.updateWhitelist([operator.address], true))
-          .to.emit(vault, "UpdateWhitelist")
-          .withArgs(operator.address, true);
-        expect(await vault.whitelist(operator.address)).to.eq(true);
-        await expect(vault.updateWhitelist([operator.address], false))
-          .to.emit(vault, "UpdateWhitelist")
-          .withArgs(operator.address, false);
-        expect(await vault.whitelist(operator.address)).to.eq(false);
+        expect(await vault.getFeeRate(WITHDRAW_FEE_TYPE, deployer.address)).to.deep.eq(0);
+        await expect(vault.setWithdrawFeeForUser(deployer.address, 1))
+          .to.emit(vault, "CustomizeFee")
+          .withArgs(WITHDRAW_FEE_TYPE, deployer.address, 1);
+        expect(await vault.getFeeRate(WITHDRAW_FEE_TYPE, deployer.address)).to.deep.eq(1);
       });
     });
 
@@ -475,7 +477,7 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed, when withdraw 10 to self and ignore withdraw fee", async () => {
-      await vault.connect(deployer).updateWhitelist([signer.address], true);
+      await vault.connect(deployer).setWithdrawFeeForUser(signer.address, 0);
       expect(await vault.withdrawFeeAccumulated()).to.eq(constants.Zero);
       expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("100"));
       expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("100"));
@@ -485,6 +487,22 @@ describe("StakeDAOCRVVault.spec", async () => {
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("0"));
       expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("10"));
+      expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
+    });
+
+    it("should succeed, when withdraw 10 to self and withdraw fee customize to 5%", async () => {
+      await vault.connect(deployer).setWithdrawFeeForUser(signer.address, "50000000");
+      expect(await vault.withdrawFeeAccumulated()).to.eq(constants.Zero);
+      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("100"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("100"));
+      await expect(vault.connect(signer).withdraw(ethers.utils.parseEther("10"), signer.address))
+        .to.emit(vault, "Withdraw")
+        .withArgs(signer.address, signer.address, ethers.utils.parseEther("9.5"), ethers.utils.parseEther("0.5"));
+      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("0.5"));
+      expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("9.5"));
       expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
       expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
       expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));

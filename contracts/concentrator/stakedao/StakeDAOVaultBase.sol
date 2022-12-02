@@ -12,9 +12,11 @@ import "./interfaces/IStakeDAOGauge.sol";
 import "./interfaces/IStakeDAOLockerProxy.sol";
 import "./interfaces/IStakeDAOVault.sol";
 
+import "../../common/FeeCustomization.sol";
+
 // solhint-disable not-rely-on-time
 
-abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
+abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, IStakeDAOVault {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
 
@@ -36,11 +38,6 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
   /// @param _token The address of token updated.
   /// @param _period The new reward period.
   event UpdateRewardPeriod(address indexed _token, uint32 _period);
-
-  /// @notice Emitted when whitelist status is updated.
-  /// @param _account The address of account updated.
-  /// @param _status The status of account updated.
-  event UpdateWhitelist(address indexed _account, bool _status);
 
   /// @notice Emitted when owner take withdraw fee from contract.
   /// @param _amount The amount of fee withdrawn.
@@ -84,11 +81,11 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
     mapping(address => uint256) rewardPerSharePaid;
   }
 
+  /// @dev The type for withdraw fee, used in FeeCustomization.
+  bytes32 internal constant WITHDRAW_FEE_TYPE = keccak256("StakeDAOVaultBase.WithdrawFee");
+
   /// @dev The denominator used for reward calculation.
   uint256 private constant REWARD_PRECISION = 1e18;
-
-  /// @dev The denominator used for fee calculation.
-  uint256 internal constant FEE_PRECISION = 1e7;
 
   /// @dev The maximum value of repay fee percentage.
   uint256 private constant MAX_WITHDRAW_FEE = 1e6; // 10%
@@ -131,9 +128,6 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
 
   /// @dev Mapping from user address to user information.
   mapping(address => UserInfo) internal userInfo;
-
-  /// @notice A list of addresses which don't charge withdraw fee.
-  mapping(address => bool) public whitelist;
 
   /// @notice The accumulated amount of unclaimed withdraw fee.
   uint256 public withdrawFeeAccumulated;
@@ -218,8 +212,8 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
     userInfo[_recipient].balance = _balance - _amount;
     totalSupply -= _amount;
 
-    uint256 _withdrawFee = feeInfo.withdrawPercentage;
-    if (_withdrawFee > 0 && !whitelist[msg.sender]) {
+    uint256 _withdrawFee = getFeeRate(WITHDRAW_FEE_TYPE, msg.sender);
+    if (_withdrawFee > 0) {
       _withdrawFee = (_amount * _withdrawFee) / FEE_PRECISION;
       withdrawFeeAccumulated += _withdrawFee;
       _amount -= _withdrawFee;
@@ -270,15 +264,15 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
     for (uint256 i = 0; i < _tokens.length; i++) {
       address _token = _tokens[i];
       if (_fee.platformPercentage > 0) {
-        _platformFees[i] = (_amounts[i] * _fee.platformPercentage) / FEE_PRECISION;
+        _platformFees[i] = (_amounts[i] * uint256(_fee.platformPercentage) * 100) / FEE_PRECISION;
         IERC20Upgradeable(_token).safeTransfer(_fee.platform, _platformFees[i]);
       }
       if (_fee.bountyPercentage > 0) {
-        _harvestBounties[i] = (_amounts[i] * _fee.bountyPercentage) / FEE_PRECISION;
+        _harvestBounties[i] = (_amounts[i] * uint256(_fee.bountyPercentage) * 100) / FEE_PRECISION;
         IERC20Upgradeable(_token).safeTransfer(_recipient, _harvestBounties[i]);
       }
       if (_tokens[i] == SDT && _fee.boostPercentage > 0) {
-        _boostFee = (_amounts[i] * _fee.boostPercentage) / FEE_PRECISION;
+        _boostFee = (_amounts[i] * uint256(_fee.boostPercentage) * 100) / FEE_PRECISION;
         IERC20Upgradeable(_token).safeTransfer(delegation, _boostFee);
       }
       _amounts[i] -= _platformFees[i] + _harvestBounties[i];
@@ -325,10 +319,10 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
 
   /// @notice Update the fee information.
   /// @param _platform The platform address to be updated.
-  /// @param _platformPercentage The platform fee percentage to be updated, multipled by 1e9.
-  /// @param _bountyPercentage The harvest bounty percentage to be updated, multipled by 1e9.
-  /// @param _boostPercentage The new veSDT boost fee percentage.
-  /// @param _withdrawPercentage The withdraw fee percentage to be updated, multipled by 1e9.
+  /// @param _platformPercentage The platform fee percentage to be updated, multipled by 1e7.
+  /// @param _bountyPercentage The harvest bounty percentage to be updated, multipled by 1e7.
+  /// @param _boostPercentage The new veSDT boost fee percentage, multipled by 1e7.
+  /// @param _withdrawPercentage The withdraw fee percentage to be updated, multipled by 1e7.
   function updateFeeInfo(
     address _platform,
     uint24 _platformPercentage,
@@ -358,15 +352,13 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
     emit UpdateRewardPeriod(_token, _period);
   }
 
-  /// @notice Update the whitelist status for a list of users.
-  /// @param _accounts The address list of users to update.
-  /// @param _status The status to update.
-  function updateWhitelist(address[] memory _accounts, bool _status) external onlyOwner {
-    for (uint256 i = 0; i < _accounts.length; i++) {
-      whitelist[_accounts[i]] = _status;
+  /// @notice Update withdraw fee for certain user.
+  /// @param _user The address of user to update.
+  /// @param _percentage The withdraw fee percentage to be updated, multipled by 1e9.
+  function setWithdrawFeeForUser(address _user, uint32 _percentage) external onlyOwner {
+    require(_percentage <= MAX_WITHDRAW_FEE * 100, "withdraw fee too large");
 
-      emit UpdateWhitelist(_accounts[i], _status);
-    }
+    _setFeeCustomization(WITHDRAW_FEE_TYPE, _user, _percentage);
   }
 
   /********************************** Internal Functions **********************************/
@@ -465,5 +457,10 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, IStakeDAOVault {
 
       rewardInfo[_tokens[i]] = _info;
     }
+  }
+
+  /// @inheritdoc FeeCustomization
+  function _defaultFeeRate(bytes32) internal view override returns (uint256) {
+    return uint256(feeInfo.withdrawPercentage) * 100;
   }
 }

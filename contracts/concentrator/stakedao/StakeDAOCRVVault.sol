@@ -137,8 +137,8 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
     totalSupply -= _amount;
 
     // take withdraw fee here
-    uint256 _withdrawFee = feeInfo.withdrawPercentage;
-    if (_withdrawFee > 0 && !whitelist[msg.sender]) {
+    uint256 _withdrawFee = getFeeRate(WITHDRAW_FEE_TYPE, msg.sender);
+    if (_withdrawFee > 0) {
       _withdrawFee = (_amount * _withdrawFee) / FEE_PRECISION;
       withdrawFeeAccumulated += _withdrawFee;
       _amount -= _withdrawFee;
@@ -161,8 +161,8 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
     for (uint256 i = 0; i < _claims.length; i++) {
       address _token = _claims[i].token;
       uint256 _reward = _claims[i].amount;
-      uint256 _platformFee = _fee.platformPercentage;
-      uint256 _boostFee = _fee.boostPercentage;
+      uint256 _platformFee = uint256(_fee.platformPercentage) * 100;
+      uint256 _boostFee = uint256(_fee.boostPercentage) * 100;
 
       // Currently, we will only receive SDT as bribe rewards.
       // If there are other tokens, we will transfer all of them to platform contract.
