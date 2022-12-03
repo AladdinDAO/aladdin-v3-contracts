@@ -3,17 +3,18 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "./YieldStrategyBase.sol";
-import "../../concentrator/stakedao/interfaces/IStakeDAOCRVVault.sol";
-import "../../concentrator/stakedao/SdCRVLocker.sol";
-import "../../interfaces/IZap.sol";
+import "../YieldStrategyBase.sol";
+import "../../../common/FeeCustomization.sol";
+import "../../../concentrator/stakedao/interfaces/IStakeDAOCRVVault.sol";
+import "../../../concentrator/stakedao/SdCRVLocker.sol";
+import "../../../interfaces/IZap.sol";
 
-contract StakeDAOCRVStrategy is Ownable, YieldStrategyBase, SdCRVLocker {
-  using SafeERC20 for IERC20;
+contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase, SdCRVLocker {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
 
   /// @dev The address of CRV Token.
   address private constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
@@ -24,11 +25,20 @@ contract StakeDAOCRVStrategy is Ownable, YieldStrategyBase, SdCRVLocker {
   // The address of 3CRV token.
   address private constant THREE_CRV = 0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490;
 
+  /// @dev The type for withdraw fee in StakeDAOVaultBase
+  bytes32 private constant VAULT_WITHDRAW_FEE_TYPE = keccak256("StakeDAOVaultBase.WithdrawFee");
+
+  /// @dev The fee denominator used for rate calculation.
+  uint256 private constant FEE_PRECISION = 1e9;
+
   /// @notice The address of zap contract.
   address public immutable zap;
 
   /// @dev The address of StakeDAOCRVVault on mainnet.
   address public immutable vault;
+
+  // receive ETH from zap
+  receive() external payable {}
 
   constructor(
     address _yieldToken,
@@ -39,10 +49,14 @@ contract StakeDAOCRVStrategy is Ownable, YieldStrategyBase, SdCRVLocker {
   ) YieldStrategyBase(_yieldToken, _underlyingToken, _operator) {
     zap = _zap;
     vault = _vault;
+  }
+
+  function initialize() external initializer {
+    OwnableUpgradeable.__Ownable_init();
 
     // The StakeDAOCRVVault is maintained by our team, it's safe to approve uint256.max.
-    IERC20(_yieldToken).safeApprove(_vault, uint256(-1));
-    IERC20(_underlyingToken).safeApprove(_vault, uint256(-1));
+    IERC20Upgradeable(yieldToken).safeApprove(vault, uint256(-1));
+    IERC20Upgradeable(underlyingToken).safeApprove(vault, uint256(-1));
   }
 
   /// @inheritdoc SdCRVLocker
@@ -86,7 +100,14 @@ contract StakeDAOCRVStrategy is Ownable, YieldStrategyBase, SdCRVLocker {
     bool _asUnderlying
   ) external override onlyOperator returns (uint256 _returnAmount) {
     require(!_asUnderlying, "cannot withdraw as underlying");
+
+    // vault has withdraw fee, we need to subtract from it
     IStakeDAOCRVVault(vault).withdraw(_amount, address(this));
+    uint256 _vaultWithdrawFee = FeeCustomization(vault).getFeeRate(VAULT_WITHDRAW_FEE_TYPE, address(this));
+    if (_vaultWithdrawFee > 0) {
+      _vaultWithdrawFee = (_amount * _vaultWithdrawFee) / FEE_PRECISION;
+      _amount = _amount - _vaultWithdrawFee;
+    }
 
     _lockToken(_amount, _recipient);
 
@@ -105,23 +126,23 @@ contract StakeDAOCRVStrategy is Ownable, YieldStrategyBase, SdCRVLocker {
     )
   {
     // 1.1 claim SDT/CRV/3CRV rewards
-    uint256 _amountSDT = IERC20(SDT).balanceOf(address(this));
-    uint256 _amountCRV = IERC20(CRV).balanceOf(address(this));
-    uint256 _amount3CRV = IERC20(THREE_CRV).balanceOf(address(this));
+    uint256 _amountSDT = IERC20Upgradeable(SDT).balanceOf(address(this));
+    uint256 _amountCRV = IERC20Upgradeable(CRV).balanceOf(address(this));
+    uint256 _amount3CRV = IERC20Upgradeable(THREE_CRV).balanceOf(address(this));
     IStakeDAOCRVVault(vault).claim(address(this), address(this));
-    _amountSDT = IERC20(SDT).balanceOf(address(this)) - _amountSDT;
-    _amountCRV = IERC20(CRV).balanceOf(address(this)) - _amountCRV;
-    _amount3CRV = IERC20(THREE_CRV).balanceOf(address(this)) - _amount3CRV;
+    _amountSDT = IERC20Upgradeable(SDT).balanceOf(address(this)) - _amountSDT;
+    _amountCRV = IERC20Upgradeable(CRV).balanceOf(address(this)) - _amountCRV;
+    _amount3CRV = IERC20Upgradeable(THREE_CRV).balanceOf(address(this)) - _amount3CRV;
 
     // 1.2 sell SDT/3CRV to ETH
     uint256 _amountETH;
     address _zap = zap;
     if (_amountSDT > 0) {
-      IERC20(SDT).safeTransfer(_zap, _amountSDT);
+      IERC20Upgradeable(SDT).safeTransfer(_zap, _amountSDT);
       _amountETH += IZap(_zap).zap(SDT, _amountSDT, address(0), 0);
     }
     if (_amountSDT > 0) {
-      IERC20(THREE_CRV).safeTransfer(_zap, _amountSDT);
+      IERC20Upgradeable(THREE_CRV).safeTransfer(_zap, _amountSDT);
       _amountETH += IZap(_zap).zap(THREE_CRV, _amountSDT, address(0), 0);
     }
 
@@ -131,7 +152,7 @@ contract StakeDAOCRVStrategy is Ownable, YieldStrategyBase, SdCRVLocker {
     }
 
     if (_amountCRV > 0) {
-      IERC20(CRV).safeTransfer(msg.sender, _amountCRV);
+      IERC20Upgradeable(CRV).safeTransfer(msg.sender, _amountCRV);
     }
 
     return (_amountCRV, new address[](0), new uint256[](0));
@@ -148,6 +169,6 @@ contract StakeDAOCRVStrategy is Ownable, YieldStrategyBase, SdCRVLocker {
   /// @inheritdoc SdCRVLocker
   function _unlockToken(uint256 _amount, address _recipient) internal virtual override {
     SdCRVLocker(vault).withdrawExpired(address(this), address(this));
-    IERC20(yieldToken).safeTransfer(_recipient, _amount);
+    IERC20Upgradeable(yieldToken).safeTransfer(_recipient, _amount);
   }
 }
