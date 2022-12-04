@@ -118,12 +118,12 @@ contract AladdinFXS is AladdinCompounder {
     uint256 _totalAssets = totalAssetsStored; // the value is correct
     uint256 _totalShare = totalSupply();
     if (_info.platformPercentage > 0) {
-      _platformFee = (_info.platformPercentage * _amountLP) / FEE_DENOMINATOR;
+      _platformFee = (_info.platformPercentage * _amountLP) / FEE_PRECISION;
       // share will be a little more than the actual percentage since minted before distribute rewards
       _mint(_info.platform, _platformFee.mul(_totalShare) / _totalAssets);
     }
     if (_info.bountyPercentage > 0) {
-      _harvestBounty = (_info.bountyPercentage * _amountLP) / FEE_DENOMINATOR;
+      _harvestBounty = (_info.bountyPercentage * _amountLP) / FEE_PRECISION;
       // share will be a little more than the actual percentage since minted before distribute rewards
       _mint(_recipient, _harvestBounty.mul(_totalShare) / _totalAssets);
     }
@@ -214,7 +214,8 @@ contract AladdinFXS is AladdinCompounder {
 
     if (_totalShare != _shares) {
       // take withdraw fee if it is not the last user.
-      uint256 _withdrawFee = (_amount * feeInfo.withdrawPercentage) / FEE_DENOMINATOR;
+      uint256 _withdrawPercentage = getFeeRate(WITHDRAW_FEE_TYPE, _owner);
+      uint256 _withdrawFee = (_amount * _withdrawPercentage) / FEE_PRECISION;
       _amount = _amount - _withdrawFee; // never overflow here
     } else {
       // @note If it is the last user, some extra rewards still pending.
