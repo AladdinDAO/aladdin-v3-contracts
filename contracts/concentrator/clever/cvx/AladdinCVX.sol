@@ -54,7 +54,12 @@ contract AladdinCVX is CLeverAMOBase {
   /********************************** Restricted Functions **********************************/
 
   /// @inheritdoc ICLeverAMO
-  function rebalance(uint256 _withdrawAmount, uint256 _minOut) external override onlyOwner {
+  function rebalance(
+    uint256 _withdrawAmount,
+    uint256 _minOut,
+    uint256 _targetRangeLeft,
+    uint256 _targetRangeRight
+  ) external override onlyOwner {
     _checkpoint(0);
 
     AMOConfig memory _config = config;
@@ -66,6 +71,7 @@ contract AladdinCVX is CLeverAMOBase {
     uint256 _debtInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(debtIndex));
     uint256 _baseInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(baseIndex));
     if (_debtInPool * PRECISION < _config.minAMO * _baseInPool) {
+      // _debtInPool/_baseInPool < minAMO/PRECISION
       // withdraw clevCVX from Furnace
       ILegacyFurnace(furnace).withdraw(address(this), _withdrawAmount);
 
@@ -76,7 +82,8 @@ contract AladdinCVX is CLeverAMOBase {
 
       // deposit to gauge
       _depositLpToken(_lpTokenOut);
-    } else if (_debtInPool * PRECISION < _config.maxAMO * _baseInPool) {
+    } else if (_debtInPool * PRECISION > _config.maxAMO * _baseInPool) {
+      // _debtInPool/_baseInPool > maxAMO/PRECISION
       // withdraw clevCVX from curve pool
       uint256 _debtTokenOut = ICurveFactoryPlainPool(curvePool).remove_liquidity_one_coin(
         _withdrawAmount,
@@ -89,6 +96,13 @@ contract AladdinCVX is CLeverAMOBase {
     } else {
       revert("aCVX: amo in range");
     }
+
+    // make sure the final ratio is in target range.
+    _debtInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(debtIndex));
+    _baseInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(baseIndex));
+    // _targetRangeLeft/PRECISION <= _debtInPool/_baseInPool <= _targetRangeRight/PRECISION
+    require(_targetRangeLeft * _baseInPool <= _debtInPool * PRECISION, "aCVX: final ratio below target range");
+    require(_targetRangeRight * _baseInPool >= _debtInPool * PRECISION, "aCVX: final ratio above target range");
   }
 
   /********************************** Internal Functions **********************************/

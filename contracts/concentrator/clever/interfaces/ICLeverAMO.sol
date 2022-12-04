@@ -127,7 +127,14 @@ interface ICLeverAMO {
   /// @notice rebalance the curve pool based on tokens in curve pool.
   /// @param _withdrawAmount The amount of debt token or lp token to withdraw.
   /// @param _minOut The minimum output token to control slippage.
-  function rebalance(uint256 _withdrawAmount, uint256 _minOut) external;
+  /// @param _targetRangeLeft The left end point of the target range, multiplied by 1e18.
+  /// @param _targetRangeRight The right end point of the target range, multiplied by 1e18.
+  function rebalance(
+    uint256 _withdrawAmount,
+    uint256 _minOut,
+    uint256 _targetRangeLeft,
+    uint256 _targetRangeRight
+  ) external;
 
   /// @notice harvest the pending rewards and reinvest to the pool.
   /// @param _recipient The address of recipient who will receive the harvest bounty.
