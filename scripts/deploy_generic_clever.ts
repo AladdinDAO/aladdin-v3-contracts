@@ -135,7 +135,7 @@ const config: {
         pool: ADDRESS.CURVE_FRAXUSDC_POOL,
         reserveRate: 3e8, // 30%
         repayFeePercentage: 5e6, // 0.5%
-        platformFeePercentage: 2e8, // 20%
+        platformFeePercentage: 1e8, // 10%
         harvestBountyPercentage: 0, // 0%
         mintCeiling: ethers.utils.parseEther("50000"),
         concentratorPID: 15,
@@ -149,7 +149,7 @@ const config: {
         pool: ADDRESS.CURVE_LUSDFRAXBP_POOL,
         reserveRate: 3e8, // 30%
         repayFeePercentage: 5e6, // 0.5%
-        platformFeePercentage: 2e8, // 20%
+        platformFeePercentage: 1e8, // 10%
         harvestBountyPercentage: 0, // 0%
         mintCeiling: ethers.utils.parseEther("25000"),
         concentratorPID: 30,
@@ -163,7 +163,7 @@ const config: {
         pool: ADDRESS.CURVE_TUSDFRAXBP_POOL,
         reserveRate: 3e8, // 30%
         repayFeePercentage: 5e6, // 0.5%
-        platformFeePercentage: 2e8, // 20%
+        platformFeePercentage: 1e8, // 10%
         harvestBountyPercentage: 0, // 0%
         mintCeiling: ethers.utils.parseEther("25000"),
         concentratorPID: 29,
