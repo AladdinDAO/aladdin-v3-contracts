@@ -20,8 +20,10 @@ contract AladdinCVX is CLeverAMOBase {
   /// @dev The address of curve gauge.
   address private immutable gauge;
 
+  /// @dev The base token index in curve pool.
   int128 private immutable baseIndex;
 
+  /// @dev The debt token index in curve pool.
   int128 private immutable debtIndex;
 
   constructor(
@@ -40,11 +42,11 @@ contract AladdinCVX is CLeverAMOBase {
   }
 
   function initialize(uint256 _initialRatio, address[] memory _rewards) external initializer {
-    CLeverAMOBase._initialize("Aladdin CVX", "aCVX");
+    CLeverAMOBase._initialize("Aladdin CVX", "aCVX", _initialRatio);
     RewardClaimable._initialize(_rewards);
 
-    initialRatio = _initialRatio;
-
+    IERC20Upgradeable(baseToken).safeApprove(curvePool, uint256(-1));
+    IERC20Upgradeable(debtToken).safeApprove(curvePool, uint256(-1));
     IERC20Upgradeable(curveLpToken).safeApprove(gauge, uint256(-1));
     IERC20Upgradeable(debtToken).safeApprove(furnace, uint256(-1));
   }

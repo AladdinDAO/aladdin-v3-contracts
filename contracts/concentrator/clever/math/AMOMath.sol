@@ -29,7 +29,7 @@ library AMOMath {
     // D^3 + (amp * n - 1) * 4xy * D = amp * n * (x + y) * 4 * x * y
     //
     // let f(D) = D^3 + (amp * n - 1) * 4xy * D - amp * n * (x + y) * 4 * x * y
-    // f'(X) = 3D^2 + (amp * n - 1) * 4xy
+    // f'(D) = 3D^2 + (amp * n - 1) * 4xy
     //
     // D' = D - f(D) / f'(D) =>
     // D' = ((2D^3)/(4xy) + amp * n * (x + y)) / (amp * n - 1 + 3D^2 / (4xy))

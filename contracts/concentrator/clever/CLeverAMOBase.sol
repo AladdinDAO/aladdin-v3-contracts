@@ -90,7 +90,7 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     uint64 _;
   }
 
-  /// @notice The initial ratio of lp/debt in contract.
+  /// @notice The initial ratio of lp/debt in contract, with precision 1e18.
   uint256 public initialRatio;
 
   /// @notice The config for AMO.
@@ -115,6 +115,9 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
   /// @dev Mapping from user address to next lock index to process.
   mapping(address => uint256) private nextIndex;
 
+  /// @dev reserved slots.
+  uint256[20] private __gap;
+
   modifier NonZeroAmount(uint256 _amount) {
     require(_amount > 0, "CLeverAMO: amount is zero");
     _;
@@ -136,10 +139,15 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     furnace = _furnace;
   }
 
-  function _initialize(string memory _name, string memory _symbol) internal {
+  function _initialize(
+    string memory _name,
+    string memory _symbol,
+    uint256 _initialRatio
+  ) internal {
     OwnableUpgradeable.__Ownable_init();
     ERC20Upgradeable.__ERC20_init(_name, _symbol);
 
+    initialRatio = _initialRatio;
     config = AMOConfig({
       minAMO: uint64(PRECISION),
       maxAMO: uint64(PRECISION * 3),
@@ -178,7 +186,7 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
   /********************************** Mutated Functions **********************************/
 
   /// @inheritdoc ICLeverAMO
-  function deposit(uint256 _amount, address _recipient) external override NonZeroAmount(_amount) {
+  function deposit(uint256 _amount, address _recipient) external override {
     require(_amount >= minimumDeposit, "CLeverAMO: deposit amount too small");
 
     IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, address(this), _amount);
@@ -202,12 +210,12 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     uint256 _unlocked;
     for (uint256 i = _nextIndex; i < _length; i++) {
       LockBalance memory _b = locks[msg.sender][i];
-      if (_b.unlockAt >= block.timestamp) {
+      if (_b.unlockAt <= block.timestamp) {
         _unlocked += _b.balance;
         delete locks[msg.sender][i];
       }
     }
-    require(_unlocked > 0, "CLever: no unlocks");
+    require(_unlocked > 0, "CLeverAMO: no unlocks");
     // update next index
     while (_nextIndex < _length) {
       LockBalance memory _b = locks[msg.sender][_nextIndex];
@@ -237,7 +245,7 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
       _shares = _debtOut < _lpOut ? _debtOut : _lpOut;
     }
 
-    require(_minShareOut >= _shares, "CLeverAMO: insufficient shares");
+    require(_shares >= _minShareOut, "CLeverAMO: insufficient shares");
 
     _mint(msg.sender, _shares);
   }
@@ -349,8 +357,8 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     uint64 _minLPRatio,
     uint64 _maxLPRatio
   ) external onlyOwner {
-    require(_minAMO < _maxAMO, "CLeverAMO: invalid amo ratio");
-    require(_minLPRatio < _maxLPRatio, "CLeverAMO: invalid lp ratio");
+    require(_minAMO <= _maxAMO, "CLeverAMO: invalid amo ratio");
+    require(_minLPRatio <= _maxLPRatio, "CLeverAMO: invalid lp ratio");
 
     config = AMOConfig(_minAMO, _maxAMO, _minLPRatio, _maxLPRatio);
 
