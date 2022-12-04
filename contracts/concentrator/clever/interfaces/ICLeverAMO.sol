@@ -62,10 +62,10 @@ interface ICLeverAMO {
   event Donate(address indexed caller, uint256 amount);
 
   /// @notice Emitted when someone call rebalance.
-  /// @param debtAmount The current amount of debt token in the contract after rebalance.
-  /// @param lpAmount The current amount of lp token in the contract after rebalance.
   /// @param ratio The current ratio between lp token and debt token in the contract.
-  event Rebalance(uint256 debtAmount, uint256 lpAmount, uint256 ratio);
+  /// @param startPoolRatio The ratio between debt token and base token in curve pool before rebalance.
+  /// @param targetPoolRatio The ratio between debt token and base token in curve pool after rebalance.
+  event Rebalance(uint256 ratio, uint256 startPoolRatio, uint256 targetPoolRatio);
 
   /// @notice The address of base token.
   function baseToken() external view returns (address);
@@ -86,6 +86,7 @@ interface ICLeverAMO {
   function ratio() external view returns (uint256);
 
   /// @notice Deposit base token to the contract.
+  /// @dev Use `_amount` when caller wants to deposit all his base token.
   /// @param _amount The amount of base token to deposit.
   /// @param _recipient The address recipient who will receive the base token.
   function deposit(uint256 _amount, address _recipient) external;
@@ -96,6 +97,7 @@ interface ICLeverAMO {
   function unlock(uint256 _minShareOut) external returns (uint256 shares);
 
   /// @notice Burn shares and withdraw to debt token and lp token according to current ratio.
+  /// @dev Use `_shares` when caller wants to withdraw all his shares.
   /// @param _shares The amount of pool shares to burn.
   /// @param _recipient The address of recipient who will receive the token.
   /// @param _minLpOut The minimum of lp token should receive.
@@ -110,6 +112,7 @@ interface ICLeverAMO {
   ) external returns (uint256 lpTokenOut, uint256 debtTokenOut);
 
   /// @notice Burn shares and withdraw to base token.
+  /// @dev Use `_shares` when caller wants to withdraw all his shares.
   /// @param _shares The amount of pool shares to burn.
   /// @param _recipient The address of recipient who will receive the token.
   /// @param _minBaseOut The minimum of base token should receive.

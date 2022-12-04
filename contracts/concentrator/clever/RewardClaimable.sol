@@ -8,10 +8,20 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 abstract contract RewardClaimable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
+  /// @notice Emitted when someone claim pending rewards.
+  /// @param token The address of reward token.
+  /// @param owner The address of reward token owner.
+  /// @param recipient The address of reward token recipient.
+  /// @param amount The amount of reward token claimed.
+  event Claim(address indexed token, address indexed owner, address indexed recipient, uint256 amount);
+
   struct AccountRewardInfo {
     uint256 pending;
     uint256 rewardPerSharePaid;
   }
+
+  /// @dev The precision used to compute reward tokens.
+  uint256 internal constant REWARD_PRECISION = 1e18;
 
   /// @notice The list of rewards token.
   address[] public rewards;
@@ -29,13 +39,13 @@ abstract contract RewardClaimable {
   /// @notice Return the list amount of claimable reward tokens.
   function claimable(address _user) external view returns (uint256[] memory) {
     uint256 _length = rewards.length;
-    uint256 _shares = _getShares(_user);
+    uint256 _share = _getShares(_user);
     uint256[] memory _amounts = new uint256[](_length);
     for (uint256 i = 0; i < _length; i++) {
       address _token = rewards[i];
       AccountRewardInfo memory _info = accountRewards[_user][_token];
 
-      _amounts[i] = _info.pending + _shares * (rewardPerShare[_token] - _info.rewardPerSharePaid);
+      _amounts[i] = _info.pending + ((rewardPerShare[_token] - _info.rewardPerSharePaid) * _share) / REWARD_PRECISION;
     }
     return _amounts;
   }
@@ -59,6 +69,8 @@ abstract contract RewardClaimable {
       if (_pending > 0) {
         IERC20Upgradeable(_token).safeTransfer(_recipient, _pending);
       }
+
+      emit Claim(_token, _user, _recipient, _pending);
     }
   }
 
@@ -78,7 +90,7 @@ abstract contract RewardClaimable {
       uint256 _rewardPerShare = rewardPerShare[_token];
       AccountRewardInfo memory _info = accountRewards[_user][_token];
 
-      _info.pending += (_rewardPerShare - _info.rewardPerSharePaid) * _share;
+      _info.pending += ((_rewardPerShare - _info.rewardPerSharePaid) * _share) / REWARD_PRECISION;
       _info.rewardPerSharePaid = _rewardPerShare;
       accountRewards[_user][_token] = _info;
     }

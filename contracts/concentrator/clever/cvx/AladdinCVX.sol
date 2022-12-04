@@ -20,6 +20,9 @@ contract AladdinCVX is CLeverAMOBase {
   /// @dev The address of curve gauge.
   address private immutable gauge;
 
+  /// @dev The address of CRV minter.
+  address private immutable minter;
+
   /// @dev The base token index in curve pool.
   int128 private immutable baseIndex;
 
@@ -32,9 +35,11 @@ contract AladdinCVX is CLeverAMOBase {
     address _curvePool,
     address _curveLpToken,
     address _furnace,
-    address _gauge
+    address _gauge,
+    address _minter
   ) CLeverAMOBase(_baseToken, _debtToken, _curvePool, _curveLpToken, _furnace) {
     gauge = _gauge;
+    minter = _minter;
 
     address _coin0 = ICurveFactoryPlainPool(_curvePool).coins(0);
     debtIndex = _coin0 == _baseToken ? 1 : 0;
@@ -72,6 +77,7 @@ contract AladdinCVX is CLeverAMOBase {
 
     uint256 _debtInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(debtIndex));
     uint256 _baseInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(baseIndex));
+    uint256 _startPoolRatio = (_debtInPool * PRECISION) / _baseInPool;
     if (_debtInPool * PRECISION < _config.minAMO * _baseInPool) {
       // _debtInPool/_baseInPool < minAMO/PRECISION
       // withdraw clevCVX from Furnace
@@ -86,6 +92,9 @@ contract AladdinCVX is CLeverAMOBase {
       _depositLpToken(_lpTokenOut);
     } else if (_debtInPool * PRECISION > _config.maxAMO * _baseInPool) {
       // _debtInPool/_baseInPool > maxAMO/PRECISION
+      // withdraw clevCVX/CVX lp from gauge
+      _withdrawLpToken(_withdrawAmount, address(this));
+
       // withdraw clevCVX from curve pool
       uint256 _debtTokenOut = ICurveFactoryPlainPool(curvePool).remove_liquidity_one_coin(
         _withdrawAmount,
@@ -102,9 +111,12 @@ contract AladdinCVX is CLeverAMOBase {
     // make sure the final ratio is in target range.
     _debtInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(debtIndex));
     _baseInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(baseIndex));
+    uint256 _targetPoolRatio = (_debtInPool * PRECISION) / _baseInPool;
     // _targetRangeLeft/PRECISION <= _debtInPool/_baseInPool <= _targetRangeRight/PRECISION
     require(_targetRangeLeft * _baseInPool <= _debtInPool * PRECISION, "aCVX: final ratio below target range");
     require(_targetRangeRight * _baseInPool >= _debtInPool * PRECISION, "aCVX: final ratio above target range");
+
+    emit Rebalance(ratio(), _startPoolRatio, _targetPoolRatio);
   }
 
   /********************************** Internal Functions **********************************/
@@ -226,7 +238,7 @@ contract AladdinCVX is CLeverAMOBase {
       _amounts[i] = IERC20Upgradeable(_token).balanceOf(address(this));
     }
     // claim CRV
-    ICurveMinter(gauge).mint(gauge);
+    ICurveMinter(minter).mint(gauge);
     // claim extra rewards
     ICurveGauge(gauge).claim_rewards();
 
@@ -235,7 +247,7 @@ contract AladdinCVX is CLeverAMOBase {
       address _token = rewards[i];
       _amounts[i] = IERC20Upgradeable(_token).balanceOf(address(this)) - _amounts[i];
 
-      rewardPerShare[_token] += _amounts[i] / _totalSupply;
+      rewardPerShare[_token] += (_amounts[i] * REWARD_PRECISION) / _totalSupply;
     }
 
     return 0;

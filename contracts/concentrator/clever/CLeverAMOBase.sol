@@ -187,6 +187,10 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
 
   /// @inheritdoc ICLeverAMO
   function deposit(uint256 _amount, address _recipient) external override {
+    if (_amount == uint256(-1)) {
+      _amount = IERC20Upgradeable(baseToken).balanceOf(msg.sender);
+    }
+
     require(_amount >= minimumDeposit, "CLeverAMO: deposit amount too small");
 
     IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, address(this), _amount);
@@ -248,6 +252,8 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     require(_shares >= _minShareOut, "CLeverAMO: insufficient shares");
 
     _mint(msg.sender, _shares);
+
+    emit Unlock(msg.sender, _unlocked, _shares, ratio());
   }
 
   /// @inheritdoc ICLeverAMO
@@ -259,6 +265,10 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
   ) external override NonZeroAmount(_shares) returns (uint256 _lpTokenOut, uint256 _debtTokenOut) {
     _checkpoint(0);
     _checkpointUser(msg.sender);
+
+    if (_shares == uint256(-1)) {
+      _shares = balanceOf(msg.sender);
+    }
 
     uint256 _totalSupply = totalSupply();
     _burn(msg.sender, _shares);
@@ -284,6 +294,10 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     _checkpoint(0);
     _checkpointUser(msg.sender);
 
+    if (_shares == uint256(-1)) {
+      _shares = balanceOf(msg.sender);
+    }
+
     uint256 _totalSupply = totalSupply();
     _burn(msg.sender, _shares);
 
@@ -291,12 +305,12 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     uint256 _debtTokenOut = (_debtBalanceInContract() * _shares) / _totalSupply;
 
     _withdrawDebtToken(_debtTokenOut, address(this));
-    _withdrawLpToken(_lpTokenOut, _recipient);
+    _withdrawLpToken(_lpTokenOut, address(this));
 
     emit Withdraw(msg.sender, _recipient, _shares, _debtTokenOut, _lpTokenOut, ratio());
 
     _baseTokenOut = _convertToBaseToken(_debtTokenOut, _lpTokenOut);
-    require(_baseTokenOut >= _minBaseOut, "CLeverAMO: insufficient lp token output");
+    require(_baseTokenOut >= _minBaseOut, "CLeverAMO: insufficient base token output");
 
     IERC20Upgradeable(baseToken).safeTransfer(_recipient, _baseTokenOut);
   }
