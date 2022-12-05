@@ -47,7 +47,7 @@ contract AladdinCVX is CLeverAMOBase {
   }
 
   function initialize(uint256 _initialRatio, address[] memory _rewards) external initializer {
-    CLeverAMOBase._initialize("Aladdin CVX", "aCVX", _initialRatio);
+    CLeverAMOBase._initialize("Aladdin CVX", "abcCVX", _initialRatio);
     RewardClaimable._initialize(_rewards);
 
     IERC20Upgradeable(baseToken).safeApprove(curvePool, uint256(-1));
