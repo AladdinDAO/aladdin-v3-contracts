@@ -54,15 +54,21 @@ const config: {
     underlying: string;
     clevUSD: string;
     Furnace: string;
+    platformFeePercentage: number;
+    harvestBountyPercentage: number;
+    rewardPeriod: number;
     CLever: {
-      FRAXUSDC: {
+      [name: string]: {
         clever: string;
+        token: string;
+        pool: string;
         reserveRate: number;
+        repayFeePercentage: number;
+        platformFeePercentage: number;
+        harvestBountyPercentage: number;
         mintCeiling: BigNumber;
-        strategies: {
-          FRAXUSDC_All: string; // 100% aCRV are zapped to FRAX
-          FRAXUSDC_Half: string; // only 50% aCRV are zapped to FRAX
-        };
+        concentratorPID: number;
+        strategies: { [name: string]: string };
       };
     };
   };
@@ -93,8 +99,8 @@ const config: {
   sale: string;
   vest: string;
 } = {
-  CLeverBeacon: constants.AddressZero,
-  FurnaceBeacon: constants.AddressZero,
+  CLeverBeacon: "0xf5D1cA341e1BAadd986D43b226F92B778C75C8cA",
+  FurnaceBeacon: "0xeB937D47ab60DDd50E9C04c98ceCb21E7e009773",
   TokenZapLogic: "0x858D62CE483B8ab538d1f9254C3Fd3Efe1c5346F",
   AllInOneGateway: "0x6e513d492Ded19AD8211a57Cc6B4493C9E6C857B",
   FundraisingGaugeV1: "0xB9CD9979718e7E4C341D8D99dA3F1290c908FBdd",
@@ -117,16 +123,52 @@ const config: {
   },
   FRAX: {
     underlying: ADDRESS.FRAX,
-    clevUSD: "0x3CC69909Da81861A006106d10026e4869dAdA67e",
-    Furnace: "0x8fa020ee7446a86ced2FC0ed45d73797Da839f5f",
+    clevUSD: "0x3C20Ac688410bE8F391bE1fb00AFc5C212972F86",
+    Furnace: "0x7f160EFC2436F1aF4E9E8a57d0a5beB8345761a9",
+    platformFeePercentage: 2e8, // 20%
+    harvestBountyPercentage: 1e7, // 0%
+    rewardPeriod: 86400 * 14, // 14 days
     CLever: {
       FRAXUSDC: {
-        clever: "0x4FEe74f78Db3aff41f8783f94E3435abe511EcFa",
-        reserveRate: 5e8, // 50%
-        mintCeiling: ethers.utils.parseEther("10000000"),
+        clever: "0xEB0ea9D24235aB37196111eeDd656D56Ce4F53b1",
+        token: ADDRESS.CURVE_FRAXUSDC_TOKEN,
+        pool: ADDRESS.CURVE_FRAXUSDC_POOL,
+        reserveRate: 3e8, // 30%
+        repayFeePercentage: 5e6, // 0.5%
+        platformFeePercentage: 1e8, // 10%
+        harvestBountyPercentage: 0, // 0%
+        mintCeiling: ethers.utils.parseEther("50000"),
+        concentratorPID: 15,
         strategies: {
-          FRAXUSDC_All: "0xaAB8CDfe24319BE5cE2d5eE1468fcC5205395Db5",
-          FRAXUSDC_Half: "0x8961af9cD94274ddC9b98A9a8813cA57F6EECF7E",
+          FRAXUSDC_100: "0xAdC6A89d6Df7374629eA3cFd0737843709d29F66", // 100% aCRV are zapped to FRAX
+        },
+      },
+      LUSDFRAXBP: {
+        clever: "0xb2Fcee71b25B62baFE442c58AF58c42143673cC1",
+        token: ADDRESS.CURVE_LUSDFRAXBP_TOKEN,
+        pool: ADDRESS.CURVE_LUSDFRAXBP_POOL,
+        reserveRate: 3e8, // 30%
+        repayFeePercentage: 5e6, // 0.5%
+        platformFeePercentage: 1e8, // 10%
+        harvestBountyPercentage: 0, // 0%
+        mintCeiling: ethers.utils.parseEther("25000"),
+        concentratorPID: 30,
+        strategies: {
+          LUSDFRAXBP_100: "0xC65D58A33D9917Df3e1a4033eD73506D9b6aCE6c", // 100% aCRV are zapped to FRAX
+        },
+      },
+      TUSDFRAXBP: {
+        clever: "0xad4caC207A0BFEd10dF8A4FC6A28D377caC730E0",
+        token: ADDRESS.CURVE_TUSDFRAXBP_TOKEN,
+        pool: ADDRESS.CURVE_TUSDFRAXBP_POOL,
+        reserveRate: 3e8, // 30%
+        repayFeePercentage: 5e6, // 0.5%
+        platformFeePercentage: 1e8, // 10%
+        harvestBountyPercentage: 0, // 0%
+        mintCeiling: ethers.utils.parseEther("25000"),
+        concentratorPID: 29,
+        strategies: {
+          TUSDFRAXBP_100: "0xa7625Dd9F2D8a95a0D1Ac7E8671547197e9fcAf0", // 100% aCRV are zapped to FRAX
         },
       },
     },
@@ -184,9 +226,6 @@ let strategy_aCRV: AladdinCRVStrategy;
 
 let clevUSD: CLeverToken;
 let fraxFurnace: MetaFurnace;
-let clever_FRAXUSDC: MetaCLever;
-let strategy_FRAXUSDC_All: ConcentratorStrategy;
-let strategy_FRAXUSDC_Half: ConcentratorStrategy;
 
 let clev: CLEV;
 let ve: VeCLEV;
@@ -315,6 +354,30 @@ async function deployCRV() {
 
 async function deployFRAX() {
   const [deployer] = await ethers.getSigners();
+  console.log(
+    "Zap from cvxCRV => FRAX:",
+    `from[${ADDRESS.cvxCRV}]`,
+    `to[${ADDRESS.FRAX}]`,
+    `routes[${ZAP_ROUTES.cvxCRV.FRAX.map((x) => x.toHexString())}]`
+  );
+  console.log(
+    "Zap from FRAXUSDC => FRAX:",
+    `from[${ADDRESS.CURVE_FRAXUSDC_TOKEN}]`,
+    `to[${ADDRESS.FRAX}]`,
+    `routes[${VAULT_CONFIG.fraxusdc.withdraw.FRAX.map((x) => x.toHexString())}]`
+  );
+  console.log(
+    "Zap from TUSDFRAXBP => FRAX:",
+    `from[${ADDRESS.CURVE_TUSDFRAXBP_TOKEN}]`,
+    `to[${ADDRESS.FRAX}]`,
+    `routes[${VAULT_CONFIG.tusdfraxbp.withdraw.FRAX.map((x) => x.toHexString())}]`
+  );
+  console.log(
+    "Zap from LUSDFRAXBP => FRAX:",
+    `from[${ADDRESS.CURVE_LUSDFRAXBP_TOKEN}]`,
+    `to[${ADDRESS.FRAX}]`,
+    `routes[${VAULT_CONFIG.lusdfraxbp.withdraw.FRAX.map((x) => x.toHexString())}]`
+  );
 
   if (config.FRAX.clevUSD !== "") {
     clevUSD = (await ethers.getContractAt("CLeverToken", config.FRAX.clevUSD, deployer)) as CLeverToken;
@@ -345,11 +408,53 @@ async function deployFRAX() {
     console.log("✅ Deploy MetaFurnace For FRAX at:", fraxFurnace.address);
   }
 
-  // FRAX-USDC Clever and strategies
+  // Set up furnace
+  const rewardInfo = await fraxFurnace.rewardInfo();
+  if (rewardInfo.periodLength !== config.FRAX.rewardPeriod) {
+    const tx = await fraxFurnace.updatePeriodLength(config.FRAX.rewardPeriod);
+    console.log(
+      "Setup Period Length for FRAX_Furnace, hash:",
+      tx.hash,
+      `length: ${rewardInfo.periodLength} => ${config.FRAX.rewardPeriod}`
+    );
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
+
   {
-    if (config.FRAX.CLever.FRAXUSDC.clever !== "") {
-      clever_FRAXUSDC = await ethers.getContractAt("MetaCLever", config.FRAX.CLever.FRAXUSDC.clever, deployer);
-      console.log("Found MetaCLever for FRAXUSDC at:", clever_FRAXUSDC.address);
+    const feeInfo = await fraxFurnace.feeInfo();
+    const platform = DEPLOYED_CONTRACTS.CLever.Treasury;
+    const platformPercentage = config.FRAX.platformFeePercentage;
+    const bountyPercentage = config.FRAX.harvestBountyPercentage;
+    if (
+      feeInfo.platform !== platform ||
+      feeInfo.platformPercentage !== platformPercentage ||
+      feeInfo.bountyPercentage !== bountyPercentage
+    ) {
+      const tx = await fraxFurnace.updatePlatformInfo(platform, platformPercentage, bountyPercentage);
+      console.log(
+        `Setup fees in FRAX_Furnace, hash: ${tx.hash}`,
+        `platform: ${feeInfo.platform} => ${platform}`,
+        `platformPercentage: ${ethers.utils.formatUnits(feeInfo.platformPercentage, 9)} => ${ethers.utils.formatUnits(
+          platformPercentage,
+          9
+        )}`,
+        `bountyPercentage: ${ethers.utils.formatUnits(feeInfo.bountyPercentage, 9)} => ${ethers.utils.formatUnits(
+          bountyPercentage,
+          9
+        )}`
+      );
+      const receipt = await tx.wait();
+      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    }
+  }
+
+  for (const underlying of ["FRAXUSDC", "TUSDFRAXBP", "LUSDFRAXBP"]) {
+    let clever: MetaCLever;
+    // deploy CLever and strategies
+    if (config.FRAX.CLever[underlying].clever !== "") {
+      clever = await ethers.getContractAt("MetaCLever", config.FRAX.CLever[underlying].clever, deployer);
+      console.log(`Found MetaCLever for ${underlying} at:`, clever.address);
     } else {
       const data = MetaCLever__factory.createInterface().encodeFunctionData("initialize", [
         clevUSD.address,
@@ -357,142 +462,129 @@ async function deployFRAX() {
       ]);
       const BeaconProxy = await ethers.getContractFactory("BeaconProxy", deployer);
       const proxy = await BeaconProxy.deploy(cleverBeacon.address, data);
-      console.log("Deploying MetaCLever For FRAXUSDC, hash:", proxy.deployTransaction.hash);
+      console.log(`Deploying MetaCLever For ${underlying}, hash:`, proxy.deployTransaction.hash);
       await proxy.deployed();
-      clever_FRAXUSDC = await ethers.getContractAt("MetaCLever", proxy.address, deployer);
-      console.log("✅ Deploy MetaCLever for FRAXUSDC, at:", clever_FRAXUSDC.address);
-      config.FRAX.CLever.FRAXUSDC.clever = clever_FRAXUSDC.address;
+      clever = await ethers.getContractAt("MetaCLever", proxy.address, deployer);
+      console.log(`✅ Deploy MetaCLever for ${underlying}, at:`, clever.address);
+      config.FRAX.CLever[underlying].clever = clever.address;
     }
 
-    if (config.FRAX.CLever.FRAXUSDC.strategies.FRAXUSDC_All !== "") {
-      strategy_FRAXUSDC_All = await ethers.getContractAt(
-        "ConcentratorStrategy",
-        config.FRAX.CLever.FRAXUSDC.strategies.FRAXUSDC_All,
-        deployer
-      );
-      console.log("Found ConcentratorStrategy FRAXUSDC/All at:", strategy_FRAXUSDC_All.address);
-    } else {
-      const ConcentratorStrategy = await ethers.getContractFactory("ConcentratorStrategy", deployer);
-      strategy_FRAXUSDC_All = await ConcentratorStrategy.deploy(
-        DEPLOYED_CONTRACTS.AladdinZap,
-        DEPLOYED_CONTRACTS.Concentrator.AladdinCRVConvexVault,
-        15,
-        1e9, // 100%
-        ADDRESS.CURVE_FRAXUSDC_POOL,
-        ADDRESS.CURVE_FRAXUSDC_TOKEN,
-        ADDRESS.FRAX,
-        clever_FRAXUSDC.address
-      );
-      console.log("Deploying ConcentratorStrategy FRAXUSDC/All, hash:", strategy_FRAXUSDC_All.deployTransaction.hash);
-      await strategy_FRAXUSDC_All.deployed();
-      console.log("✅ Deploy ConcentratorStrategy FRAXUSDC/All at:", strategy_FRAXUSDC_All.address);
-      config.FRAX.CLever.FRAXUSDC.strategies.FRAXUSDC_All = strategy_FRAXUSDC_All.address;
+    // deploy strategies
+    for (const percentage of ["100"]) {
+      let strategy: ConcentratorStrategy;
+      const name = `${underlying}_${percentage}`;
+      if (config.FRAX.CLever[underlying].strategies[name] !== "") {
+        strategy = await ethers.getContractAt(
+          "ConcentratorStrategy",
+          config.FRAX.CLever[underlying].strategies[name],
+          deployer
+        );
+        console.log(`Found ConcentratorStrategy ${name} at:`, strategy.address);
+      } else {
+        const ConcentratorStrategy = await ethers.getContractFactory("ConcentratorStrategy", deployer);
+        strategy = await ConcentratorStrategy.deploy(
+          DEPLOYED_CONTRACTS.AladdinZap,
+          DEPLOYED_CONTRACTS.Concentrator.cvxCRV.ConcentratorIFOVault,
+          config.FRAX.CLever[underlying].concentratorPID,
+          BigNumber.from(percentage).mul(10000000),
+          config.FRAX.CLever[underlying].pool,
+          config.FRAX.CLever[underlying].token,
+          ADDRESS.FRAX,
+          clever.address
+        );
+        console.log(`Deploying ConcentratorStrategy ${name}, hash:`, strategy.deployTransaction.hash);
+        await strategy.deployed();
+        console.log(`✅ Deploy ConcentratorStrategy ${name} at:`, strategy.address);
+        config.FRAX.CLever[underlying].strategies[name] = strategy.address;
+      }
     }
 
-    if (config.FRAX.CLever.FRAXUSDC.strategies.FRAXUSDC_Half !== "") {
-      strategy_FRAXUSDC_Half = await ethers.getContractAt(
-        "ConcentratorStrategy",
-        config.FRAX.CLever.FRAXUSDC.strategies.FRAXUSDC_Half,
-        deployer
+    // Setup CLever
+    const expectedReserveRate = config.FRAX.CLever[underlying].reserveRate;
+    const currentReserveRate = await clever.reserveRate();
+    if (!currentReserveRate.eq(expectedReserveRate)) {
+      const tx = await clever.updateReserveRate(expectedReserveRate);
+      console.log(
+        `Setup reserve rate for CLever_${underlying}, hash:`,
+        tx.hash,
+        `rate: ${ethers.utils.formatUnits(currentReserveRate, 9)} => ${ethers.utils.formatUnits(
+          expectedReserveRate,
+          9
+        )}`
       );
-      console.log("Found ConcentratorStrategy FRAXUSDC/Half at:", strategy_FRAXUSDC_Half.address);
-    } else {
-      const ConcentratorStrategy = await ethers.getContractFactory("ConcentratorStrategy", deployer);
-      strategy_FRAXUSDC_Half = await ConcentratorStrategy.deploy(
-        DEPLOYED_CONTRACTS.AladdinZap,
-        DEPLOYED_CONTRACTS.Concentrator.AladdinCRVConvexVault,
-        15,
-        5e8, // 50%
-        ADDRESS.CURVE_FRAXUSDC_POOL,
-        ADDRESS.CURVE_FRAXUSDC_TOKEN,
-        ADDRESS.FRAX,
-        clever_FRAXUSDC.address
-      );
-      console.log("Deploying ConcentratorStrategy FRAXUSDC/Half, hash:", strategy_FRAXUSDC_Half.deployTransaction.hash);
-      await strategy_FRAXUSDC_Half.deployed();
-      console.log("✅ Deploy ConcentratorStrategy FRAXUSDC/Half at:", strategy_FRAXUSDC_Half.address);
-      config.FRAX.CLever.FRAXUSDC.strategies.FRAXUSDC_Half = strategy_FRAXUSDC_Half.address;
-    }
-  }
-
-  // Setup FRAX-USDC Clever
-  {
-    if (!(await clever_FRAXUSDC.reserveRate()).eq(config.FRAX.CLever.FRAXUSDC.reserveRate)) {
-      const tx = await clever_FRAXUSDC.updateReserveRate(config.FRAX.CLever.FRAXUSDC.reserveRate);
-      console.log("Setup reserve rate for clever_FRAXUSDC, hash:", tx.hash);
       const receipt = await tx.wait();
       console.log("✅ Done, gas used:", receipt.gasUsed.toString());
     }
 
-    const feeInfo = await clever_FRAXUSDC.feeInfo();
+    const feeInfo = await clever.feeInfo();
+    const platform = DEPLOYED_CONTRACTS.CLever.Treasury;
+    const platformPercentage = config.FRAX.CLever[underlying].platformFeePercentage;
+    const repayPercentage = config.FRAX.CLever[underlying].repayFeePercentage;
+    const bountyPercentage = config.FRAX.CLever[underlying].harvestBountyPercentage;
     if (
-      feeInfo.platform !== PLATFORM ||
-      feeInfo.platformPercentage !== PLATFORM_FEE_PERCENTAGE ||
-      feeInfo.repayPercentage !== REPAY_FEE_PERCENTAGE ||
-      feeInfo.bountyPercentage !== HARVEST_BOUNTY_PERCENTAGE
+      feeInfo.platform !== platform ||
+      feeInfo.platformPercentage !== platformPercentage ||
+      feeInfo.repayPercentage !== repayPercentage ||
+      feeInfo.bountyPercentage !== bountyPercentage
     ) {
-      const tx = await clever_FRAXUSDC.updateFeeInfo(
-        PLATFORM,
-        PLATFORM_FEE_PERCENTAGE,
-        HARVEST_BOUNTY_PERCENTAGE,
-        REPAY_FEE_PERCENTAGE
+      const tx = await clever.updateFeeInfo(platform, platformPercentage, bountyPercentage, repayPercentage);
+      console.log(
+        `Setup fees in CLever_${underlying}, hash: ${tx.hash}`,
+        `platform: ${feeInfo.platform} => ${platform}`,
+        `platformPercentage: ${ethers.utils.formatUnits(feeInfo.platformPercentage, 9)} => ${ethers.utils.formatUnits(
+          platformPercentage,
+          9
+        )}`,
+        `bountyPercentage: ${ethers.utils.formatUnits(feeInfo.bountyPercentage, 9)} => ${ethers.utils.formatUnits(
+          bountyPercentage,
+          9
+        )}`,
+        `repayPercentage: ${ethers.utils.formatUnits(feeInfo.repayPercentage, 9)} => ${ethers.utils.formatUnits(
+          repayPercentage,
+          9
+        )}`
       );
-      console.log("Setup fees in clever_FRAXUSDC, hash:", tx.hash);
       const receipt = await tx.wait();
       console.log("✅ Done, gas used:", receipt.gasUsed.toString());
     }
 
-    if (!(await fraxFurnace.isWhitelisted(clever_FRAXUSDC.address))) {
-      const tx = await fraxFurnace.updateWhitelists([clever_FRAXUSDC.address], true);
-      console.log("Add whitelist clever_FRAXUSDC to fraxFurnace, hash:", tx.hash);
+    if (!(await fraxFurnace.isWhitelisted(clever.address))) {
+      const tx = await fraxFurnace.updateWhitelists([clever.address], true);
+      console.log(`Add whitelist CLever_${underlying} to fraxFurnace, hash:`, tx.hash);
       const receipt = await tx.wait();
       console.log("✅ Done, gas used:", receipt.gasUsed.toString());
     }
 
-    if (!(await clevUSD.isMinter(clever_FRAXUSDC.address))) {
-      const tx = await clevUSD.updateMinters([clever_FRAXUSDC.address], true);
-      console.log("Setup clever_FRAXUSDC as minter of clevUSD, hash:", tx.hash);
+    if (!(await clevUSD.isMinter(clever.address))) {
+      const tx = await clevUSD.updateMinters([clever.address], true);
+      console.log(`Setup CLever_${underlying} as minter of clevUSD, hash:`, tx.hash);
       const receipt = await tx.wait();
       console.log("✅ Done, gas used:", receipt.gasUsed.toString());
     }
 
-    if (!(await clevUSD.minterInfo(clever_FRAXUSDC.address)).ceiling.eq(config.FRAX.CLever.FRAXUSDC.mintCeiling)) {
-      const tx = await clevUSD.updateCeiling(clever_FRAXUSDC.address, config.FRAX.CLever.FRAXUSDC.mintCeiling);
-      console.log("Setup minter ceiling for clever_FRAXUSDC, hash:", tx.hash);
+    if (!(await clevUSD.minterInfo(clever.address)).ceiling.eq(config.FRAX.CLever[underlying].mintCeiling)) {
+      const tx = await clevUSD.updateCeiling(clever.address, config.FRAX.CLever[underlying].mintCeiling);
+      console.log(`Setup minter ceiling for CLever_${underlying}, hash:`, tx.hash);
       const receipt = await tx.wait();
       console.log("✅ Done, gas used:", receipt.gasUsed.toString());
     }
 
-    const [, strategies] = await clever_FRAXUSDC.getActiveYieldStrategies();
-    if (!strategies.includes(strategy_FRAXUSDC_All.address)) {
-      const tx = await clever_FRAXUSDC.addYieldStrategy(strategy_FRAXUSDC_All.address, []);
-      console.log("setup add ConcentratorStrategy FRAXUSDC/All to clever_FRAXUSDC, hash:", tx.hash);
-      const receipt = await tx.wait();
-      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
-    }
-    if (!strategies.includes(strategy_FRAXUSDC_Half.address)) {
-      const tx = await clever_FRAXUSDC.addYieldStrategy(strategy_FRAXUSDC_Half.address, [
-        DEPLOYED_CONTRACTS.Concentrator.aCRV,
-      ]);
-      console.log("setup add ConcentratorStrategy FRAXUSDC/All to clever_FRAXUSDC, hash:", tx.hash);
-      const receipt = await tx.wait();
-      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    const [, strategies] = await clever.getActiveYieldStrategies();
+    for (const percentage of ["100"]) {
+      const name = `${underlying}_${percentage}`;
+      const strategy = await ethers.getContractAt(
+        "ConcentratorStrategy",
+        config.FRAX.CLever[underlying].strategies[name],
+        deployer
+      );
+      if (!strategies.includes(strategy.address)) {
+        const tx = await clever.addYieldStrategy(strategy.address, []);
+        console.log(`setup add ConcentratorStrategy ${name} to CLever_${underlying}, hash:`, tx.hash);
+        const receipt = await tx.wait();
+        console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      }
     }
   }
-
-  await gateway.depositCLever(
-    clever_FRAXUSDC.address,
-    0,
-    constants.AddressZero,
-    1000000000,
-    ADDRESS.CURVE_FRAXUSDC_TOKEN,
-    VAULT_CONFIG.fraxusdc.deposit.WETH,
-    0,
-    { value: 1000000000 }
-  );
-  const share = (await clever_FRAXUSDC.getUserInfo(deployer.address))._shares[0];
-  console.log("share", share);
-  await clever_FRAXUSDC.withdraw(0, deployer.address, share, 0, false, { gasLimit: 3000000 });
 }
 
 async function deployTokenAndVe() {

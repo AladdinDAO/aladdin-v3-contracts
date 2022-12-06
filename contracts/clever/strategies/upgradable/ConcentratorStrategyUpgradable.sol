@@ -3,24 +3,24 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import "./YieldStrategyBase.sol";
-import "../interfaces/ICurveSwapPool.sol";
-import "../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
-import "../../concentrator/interfaces/IAladdinCRV.sol";
-import "../../interfaces/IZap.sol";
-import "../../misc/checker/IPriceChecker.sol";
+import "../YieldStrategyBase.sol";
+import "../../interfaces/ICurveSwapPool.sol";
+import "../../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
+import "../../../concentrator/interfaces/IAladdinCRV.sol";
+import "../../../interfaces/IZap.sol";
+import "../../../misc/checker/IPriceChecker.sol";
 
 // solhint-disable reason-string
 
 /// @title Concentrator Strategy for CLever.
 ///
 /// @dev The gas usage is very high when combining CLever and Concentrator, we need a batch deposit version.
-contract ConcentratorStrategy is Ownable, YieldStrategyBase {
-  using SafeERC20 for IERC20;
+contract ConcentratorStrategyUpgradable is OwnableUpgradeable, YieldStrategyBase {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
 
   event UpdatePercentage(uint256 _percentage);
   event UpdateChecker(address _checker);
@@ -54,23 +54,26 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     address _zap,
     address _vault,
     uint256 _pid,
-    uint256 _percentage,
     address _curvePool,
     address _yieldToken,
     address _underlyingToken,
     address _operator
   ) YieldStrategyBase(_yieldToken, _underlyingToken, _operator) {
     require(_curvePool != address(0), "ConcentratorStrategy: zero address");
-    require(_percentage <= PRECISION, "ConcentratorStrategy: percentage too large");
 
     zap = _zap;
     vault = _vault;
     pid = _pid;
-    percentage = _percentage;
     curvePool = _curvePool;
+  }
+
+  function initialize(uint256 _percentage) external initializer {
+    require(_percentage <= PRECISION, "ConcentratorStrategy: percentage too large");
+
+    OwnableUpgradeable.__Ownable_init();
 
     // The Concentrator Vault is maintained by our team, it's safe to approve uint256.max.
-    IERC20(_yieldToken).safeApprove(_vault, uint256(-1));
+    IERC20Upgradeable(yieldToken).safeApprove(vault, uint256(-1));
   }
 
   /// @inheritdoc IYieldStrategy
@@ -140,10 +143,10 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
 
     // 3. transfer rewards to operator
     if (_underlyingAmount > 0) {
-      IERC20(_underlyingToken).safeTransfer(msg.sender, _underlyingAmount);
+      IERC20Upgradeable(_underlyingToken).safeTransfer(msg.sender, _underlyingAmount);
     }
     if (_aCRVAmount > 0) {
-      IERC20(aCRV).safeTransfer(msg.sender, _aCRVAmount);
+      IERC20Upgradeable(aCRV).safeTransfer(msg.sender, _aCRVAmount);
     }
 
     _rewardTokens = new address[](1);
@@ -158,8 +161,8 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     IAladdinCRVConvexVault(vault).withdrawAllAndClaim(pid, 0, IAladdinCRVConvexVault.ClaimOption.None);
 
     address _yieldToken = yieldToken;
-    _yieldAmount = IERC20(_yieldToken).balanceOf(address(this));
-    IERC20(_yieldToken).safeTransfer(_strategy, _yieldAmount);
+    _yieldAmount = IERC20Upgradeable(_yieldToken).balanceOf(address(this));
+    IERC20Upgradeable(_yieldToken).safeTransfer(_strategy, _yieldAmount);
   }
 
   /// @inheritdoc IYieldStrategy
@@ -205,7 +208,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
       // @todo add reserve check for curve lp to avoid flashloan attack.
       address _zap = zap;
       address _underlyingToken = underlyingToken;
-      IERC20(_underlyingToken).safeTransfer(_zap, _amount);
+      IERC20Upgradeable(_underlyingToken).safeTransfer(_zap, _amount);
       return IZap(_zap).zap(_underlyingToken, _amount, yieldToken, 0);
     } else {
       return _amount;
@@ -225,11 +228,11 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
       }
       address _zap = zap;
       address _underlyingToken = underlyingToken;
-      IERC20(_token).safeTransfer(_zap, _amount);
+      IERC20Upgradeable(_token).safeTransfer(_zap, _amount);
       _amount = IZap(_zap).zap(_token, _amount, _underlyingToken, 0);
       _token = _underlyingToken;
     }
-    IERC20(_token).safeTransfer(_recipient, _amount);
+    IERC20Upgradeable(_token).safeTransfer(_recipient, _amount);
     return _amount;
   }
 
