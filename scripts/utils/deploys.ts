@@ -64,7 +64,20 @@ export const DEPLOYED_CONTRACTS = {
       CLeverForCVX: "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
     },
     CLeverCRV: {},
-    CLeverUSD: {},
+    CLeverUSD: {
+      clevUSD: "0x3C20Ac688410bE8F391bE1fb00AFc5C212972F86",
+      Furnace: "0x7f160EFC2436F1aF4E9E8a57d0a5beB8345761a9",
+      CLever: {
+        FRAXUSDC: "0xEB0ea9D24235aB37196111eeDd656D56Ce4F53b1",
+        LUSDFRAXBP: "0xb2Fcee71b25B62baFE442c58AF58c42143673cC1",
+        TUSDFRAXBP: "0xad4caC207A0BFEd10dF8A4FC6A28D377caC730E0",
+      },
+      Strategy: {
+        FRAXUSDC_100: "0xAdC6A89d6Df7374629eA3cFd0737843709d29F66", // 100% aCRV are zapped to FRAX
+        LUSDFRAXBP_100: "0xC65D58A33D9917Df3e1a4033eD73506D9b6aCE6c", // 100% aCRV are zapped to FRAX
+        TUSDFRAXBP_100: "0xa7625Dd9F2D8a95a0D1Ac7E8671547197e9fcAf0", // 100% aCRV are zapped to FRAX
+      },
+    },
     Gauge: {
       vefunder: {
         FundraisingGaugeV1Impl: "0xB9CD9979718e7E4C341D8D99dA3F1290c908FBdd",
