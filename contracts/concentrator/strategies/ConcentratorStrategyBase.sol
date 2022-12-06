@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 
 import "../interfaces/IConcentratorStrategy.sol";
 
+// solhint-disable reason-string
+
 abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializable {
   /// @notice The address of operator.
   address public operator;
@@ -14,7 +16,7 @@ abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializab
   address[] public rewards;
 
   modifier onlyOperator() {
-    require(msg.sender == operator, "YieldStrategy: only operator");
+    require(msg.sender == operator, "ConcentratorStrategy: only operator");
     _;
   }
 
@@ -48,9 +50,9 @@ abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializab
   /// @param _rewards The address list of reward tokens.
   function _checkRewards(address[] memory _rewards) internal pure {
     for (uint256 i = 0; i < _rewards.length; i++) {
-      require(_rewards[i] != address(0), "zero reward token");
+      require(_rewards[i] != address(0), "ConcentratorStrategy: zero reward token");
       for (uint256 j = 0; j < i; j++) {
-        require(_rewards[i] != _rewards[j], "duplicated reward token");
+        require(_rewards[i] != _rewards[j], "ConcentratorStrategy: duplicated reward token");
       }
     }
   }

@@ -33,12 +33,12 @@ contract ConvexAutoCompoundingStrategy is ConcentratorStrategyBase {
 
   function initialize(
     address _operator,
+    address _token,
     address _rewarder,
     address[] memory _rewards
   ) external initializer {
     ConcentratorStrategyBase._initialize(_operator, _rewards);
 
-    address _token = IConvexBasicRewards(_rewarder).stakingToken();
     IERC20(_token).safeApprove(BOOSTER, uint256(-1));
 
     pid = IConvexBasicRewards(_rewarder).pid();
@@ -48,13 +48,17 @@ contract ConvexAutoCompoundingStrategy is ConcentratorStrategyBase {
 
   /// @inheritdoc IConcentratorStrategy
   function deposit(address, uint256 _amount) external override onlyOperator {
-    IConvexBooster(BOOSTER).deposit(pid, _amount, true);
+    if (_amount > 0) {
+      IConvexBooster(BOOSTER).deposit(pid, _amount, true);
+    }
   }
 
   /// @inheritdoc IConcentratorStrategy
   function withdraw(address _recipient, uint256 _amount) external override onlyOperator {
-    IConvexBasicRewards(rewarder).withdrawAndUnwrap(_amount, false);
-    IERC20(token).safeTransfer(_recipient, _amount);
+    if (_amount > 0) {
+      IConvexBasicRewards(rewarder).withdrawAndUnwrap(_amount, false);
+      IERC20(token).safeTransfer(_recipient, _amount);
+    }
   }
 
   /// @inheritdoc IConcentratorStrategy
@@ -76,15 +80,19 @@ contract ConvexAutoCompoundingStrategy is ConcentratorStrategyBase {
     }
 
     // 3. add liquidity to staking token.
-    address _token = token;
-    if (_intermediate == address(0)) {
-      _amount = IZap(_zapper).zap{ value: _amount }(_intermediate, _amount, _token, 0);
-    } else {
-      IERC20(_intermediate).safeTransfer(_zapper, _amount);
-      _amount = IZap(_zapper).zap(_intermediate, _amount, _token, 0);
+    if (_amount > 0) {
+      address _token = token;
+      if (_intermediate == address(0)) {
+        _amount = IZap(_zapper).zap{ value: _amount }(_intermediate, _amount, _token, 0);
+      } else {
+        IERC20(_intermediate).safeTransfer(_zapper, _amount);
+        _amount = IZap(_zapper).zap(_intermediate, _amount, _token, 0);
+      }
     }
 
     // 4. deposit into convex
-    IConvexBooster(BOOSTER).deposit(pid, _amount, true);
+    if (_amount > 0) {
+      IConvexBooster(BOOSTER).deposit(pid, _amount, true);
+    }
   }
 }

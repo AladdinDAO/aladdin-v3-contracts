@@ -7,14 +7,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
 import "../AladdinCompounder.sol";
+
 import "../interfaces/IConcentratorStrategy.sol";
-
-import "../../interfaces/IConvexBooster.sol";
-import "../../interfaces/IConvexBasicRewards.sol";
-import "../../interfaces/ICurveETHPool.sol";
-import "../../interfaces/IZap.sol";
-
-// solhint-disable no-empty-blocks
 
 contract AladdinETH is AladdinCompounder {
   using SafeMathUpgradeable for uint256;
@@ -32,8 +26,6 @@ contract AladdinETH is AladdinCompounder {
 
   /// @dev The address of underlying token.
   address private underlying;
-
-  receive() external payable {}
 
   function initialize(
     address _zap,
