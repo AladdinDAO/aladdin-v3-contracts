@@ -12,8 +12,9 @@ import "../../interfaces/IZap.sol";
 import "./ConcentratorStrategyBase.sol";
 
 // solhint-disable no-empty-blocks
+// solhint-disable reason-string
 
-contract ConvexAutoCompoundingStrategy is ConcentratorStrategyBase {
+contract ConvexStrategy is ConcentratorStrategyBase {
   using SafeERC20 for IERC20;
 
   /// @dev The address of Convex Booster.
@@ -80,20 +81,13 @@ contract ConvexAutoCompoundingStrategy is ConcentratorStrategyBase {
       }
     }
 
-    // 3. add liquidity to staking token.
-    if (_amount > 0) {
-      address _token = token;
-      if (_intermediate == address(0)) {
-        _amount = IZap(_zapper).zap{ value: _amount }(_intermediate, _amount, _token, 0);
-      } else {
-        IERC20(_intermediate).safeTransfer(_zapper, _amount);
-        _amount = IZap(_zapper).zap(_intermediate, _amount, _token, 0);
-      }
-    }
-
-    // 4. deposit into convex
-    if (_amount > 0) {
-      IConvexBooster(BOOSTER).deposit(pid, _amount, true);
+    // 3. transfer intermediate token back to operator.
+    if (_intermediate == address(0)) {
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool _success, ) = msg.sender.call{ value: _amount }("");
+      require(_success, "ConvexStrategy: transfer ETH failed");
+    } else {
+      IERC20(_intermediate).safeTransfer(msg.sender, _amount);
     }
   }
 }

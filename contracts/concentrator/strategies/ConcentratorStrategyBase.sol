@@ -20,6 +20,9 @@ abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializab
     _;
   }
 
+  // fallback function to receive eth.
+  receive() external payable {}
+
   function _initialize(address _operator, address[] memory _rewards) internal {
     _checkRewards(_rewards);
 
