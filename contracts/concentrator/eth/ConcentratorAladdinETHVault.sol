@@ -19,16 +19,19 @@ contract ConcentratorAladdinETHVault is ConcentratorGeneralVault {
   /// @dev The address of aladdinETH token.
   address private aladdinETH;
 
+  /// @dev The address of underlying token for aladdinETH.
+  address private aladdinETHUnderlying;
+
   function initialize(
     address _aladdinETH,
     address _zap,
     address _platform
   ) external initializer {
+    require(_aladdinETH != address(0), "Concentrator: zero aladdinETH address");
     ConcentratorGeneralVault._initialize(_zap, _platform);
 
-    require(_aladdinETH != address(0), "Concentrator: zero aladdinETH address");
-
     aladdinETH = _aladdinETH;
+    aladdinETHUnderlying = IAladdinCompounder(_aladdinETH).asset();
   }
 
   /********************************** View Functions **********************************/
@@ -53,11 +56,11 @@ contract ConcentratorAladdinETHVault is ConcentratorGeneralVault {
       _amountOut = _amount;
     } else {
       _amountOut = IAladdinCompounder(_aladdinETH).redeem(_amount, address(this), address(this));
-      address _underlying = IAladdinCompounder(_aladdinETH).asset();
-      if (_claimAsToken != _underlying) {
+      address _aladdinETHUnderlying = aladdinETHUnderlying;
+      if (_claimAsToken != _aladdinETHUnderlying) {
         address _zap = zap;
-        IERC20Upgradeable(_underlying).safeTransfer(_zap, _amountOut);
-        _amountOut = IZap(_zap).zap(_underlying, _amountOut, _claimAsToken, 0);
+        IERC20Upgradeable(_aladdinETHUnderlying).safeTransfer(_zap, _amountOut);
+        _amountOut = IZap(_zap).zap(_aladdinETHUnderlying, _amountOut, _claimAsToken, 0);
       }
     }
 
@@ -77,10 +80,11 @@ contract ConcentratorAladdinETHVault is ConcentratorGeneralVault {
   /// @inheritdoc ConcentratorGeneralVault
   function _harvest(uint256 _pid) internal virtual override returns (uint256) {
     address _strategy = poolInfo[_pid].strategy.strategy;
-    address _underlying = IAladdinCompounder(aladdinETH).asset();
     address _zap = zap;
     uint256 _amountETH = IConcentratorStrategy(_strategy).harvest(_zap, address(0));
 
-    return IZap(_zap).zap{ value: _amountETH }(address(0), _amountETH, _underlying, 0);
+    uint256 _amount = IZap(_zap).zap{ value: _amountETH }(address(0), _amountETH, aladdinETHUnderlying, 0);
+
+    return IAladdinCompounder(aladdinETH).deposit(_amount, address(this));
   }
 }
