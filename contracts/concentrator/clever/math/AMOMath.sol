@@ -103,7 +103,7 @@ library AMOMath {
     revert("y not converging");
   }
 
-  /// @dev Compute the result of add liquidity
+  /// @dev Compute the result of add liquidity, including (new_x, new_y, new_minted).
   /// See function `add_liquidity` in https://etherscan.io/address/0xf9078fb962a7d13f55d40d49c8aa6472abd1a5a6#code
   /// @param amp The amplification parameter equals: A n^(n-1)
   /// @param fee The swap fee from curve pool.
@@ -153,6 +153,7 @@ library AMOMath {
     // compute new balances after fee
     diff_x = (diff_x * fee) / FEE_DENOMINATOR;
     diff_y = (diff_y * fee) / FEE_DENOMINATOR;
+    // reuse `x` and `y` for new reserves to avoid stack too deep.
     x = dx - diff_x / 2; // this is real new balance 0
     y = dy - diff_y / 2; // this is real new balance 1
 
@@ -160,6 +161,7 @@ library AMOMath {
     dx -= diff_x;
     dy -= diff_y;
     invariant1 = getInvariant(amp, dx, dy);
+    // reuse `supply` as new minted lp to avoid stack too deep
     supply = (supply * (invariant1 - invariant0)) / invariant0;
 
     return (x, y, supply);

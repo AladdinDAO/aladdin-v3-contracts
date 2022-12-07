@@ -43,9 +43,6 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
   /// @dev The precision used to compute various fees.
   uint256 private constant FEE_PRECISION = 1e9;
 
-  /// @dev The maximum value of platform fee percentage.
-  uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
-
   /// @dev The maximum value of harvest bounty percentage.
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
 
@@ -240,7 +237,7 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     } else {
       // This already contains the user converted amount, we need to subtract it when computing shares.
       uint256 _debtBalance = _debtBalanceInContract();
-      uint256 _lpBalance = _debtBalanceInContract();
+      uint256 _lpBalance = _lpBalanceInContract();
 
       _debtOut = (_debtOut * _totalSupply) / (_debtBalance - _debtOut);
       _lpOut = (_lpOut * _totalSupply) / (_lpBalance - _lpOut);
