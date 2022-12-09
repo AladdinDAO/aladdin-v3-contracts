@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import { ethers, network } from "hardhat";
 import { TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../../scripts/utils";
-import { AladdinZap, ConvexAutoCompoundingStrategy, IConvexBasicRewards, MockERC20 } from "../../../typechain";
+import { AladdinZap, ConvexCurveAutoCompoundingStrategy, IConvexBasicRewards, MockERC20 } from "../../../typechain";
 import { request_fork } from "../../utils";
 
 const UNDERLYING: {
@@ -56,18 +56,21 @@ const UNDERLYING: {
   },
 };
 
-describe("ConvexAutoCompoundingStrategy.spec", async () => {
+describe("ConvexCurveAutoCompoundingStrategy.spec", async () => {
   context("auth", async () => {
     let deployer: SignerWithAddress;
     let operator: SignerWithAddress;
-    let strategy: ConvexAutoCompoundingStrategy;
+    let strategy: ConvexCurveAutoCompoundingStrategy;
     let token: MockERC20;
 
     beforeEach(async () => {
       [deployer, operator] = await ethers.getSigners();
 
-      const ConvexAutoCompoundingStrategy = await ethers.getContractFactory("ConvexAutoCompoundingStrategy", deployer);
-      strategy = await ConvexAutoCompoundingStrategy.deploy();
+      const ConvexCurveAutoCompoundingStrategy = await ethers.getContractFactory(
+        "ConvexCurveAutoCompoundingStrategy",
+        deployer
+      );
+      strategy = await ConvexCurveAutoCompoundingStrategy.deploy();
       await strategy.deployed();
 
       const MockERC20 = await ethers.getContractFactory("MockERC20", deployer);
@@ -161,6 +164,26 @@ describe("ConvexAutoCompoundingStrategy.spec", async () => {
         await strategy.connect(operator).harvest(deployer.address, token.address);
       });
     });
+
+    context("#prepareMigrate", async () => {
+      it("should revert, when non-operator call prepareMigrate", async () => {
+        await expect(strategy.prepareMigrate(deployer.address)).to.revertedWith("ConcentratorStrategy: only operator");
+      });
+
+      it("should succeed, when operator call prepareMigrate", async () => {
+        await strategy.connect(operator).prepareMigrate(deployer.address);
+      });
+    });
+
+    context("#finishMigrate", async () => {
+      it("should revert, when non-operator call finishMigrate", async () => {
+        await expect(strategy.finishMigrate(deployer.address)).to.revertedWith("ConcentratorStrategy: only operator");
+      });
+
+      it("should succeed, when operator call prepareMigrate", async () => {
+        await strategy.connect(operator).finishMigrate(deployer.address);
+      });
+    });
   });
 
   const run = async (
@@ -181,7 +204,7 @@ describe("ConvexAutoCompoundingStrategy.spec", async () => {
       let deployer: SignerWithAddress;
       let holder: SignerWithAddress;
       let zap: AladdinZap;
-      let strategy: ConvexAutoCompoundingStrategy;
+      let strategy: ConvexCurveAutoCompoundingStrategy;
       let rewarder: IConvexBasicRewards;
 
       beforeEach(async () => {
@@ -210,11 +233,11 @@ describe("ConvexAutoCompoundingStrategy.spec", async () => {
           );
         }
 
-        const ConvexAutoCompoundingStrategy = await ethers.getContractFactory(
-          "ConvexAutoCompoundingStrategy",
+        const ConvexCurveAutoCompoundingStrategy = await ethers.getContractFactory(
+          "ConvexCurveAutoCompoundingStrategy",
           deployer
         );
-        strategy = await ConvexAutoCompoundingStrategy.deploy();
+        strategy = await ConvexCurveAutoCompoundingStrategy.deploy();
         await strategy.deployed();
 
         await strategy.initialize(
@@ -260,6 +283,7 @@ describe("ConvexAutoCompoundingStrategy.spec", async () => {
         await network.provider.send("evm_mine");
 
         const harvested = await strategy.callStatic.harvest(zap.address, TOKENS[config.intermediate].address);
+        expect(harvested).to.gt(constants.Zero);
         await strategy.harvest(zap.address, TOKENS[config.intermediate].address);
         expect(await rewarder.balanceOf(strategy.address)).to.eq(amount.add(harvested));
       });

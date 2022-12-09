@@ -14,7 +14,7 @@ import "./ConcentratorStrategyBase.sol";
 // solhint-disable no-empty-blocks
 // solhint-disable reason-string
 
-contract ConvexStrategy is ConcentratorStrategyBase {
+contract ConvexCurveStrategy is ConcentratorStrategyBase {
   using SafeERC20 for IERC20;
 
   /// @dev The address of Convex Booster.

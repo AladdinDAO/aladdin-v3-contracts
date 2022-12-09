@@ -43,4 +43,12 @@ interface IConcentratorStrategy {
     uint256 _value,
     bytes calldata _data
   ) external payable returns (bool, bytes memory);
+
+  /// @notice Do some extra work before migration.
+  /// @param _newStrategy The address of new strategy.
+  function prepareMigrate(address _newStrategy) external;
+
+  /// @notice Do some extra work after migration.
+  /// @param _newStrategy The address of new strategy.
+  function finishMigrate(address _newStrategy) external;
 }

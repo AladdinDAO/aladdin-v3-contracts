@@ -9,11 +9,11 @@ import "../../interfaces/IConvexBasicRewards.sol";
 import "../../interfaces/IConvexBooster.sol";
 import "../../interfaces/IZap.sol";
 
-import "./ConcentratorStrategyBase.sol";
+import "./AutoCompoundingStrategyBase.sol";
 
 // solhint-disable no-empty-blocks
 
-contract ConvexAutoCompoundingStrategy is ConcentratorStrategyBase {
+contract ConvexCurveAutoCompoundingStrategy is AutoCompoundingStrategyBase {
   using SafeERC20 for IERC20;
 
   /// @dev The address of Convex Booster.
@@ -62,36 +62,19 @@ contract ConvexAutoCompoundingStrategy is ConcentratorStrategyBase {
   function harvest(address _zapper, address _intermediate) external override onlyOperator returns (uint256 _amount) {
     // 1. claim rewards from Convex rewards contract.
     address[] memory _rewards = rewards;
-    uint256[] memory _balances = new uint256[](rewards.length);
+    uint256[] memory _amounts = new uint256[](rewards.length);
     for (uint256 i = 0; i < rewards.length; i++) {
-      _balances[i] = IERC20(_rewards[i]).balanceOf(address(this));
+      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
     }
     IConvexBasicRewards(rewarder).getReward();
-
-    // 2. zap all rewards to intermediate token.
     for (uint256 i = 0; i < rewards.length; i++) {
-      address _rewardToken = _rewards[i]; // saving gas
-      uint256 _pending = IERC20(_rewardToken).balanceOf(address(this)) - _balances[i];
-      if (_rewardToken == _intermediate) {
-        _amount += _pending;
-      } else {
-        IERC20(_rewardToken).safeTransfer(_zapper, _pending);
-        _amount += IZap(_zapper).zap(_rewardToken, _pending, _intermediate, 0);
-      }
+      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this)) - _amounts[i];
     }
 
-    // 3. add liquidity to staking token.
-    if (_amount > 0) {
-      address _token = token;
-      if (_intermediate == address(0)) {
-        _amount = IZap(_zapper).zap{ value: _amount }(_intermediate, _amount, _token, 0);
-      } else {
-        IERC20(_intermediate).safeTransfer(_zapper, _amount);
-        _amount = IZap(_zapper).zap(_intermediate, _amount, _token, 0);
-      }
-    }
+    // 2. zap all rewards to staking token.
+    _amount = _harvest(_zapper, _intermediate, token, _rewards, _amounts);
 
-    // 4. deposit into convex
+    // 3. deposit into convex
     if (_amount > 0) {
       IConvexBooster(BOOSTER).deposit(pid, _amount, true);
     }

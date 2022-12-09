@@ -12,7 +12,9 @@ import "./interfaces/IAladdinCompounder.sol";
 
 import "../common/FeeCustomization.sol";
 
-// solhint-disable no-empty-blocks, reason-string, not-rely-on-time
+// solhint-disable no-empty-blocks
+// solhint-disable reason-string
+// solhint-disable not-rely-on-time
 
 abstract contract AladdinCompounder is
   OwnableUpgradeable,
@@ -82,6 +84,12 @@ abstract contract AladdinCompounder is
 
   /// @dev The amount of underlying asset recorded.
   uint256 internal totalAssetsStored;
+
+  function _initialize(string memory _name, string memory _symbol) internal {
+    OwnableUpgradeable.__Ownable_init();
+    ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
+    ERC20Upgradeable.__ERC20_init(_name, _symbol);
+  }
 
   /// @inheritdoc IAladdinCompounder
   function asset() public view virtual override returns (address);

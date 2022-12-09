@@ -2,11 +2,12 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
 import "../interfaces/IConcentratorStrategy.sol";
 
 // solhint-disable reason-string
+// solhint-disable no-empty-blocks
 
 abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializable {
   /// @notice The address of operator.
@@ -14,6 +15,9 @@ abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializab
 
   /// @notice The list of rewards token.
   address[] public rewards;
+
+  /// @dev reserved slots.
+  uint256[48] private __gap;
 
   modifier onlyOperator() {
     require(msg.sender == operator, "ConcentratorStrategy: only operator");
@@ -48,6 +52,12 @@ abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializab
     (bool success, bytes memory result) = _to.call{ value: _value }(_data);
     return (success, result);
   }
+
+  /// @inheritdoc IConcentratorStrategy
+  function prepareMigrate(address _newStrategy) external virtual override onlyOperator {}
+
+  /// @inheritdoc IConcentratorStrategy
+  function finishMigrate(address _newStrategy) external virtual override onlyOperator {}
 
   /// @dev Internal function to validate rewards list.
   /// @param _rewards The address list of reward tokens.

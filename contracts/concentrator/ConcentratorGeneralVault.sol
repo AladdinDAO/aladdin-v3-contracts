@@ -573,7 +573,9 @@ abstract contract ConcentratorGeneralVault is
     address _oldStrategy = poolInfo[_pid].strategy.strategy;
     poolInfo[_pid].strategy.strategy = _newStrategy;
 
+    IConcentratorStrategy(_oldStrategy).prepareMigrate(_newStrategy);
     IConcentratorStrategy(_oldStrategy).withdraw(_newStrategy, _totalUnderlying);
+    IConcentratorStrategy(_oldStrategy).finishMigrate(_newStrategy);
     IConcentratorStrategy(_newStrategy).deposit(address(this), _totalUnderlying);
 
     emit Migrate(_pid, _oldStrategy, _newStrategy);

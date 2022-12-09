@@ -7,7 +7,7 @@ import { ethers } from "hardhat";
 import * as hre from "hardhat";
 import {
   AladdinETH,
-  ConvexAutoCompoundingStrategy,
+  ConvexCurveAutoCompoundingStrategy,
   IConvexBasicRewards,
   IConvexBooster,
   IERC20,
@@ -78,7 +78,7 @@ describe("AladdinETH.spec", async () => {
   let aeth: AladdinETH;
   let booster: IConvexBooster;
   let rewarder: IConvexBasicRewards;
-  let strategy: ConvexAutoCompoundingStrategy;
+  let strategy: ConvexCurveAutoCompoundingStrategy;
 
   const run = async (
     name: string,
@@ -121,11 +121,11 @@ describe("AladdinETH.spec", async () => {
           );
         }
 
-        const ConvexAutoCompoundingStrategy = await ethers.getContractFactory(
-          "ConvexAutoCompoundingStrategy",
+        const ConvexCurveAutoCompoundingStrategy = await ethers.getContractFactory(
+          "ConvexCurveAutoCompoundingStrategy",
           deployer
         );
-        strategy = await ConvexAutoCompoundingStrategy.deploy();
+        strategy = await ConvexCurveAutoCompoundingStrategy.deploy();
         await strategy.deployed();
 
         const AladdinETH = await ethers.getContractFactory("AladdinETH", deployer);
@@ -227,7 +227,7 @@ describe("AladdinETH.spec", async () => {
           });
 
           it("should revert, when zap is zero", async () => {
-            await expect(aeth.updateZap(constants.AddressZero)).to.revertedWith("aETH: zero zap address");
+            await expect(aeth.updateZap(constants.AddressZero)).to.revertedWith("AladdinCompounder: zero zap address");
           });
 
           it("should succeed", async () => {
@@ -271,7 +271,7 @@ describe("AladdinETH.spec", async () => {
 
         context("deposit", async () => {
           it("should revert, when deposit zero amount", async () => {
-            await expect(aeth.deposit(0, deployer.address)).to.revertedWith("aETH: deposit zero amount");
+            await expect(aeth.deposit(0, deployer.address)).to.revertedWith("AladdinCompounder: deposit zero amount");
           });
 
           it("should succeed", async () => {
@@ -288,7 +288,7 @@ describe("AladdinETH.spec", async () => {
 
         context("mint", async () => {
           it("should revert, when mint zero amount", async () => {
-            await expect(aeth.mint(0, deployer.address)).to.revertedWith("aETH: deposit zero amount");
+            await expect(aeth.mint(0, deployer.address)).to.revertedWith("AladdinCompounder: deposit zero amount");
           });
 
           it("should succeed", async () => {
@@ -322,13 +322,13 @@ describe("AladdinETH.spec", async () => {
 
           it("should revert, when withdraw zero share", async () => {
             await expect(aeth.connect(signer).withdraw(0, deployer.address, signer.address)).to.revertedWith(
-              "aETH: withdraw zero share"
+              "AladdinCompounder: withdraw zero share"
             );
           });
 
           it("should revert, when insufficient owner shares", async () => {
             await expect(aeth.connect(deployer).withdraw(1, deployer.address, deployer.address)).to.revertedWith(
-              "aETH: insufficient owner shares"
+              "AladdinCompounder: insufficient owner shares"
             );
           });
 
@@ -357,13 +357,13 @@ describe("AladdinETH.spec", async () => {
 
           it("should revert, when withdraw zero share", async () => {
             await expect(aeth.connect(signer).redeem(0, deployer.address, signer.address)).to.revertedWith(
-              "aETH: withdraw zero share"
+              "AladdinCompounder: withdraw zero share"
             );
           });
 
           it("should revert, when insufficient owner shares", async () => {
             await expect(aeth.connect(deployer).redeem(1, deployer.address, deployer.address)).to.revertedWith(
-              "aETH: insufficient owner shares"
+              "AladdinCompounder: insufficient owner shares"
             );
           });
 
@@ -382,12 +382,14 @@ describe("AladdinETH.spec", async () => {
 
         context("distribute harvested reward intermediately", async () => {
           beforeEach(async () => {
+            await aeth.updateRewardPeriodLength(0);
             // deposit
             await aeth.connect(signer).deposit(assetsAmount, PLATFORM);
             await booster.earmarkRewards(await strategy.pid());
             const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
             // 3 days
             await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
+            await hre.network.provider.send("evm_mine", []);
             // harvest
             await aeth.harvest(PLATFORM, 0);
           });
@@ -497,6 +499,7 @@ describe("AladdinETH.spec", async () => {
             const tx = await aeth.harvest(deployer.address, 0);
             timestamp = (await ethers.provider.getBlock("latest")).timestamp;
             let harvested = (await rewarder.balanceOf(strategy.address)).sub(totalAssets);
+            expect(harvested).gt(constants.Zero);
             await expect(tx)
               .to.emit(aeth, "Harvest")
               .withArgs(
@@ -553,10 +556,16 @@ describe("AladdinETH.spec", async () => {
           });
         });
       });
+
+      context("migrate", async () => {});
     });
   };
 
   for (const [name, config] of Object.entries(UNDERLYING)) {
     run(name, config);
   }
+
+  context("frxETH in Convex For Frax", async () => {
+    // const config = UNDERLYING.frxeth;
+  });
 });

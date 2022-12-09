@@ -50,9 +50,7 @@ contract AladdinFXS is AladdinCompounder {
   address[] public rewards;
 
   function initialize(address _zap, address[] memory _rewards) external initializer {
-    OwnableUpgradeable.__Ownable_init();
-    ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
-    ERC20Upgradeable.__ERC20_init("Aladdin cvxFXS/FXS", "aFXS");
+    AladdinCompounder._initialize("Aladdin cvxFXS/FXS", "aFXS");
 
     require(_zap != address(0), "aFXS: zero zap address");
     _checkRewards(_rewards);
