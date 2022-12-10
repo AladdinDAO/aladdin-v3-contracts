@@ -25,7 +25,7 @@ abstract contract AutoCompoundingStrategyBase is ConcentratorStrategyBase {
       uint256 _amount = _amounts[i];
       if (_rewardToken == _intermediate) {
         _harvested += _amount;
-      } else {
+      } else if (_amount > 0) {
         IERC20(_rewardToken).safeTransfer(_zapper, _amount);
         _harvested += IZap(_zapper).zap(_rewardToken, _amount, _intermediate, 0);
       }

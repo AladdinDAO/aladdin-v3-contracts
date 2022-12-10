@@ -31,7 +31,7 @@ const UNDERLYING: {
     farm: "0xa537d64881b84faffb9Ae43c951EEbF368b71cdA",
     holder: "0xadd85e4abbb426e895f35e0a2576e22a9bbb7a57",
     amount: "1",
-    rewards: ["CVX", "CRV"],
+    rewards: ["CVX", "CRV", "FXS"],
     intermediate: "WETH",
   },
 };
