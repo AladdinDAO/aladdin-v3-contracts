@@ -82,6 +82,8 @@ describe("ConvexCurveAutoCompoundingStrategy.spec", async () => {
       await rewarder.deployed();
 
       await strategy.initialize(operator.address, token.address, rewarder.address, []);
+
+      expect(await strategy.name()).to.eq("ConvexCurveAutoCompounding");
     });
 
     it("should revert, when initialize again", async () => {
@@ -180,7 +182,7 @@ describe("ConvexCurveAutoCompoundingStrategy.spec", async () => {
         await expect(strategy.finishMigrate(deployer.address)).to.revertedWith("ConcentratorStrategy: only operator");
       });
 
-      it("should succeed, when operator call prepareMigrate", async () => {
+      it("should succeed, when operator call finishMigrate", async () => {
         await strategy.connect(operator).finishMigrate(deployer.address);
       });
     });

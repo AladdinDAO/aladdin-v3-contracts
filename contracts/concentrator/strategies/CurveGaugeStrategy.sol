@@ -14,8 +14,12 @@ import "./ConcentratorStrategyBase.sol";
 // solhint-disable no-empty-blocks
 // solhint-disable reason-string
 
-contract CurveStrategy is ConcentratorStrategyBase {
+contract CurveGaugeStrategy is ConcentratorStrategyBase {
   using SafeERC20 for IERC20;
+
+  /// @inheritdoc IConcentratorStrategy
+  // solhint-disable const-name-snakecase
+  string public constant override name = "CurveGauge";
 
   /// @dev The address of CRV token.
   address private constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;

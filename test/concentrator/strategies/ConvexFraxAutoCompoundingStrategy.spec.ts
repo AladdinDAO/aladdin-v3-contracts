@@ -100,6 +100,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           config.pid,
           config.rewards.map((symbol) => TOKENS[symbol].address)
         );
+        expect(await strategy.name()).to.eq("ConvexFraxAutoCompounding");
       });
 
       context("auth", async () => {
@@ -192,6 +193,30 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           });
         });
 
+        context("#prepareMigrate", async () => {
+          it("should revert, when non-operator call prepareMigrate", async () => {
+            await expect(strategy.connect(holder).prepareMigrate(deployer.address)).to.revertedWith(
+              "ConcentratorStrategy: only operator"
+            );
+          });
+
+          it("should succeed, when operator call prepareMigrate", async () => {
+            await strategy.connect(operator).prepareMigrate(deployer.address);
+          });
+        });
+
+        context("#finishMigrate", async () => {
+          it("should revert, when non-operator call finishMigrate", async () => {
+            await expect(strategy.connect(holder).finishMigrate(deployer.address)).to.revertedWith(
+              "ConcentratorStrategy: only operator"
+            );
+          });
+
+          it("should succeed, when operator call finishMigrate", async () => {
+            await strategy.connect(operator).finishMigrate(deployer.address);
+          });
+        });
+
         context("#setPaused", async () => {
           it("should revert, when non-owner call setPaused", async () => {
             await expect(strategy.connect(holder).setPaused(false)).to.revertedWith("Ownable: caller is not the owner");
@@ -234,50 +259,52 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
         });
       });
 
-      it("should succeed when deposit", async () => {
-        const token = await ethers.getContractAt("MockERC20", config.token, holder);
-        const amount = ethers.utils.parseEther(config.amount);
-        const vault = await strategy.vault();
+      context("#deposit", async () => {
+        it("should succeed when deposit", async () => {
+          const token = await ethers.getContractAt("MockERC20", config.token, holder);
+          const amount = ethers.utils.parseEther(config.amount);
+          const vault = await strategy.vault();
 
-        // lock first time
-        await token.transfer(strategy.address, amount);
-        await strategy.deposit(deployer.address, amount);
-        const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-        let locks = await strategy.locks();
-        expect(await farm.lockedLiquidityOf(vault)).to.eq(amount);
-        expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
-        expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
-        expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount);
-        expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
-        expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
-        expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          // lock first time
+          await token.transfer(strategy.address, amount);
+          await strategy.deposit(deployer.address, amount);
+          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+          let locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount);
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
 
-        // lock second time right after
-        await token.transfer(strategy.address, amount);
-        await strategy.deposit(deployer.address, amount);
-        locks = await strategy.locks();
-        expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(2));
-        expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
-        expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
-        expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount.mul(2));
-        expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
-        expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
-        expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          // lock second time right after
+          await token.transfer(strategy.address, amount);
+          await strategy.deposit(deployer.address, amount);
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(2));
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount.mul(2));
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
 
-        // lock third time after 7 days
-        await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
-        await network.provider.send("evm_mine");
-        await token.transfer(strategy.address, amount);
-        await strategy.deposit(deployer.address, amount);
-        locks = await strategy.locks();
-        const timestamp2 = (await ethers.provider.getBlock("latest")).timestamp;
-        expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(3));
-        expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
-        expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
-        expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount.mul(3));
-        expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp2);
-        expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp2 + 86400 * 7);
-        expect(locks.unlockAt).to.eq(timestamp2 + 86400 * 7);
+          // lock third time after 7 days
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
+          await network.provider.send("evm_mine");
+          await token.transfer(strategy.address, amount);
+          await strategy.deposit(deployer.address, amount);
+          locks = await strategy.locks();
+          const timestamp2 = (await ethers.provider.getBlock("latest")).timestamp;
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp2);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp2 + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp2 + 86400 * 7);
+        });
       });
 
       context("#withdraw", async () => {
@@ -298,6 +325,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
 
           // withdraw
           await strategy.withdraw(deployer.address, amount);
@@ -310,6 +338,9 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
           expect(locks.pendingUnlocked).to.eq(amount);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(1);
+          expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount);
+          expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
 
           // 7 days passed
           await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
@@ -332,6 +363,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[1].ending_timestamp).to.eq(timestamp2 + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp2 + 86400 * 7);
           expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
         });
 
         it("should succeed when withdraw all before unlock and claim", async () => {
@@ -351,6 +383,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
 
           // withdraw
           await strategy.withdraw(deployer.address, amount.mul(3));
@@ -363,6 +396,9 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
           expect(locks.pendingUnlocked).to.eq(amount.mul(3));
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(1);
+          expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount.mul(3));
+          expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
 
           // 7 days passed
           await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
@@ -380,25 +416,303 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
           expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
+        });
+
+        it("should succeed when withdraw all multiple times before unlock and claim", async () => {
+          const token = await ethers.getContractAt("MockERC20", config.token, holder);
+          const amount = ethers.utils.parseEther(config.amount);
+
+          // lock first time
+          await token.transfer(strategy.address, amount.mul(3));
+          await strategy.deposit(deployer.address, amount.mul(3));
+          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+          const vault = await strategy.vault();
+          let locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
+
+          // withdraw
+          await strategy.withdraw(deployer.address, amount);
+          await strategy.withdraw(deployer.address, amount);
+          await strategy.withdraw(deployer.address, amount);
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect(locks.pendingUnlocked).to.eq(amount.mul(3));
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(3);
+          expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount);
+          expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
+          expect((await strategy.getUserLocks(deployer.address))[1].balance).to.eq(amount);
+          expect((await strategy.getUserLocks(deployer.address))[1].unlockAt).to.eq(timestamp + 86400 * 7);
+          expect((await strategy.getUserLocks(deployer.address))[2].balance).to.eq(amount);
+          expect((await strategy.getUserLocks(deployer.address))[2].unlockAt).to.eq(timestamp + 86400 * 7);
+
+          // 7 days passed
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
+          await network.provider.send("evm_mine");
+          const before = await token.balanceOf(deployer.address);
+          await strategy.claim(deployer.address);
+          const after = await token.balanceOf(deployer.address);
+          expect(after.sub(before)).to.eq(amount.mul(3));
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
+        });
+
+        it("should succeed when withdraw 1/3 after unlock and claim", async () => {
+          const token = await ethers.getContractAt("MockERC20", config.token, holder);
+          const amount = ethers.utils.parseEther(config.amount);
+
+          // lock first time
+          await token.transfer(strategy.address, amount.mul(3));
+          await strategy.deposit(deployer.address, amount.mul(3));
+          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+          const vault = await strategy.vault();
+          let locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
+
+          // 7 days passed
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
+          await network.provider.send("evm_mine");
+
+          // withdraw
+          await strategy.withdraw(deployer.address, amount);
+          const timestamp2 = (await ethers.provider.getBlock("latest")).timestamp;
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(2));
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(2);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[1].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[1].liquidity).to.eq(amount.mul(2));
+          expect((await farm.lockedStakesOf(vault))[1].start_timestamp).to.eq(timestamp2);
+          expect((await farm.lockedStakesOf(vault))[1].ending_timestamp).to.eq(timestamp2 + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp2 + 86400 * 7);
+          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(1);
+          expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount);
+          expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
+
+          // claim
+          const before = await token.balanceOf(deployer.address);
+          await strategy.claim(deployer.address);
+          const after = await token.balanceOf(deployer.address);
+          expect(after.sub(before)).to.eq(amount);
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(2));
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(2);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[1].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[1].liquidity).to.eq(amount.mul(2));
+          expect((await farm.lockedStakesOf(vault))[1].start_timestamp).to.eq(timestamp2);
+          expect((await farm.lockedStakesOf(vault))[1].ending_timestamp).to.eq(timestamp2 + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp2 + 86400 * 7);
+          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
+        });
+
+        it("should succeed when withdraw all after unlock and claim", async () => {
+          const token = await ethers.getContractAt("MockERC20", config.token, holder);
+          const amount = ethers.utils.parseEther(config.amount);
+
+          // lock first time
+          await token.transfer(strategy.address, amount.mul(3));
+          await strategy.deposit(deployer.address, amount.mul(3));
+          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+          const vault = await strategy.vault();
+          let locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount.mul(3));
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
+
+          // 7 days passed
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
+          await network.provider.send("evm_mine");
+
+          // withdraw
+          await strategy.withdraw(deployer.address, amount.mul(3));
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect(locks.key).to.eq(constants.HashZero);
+          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(1);
+          expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount.mul(3));
+          expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
+
+          // claim
+          const before = await token.balanceOf(deployer.address);
+          await strategy.claim(deployer.address);
+          const after = await token.balanceOf(deployer.address);
+          expect(after.sub(before)).to.eq(amount.mul(3));
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect(locks.key).to.eq(constants.HashZero);
+          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
         });
       });
 
-      /* it("should succeed when harvest", async () => {
-        const token = await ethers.getContractAt("MockERC20", config.token, holder);
-        const amount = ethers.utils.parseEther(config.amount);
-        await token.transfer(strategy.address, amount);
-        await strategy.deposit(deployer.address, amount);
-        expect(await rewarder.balanceOf(strategy.address)).to.eq(amount);
+      context("#harvest", async () => {
+        it("should succeed when harvest", async () => {
+          const vault = await strategy.vault();
+          const token = await ethers.getContractAt("MockERC20", config.token, holder);
+          const amount = ethers.utils.parseEther(config.amount);
+          await token.transfer(strategy.address, amount);
+          await strategy.deposit(deployer.address, amount);
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount);
 
-        const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-        // make sure 7 days passed, then the rewards will not increase anymore.
-        await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
-        await network.provider.send("evm_mine");
+          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+          // make sure 7 days passed, then the rewards will not increase anymore.
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
+          await network.provider.send("evm_mine");
 
-        const harvested = await strategy.callStatic.harvest(zap.address, TOKENS[config.intermediate].address);
-        await strategy.harvest(zap.address, TOKENS[config.intermediate].address);
-        expect(await rewarder.balanceOf(strategy.address)).to.eq(amount.add(harvested));
-      }); */
+          const harvested = await strategy.callStatic.harvest(zap.address, TOKENS[config.intermediate].address);
+          await strategy.harvest(zap.address, TOKENS[config.intermediate].address);
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.add(harvested));
+        });
+      });
+
+      context("#pause", async () => {
+        it("should not extend when paused", async () => {});
+      });
+
+      context("migrate", async () => {
+        it("should revert, when migrate before unlock", async () => {
+          const ConvexFraxAutoCompoundingStrategy = await ethers.getContractFactory(
+            "ConvexFraxAutoCompoundingStrategy",
+            deployer
+          );
+          const newStrategy = await ConvexFraxAutoCompoundingStrategy.deploy();
+          await newStrategy.deployed();
+          await newStrategy.initialize(
+            deployer.address,
+            config.token,
+            config.pid,
+            config.rewards.map((symbol) => TOKENS[symbol].address)
+          );
+
+          const token = await ethers.getContractAt("MockERC20", config.token, holder);
+          const amount = ethers.utils.parseEther(config.amount);
+
+          // lock first time
+          await token.transfer(strategy.address, amount);
+          await strategy.deposit(deployer.address, amount);
+
+          await strategy.prepareMigrate(newStrategy.address);
+          await strategy.withdraw(newStrategy.address, amount);
+          await expect(strategy.finishMigrate(newStrategy.address)).to.revertedWith(
+            "ConvexFraxAutoCompoundingStrategy: migration failed"
+          );
+        });
+
+        it("should succeed, when migrate before unlock and wait after unlock", async () => {
+          const ConvexFraxAutoCompoundingStrategy = await ethers.getContractFactory(
+            "ConvexFraxAutoCompoundingStrategy",
+            deployer
+          );
+          const newStrategy = await ConvexFraxAutoCompoundingStrategy.deploy();
+          await newStrategy.deployed();
+          await newStrategy.initialize(
+            deployer.address,
+            config.token,
+            config.pid,
+            config.rewards.map((symbol) => TOKENS[symbol].address)
+          );
+
+          const token = await ethers.getContractAt("MockERC20", config.token, holder);
+          const amount = ethers.utils.parseEther(config.amount);
+
+          // lock first time
+          await token.transfer(strategy.address, amount);
+          await strategy.deposit(deployer.address, amount);
+          await strategy.withdraw(newStrategy.address, amount);
+
+          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
+          await network.provider.send("evm_mine");
+          await strategy.prepareMigrate(newStrategy.address);
+          await strategy.finishMigrate(newStrategy.address);
+          expect(await token.balanceOf(newStrategy.address)).to.eq(amount);
+        });
+
+        it("should succeed, when migrate after unlock", async () => {
+          const ConvexFraxAutoCompoundingStrategy = await ethers.getContractFactory(
+            "ConvexFraxAutoCompoundingStrategy",
+            deployer
+          );
+          const newStrategy = await ConvexFraxAutoCompoundingStrategy.deploy();
+          await newStrategy.deployed();
+          await newStrategy.initialize(
+            deployer.address,
+            config.token,
+            config.pid,
+            config.rewards.map((symbol) => TOKENS[symbol].address)
+          );
+
+          const token = await ethers.getContractAt("MockERC20", config.token, holder);
+          const amount = ethers.utils.parseEther(config.amount);
+
+          // lock first time
+          await token.transfer(strategy.address, amount);
+          await strategy.deposit(deployer.address, amount);
+          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
+          await network.provider.send("evm_mine");
+          await strategy.prepareMigrate(newStrategy.address);
+          await strategy.withdraw(newStrategy.address, amount);
+          await strategy.finishMigrate(newStrategy.address);
+          expect(await token.balanceOf(newStrategy.address)).to.eq(amount);
+        });
+      });
     });
   };
 

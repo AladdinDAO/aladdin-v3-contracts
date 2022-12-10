@@ -22,6 +22,10 @@ import "./AutoCompoundingStrategyBase.sol";
 contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgradeable, AutoCompoundingStrategyBase {
   using SafeERC20 for IERC20;
 
+  /// @inheritdoc IConcentratorStrategy
+  // solhint-disable const-name-snakecase
+  string public constant override name = "ConvexFraxAutoCompounding";
+
   /// @dev The address of Convex Booster for Frax vault.
   address private constant BOOSTER = 0x569f5B842B5006eC17Be02B8b94510BA8e79FbCa;
 
@@ -154,6 +158,11 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
   /// @inheritdoc IConcentratorStrategy
   function finishMigrate(address _newStrategy) external override onlyOperator {
     claim(_newStrategy);
+
+    require(
+      nextIndex[_newStrategy] == userLocks[_newStrategy].length,
+      "ConvexFraxAutoCompoundingStrategy: migration failed"
+    );
   }
 
   /// @notice Claim unlocked token from contract.
@@ -175,6 +184,8 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
       if (_lock.unlockAt < block.timestamp) {
         _unlocked += _lock.balance;
         delete _userLocks[_nextIndex];
+      } else {
+        break;
       }
       _nextIndex += 1;
     }
@@ -230,7 +241,7 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
   /// @param _locks The lock data in memory.
   function _extend(address _vault, LockData memory _locks) internal {
     // no need to extend now
-    if (_locks.unlockAt >= block.timestamp) return;
+    if (_locks.key == bytes32(0) || _locks.unlockAt >= block.timestamp) return;
 
     if (_locks.pendingUnlocked > 0) {
       // unlock pending tokens

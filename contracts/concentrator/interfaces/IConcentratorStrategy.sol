@@ -3,6 +3,9 @@
 pragma solidity ^0.7.6;
 
 interface IConcentratorStrategy {
+  /// @notice Return then name of the strategy.
+  function name() external view returns (string memory);
+
   /// @notice Update the list of reward tokens.
   /// @param _rewards The address list of reward tokens to update.
   function updateRewards(address[] memory _rewards) external;

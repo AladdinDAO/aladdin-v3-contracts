@@ -16,6 +16,10 @@ import "./AutoCompoundingStrategyBase.sol";
 contract ConvexCurveAutoCompoundingStrategy is AutoCompoundingStrategyBase {
   using SafeERC20 for IERC20;
 
+  /// @inheritdoc IConcentratorStrategy
+  // solhint-disable const-name-snakecase
+  string public constant override name = "ConvexCurveAutoCompounding";
+
   /// @dev The address of Convex Booster.
   address private constant BOOSTER = 0xF403C135812408BFbE8713b5A23a04b3D48AAE31;
 
