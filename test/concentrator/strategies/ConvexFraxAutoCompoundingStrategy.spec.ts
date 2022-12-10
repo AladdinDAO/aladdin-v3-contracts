@@ -337,7 +337,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
-          expect(locks.pendingUnlocked).to.eq(amount);
+          expect(locks.pendingToUnlock).to.eq(amount);
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(1);
           expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount);
           expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
@@ -362,7 +362,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[1].start_timestamp).to.eq(timestamp2);
           expect((await farm.lockedStakesOf(vault))[1].ending_timestamp).to.eq(timestamp2 + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp2 + 86400 * 7);
-          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect(locks.pendingToUnlock).to.eq(constants.Zero);
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
         });
 
@@ -395,7 +395,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
-          expect(locks.pendingUnlocked).to.eq(amount.mul(3));
+          expect(locks.pendingToUnlock).to.eq(amount.mul(3));
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(1);
           expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount.mul(3));
           expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
@@ -415,7 +415,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
-          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect(locks.pendingToUnlock).to.eq(constants.Zero);
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
         });
 
@@ -450,7 +450,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
-          expect(locks.pendingUnlocked).to.eq(amount.mul(3));
+          expect(locks.pendingToUnlock).to.eq(amount.mul(3));
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(3);
           expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount);
           expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
@@ -474,7 +474,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
-          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect(locks.pendingToUnlock).to.eq(constants.Zero);
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
         });
 
@@ -516,7 +516,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[1].start_timestamp).to.eq(timestamp2);
           expect((await farm.lockedStakesOf(vault))[1].ending_timestamp).to.eq(timestamp2 + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp2 + 86400 * 7);
-          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect(locks.pendingToUnlock).to.eq(constants.Zero);
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(1);
           expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount);
           expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
@@ -538,7 +538,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[1].start_timestamp).to.eq(timestamp2);
           expect((await farm.lockedStakesOf(vault))[1].ending_timestamp).to.eq(timestamp2 + 86400 * 7);
           expect(locks.unlockAt).to.eq(timestamp2 + 86400 * 7);
-          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect(locks.pendingToUnlock).to.eq(constants.Zero);
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
         });
 
@@ -576,7 +576,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
           expect(locks.key).to.eq(constants.HashZero);
-          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect(locks.pendingToUnlock).to.eq(constants.Zero);
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(1);
           expect((await strategy.getUserLocks(deployer.address))[0].balance).to.eq(amount.mul(3));
           expect((await strategy.getUserLocks(deployer.address))[0].unlockAt).to.eq(timestamp + 86400 * 7);
@@ -595,7 +595,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
           expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
           expect(locks.key).to.eq(constants.HashZero);
-          expect(locks.pendingUnlocked).to.eq(constants.Zero);
+          expect(locks.pendingToUnlock).to.eq(constants.Zero);
           expect((await strategy.getUserLocks(deployer.address)).length).to.eq(0);
         });
       });
@@ -621,7 +621,105 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
       });
 
       context("#pause", async () => {
-        it("should not extend when paused", async () => {});
+        it("should revert, when deposit after paused", async () => {
+          await strategy.setPaused(true);
+          const amount = ethers.utils.parseEther(config.amount);
+          await expect(strategy.deposit(deployer.address, amount)).to.revertedWith("Pausable: paused");
+        });
+
+        it("should succeed, deposit, pause, withdraw, harvest, withdraw, unpause, withdraw, deposit", async () => {
+          const token = await ethers.getContractAt("MockERC20", config.token, holder);
+          const amount = ethers.utils.parseEther(config.amount);
+          const vault = await strategy.vault();
+
+          // lock first time
+          await token.transfer(strategy.address, amount.mul(2));
+          await strategy.deposit(deployer.address, amount.mul(2));
+          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+          let locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.mul(2));
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(amount.mul(2));
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(timestamp);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(timestamp + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect(await strategy.pendingToLock()).to.eq(constants.Zero);
+
+          // pause contract
+          await strategy.setPaused(true);
+
+          // 7 days passed and do withdraw, should have no new locks
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7 + 1]);
+          await network.provider.send("evm_mine");
+          await strategy.withdraw(deployer.address, amount);
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect(locks.key).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect(await strategy.pendingToLock()).to.eq(amount);
+
+          // 7 days passed and do harvest, should store all token in contract
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 14 + 1]);
+          await network.provider.send("evm_mine");
+          const intermediate = TOKENS[config.intermediate].address;
+          const harvested = await strategy.callStatic.harvest(zap.address, intermediate);
+          expect(harvested).to.gt(constants.Zero);
+          await strategy.harvest(zap.address, intermediate);
+          expect(await strategy.pendingToLock()).to.eq(amount.add(harvested));
+
+          // withdraw harvested
+          await strategy.withdraw(deployer.address, harvested);
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect(locks.key).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect(await strategy.pendingToLock()).to.eq(amount);
+
+          // unpause
+          await strategy.setPaused(false);
+
+          // withdraw amount / 2, will no trigger relock
+          await strategy.withdraw(deployer.address, amount.div(2));
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(1);
+          expect(locks.key).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
+          expect(locks.unlockAt).to.eq(timestamp + 86400 * 7);
+          expect(await strategy.pendingToLock()).to.eq(amount.sub(amount.div(2)));
+
+          // deposit amount / 2, will trigger relock
+          await token.transfer(strategy.address, amount.div(2));
+          await strategy.deposit(deployer.address, amount.div(2));
+          const timestamp2 = (await ethers.provider.getBlock("latest")).timestamp;
+          locks = await strategy.locks();
+          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount);
+          expect((await farm.lockedStakesOf(vault)).length).to.eq(2);
+          expect((await farm.lockedStakesOf(vault))[0].kek_id).to.eq(constants.HashZero);
+          expect((await farm.lockedStakesOf(vault))[0].liquidity).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].start_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[0].ending_timestamp).to.eq(constants.Zero);
+          expect((await farm.lockedStakesOf(vault))[1].kek_id).to.eq(locks.key);
+          expect((await farm.lockedStakesOf(vault))[1].liquidity).to.eq(amount);
+          expect((await farm.lockedStakesOf(vault))[1].start_timestamp).to.eq(timestamp2);
+          expect((await farm.lockedStakesOf(vault))[1].ending_timestamp).to.eq(timestamp2 + 86400 * 7);
+          expect(locks.unlockAt).to.eq(timestamp2 + 86400 * 7);
+          expect(await strategy.pendingToLock()).to.eq(constants.Zero);
+        });
       });
 
       context("migrate", async () => {

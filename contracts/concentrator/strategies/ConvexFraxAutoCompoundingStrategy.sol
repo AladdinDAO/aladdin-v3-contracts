@@ -36,7 +36,7 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
     // Next unlock time, in seconds.
     uint64 unlockAt;
     // The amount of token should be unlocked at next unlock time.
-    uint128 pendingUnlocked;
+    uint128 pendingToUnlock;
     // The key of locked items in frax vault.
     bytes32 key;
   }
@@ -60,6 +60,10 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
 
   /// @notice The address of personal vault.
   address public vault;
+
+  /// @notice The amount of token are going to be locked.
+  /// @dev The value will be non-zero only when contract is paused.
+  uint256 public pendingToLock;
 
   /// @notice Mapping from user address to user locked data.
   mapping(address => UserLockedBalance[]) public userLocks;
@@ -104,7 +108,8 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
   /********************************** Mutated Functions **********************************/
 
   /// @inheritdoc IConcentratorStrategy
-  function deposit(address, uint256 _amount) external override onlyOperator {
+  /// @dev You are not allowed to deposit when contract is paused.
+  function deposit(address, uint256 _amount) external override onlyOperator whenNotPaused {
     if (_amount > 0) {
       _createOrLockMore(vault, _amount);
     }
@@ -121,7 +126,7 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
       );
 
       // increase the pending unlocks.
-      _locks.pendingUnlocked = uint128(uint256(_locks.pendingUnlocked) + _amount);
+      _locks.pendingToUnlock = uint128(uint256(_locks.pendingToUnlock) + _amount);
 
       // try extend lock duration
       _extend(vault, _locks);
@@ -151,7 +156,8 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
 
     // 3. deposit into convex
     if (_amount > 0) {
-      _createOrLockMore(_vault, _amount);
+      if (paused()) pendingToLock += _amount;
+      else _createOrLockMore(_vault, _amount);
     }
   }
 
@@ -221,6 +227,14 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
   /// @param _amount The amount of token to lock.
   function _createOrLockMore(address _vault, uint256 _amount) internal {
     LockData memory _locks = locks;
+
+    // We have some pending token to lock, usually happens when the paused contract is opened.
+    uint256 _pendingToLock = pendingToLock;
+    if (_pendingToLock > 0) {
+      pendingToLock = 0;
+      _amount += _pendingToLock;
+    }
+
     if (_locks.key == bytes32(0)) {
       // we don't have a lock yet, create one
       _locks.key = IStakingProxyConvex(_vault).stakeLockedCurveLp(_amount, _locks.duration);
@@ -241,14 +255,19 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
   /// @param _locks The lock data in memory.
   function _extend(address _vault, LockData memory _locks) internal {
     // no need to extend now
-    if (_locks.key == bytes32(0) || _locks.unlockAt >= block.timestamp) return;
+    if (_locks.unlockAt >= block.timestamp) return;
 
-    if (_locks.pendingUnlocked > 0) {
+    if (_locks.pendingToUnlock > 0) {
       // unlock pending tokens
-      _unlock(_vault, _locks, _locks.pendingUnlocked);
-      _locks.pendingUnlocked = 0;
-    } else if (!paused()) {
-      // don't extend lock duration when paused.
+      _unlock(_vault, _locks, _locks.pendingToUnlock);
+      _locks.pendingToUnlock = 0;
+    } else if (!paused() && _locks.key != bytes32(0)) {
+      // Don't extend lock duration when paused or no lock exists
+      // _locks.key = bytes32(0) will happen when
+      // 1. setPause(true)
+      // 2. withdraw
+      // 3. setPause(false)
+      // 4. claim
       IStakingProxyConvex(_vault).lockLonger(_locks.key, block.timestamp + _locks.duration);
       _locks.unlockAt = uint64(block.timestamp + _locks.duration);
     }
@@ -263,6 +282,13 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
     LockData memory _locks,
     uint256 _amount
   ) internal {
+    // all are unlocked.
+    if (_locks.key == bytes32(0)) {
+      // unlock token when paused
+      pendingToLock -= _amount;
+      return;
+    }
+
     address _token = token;
     uint256 _unlocked = IERC20(_token).balanceOf(address(this));
     IStakingProxyConvex(_vault).withdrawLockedAndUnwrap(_locks.key);
@@ -270,10 +296,11 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
     require(_amount <= _unlocked, "ConcentratorStrategy: withdraw more than locked");
 
     if (_unlocked != _amount && !paused()) {
-      // don't extend lock duration when paused.
+      // don't extend lock duration when paused or all tokens are withdrawn
       _locks.key = IStakingProxyConvex(_vault).stakeLockedCurveLp(_unlocked - _amount, _locks.duration);
       _locks.unlockAt = uint64(block.timestamp + _locks.duration);
     } else {
+      pendingToLock += _unlocked - _amount;
       _locks.key = bytes32(0);
     }
   }
