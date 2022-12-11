@@ -5,8 +5,8 @@ pragma solidity ^0.7.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import "../../interfaces/ICurveGauge.sol";
-import "../../interfaces/ICurveTokenMinter.sol";
+import "../../interfaces/IConvexBasicRewards.sol";
+import "../../interfaces/IConvexBooster.sol";
 import "../../interfaces/IZap.sol";
 
 import "./ManualCompoundingStrategyBase.sol";
@@ -14,50 +14,51 @@ import "./ManualCompoundingStrategyBase.sol";
 // solhint-disable no-empty-blocks
 // solhint-disable reason-string
 
-contract CurveGaugeStrategy is ManualCompoundingStrategyBase {
+contract ManualCompoundingConvexCurveStrategy is ManualCompoundingStrategyBase {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc IConcentratorStrategy
   // solhint-disable const-name-snakecase
-  string public constant override name = "CurveGauge";
+  string public constant override name = "ManualCompoundingConvexCurve";
 
-  /// @dev The address of CRV token.
-  address private constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
+  /// @dev The address of Convex Booster.
+  address private constant BOOSTER = 0xF403C135812408BFbE8713b5A23a04b3D48AAE31;
 
-  /// @dev The address of CRV minter.
-  address private constant MINTER = 0xd061D61a4d941c39E5453435B6345Dc261C2fcE0;
+  /// @notice The pid of Convex reward pool.
+  uint256 public pid;
 
   /// @notice The address of staking token.
   address public token;
 
-  /// @notice The address of Curve gauge contract.
-  address public gauge;
+  /// @notice The address of Convex rewards contract.
+  address public rewarder;
 
   function initialize(
     address _operator,
     address _token,
-    address _gauge,
+    address _rewarder,
     address[] memory _rewards
   ) external initializer {
     ConcentratorStrategyBase._initialize(_operator, _rewards);
 
-    IERC20(_token).safeApprove(_gauge, uint256(-1));
+    IERC20(_token).safeApprove(BOOSTER, uint256(-1));
 
+    pid = IConvexBasicRewards(_rewarder).pid();
     token = _token;
-    gauge = _gauge;
+    rewarder = _rewarder;
   }
 
   /// @inheritdoc IConcentratorStrategy
   function deposit(address, uint256 _amount) external override onlyOperator {
     if (_amount > 0) {
-      ICurveGauge(gauge).deposit(_amount);
+      IConvexBooster(BOOSTER).deposit(pid, _amount, true);
     }
   }
 
   /// @inheritdoc IConcentratorStrategy
   function withdraw(address _recipient, uint256 _amount) external override onlyOperator {
     if (_amount > 0) {
-      ICurveGauge(gauge).withdraw(_amount);
+      IConvexBasicRewards(rewarder).withdrawAndUnwrap(_amount, false);
       IERC20(token).safeTransfer(_recipient, _amount);
     }
   }
@@ -70,10 +71,7 @@ contract CurveGaugeStrategy is ManualCompoundingStrategyBase {
     for (uint256 i = 0; i < rewards.length; i++) {
       _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
     }
-    address _gauge = gauge;
-    ICurveTokenMinter(MINTER).mint(_gauge);
-    // some gauge has no extra rewards
-    try ICurveGauge(_gauge).claim_rewards() {} catch {}
+    IConvexBasicRewards(rewarder).getReward();
     for (uint256 i = 0; i < rewards.length; i++) {
       _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this)) - _amounts[i];
     }

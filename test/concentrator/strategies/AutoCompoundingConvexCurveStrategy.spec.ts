@@ -5,10 +5,8 @@ import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import { ethers, network } from "hardhat";
 import { TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../../scripts/utils";
-import { AladdinZap, ConvexCurveStrategy, IConvexBasicRewards, IConvexBooster, MockERC20 } from "../../../typechain";
+import { AladdinZap, AutoCompoundingConvexCurveStrategy, IConvexBasicRewards, MockERC20 } from "../../../typechain";
 import { request_fork } from "../../utils";
-
-const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 
 const UNDERLYING: {
   [name: string]: {
@@ -20,7 +18,7 @@ const UNDERLYING: {
     holder: string;
     amount: string;
     rewards: string[];
-    intermediates: string[];
+    intermediate: string;
   };
 } = {
   frxeth: {
@@ -32,7 +30,7 @@ const UNDERLYING: {
     holder: "0xadd85e4abbb426e895f35e0a2576e22a9bbb7a57",
     amount: "10",
     rewards: ["CVX", "CRV"],
-    intermediates: ["CRV", "FXS", "WETH"],
+    intermediate: "WETH",
   },
   steth: {
     fork: 16124420,
@@ -43,7 +41,7 @@ const UNDERLYING: {
     holder: "0x13e382dfe53207E9ce2eeEab330F69da2794179E",
     amount: "100",
     rewards: ["CVX", "CRV", "LDO"],
-    intermediates: ["CRV", "WETH"],
+    intermediate: "WETH",
   },
   cbeth: {
     fork: 16124420,
@@ -54,33 +52,25 @@ const UNDERLYING: {
     holder: "0xe4d7e7b90519445585635c3b383c9d86c0596e57",
     amount: "10",
     rewards: ["CVX", "CRV"],
-    intermediates: ["CRV", "WETH"],
-  },
-  cvxfxs: {
-    fork: 16124420,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    token: "0xF3A43307DcAFa93275993862Aae628fCB50dC768",
-    pool: "0xd658A338613198204DCa1143Ac3F01A722b5d94A",
-    rewarder: "0xf27AFAD0142393e4b3E5510aBc5fe3743Ad669Cb",
-    holder: "0xdc88d12721f9ca1404e9e6e6389ae0abdd54fc6c",
-    amount: "1000",
-    rewards: ["CVX", "CRV", "FXS"],
-    intermediates: ["CRV", "WETH", "FXS"],
+    intermediate: "WETH",
   },
 };
 
-describe("ConvexCurveStrategy.spec", async () => {
+describe("AutoCompoundingConvexCurveStrategy.spec", async () => {
   context("auth", async () => {
     let deployer: SignerWithAddress;
     let operator: SignerWithAddress;
-    let strategy: ConvexCurveStrategy;
+    let strategy: AutoCompoundingConvexCurveStrategy;
     let token: MockERC20;
 
     beforeEach(async () => {
       [deployer, operator] = await ethers.getSigners();
 
-      const ConvexCurveStrategy = await ethers.getContractFactory("ConvexCurveStrategy", deployer);
-      strategy = await ConvexCurveStrategy.deploy();
+      const AutoCompoundingConvexCurveStrategy = await ethers.getContractFactory(
+        "AutoCompoundingConvexCurveStrategy",
+        deployer
+      );
+      strategy = await AutoCompoundingConvexCurveStrategy.deploy();
       await strategy.deployed();
 
       const MockERC20 = await ethers.getContractFactory("MockERC20", deployer);
@@ -93,7 +83,7 @@ describe("ConvexCurveStrategy.spec", async () => {
 
       await strategy.initialize(operator.address, token.address, rewarder.address, []);
 
-      expect(await strategy.name()).to.eq("ConvexCurve");
+      expect(await strategy.name()).to.eq("AutoCompoundingConvexCurve");
     });
 
     it("should revert, when initialize again", async () => {
@@ -209,15 +199,14 @@ describe("ConvexCurveStrategy.spec", async () => {
       holder: string;
       amount: string;
       rewards: string[];
-      intermediates: string[];
+      intermediate: string;
     }
   ) => {
     context(`${name}`, async () => {
       let deployer: SignerWithAddress;
       let holder: SignerWithAddress;
       let zap: AladdinZap;
-      let booster: IConvexBooster;
-      let strategy: ConvexCurveStrategy;
+      let strategy: AutoCompoundingConvexCurveStrategy;
       let rewarder: IConvexBasicRewards;
 
       beforeEach(async () => {
@@ -226,7 +215,6 @@ describe("ConvexCurveStrategy.spec", async () => {
         holder = await ethers.getSigner(config.holder);
         await deployer.sendTransaction({ to: holder.address, value: ethers.utils.parseEther("10") });
 
-        booster = await ethers.getContractAt("IConvexBooster", BOOSTER, deployer);
         rewarder = await ethers.getContractAt("IConvexBasicRewards", config.rewarder, deployer);
 
         const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
@@ -239,9 +227,19 @@ describe("ConvexCurveStrategy.spec", async () => {
         for (const [symbol, routes] of Object.entries(VAULT_CONFIG[name].deposit)) {
           await zap.updateRoute(TOKENS[symbol].address, config.token, routes);
         }
+        for (const reward of config.rewards) {
+          await zap.updateRoute(
+            TOKENS[reward].address,
+            TOKENS[config.intermediate].address,
+            ZAP_ROUTES[reward][config.intermediate]
+          );
+        }
 
-        const ConvexCurveStrategy = await ethers.getContractFactory("ConvexCurveStrategy", deployer);
-        strategy = await ConvexCurveStrategy.deploy();
+        const AutoCompoundingConvexCurveStrategy = await ethers.getContractFactory(
+          "AutoCompoundingConvexCurveStrategy",
+          deployer
+        );
+        strategy = await AutoCompoundingConvexCurveStrategy.deploy();
         await strategy.deployed();
 
         await strategy.initialize(
@@ -274,73 +272,23 @@ describe("ConvexCurveStrategy.spec", async () => {
         expect(await rewarder.balanceOf(strategy.address)).to.eq(constants.Zero);
       });
 
-      for (const intermediate of config.intermediates) {
-        it(`should succeed when harvest to ${intermediate}`, async () => {
-          for (const reward of config.rewards) {
-            if (intermediate === reward) continue;
-            await zap.updateRoute(
-              TOKENS[reward].address,
-              TOKENS[intermediate].address,
-              ZAP_ROUTES[reward][intermediate]
-            );
-          }
+      it("should succeed when harvest", async () => {
+        const token = await ethers.getContractAt("MockERC20", config.token, holder);
+        const amount = ethers.utils.parseEther(config.amount);
+        await token.transfer(strategy.address, amount);
+        await strategy.deposit(deployer.address, amount);
+        expect(await rewarder.balanceOf(strategy.address)).to.eq(amount);
 
-          const token = await ethers.getContractAt("MockERC20", config.token, holder);
-          const amount = ethers.utils.parseEther(config.amount);
-          await token.transfer(strategy.address, amount);
-          await strategy.deposit(deployer.address, amount);
-          expect(await rewarder.balanceOf(strategy.address)).to.eq(amount);
+        const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+        // make sure 7 days passed, then the rewards will not increase anymore.
+        await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
+        await network.provider.send("evm_mine");
 
-          await booster.earmarkRewards(await strategy.pid());
-          const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-          // make sure 7 days passed, then the rewards will not increase anymore.
-          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
-          await network.provider.send("evm_mine");
-
-          const intermediateToken = await ethers.getContractAt("MockERC20", TOKENS[intermediate].address, holder);
-          const harvested = await strategy.callStatic.harvest(zap.address, TOKENS[intermediate].address);
-          expect(harvested).to.gt(constants.Zero);
-
-          const before = await intermediateToken.balanceOf(deployer.address);
-          await strategy.harvest(zap.address, TOKENS[intermediate].address);
-          const after = await intermediateToken.balanceOf(deployer.address);
-          expect(after.sub(before)).to.eq(harvested);
-        });
-
-        if (intermediate === "WETH") {
-          it(`should succeed when harvest to ETH`, async () => {
-            for (const reward of config.rewards) {
-              if (intermediate === reward) continue;
-              await zap.updateRoute(
-                TOKENS[reward].address,
-                TOKENS[intermediate].address,
-                ZAP_ROUTES[reward][intermediate]
-              );
-            }
-
-            const token = await ethers.getContractAt("MockERC20", config.token, holder);
-            const amount = ethers.utils.parseEther(config.amount);
-            await token.transfer(strategy.address, amount);
-            await strategy.deposit(deployer.address, amount);
-            expect(await rewarder.balanceOf(strategy.address)).to.eq(amount);
-
-            await booster.earmarkRewards(await strategy.pid());
-            const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-            // make sure 7 days passed, then the rewards will not increase anymore.
-            await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
-            await network.provider.send("evm_mine");
-
-            const harvested = await strategy.callStatic.harvest(zap.address, constants.AddressZero);
-            expect(harvested).to.gt(constants.Zero);
-
-            const before = await deployer.getBalance();
-            const tx = await strategy.harvest(zap.address, constants.AddressZero);
-            const receipt = await tx.wait();
-            const after = await deployer.getBalance();
-            expect(after.sub(before).add(receipt.gasUsed.mul(receipt.effectiveGasPrice))).to.eq(harvested);
-          });
-        }
-      }
+        const harvested = await strategy.callStatic.harvest(zap.address, TOKENS[config.intermediate].address);
+        expect(harvested).to.gt(constants.Zero);
+        await strategy.harvest(zap.address, TOKENS[config.intermediate].address);
+        expect(await rewarder.balanceOf(strategy.address)).to.eq(amount.add(harvested));
+      });
     });
   };
 

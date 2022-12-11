@@ -178,7 +178,7 @@ abstract contract ConcentratorGeneralVault is
   address public zap;
 
   /// @dev The reserved slots.
-  uint256[20] private __gap;
+  uint256[45] private __gap;
 
   modifier onlyExistPool(uint256 _pid) {
     require(_pid < poolIndex, "Concentrator: pool not exist");
@@ -422,7 +422,7 @@ abstract contract ConcentratorGeneralVault is
 
     // 2. harvest rewards from strategy
     uint256 _rewards = _harvest(_pid);
-    require(_rewards >= _minOut, "insufficient rewards");
+    require(_rewards >= _minOut, "Concentrator: insufficient rewards");
 
     // 3. distribute rewards to platform and _recipient
     address _token = rewardToken();

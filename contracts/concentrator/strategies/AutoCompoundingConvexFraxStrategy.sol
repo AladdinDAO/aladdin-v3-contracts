@@ -19,12 +19,12 @@ import "./AutoCompoundingStrategyBase.sol";
 // solhint-disable not-rely-on-time
 // solhint-disable no-empty-blocks
 
-contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgradeable, AutoCompoundingStrategyBase {
+contract AutoCompoundingConvexFraxStrategy is OwnableUpgradeable, PausableUpgradeable, AutoCompoundingStrategyBase {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc IConcentratorStrategy
   // solhint-disable const-name-snakecase
-  string public constant override name = "ConvexFraxAutoCompounding";
+  string public constant override name = "AutoCompoundingConvexFrax";
 
   /// @dev The address of Convex Booster for Frax vault.
   address private constant BOOSTER = 0x569f5B842B5006eC17Be02B8b94510BA8e79FbCa;
@@ -167,7 +167,7 @@ contract ConvexFraxAutoCompoundingStrategy is OwnableUpgradeable, PausableUpgrad
 
     require(
       nextIndex[_newStrategy] == userLocks[_newStrategy].length,
-      "ConvexFraxAutoCompoundingStrategy: migration failed"
+      "AutoCompoundingConvexFraxStrategy: migration failed"
     );
   }
 

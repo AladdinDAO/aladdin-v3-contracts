@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import { ethers, network } from "hardhat";
 import { ADDRESS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../../scripts/utils";
-import { AladdinZap, ConvexFraxAutoCompoundingStrategy, IFraxUnifiedFarm } from "../../../typechain";
+import { AladdinZap, AutoCompoundingConvexFraxStrategy, IFraxUnifiedFarm } from "../../../typechain";
 import { request_fork } from "../../utils";
 
 const UNDERLYING: {
@@ -36,7 +36,7 @@ const UNDERLYING: {
   },
 };
 
-describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
+describe("AutoCompoundingConvexFraxStrategy.spec", async () => {
   const run = async (
     name: string,
     config: {
@@ -57,7 +57,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
       let operator: SignerWithAddress;
       let holder: SignerWithAddress;
       let zap: AladdinZap;
-      let strategy: ConvexFraxAutoCompoundingStrategy;
+      let strategy: AutoCompoundingConvexFraxStrategy;
       let farm: IFraxUnifiedFarm;
 
       beforeEach(async () => {
@@ -87,11 +87,11 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           );
         }
 
-        const ConvexFraxAutoCompoundingStrategy = await ethers.getContractFactory(
-          "ConvexFraxAutoCompoundingStrategy",
+        const AutoCompoundingConvexFraxStrategy = await ethers.getContractFactory(
+          "AutoCompoundingConvexFraxStrategy",
           deployer
         );
-        strategy = await ConvexFraxAutoCompoundingStrategy.deploy();
+        strategy = await AutoCompoundingConvexFraxStrategy.deploy();
         await strategy.deployed();
 
         await strategy.initialize(
@@ -100,7 +100,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           config.pid,
           config.rewards.map((symbol) => TOKENS[symbol].address)
         );
-        expect(await strategy.name()).to.eq("ConvexFraxAutoCompounding");
+        expect(await strategy.name()).to.eq("AutoCompoundingConvexFrax");
       });
 
       context("auth", async () => {
@@ -616,7 +616,7 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
 
           const harvested = await strategy.callStatic.harvest(zap.address, TOKENS[config.intermediate].address);
           await strategy.harvest(zap.address, TOKENS[config.intermediate].address);
-          expect(await farm.lockedLiquidityOf(vault)).to.eq(amount.add(harvested));
+          expect(await farm.lockedLiquidityOf(vault)).to.closeToBn(amount.add(harvested), harvested.div(1e4));
         });
       });
 
@@ -724,11 +724,11 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
 
       context("migrate", async () => {
         it("should revert, when migrate before unlock", async () => {
-          const ConvexFraxAutoCompoundingStrategy = await ethers.getContractFactory(
-            "ConvexFraxAutoCompoundingStrategy",
+          const AutoCompoundingConvexFraxStrategy = await ethers.getContractFactory(
+            "AutoCompoundingConvexFraxStrategy",
             deployer
           );
-          const newStrategy = await ConvexFraxAutoCompoundingStrategy.deploy();
+          const newStrategy = await AutoCompoundingConvexFraxStrategy.deploy();
           await newStrategy.deployed();
           await newStrategy.initialize(
             deployer.address,
@@ -747,16 +747,16 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
           await strategy.prepareMigrate(newStrategy.address);
           await strategy.withdraw(newStrategy.address, amount);
           await expect(strategy.finishMigrate(newStrategy.address)).to.revertedWith(
-            "ConvexFraxAutoCompoundingStrategy: migration failed"
+            "AutoCompoundingConvexFraxStrategy: migration failed"
           );
         });
 
         it("should succeed, when migrate before unlock and wait after unlock", async () => {
-          const ConvexFraxAutoCompoundingStrategy = await ethers.getContractFactory(
-            "ConvexFraxAutoCompoundingStrategy",
+          const AutoCompoundingConvexFraxStrategy = await ethers.getContractFactory(
+            "AutoCompoundingConvexFraxStrategy",
             deployer
           );
-          const newStrategy = await ConvexFraxAutoCompoundingStrategy.deploy();
+          const newStrategy = await AutoCompoundingConvexFraxStrategy.deploy();
           await newStrategy.deployed();
           await newStrategy.initialize(
             deployer.address,
@@ -782,11 +782,11 @@ describe("ConvexFraxAutoCompoundingStrategy.spec", async () => {
         });
 
         it("should succeed, when migrate after unlock", async () => {
-          const ConvexFraxAutoCompoundingStrategy = await ethers.getContractFactory(
-            "ConvexFraxAutoCompoundingStrategy",
+          const AutoCompoundingConvexFraxStrategy = await ethers.getContractFactory(
+            "AutoCompoundingConvexFraxStrategy",
             deployer
           );
-          const newStrategy = await ConvexFraxAutoCompoundingStrategy.deploy();
+          const newStrategy = await AutoCompoundingConvexFraxStrategy.deploy();
           await newStrategy.deployed();
           await newStrategy.initialize(
             deployer.address,

@@ -5,8 +5,16 @@ import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import { ethers, network } from "hardhat";
 import { TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../../scripts/utils";
-import { AladdinZap, CurveGaugeStrategy, ICurveGauge, MockERC20 } from "../../../typechain";
+import {
+  AladdinZap,
+  ManualCompoundingConvexCurveStrategy,
+  IConvexBasicRewards,
+  IConvexBooster,
+  MockERC20,
+} from "../../../typechain";
 import { request_fork } from "../../utils";
+
+const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 
 const UNDERLYING: {
   [name: string]: {
@@ -14,7 +22,7 @@ const UNDERLYING: {
     deployer: string;
     token: string;
     pool: string;
-    gauge: string;
+    rewarder: string;
     holder: string;
     amount: string;
     rewards: string[];
@@ -26,7 +34,7 @@ const UNDERLYING: {
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     token: "0xf43211935C781D5ca1a41d2041F397B8A7366C7A",
     pool: "0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577",
-    gauge: "0x2932a86df44Fe8D2A706d8e9c5d51c24883423F5",
+    rewarder: "0xbD5445402B0a287cbC77cb67B2a52e2FC635dce4",
     holder: "0xadd85e4abbb426e895f35e0a2576e22a9bbb7a57",
     amount: "10",
     rewards: ["CVX", "CRV"],
@@ -37,7 +45,7 @@ const UNDERLYING: {
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     token: "0x06325440D014e39736583c165C2963BA99fAf14E",
     pool: "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022",
-    gauge: "0x182B723a58739a9c974cFDB385ceaDb237453c28",
+    rewarder: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
     holder: "0x13e382dfe53207E9ce2eeEab330F69da2794179E",
     amount: "100",
     rewards: ["CVX", "CRV", "LDO"],
@@ -48,7 +56,7 @@ const UNDERLYING: {
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     token: "0x5b6C539b224014A09B3388e51CaAA8e354c959C8",
     pool: "0x5FAE7E604FC3e24fd43A72867ceBaC94c65b404A",
-    gauge: "0xAd96E10123Fa34a01cf2314C42D75150849C9295",
+    rewarder: "0x5d02EcD9B83f1187e92aD5be3d1bd2915CA03699",
     holder: "0xe4d7e7b90519445585635c3b383c9d86c0596e57",
     amount: "10",
     rewards: ["CVX", "CRV"],
@@ -59,7 +67,7 @@ const UNDERLYING: {
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     token: "0xF3A43307DcAFa93275993862Aae628fCB50dC768",
     pool: "0xd658A338613198204DCa1143Ac3F01A722b5d94A",
-    gauge: "0xab1927160ec7414c6fa71763e2a9f3d107c126dd",
+    rewarder: "0xf27AFAD0142393e4b3E5510aBc5fe3743Ad669Cb",
     holder: "0xdc88d12721f9ca1404e9e6e6389ae0abdd54fc6c",
     amount: "1000",
     rewards: ["CVX", "CRV", "FXS"],
@@ -67,31 +75,34 @@ const UNDERLYING: {
   },
 };
 
-describe("CurveGaugeStrategy.spec", async () => {
+describe("ManualCompoundingConvexCurveStrategy.spec", async () => {
   context("auth", async () => {
     let deployer: SignerWithAddress;
     let operator: SignerWithAddress;
-    let strategy: CurveGaugeStrategy;
+    let strategy: ManualCompoundingConvexCurveStrategy;
     let token: MockERC20;
 
     beforeEach(async () => {
       [deployer, operator] = await ethers.getSigners();
 
-      const CurveGaugeStrategy = await ethers.getContractFactory("CurveGaugeStrategy", deployer);
-      strategy = await CurveGaugeStrategy.deploy();
+      const ManualCompoundingConvexCurveStrategy = await ethers.getContractFactory(
+        "ManualCompoundingConvexCurveStrategy",
+        deployer
+      );
+      strategy = await ManualCompoundingConvexCurveStrategy.deploy();
       await strategy.deployed();
 
       const MockERC20 = await ethers.getContractFactory("MockERC20", deployer);
       token = await MockERC20.deploy("x", "y", 18);
       await token.deployed();
 
-      const MockCurveGaugeV4V5 = await ethers.getContractFactory("MockCurveGaugeV4V5", deployer);
-      const gauge = await MockCurveGaugeV4V5.deploy();
-      await gauge.deployed();
+      const MockConvexBasicRewards = await ethers.getContractFactory("MockConvexBasicRewards", deployer);
+      const rewarder = await MockConvexBasicRewards.deploy(1, token.address);
+      await rewarder.deployed();
 
-      await strategy.initialize(operator.address, token.address, gauge.address, []);
+      await strategy.initialize(operator.address, token.address, rewarder.address, []);
 
-      expect(await strategy.name()).to.eq("CurveGauge");
+      expect(await strategy.name()).to.eq("ManualCompoundingConvexCurve");
     });
 
     it("should revert, when initialize again", async () => {
@@ -169,6 +180,10 @@ describe("CurveGaugeStrategy.spec", async () => {
           "ConcentratorStrategy: only operator"
         );
       });
+
+      it("should succeed, when operator call harvest", async () => {
+        await strategy.connect(operator).harvest(deployer.address, token.address);
+      });
     });
 
     context("#prepareMigrate", async () => {
@@ -199,7 +214,7 @@ describe("CurveGaugeStrategy.spec", async () => {
       deployer: string;
       token: string;
       pool: string;
-      gauge: string;
+      rewarder: string;
       holder: string;
       amount: string;
       rewards: string[];
@@ -210,8 +225,9 @@ describe("CurveGaugeStrategy.spec", async () => {
       let deployer: SignerWithAddress;
       let holder: SignerWithAddress;
       let zap: AladdinZap;
-      let strategy: CurveGaugeStrategy;
-      let gauge: ICurveGauge;
+      let booster: IConvexBooster;
+      let strategy: ManualCompoundingConvexCurveStrategy;
+      let rewarder: IConvexBasicRewards;
 
       beforeEach(async () => {
         request_fork(config.fork, [config.deployer, config.holder]);
@@ -219,7 +235,8 @@ describe("CurveGaugeStrategy.spec", async () => {
         holder = await ethers.getSigner(config.holder);
         await deployer.sendTransaction({ to: holder.address, value: ethers.utils.parseEther("10") });
 
-        gauge = await ethers.getContractAt("ICurveGauge", config.gauge, deployer);
+        booster = await ethers.getContractAt("IConvexBooster", BOOSTER, deployer);
+        rewarder = await ethers.getContractAt("IConvexBasicRewards", config.rewarder, deployer);
 
         const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
         zap = await AladdinZap.deploy();
@@ -232,14 +249,17 @@ describe("CurveGaugeStrategy.spec", async () => {
           await zap.updateRoute(TOKENS[symbol].address, config.token, routes);
         }
 
-        const CurveGaugeStrategy = await ethers.getContractFactory("CurveGaugeStrategy", deployer);
-        strategy = await CurveGaugeStrategy.deploy();
+        const ManualCompoundingConvexCurveStrategy = await ethers.getContractFactory(
+          "ManualCompoundingConvexCurveStrategy",
+          deployer
+        );
+        strategy = await ManualCompoundingConvexCurveStrategy.deploy();
         await strategy.deployed();
 
         await strategy.initialize(
           deployer.address,
           config.token,
-          config.gauge,
+          config.rewarder,
           config.rewards.map((symbol) => TOKENS[symbol].address)
         );
       });
@@ -249,7 +269,7 @@ describe("CurveGaugeStrategy.spec", async () => {
         const amount = ethers.utils.parseEther(config.amount);
         await token.transfer(strategy.address, amount);
         await strategy.deposit(deployer.address, amount);
-        expect(await gauge.balanceOf(strategy.address)).to.eq(amount);
+        expect(await rewarder.balanceOf(strategy.address)).to.eq(amount);
       });
 
       it("should succeed when withdraw", async () => {
@@ -257,13 +277,13 @@ describe("CurveGaugeStrategy.spec", async () => {
         const amount = ethers.utils.parseEther(config.amount);
         await token.transfer(strategy.address, amount);
         await strategy.deposit(deployer.address, amount);
-        expect(await gauge.balanceOf(strategy.address)).to.eq(amount);
+        expect(await rewarder.balanceOf(strategy.address)).to.eq(amount);
 
         const before = await token.balanceOf(deployer.address);
         await strategy.withdraw(deployer.address, amount);
         const after = await token.balanceOf(deployer.address);
         expect(after.sub(before)).to.eq(amount);
-        expect(await gauge.balanceOf(strategy.address)).to.eq(constants.Zero);
+        expect(await rewarder.balanceOf(strategy.address)).to.eq(constants.Zero);
       });
 
       for (const intermediate of config.intermediates) {
@@ -281,8 +301,9 @@ describe("CurveGaugeStrategy.spec", async () => {
           const amount = ethers.utils.parseEther(config.amount);
           await token.transfer(strategy.address, amount);
           await strategy.deposit(deployer.address, amount);
-          expect(await gauge.balanceOf(strategy.address)).to.eq(amount);
+          expect(await rewarder.balanceOf(strategy.address)).to.eq(amount);
 
+          await booster.earmarkRewards(await strategy.pid());
           const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
           // make sure 7 days passed, then the rewards will not increase anymore.
           await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
@@ -295,7 +316,7 @@ describe("CurveGaugeStrategy.spec", async () => {
           const before = await intermediateToken.balanceOf(deployer.address);
           await strategy.harvest(zap.address, TOKENS[intermediate].address);
           const after = await intermediateToken.balanceOf(deployer.address);
-          expect(after.sub(before)).to.closeToBn(harvested, harvested.div(1e4));
+          expect(after.sub(before)).to.eq(harvested);
         });
 
         if (intermediate === "WETH") {
@@ -313,8 +334,9 @@ describe("CurveGaugeStrategy.spec", async () => {
             const amount = ethers.utils.parseEther(config.amount);
             await token.transfer(strategy.address, amount);
             await strategy.deposit(deployer.address, amount);
-            expect(await gauge.balanceOf(strategy.address)).to.eq(amount);
+            expect(await rewarder.balanceOf(strategy.address)).to.eq(amount);
 
+            await booster.earmarkRewards(await strategy.pid());
             const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
             // make sure 7 days passed, then the rewards will not increase anymore.
             await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
@@ -327,10 +349,7 @@ describe("CurveGaugeStrategy.spec", async () => {
             const tx = await strategy.harvest(zap.address, constants.AddressZero);
             const receipt = await tx.wait();
             const after = await deployer.getBalance();
-            expect(after.sub(before).add(receipt.gasUsed.mul(receipt.effectiveGasPrice))).to.closeToBn(
-              harvested,
-              harvested.div(1e4)
-            );
+            expect(after.sub(before).add(receipt.gasUsed.mul(receipt.effectiveGasPrice))).to.eq(harvested);
           });
         }
       }
