@@ -9,12 +9,12 @@ import "../../interfaces/ICurveGauge.sol";
 import "../../interfaces/ICurveTokenMinter.sol";
 import "../../interfaces/IZap.sol";
 
-import "./ConcentratorStrategyBase.sol";
+import "./ManualCompoundingStrategyBase.sol";
 
 // solhint-disable no-empty-blocks
 // solhint-disable reason-string
 
-contract CurveGaugeStrategy is ConcentratorStrategyBase {
+contract CurveGaugeStrategy is ManualCompoundingStrategyBase {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc IConcentratorStrategy
@@ -66,35 +66,19 @@ contract CurveGaugeStrategy is ConcentratorStrategyBase {
   function harvest(address _zapper, address _intermediate) external override onlyOperator returns (uint256 _amount) {
     // 1. claim rewards from Convex rewards contract.
     address[] memory _rewards = rewards;
-    uint256[] memory _balances = new uint256[](rewards.length);
+    uint256[] memory _amounts = new uint256[](rewards.length);
     for (uint256 i = 0; i < rewards.length; i++) {
-      _balances[i] = IERC20(_rewards[i]).balanceOf(address(this));
+      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
     }
     address _gauge = gauge;
     ICurveTokenMinter(MINTER).mint(_gauge);
-
     // some gauge has no extra rewards
     try ICurveGauge(_gauge).claim_rewards() {} catch {}
-
-    // 2. zap all rewards to intermediate token.
     for (uint256 i = 0; i < rewards.length; i++) {
-      address _rewardToken = _rewards[i]; // saving gas
-      uint256 _pending = IERC20(_rewardToken).balanceOf(address(this)) - _balances[i];
-      if (_rewardToken == _intermediate) {
-        _amount += _pending;
-      } else {
-        IERC20(_rewardToken).safeTransfer(_zapper, _pending);
-        _amount += IZap(_zapper).zap(_rewardToken, _pending, _intermediate, 0);
-      }
+      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this)) - _amounts[i];
     }
 
-    // 3. transfer intermediate token back to operator.
-    if (_intermediate == address(0)) {
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool _success, ) = msg.sender.call{ value: _amount }("");
-      require(_success, "CurveStrategy: transfer ETH failed");
-    } else {
-      IERC20(_intermediate).safeTransfer(msg.sender, _amount);
-    }
+    // 2. zap to intermediate token and transfer to caller.
+    _amount = _harvest(_zapper, _intermediate, _rewards, _amounts);
   }
 }
