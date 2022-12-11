@@ -363,9 +363,12 @@ abstract contract ConcentratorGeneralVault is
     uint256 _minOut,
     address _claimAsToken
   ) public override nonReentrant returns (uint256) {
+    uint256 _poolIndex = poolIndex;
     uint256 _rewards;
     for (uint256 i = 0; i < _pids.length; i++) {
       uint256 _pid = _pids[i];
+      require(_pid < _poolIndex, "Concentrator: pool not exist");
+
       UserInfo storage _userInfo = userInfo[_pid][msg.sender];
       // update if user has share
       if (_userInfo.shares > 0) {
@@ -380,8 +383,7 @@ abstract contract ConcentratorGeneralVault is
       }
     }
 
-    _rewards = _claim(_rewards, _minOut, _recipient, _claimAsToken);
-    return _rewards;
+    return _claim(_rewards, _minOut, _recipient, _claimAsToken);
   }
 
   /// @inheritdoc IConcentratorGeneralVault
@@ -407,8 +409,7 @@ abstract contract ConcentratorGeneralVault is
       }
     }
 
-    _rewards = _claim(_rewards, _minOut, _recipient, _claimAsToken);
-    return _rewards;
+    return _claim(_rewards, _minOut, _recipient, _claimAsToken);
   }
 
   /// @inheritdoc IConcentratorGeneralVault
@@ -446,6 +447,13 @@ abstract contract ConcentratorGeneralVault is
     return _rewards;
   }
 
+  /// @notice Checkpoint account state.
+  /// @param _pid The pool id.
+  /// @param _account The address of user to checkpoint.
+  function checkpoint(uint256 _pid, address _account) external {
+    _updateRewards(_pid, _account);
+  }
+
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update the pool fee ratios.
@@ -471,6 +479,20 @@ abstract contract ConcentratorGeneralVault is
     });
 
     emit UpdatePoolFeeRatio(_pid, _withdrawFeeRatio, _platformFeeRatio, _harvestBountyRatio);
+  }
+
+  /// @notice Update withdraw fee for certain user.
+  /// @param _pid The pool id.
+  /// @param _user The address of user to update.
+  /// @param _ratio The withdraw fee ratio to be updated, multipled by 1e9.
+  function setWithdrawFeeForUser(
+    uint256 _pid,
+    address _user,
+    uint32 _ratio
+  ) external onlyExistPool(_pid) onlyOwner {
+    require(_ratio <= MAX_WITHDRAW_FEE, "Concentrator: withdraw fee too large");
+
+    _setFeeCustomization(_getWithdrawFeeType(_pid), _user, _ratio);
   }
 
   /// @notice Update the recipient for platform fee.
@@ -694,7 +716,7 @@ abstract contract ConcentratorGeneralVault is
       // If we want the reward later, we can upgrade the contract.
       _assetsOut = _supply.totalUnderlying;
     } else {
-      uint256 _withdrawFeeRatio = getFeeRate(bytes32(uint256(WITHDRAW_FEE_TYPE) + _pid), _owner);
+      uint256 _withdrawFeeRatio = getFeeRate(_getWithdrawFeeType(_pid), _owner);
       // take withdraw fee here
       _assetsOut = _sharesIn.mul(_supply.totalUnderlying) / _supply.totalShare;
       uint256 _fee = _assetsOut.mul(_withdrawFeeRatio) / FEE_PRECISION;
@@ -703,6 +725,8 @@ abstract contract ConcentratorGeneralVault is
 
     _supply.totalShare = _supply.totalShare - uint128(_sharesIn);
     _supply.totalUnderlying = _supply.totalUnderlying - uint128(_assetsOut);
+    _pool.supply = _supply;
+
     _userInfo.shares = _userInfo.shares - uint128(_sharesIn);
 
     IConcentratorStrategy(_pool.strategy.strategy).withdraw(_recipient, _assetsOut);
@@ -757,6 +781,12 @@ abstract contract ConcentratorGeneralVault is
     }
 
     poolInfo[_pid].reward = _info;
+  }
+
+  /// @dev Internal function to get the withdraw fee type for pool.
+  /// @param _pid The pool id.
+  function _getWithdrawFeeType(uint256 _pid) internal pure returns (bytes32) {
+    return bytes32(uint256(WITHDRAW_FEE_TYPE) + _pid);
   }
 
   /// @inheritdoc FeeCustomization
