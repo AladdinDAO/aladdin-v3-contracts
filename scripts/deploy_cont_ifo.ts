@@ -11,9 +11,9 @@ import {
   VeCTR,
   ICurveGaugeV4V5,
   SmartWalletWhitelist,
+  GaugeFactory,
 } from "../typechain";
-import { GaugeFactory } from "../typechain/GaugeFactory";
-import { DEPLOYED_CONTRACTS, ACRV_IFO_VAULTS, VAULT_CONFIG, ADDRESS } from "./utils";
+import { DEPLOYED_CONTRACTS, AVAILABLE_VAULTS, ADDRESS, DEPLOYED_VAULTS } from "./utils";
 
 const config: {
   StartTimestamp: number;
@@ -70,7 +70,7 @@ let whitelist: SmartWalletWhitelist;
 async function addLiquidity() {
   const [deployer] = await ethers.getSigners();
   const vault = await ethers.getContractAt("IBalancerVault", "0xBA12222222228d8Ba445958a75a0704d566BF2C8", deployer);
-  const aCRV = await ethers.getContractAt("IAladdinCRV", DEPLOYED_CONTRACTS.Concentrator.aCRV, deployer);
+  const aCRV = await ethers.getContractAt("IAladdinCRV", DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, deployer);
   const crv = await ethers.getContractAt("IERC20", ADDRESS.CRV, deployer);
   console.log(await crv.balanceOf(deployer.address));
   if ((await crv.allowance(deployer.address, aCRV.address)).eq(constants.Zero)) {
@@ -92,7 +92,7 @@ async function addLiquidity() {
       "0xA0FB1b11ccA5871fb0225B64308e249B97804E99",
       "0xA0FB1b11ccA5871fb0225B64308e249B97804E99",
       {
-        assets: [DEPLOYED_CONTRACTS.Concentrator.aCRV, ctr.address],
+        assets: [DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, ctr.address],
         maxAmountsIn: [constants.MaxUint256, constants.MaxUint256],
         userData: defaultAbiCoder.encode(
           ["uint8", "uint256[]"],
@@ -106,11 +106,11 @@ async function addLiquidity() {
 
 // eslint-disable-next-line no-unused-vars
 async function addVaults(from?: number, to?: number) {
-  for (const { name, fees } of ACRV_IFO_VAULTS.slice(from, to)) {
-    const rewards = VAULT_CONFIG[name].rewards;
-    const convexId = VAULT_CONFIG[name].convexId;
-    console.log(`Adding pool[${name}] with convexId[${convexId}], rewards[${rewards.join("/")}]`);
-    const tx = await concentratorIFOVault.addPool(convexId, rewards, fees.withdraw, fees.platform, fees.harvest);
+  for (const { name, fees } of DEPLOYED_VAULTS.aCRV.slice(from, to)) {
+    const rewards = AVAILABLE_VAULTS[name].rewards;
+    const convexCurveID = AVAILABLE_VAULTS[name].convexCurveID;
+    console.log(`Adding pool[${name}] with convexCurveID[${convexCurveID}], rewards[${rewards.join("/")}]`);
+    const tx = await concentratorIFOVault.addPool(convexCurveID!, rewards, fees.withdraw, fees.platform, fees.harvest);
     console.log("wait for tx:", tx.hash);
     await tx.wait();
     console.log("Added with tx:", tx.hash);
@@ -167,7 +167,7 @@ async function main() {
     );
 
     const data = impl.interface.encodeFunctionData("initialize", [
-      DEPLOYED_CONTRACTS.Concentrator.aCRV,
+      DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV,
       DEPLOYED_CONTRACTS.AladdinZap,
       platformFeeDistributor.address,
     ]);
@@ -347,13 +347,12 @@ async function main() {
     console.log("✅ Done");
   }
   if ((await platformFeeDistributor.getRewardCount()).eq(constants.One)) {
-    const tx = await platformFeeDistributor.addRewardToken(DEPLOYED_CONTRACTS.Concentrator.aCRV, 0, 1e9);
+    const tx = await platformFeeDistributor.addRewardToken(DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, 0, 1e9);
     console.log("PlatformFeeDistributor add aCRV, hash:", tx.hash);
     await tx.wait();
     console.log("✅ Done");
   }
 
-  /*
   if (config.veCTRFeeDistributor) {
     veCTRFeeDistributor = (await ethers.getContractAt(
       "veCTRFeeDistributor",
@@ -374,7 +373,6 @@ async function main() {
     await veCTRFeeDistributor.deployed();
     console.log("Deploy ConcentratorFeeDistributor at:", veCTRFeeDistributor.address);
   }
-  */
 }
 
 // We recommend this pattern to be able to use async/await everywhere

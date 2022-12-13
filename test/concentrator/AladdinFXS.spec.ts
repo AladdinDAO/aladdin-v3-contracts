@@ -8,7 +8,7 @@ import * as hre from "hardhat";
 import { AladdinFXS, CompounderGateway, IConvexBasicRewards, IConvexBooster, IERC20 } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
-import { ADDRESS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../scripts/utils";
+import { ADDRESS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "../../scripts/utils";
 
 const FORK_BLOCK_NUMBER = 15074229;
 const WETH = TOKENS.WETH.address;
@@ -486,7 +486,7 @@ describe("AladdinFXS.spec", async () => {
   });
 
   context("zap with CompounderGateway", async () => {
-    const config = VAULT_CONFIG.cvxfxs;
+    const config = AVAILABLE_VAULTS.cvxfxs;
 
     let gateway: CompounderGateway;
 

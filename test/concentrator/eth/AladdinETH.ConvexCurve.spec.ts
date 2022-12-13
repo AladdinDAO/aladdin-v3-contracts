@@ -14,7 +14,7 @@ import {
 } from "../../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../../utils";
-import { TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../../scripts/utils";
+import { TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "../../../scripts/utils";
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const PLATFORM = "0x07dA2d30E26802ED65a52859a50872cfA615bD0A";
@@ -111,7 +111,7 @@ describe("AladdinETH.ConvexCurve.spec", async () => {
 
         await zap.updatePoolTokens([config.pool], [config.token]);
 
-        for (const [symbol, routes] of Object.entries(VAULT_CONFIG[name].deposit)) {
+        for (const [symbol, routes] of Object.entries(AVAILABLE_VAULTS[name].deposit)) {
           await zap.updateRoute(TOKENS[symbol].address, config.token, routes);
         }
         for (const reward of config.rewards) {

@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { ACRV_VAULTS, ADDRESS, DEPLOYED_CONTRACTS, VAULT_CONFIG } from "../../scripts/utils";
+import { ACRV_VAULTS, ADDRESS, DEPLOYED_CONTRACTS, AVAILABLE_VAULTS } from "../../scripts/utils";
 import { AladdinConvexVault, ConcentratorGateway } from "../../typechain";
 import { request_fork } from "../utils";
 
@@ -108,7 +108,7 @@ describe("ConcentratorGateway.spec", async () => {
 
   ACRV_VAULTS.forEach(({ name }, pid) => {
     if (pid >= 12 || name === "ust-wormhole") return;
-    const { token: prefix, deposit: add } = VAULT_CONFIG[name];
+    const { token: prefix, deposit: add } = AVAILABLE_VAULTS[name];
     const lpAddress = ADDRESS[`${prefix}_TOKEN`];
 
     context(`gateway test for pool[${name}]`, async () => {

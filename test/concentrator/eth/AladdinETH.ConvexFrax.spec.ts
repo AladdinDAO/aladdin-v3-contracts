@@ -14,7 +14,7 @@ import {
 } from "../../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../../utils";
-import { TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../../scripts/utils";
+import { TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "../../../scripts/utils";
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const PLATFORM = "0x07dA2d30E26802ED65a52859a50872cfA615bD0A";
@@ -30,7 +30,7 @@ const UNDERLYING: {
     deployer: string;
     token: string;
     pool: string;
-    convexId: number;
+    convexCurveID: number;
     pid: number;
     farm: string;
     holder: string;
@@ -44,7 +44,7 @@ const UNDERLYING: {
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     token: "0xf43211935C781D5ca1a41d2041F397B8A7366C7A",
     pool: "0xa1F8A6807c402E4A15ef4EBa36528A3FED24E577",
-    convexId: 128,
+    convexCurveID: 128,
     pid: 36,
     farm: "0xa537d64881b84faffb9Ae43c951EEbF368b71cdA",
     holder: "0xadd85e4abbb426e895f35e0a2576e22a9bbb7a57",
@@ -66,7 +66,7 @@ describe("AladdinETH.ConvexFrax.spec", async () => {
       deployer: string;
       token: string;
       pool: string;
-      convexId: number;
+      convexCurveID: number;
       pid: number;
       farm: string;
       holder: string;
@@ -94,7 +94,7 @@ describe("AladdinETH.ConvexFrax.spec", async () => {
 
         await zap.updatePoolTokens([config.pool], [config.token]);
 
-        for (const [symbol, routes] of Object.entries(VAULT_CONFIG[name].deposit)) {
+        for (const [symbol, routes] of Object.entries(AVAILABLE_VAULTS[name].deposit)) {
           await zap.updateRoute(TOKENS[symbol].address, config.token, routes);
         }
         for (const reward of config.rewards) {
@@ -370,7 +370,7 @@ describe("AladdinETH.ConvexFrax.spec", async () => {
             // deposit
             await aeth.connect(signer).deposit(assetsAmount, PLATFORM);
             const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-            await booster.earmarkRewards(config.convexId);
+            await booster.earmarkRewards(config.convexCurveID);
             // 3 days
             await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
             await hre.network.provider.send("evm_mine", []);
@@ -399,7 +399,7 @@ describe("AladdinETH.ConvexFrax.spec", async () => {
             totalShares = totalShares.add(callDepositShares);
 
             // do harvest
-            await booster.earmarkRewards(config.convexId);
+            await booster.earmarkRewards(config.convexCurveID);
             const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
             await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 4]);
             const tx = await aeth.harvest(deployer.address, 0);
@@ -478,7 +478,7 @@ describe("AladdinETH.ConvexFrax.spec", async () => {
             totalShares = totalShares.add(callDepositShares);
 
             // do harvest
-            await booster.earmarkRewards(config.convexId);
+            await booster.earmarkRewards(config.convexCurveID);
             let timestamp = (await ethers.provider.getBlock("latest")).timestamp;
             await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
             const tx = await aeth.harvest(deployer.address, 0);

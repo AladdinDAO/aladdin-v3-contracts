@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import { ethers, network } from "hardhat";
-import { TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../../scripts/utils";
+import { TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "../../../scripts/utils";
 import { AladdinZap, ManualCompoundingCurveGaugeStrategy, ICurveGauge, MockERC20 } from "../../../typechain";
 import { request_fork } from "../../utils";
 
@@ -231,7 +231,7 @@ describe("ManualCompoundingCurveGaugeStrategy.spec", async () => {
 
         await zap.updatePoolTokens([config.pool], [config.token]);
 
-        for (const [symbol, routes] of Object.entries(VAULT_CONFIG[name].deposit)) {
+        for (const [symbol, routes] of Object.entries(AVAILABLE_VAULTS[name].deposit)) {
           await zap.updateRoute(TOKENS[symbol].address, config.token, routes);
         }
 
