@@ -30,8 +30,11 @@ contract ConcentratorAladdinETHVault is ConcentratorGeneralVault {
     require(_aladdinETH != address(0), "Concentrator: zero aladdinETH address");
     ConcentratorGeneralVault._initialize(_zap, _platform);
 
+    address _aladdinETHUnderlying = IAladdinCompounder(_aladdinETH).asset();
+    IERC20Upgradeable(_aladdinETHUnderlying).safeApprove(_aladdinETH, uint256(-1));
+
     aladdinETH = _aladdinETH;
-    aladdinETHUnderlying = IAladdinCompounder(_aladdinETH).asset();
+    aladdinETHUnderlying = _aladdinETHUnderlying;
   }
 
   /********************************** View Functions **********************************/
