@@ -187,7 +187,7 @@ contract AutoCompoundingConvexFraxStrategy is OwnableUpgradeable, PausableUpgrad
     uint256 _unlocked;
     while (_nextIndex < _length) {
       UserLockedBalance memory _lock = _userLocks[_nextIndex];
-      if (_lock.unlockAt < block.timestamp) {
+      if (_lock.unlockAt <= block.timestamp) {
         _unlocked += _lock.balance;
         delete _userLocks[_nextIndex];
       } else {
@@ -255,7 +255,7 @@ contract AutoCompoundingConvexFraxStrategy is OwnableUpgradeable, PausableUpgrad
   /// @param _locks The lock data in memory.
   function _extend(address _vault, LockData memory _locks) internal {
     // no need to extend now
-    if (_locks.unlockAt >= block.timestamp) return;
+    if (_locks.unlockAt > block.timestamp) return;
 
     if (_locks.pendingToUnlock > 0) {
       // unlock pending tokens
