@@ -42,11 +42,11 @@ const config: {
   ConcentratorFXS: IConcentratorInterface;
 } = {
   Strategy: {
-    factory: "0x06dFAf0E53ce24d43eaC332BbDC07b690894DF74",
+    factory: "0x23384DD4380b3677b829C6c88c0Ea9cc41C099bb",
     impls: {
-      AutoCompoundingConvexFraxStrategy: "0x7D6c00032cAbc699b908ECE34097ff1A159da998",
-      AutoCompoundingConvexCurveStrategy: "0x23384DD4380b3677b829C6c88c0Ea9cc41C099bb",
-      ManualCompoundingConvexCurveStrategy: "0xf9F8E939598884eB82AEC2d1553FdA06437AceC3",
+      AutoCompoundingConvexFraxStrategy: "0x6Cc546cE582b0dD106c231181f7782C79Ef401da",
+      AutoCompoundingConvexCurveStrategy: constants.AddressZero,
+      ManualCompoundingConvexCurveStrategy: "0xE25f0E29060AeC19a0559A2EF8366a5AF086222e",
     },
   },
   UpgradeableBeacon: {
@@ -55,40 +55,40 @@ const config: {
       beacon: "0xC999894424b281cE8602B50DF5F2D57F91e852f7",
     },
     ConcentratorAladdinETHVault: {
-      impl: "0x59A5C90740641b46Da1cb57EE3524A63DD65CBa4",
-      beacon: "0x105281519D3c40b41E439235a317276ae651cC04",
+      impl: "0x06dFAf0E53ce24d43eaC332BbDC07b690894DF74",
+      beacon: "0x7D6c00032cAbc699b908ECE34097ff1A159da998",
     },
   },
   ConcentratorETHInConvexCurve: {
     steth: {
       ratio: {
-        platform: 25000000, // 2.5%
-        harvest: 25000000, // 2.5%
-        withdraw: 2500000, // 0.25%
+        platform: 10e7, // 10%
+        harvest: 1e7, // 1%
+        withdraw: 0.25e7, // 0.25%
       },
       underlying: "steth",
       name: "Aladdin steCRV",
       symbol: "astETH",
       rewards: ["CVX", "CRV", "LDO"],
-      strategy: "0xEE3419db06FcE5196f7974e947dA2E97a7639dEE",
-      compounder: "0x7b1571e2a2D69F4297812c87AF20BeC5A39EFbcE",
-      vault: "",
+      strategy: constants.AddressZero,
+      compounder: constants.AddressZero,
+      vault: constants.AddressZero,
     },
   },
   ConcentratorETHInConvexFrax: {
     frxeth: {
       ratio: {
-        platform: 25000000, // 2.5%
-        harvest: 25000000, // 2.5%
-        withdraw: 2500000, // 0.25%
+        platform: 10e7, // 10%
+        harvest: 1e7, // 1%
+        withdraw: 0.25e7, // 0.25%
       },
       underlying: "frxeth",
-      name: "Aladdin frxETHCRV",
+      name: "AladdinETH: ETH/frxETH",
       symbol: "afrxETH",
       rewards: ["CVX", "CRV"],
-      strategy: "0x95804d75232474Eb9e2E692421c3C2A051adB0dc",
-      compounder: "0xCdb9BBFc53A6315463B96779E062Fa18e1bc3fc2",
-      vault: "0x02792083556c122754EE68c90DA5a2f9Cd878040",
+      strategy: "0xc9cfD6205914AB1E209FfE70326d8dd15fc58187",
+      compounder: "0xb15Ad6113264094Fd9BF2238729410A07EBE5ABa",
+      vault: "0x50B47c4A642231dbe0B411a0B2FBC1EBD129346D",
     },
   },
   ConcentratorCRV: {
@@ -121,6 +121,9 @@ const config: {
   },
 };
 
+const maxFeePerGas = 20e9;
+const maxPriorityFeePerGas = 1e9;
+
 let aladdinETHBeacon: UpgradeableBeacon;
 let concentratorAladdinETHVaultBeacon: UpgradeableBeacon;
 let factory: ConcentratorStrategyFactory;
@@ -147,9 +150,14 @@ async function addVaults(
 
     // deploy strategy
     let strategy: Contract;
+    const underlying = ADDRESS[`${vaultConfig.token}_TOKEN`];
     {
       const address = await factory.callStatic.createStrategy(config.Strategy.impls[strategyName]);
-      const tx = await factory.createStrategy(config.Strategy.impls[strategyName]);
+      const tx = await factory.createStrategy(config.Strategy.impls[strategyName], {
+        gasLimit: 1000000,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+      });
       console.log(
         `Deploying ${strategyName} for pool[${pool.name}] with Compounder[${compounderName}], hash:`,
         tx.hash
@@ -163,9 +171,12 @@ async function addVaults(
       );
       strategy = await ethers.getContractAt(strategyName, address, deployer);
     }
-    const underlying = ADDRESS[`${vaultConfig.token}_TOKEN`];
     if (strategyName === "ManualCompoundingConvexCurveStrategy") {
-      const tx = await strategy.initialize(vault.address, underlying, vaultConfig.rewarder!, vaultConfig.rewards);
+      const tx = await strategy.initialize(vault.address, underlying, vaultConfig.rewarder!, vaultConfig.rewards, {
+        gasLimit: 1000000,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+      });
       console.log(
         `Initializing ${strategyName} for pool ${pool.name} with Compounder[${compounderName}], hash:`,
         tx.hash
@@ -182,7 +193,12 @@ async function addVaults(
       strategy.address,
       pool.fees.withdraw,
       pool.fees.platform,
-      pool.fees.harvest
+      pool.fees.harvest,
+      {
+        gasLimit: 1000000,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+      }
     );
     console.log(`Add pool ${pool.name} with pid[${pid}] and Compounder[${compounderName}], hash:`, tx.hash);
     const receipt = await tx.wait();
