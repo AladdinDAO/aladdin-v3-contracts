@@ -4,7 +4,14 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { ACRV_IFO_VAULTS, ADDRESS, DEPLOYED_CONTRACTS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../scripts/utils";
+import {
+  ACRV_IFO_VAULTS,
+  ADDRESS,
+  DEPLOYED_CONTRACTS,
+  TOKENS,
+  AVAILABLE_VAULTS,
+  ZAP_ROUTES,
+} from "../../scripts/utils";
 import { AladdinZap, ConcentratorGateway, ConcentratorIFOVault, IConvexBooster, IERC20 } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
@@ -76,14 +83,14 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
 
   if (PRINT_ZAP) {
     ACRV_IFO_VAULTS.forEach(({ name, fees }) => {
-      const config = VAULT_CONFIG[name];
+      const config = AVAILABLE_VAULTS[name];
       const holder = POOL_HOLDERS[name];
       if (holder === undefined) {
         return;
       }
       console.log(
         `add pool[${name}]:`,
-        `convexId[${config.convexId}]`,
+        `convexCurveID[${config.convexCurveID}]`,
         `rewards[${config.rewards}]`,
         `withdrawFee[${fees.withdraw}]`,
         `platformFee[${fees.platform}]`,
@@ -92,7 +99,7 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
     });
     console.log("{");
     ACRV_IFO_VAULTS.forEach(({ name, fees }) => {
-      const config = VAULT_CONFIG[name];
+      const config = AVAILABLE_VAULTS[name];
       const holder = POOL_HOLDERS[name];
       if (holder === undefined) {
         return;
@@ -118,7 +125,7 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
       platform: number;
     }
   ) => {
-    const config = VAULT_CONFIG[name];
+    const config = AVAILABLE_VAULTS[name];
     const holder = POOL_HOLDERS[name];
     if (holder === undefined) {
       return;
@@ -178,7 +185,7 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
           DEPLOYED_CONTRACTS.Concentrator.ConcentratorIFOVault,
           owner
         );
-        await vault.addPool(config.convexId, config.rewards, fees.withdraw, fees.platform, fees.harvest);
+        await vault.addPool(config.convexCurveID, config.rewards, fees.withdraw, fees.platform, fees.harvest);
       });
 
       context("deposit", async () => {
@@ -275,7 +282,7 @@ describe("ConcentratorIFOVault.add.15193360.spec", async () => {
           });
 
           it("should succeed", async () => {
-            await booster.earmarkRewards(config.convexId);
+            await booster.earmarkRewards(config.convexCurveID);
             const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.aCRV, deployer);
             const amount = await vault.callStatic.harvest(PID, deployer.address, 0);
             const before = await token.balanceOf(vault.address);

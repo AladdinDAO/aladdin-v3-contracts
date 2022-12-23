@@ -3,7 +3,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { ADDRESS, DEPLOYED_CONTRACTS, VAULT_CONFIG } from "../../../scripts/utils";
+import { ADDRESS, DEPLOYED_CONTRACTS, AVAILABLE_VAULTS } from "../../../scripts/utils";
 import { ConcentratorStrategy, CurveBasePoolChecker, CurveMetaPoolChecker, MockERC20 } from "../../../typechain";
 import { request_fork } from "../../utils";
 
@@ -62,9 +62,9 @@ describe("ConcentratorStrategy.spec", async () => {
     const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin, proxyOwner);
     await proxyAdmin.upgrade(zap.address, impl.address);
 
-    await zap.updateRoute(FRAXBP, ADDRESS.FRAX, VAULT_CONFIG.fraxusdc.withdraw.FRAX);
-    await zap.updateRoute(TUSDFRAXBP, ADDRESS.FRAX, VAULT_CONFIG.tusdfraxbp.withdraw.FRAX);
-    await zap.updateRoute(LUSDFRAXBP, ADDRESS.FRAX, VAULT_CONFIG.lusdfraxbp.withdraw.FRAX);
+    await zap.updateRoute(FRAXBP, ADDRESS.FRAX, AVAILABLE_VAULTS.fraxusdc.withdraw.FRAX);
+    await zap.updateRoute(TUSDFRAXBP, ADDRESS.FRAX, AVAILABLE_VAULTS.tusdfraxbp.withdraw.FRAX);
+    await zap.updateRoute(LUSDFRAXBP, ADDRESS.FRAX, AVAILABLE_VAULTS.lusdfraxbp.withdraw.FRAX);
     await zap.updatePoolTokens(
       [ADDRESS.CURVE_TUSDFRAXBP_POOL, ADDRESS.CURVE_LUSDFRAXBP_POOL],
       [ADDRESS.CURVE_TUSDFRAXBP_TOKEN, ADDRESS.CURVE_LUSDFRAXBP_TOKEN]

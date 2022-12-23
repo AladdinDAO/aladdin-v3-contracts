@@ -14,7 +14,7 @@ import {
 } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
-import { ADDRESS, AFXS_VAULTS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "../../scripts/utils";
+import { ADDRESS, AFXS_VAULTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "../../scripts/utils";
 
 const FORK_BLOCK_NUMBER = 15302700;
 const FXS = TOKENS.FXS.address;
@@ -41,10 +41,10 @@ const PRINT_ZAP = true;
 
 if (PRINT_ZAP) {
   AFXS_VAULTS.forEach(({ name, fees }) => {
-    const config = VAULT_CONFIG[name];
+    const config = AVAILABLE_VAULTS[name];
     console.log(
       `add pool[${name}]:`,
-      `convexId[${config.convexId}]`,
+      `convexCurveID[${config.convexCurveID}]`,
       `rewards[${config.rewards}]`,
       `withdrawFee[${fees.withdraw}]`,
       `platformFee[${fees.platform}]`,
@@ -53,7 +53,7 @@ if (PRINT_ZAP) {
   });
   console.log("{");
   AFXS_VAULTS.forEach(({ name }) => {
-    const config = VAULT_CONFIG[name];
+    const config = AVAILABLE_VAULTS[name];
     console.log(`  "${name}": [`);
     Object.entries(config.deposit).forEach(([symbol, routes]) => {
       console.log(
@@ -544,7 +544,7 @@ describe("AladdinFXSConvexVault.spec", async () => {
   });
 
   context("zap with ConcentratorGateway", async () => {
-    const config = VAULT_CONFIG.frax;
+    const config = AVAILABLE_VAULTS.frax;
 
     let gateway: ConcentratorGateway;
 
