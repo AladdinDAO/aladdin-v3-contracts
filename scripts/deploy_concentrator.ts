@@ -121,8 +121,8 @@ const config: {
   },
 };
 
-const maxFeePerGas = 20e9;
-const maxPriorityFeePerGas = 1e9;
+const maxFeePerGas = 30e9;
+const maxPriorityFeePerGas = 1.2e9;
 
 let aladdinETHBeacon: UpgradeableBeacon;
 let concentratorAladdinETHVaultBeacon: UpgradeableBeacon;
