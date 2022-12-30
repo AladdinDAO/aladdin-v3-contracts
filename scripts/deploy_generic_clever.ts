@@ -26,7 +26,7 @@ import {
   VeCLEV,
   Vesting,
 } from "../typechain";
-import { ADDRESS, DEPLOYED_CONTRACTS, TOKENS, VAULT_CONFIG, ZAP_ROUTES } from "./utils";
+import { ADDRESS, DEPLOYED_CONTRACTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "./utils";
 
 const config: {
   CLeverBeacon: string;
@@ -364,19 +364,19 @@ async function deployFRAX() {
     "Zap from FRAXUSDC => FRAX:",
     `from[${ADDRESS.CURVE_FRAXUSDC_TOKEN}]`,
     `to[${ADDRESS.FRAX}]`,
-    `routes[${VAULT_CONFIG.fraxusdc.withdraw.FRAX.map((x) => x.toHexString())}]`
+    `routes[${AVAILABLE_VAULTS.fraxusdc.withdraw.FRAX.map((x) => x.toHexString())}]`
   );
   console.log(
     "Zap from TUSDFRAXBP => FRAX:",
     `from[${ADDRESS.CURVE_TUSDFRAXBP_TOKEN}]`,
     `to[${ADDRESS.FRAX}]`,
-    `routes[${VAULT_CONFIG.tusdfraxbp.withdraw.FRAX.map((x) => x.toHexString())}]`
+    `routes[${AVAILABLE_VAULTS.tusdfraxbp.withdraw.FRAX.map((x) => x.toHexString())}]`
   );
   console.log(
     "Zap from LUSDFRAXBP => FRAX:",
     `from[${ADDRESS.CURVE_LUSDFRAXBP_TOKEN}]`,
     `to[${ADDRESS.FRAX}]`,
-    `routes[${VAULT_CONFIG.lusdfraxbp.withdraw.FRAX.map((x) => x.toHexString())}]`
+    `routes[${AVAILABLE_VAULTS.lusdfraxbp.withdraw.FRAX.map((x) => x.toHexString())}]`
   );
 
   if (config.FRAX.clevUSD !== "") {

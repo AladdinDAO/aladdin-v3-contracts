@@ -5,12 +5,12 @@ import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
 import {
-  ACRV_IFO_VAULTS,
   ADDRESS,
   DEPLOYED_CONTRACTS,
   TOKENS,
   AVAILABLE_VAULTS,
   ZAP_ROUTES,
+  DEPLOYED_VAULTS,
 } from "../../scripts/utils";
 import { AladdinZap, ConcentratorGateway, ConcentratorIFOVault, IConvexBooster, IERC20 } from "../../typechain";
 // eslint-disable-next-line camelcase
@@ -24,32 +24,20 @@ const POOL_HOLDERS: {
     harvest: boolean;
   };
 } = {
-  peth: {
-    fork: 15876065,
-    holder: "0x51c2cef9efa48e08557a361b52db34061c025a1b",
-    amount: "10",
+  blusd: {
+    fork: 16245350,
+    holder: "0xa5cd3bc3f3d34b3a716111643e19db88bfa649c7",
+    amount: "10000",
     harvest: true,
-  },
-  cbeth: {
-    fork: 15876065,
-    holder: "0x7a16ff8270133f063aab6c9977183d9e72835428",
-    amount: "10",
-    harvest: false,
-  },
-  frxeth: {
-    fork: 15876065,
-    holder: "0xda035641151d42aa4a25ce51de8f6e53eae0ded7",
-    amount: "10",
-    harvest: false,
   },
 };
 
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
-const PID = 31;
+const PID = 34;
 const PRINT_ZAP = true;
 
-describe("ConcentratorIFOVault.add.15876065.spec", async () => {
+describe("ConcentratorIFOVault.add.16245350.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
   let lpToken: IERC20;
@@ -58,7 +46,7 @@ describe("ConcentratorIFOVault.add.15876065.spec", async () => {
   let gateway: ConcentratorGateway;
 
   if (PRINT_ZAP) {
-    ACRV_IFO_VAULTS.forEach(({ name, fees }) => {
+    DEPLOYED_VAULTS.aCRV.forEach(({ name, fees }) => {
       const config = AVAILABLE_VAULTS[name];
       const holder = POOL_HOLDERS[name];
       if (holder === undefined) {
@@ -74,7 +62,7 @@ describe("ConcentratorIFOVault.add.15876065.spec", async () => {
       );
     });
     console.log("{");
-    ACRV_IFO_VAULTS.forEach(({ name, fees }) => {
+    DEPLOYED_VAULTS.aCRV.forEach(({ name, fees }) => {
       const config = AVAILABLE_VAULTS[name];
       const holder = POOL_HOLDERS[name];
       if (holder === undefined) {
@@ -139,7 +127,7 @@ describe("ConcentratorIFOVault.add.15876065.spec", async () => {
         await logic.deployed();
 
         // upgrade zap contract
-        const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.ProxyAdmin, owner);
+        const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin, owner);
         const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
         const impl = await AladdinZap.deploy();
         await proxyAdmin.upgrade(DEPLOYED_CONTRACTS.AladdinZap, impl.address);
@@ -147,6 +135,7 @@ describe("ConcentratorIFOVault.add.15876065.spec", async () => {
 
         // setup withdraw zap
         await zap.updatePoolTokens([ADDRESS[`${config.token}_POOL`]], [lpToken.address]);
+        await zap.updatePoolTokens([ADDRESS.CURVE_LUSD3CRV_POOL], [ADDRESS.CURVE_LUSD3CRV_TOKEN]);
         if (ADDRESS[`${config.token}_DEPOSIT`]) {
           await zap.updatePoolTokens([ADDRESS[`${config.token}_DEPOSIT`]], [lpToken.address]);
         }
@@ -166,7 +155,7 @@ describe("ConcentratorIFOVault.add.15876065.spec", async () => {
           DEPLOYED_CONTRACTS.Concentrator.cvxCRV.ConcentratorIFOVault,
           owner
         );
-        await vault.addPool(config.convexCurveID, config.rewards, fees.withdraw, fees.platform, fees.harvest);
+        await vault.addPool(config.convexCurveID!, config.rewards, fees.withdraw, fees.platform, fees.harvest);
       });
 
       context("deposit", async () => {
@@ -265,7 +254,7 @@ describe("ConcentratorIFOVault.add.15876065.spec", async () => {
           });
 
           it("should succeed", async () => {
-            await booster.earmarkRewards(config.convexCurveID);
+            await booster.earmarkRewards(config.convexCurveID!);
             const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, deployer);
             const amount = await vault.callStatic.harvest(PID, deployer.address, 0);
             const before = await token.balanceOf(vault.address);
@@ -284,7 +273,7 @@ describe("ConcentratorIFOVault.add.15876065.spec", async () => {
     });
   };
 
-  ACRV_IFO_VAULTS.forEach(({ name, fees }) => {
+  DEPLOYED_VAULTS.aCRV.forEach(({ name, fees }) => {
     genTests(name, fees);
   });
 });

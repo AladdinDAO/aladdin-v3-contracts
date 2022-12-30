@@ -3,6 +3,10 @@
 pragma solidity ^0.7.6;
 
 interface IConvexBasicRewards {
+  function pid() external returns (uint256);
+
+  function stakingToken() external returns (address);
+
   function stakeFor(address, uint256) external returns (bool);
 
   function balanceOf(address) external view returns (uint256);

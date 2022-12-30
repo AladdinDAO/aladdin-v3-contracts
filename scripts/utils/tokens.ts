@@ -70,4 +70,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   clevCVX: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLeverCVX.clevCVX },
   OGN: { decimals: 18, address: "0x8207c1FfC5B6804F6024322CcF34F29c3541Ae26" },
   BADGER: { decimals: 18, address: "0x3472a5a71965499acd81997a54bba8d852c6e53d" },
+  bLUSD: { decimals: 18, address: "0xb9d7dddca9a4ac480991865efef82e01273f79c3" },
+  "LUSD3CRV-f": { decimals: 18, address: "0xed279fdd11ca84beef15af5d39bb4d4bee23f0ca" },
 };

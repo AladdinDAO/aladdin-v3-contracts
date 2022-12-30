@@ -10,12 +10,17 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 
 import "./interfaces/IAladdinCompounder.sol";
 
-// solhint-disable no-empty-blocks, reason-string, not-rely-on-time
+import "../common/FeeCustomization.sol";
+
+// solhint-disable no-empty-blocks
+// solhint-disable reason-string
+// solhint-disable not-rely-on-time
 
 abstract contract AladdinCompounder is
   OwnableUpgradeable,
   ReentrancyGuardUpgradeable,
   ERC20Upgradeable,
+  FeeCustomization,
   IAladdinCompounder
 {
   using SafeMathUpgradeable for uint256;
@@ -36,8 +41,8 @@ abstract contract AladdinCompounder is
   /// @notice Emitted when the reward period is updated.
   event UpdateRewardPeriodLength(uint256 _length);
 
-  /// @dev The fee denominator used for percentage calculation.
-  uint256 internal constant FEE_DENOMINATOR = 1e9;
+  /// @dev The type for withdraw fee, used in FeeCustomization.
+  bytes32 internal constant WITHDRAW_FEE_TYPE = keccak256("AladdinCompounder.WithdrawFee");
 
   /// @dev The maximum percentage of withdraw fee.
   uint256 internal constant MAX_WITHDRAW_FEE = 1e8; // 10%
@@ -80,8 +85,14 @@ abstract contract AladdinCompounder is
   /// @dev The amount of underlying asset recorded.
   uint256 internal totalAssetsStored;
 
+  function _initialize(string memory _name, string memory _symbol) internal {
+    OwnableUpgradeable.__Ownable_init();
+    ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
+    ERC20Upgradeable.__ERC20_init(_name, _symbol);
+  }
+
   /// @inheritdoc IAladdinCompounder
-  function asset() public view virtual override returns (address) {}
+  function asset() public view virtual override returns (address);
 
   /// @inheritdoc IAladdinCompounder
   function totalAssets() public view virtual override returns (uint256) {
@@ -148,7 +159,7 @@ abstract contract AladdinCompounder is
       return _shares;
     } else {
       FeeInfo memory _fees = feeInfo;
-      return _shares.mul(FEE_DENOMINATOR).div(FEE_DENOMINATOR - _fees.withdrawPercentage);
+      return _shares.mul(FEE_PRECISION).div(FEE_PRECISION - _fees.withdrawPercentage);
     }
   }
 
@@ -167,7 +178,7 @@ abstract contract AladdinCompounder is
       return _assets;
     } else {
       FeeInfo memory _fees = feeInfo;
-      uint256 _withdrawFee = _assets.mul(_fees.withdrawPercentage) / FEE_DENOMINATOR;
+      uint256 _withdrawFee = _assets.mul(_fees.withdrawPercentage) / FEE_PRECISION;
       return _assets - _withdrawFee;
     }
   }
@@ -205,14 +216,17 @@ abstract contract AladdinCompounder is
     address _owner
   ) external override nonReentrant returns (uint256) {
     _distributePendingReward();
+    if (_assets == uint256(-1)) {
+      _assets = convertToAssets(balanceOf(_owner));
+    }
 
     uint256 _totalAssets = totalAssets();
     require(_assets <= _totalAssets, "exceed total assets");
 
     uint256 _shares = convertToShares(_assets);
     if (_assets < _totalAssets) {
-      FeeInfo memory _fees = feeInfo;
-      _shares = _shares.mul(FEE_DENOMINATOR).div(FEE_DENOMINATOR - _fees.withdrawPercentage);
+      uint256 _withdrawPercentage = getFeeRate(WITHDRAW_FEE_TYPE, _owner);
+      _shares = _shares.mul(FEE_PRECISION).div(FEE_PRECISION - _withdrawPercentage);
     }
 
     if (msg.sender != _owner) {
@@ -251,6 +265,11 @@ abstract contract AladdinCompounder is
     return _withdraw(_shares, _receiver, _owner);
   }
 
+  /// @notice External function to force update pending reward.
+  function checkpoint() external {
+    _distributePendingReward();
+  }
+
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update the fee information.
@@ -282,13 +301,22 @@ abstract contract AladdinCompounder is
     emit UpdateRewardPeriodLength(_length);
   }
 
+  /// @notice Update withdraw fee for certain user.
+  /// @param _user The address of user to update.
+  /// @param _percentage The withdraw fee percentage to be updated, multipled by 1e9.
+  function setWithdrawFeeForUser(address _user, uint32 _percentage) external onlyOwner {
+    require(_percentage <= MAX_WITHDRAW_FEE, "withdraw fee too large");
+
+    _setFeeCustomization(WITHDRAW_FEE_TYPE, _user, _percentage);
+  }
+
   /********************************** Internal Functions **********************************/
 
   /// @dev Internal function to deposit assets and transfer to `_receiver`.
   /// @param _assets The amount of asset to deposit.
   /// @param _receiver The address of account who will receive the pool share.
   /// @return Return the amount of pool shares to be received.
-  function _deposit(uint256 _assets, address _receiver) internal virtual returns (uint256) {}
+  function _deposit(uint256 _assets, address _receiver) internal virtual returns (uint256);
 
   /// @dev Internal function to withdraw assets from `_owner` and transfer to `_receiver`.
   /// @param _shares The amount of pool share to burn.
@@ -299,7 +327,7 @@ abstract contract AladdinCompounder is
     uint256 _shares,
     address _receiver,
     address _owner
-  ) internal virtual returns (uint256) {}
+  ) internal virtual returns (uint256);
 
   /// @dev Internal function to distribute pending rewards.
   function _distributePendingReward() internal virtual {
@@ -350,5 +378,10 @@ abstract contract AladdinCompounder is
 
       rewardInfo = _info;
     }
+  }
+
+  /// @inheritdoc FeeCustomization
+  function _defaultFeeRate(bytes32) internal view override returns (uint256) {
+    return feeInfo.withdrawPercentage;
   }
 }

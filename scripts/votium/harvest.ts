@@ -3,7 +3,7 @@ import { Command } from "commander";
 import { BigNumber, constants } from "ethers";
 import * as hre from "hardhat";
 import "@nomiclabs/hardhat-ethers";
-import { ADDRESS, DEPLOYED_CONTRACTS, TOKENS } from "../utils";
+import { DEPLOYED_CONTRACTS, TOKENS } from "../utils";
 import { RoundClaimParams } from "./config";
 
 const ethers = hre.ethers;
@@ -14,7 +14,6 @@ const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
 
 async function main(round: number, manualStr: string) {
   const [deployer] = await ethers.getSigners();
-  const cvx = await ethers.getContractAt("IERC20", ADDRESS.CVX, deployer);
   const furnance = await ethers.getContractAt("Furnace", DEPLOYED_CONTRACTS.CLever.CLeverCVX.FurnaceForCVX, deployer);
   const cvxLocker = await ethers.getContractAt(
     "CLeverCVXLocker",
@@ -63,7 +62,7 @@ async function main(round: number, manualStr: string) {
     const tx = await cvxLocker.harvestVotium(RoundClaimParams[round], estimate.mul(999).div(1000), {
       gasLimit: gasEstimate.mul(12).div(10),
       maxFeePerGas: fee.maxFeePerGas,
-      maxPriorityFeePerGas: ethers.utils.parseUnits("3", "gwei"),
+      maxPriorityFeePerGas: ethers.utils.parseUnits("2", "gwei"),
     });
     console.log("waiting for tx:", tx.hash);
     const receipt = await tx.wait();
@@ -72,18 +71,18 @@ async function main(round: number, manualStr: string) {
     let treasuryCVX = constants.Zero;
     for (const log of receipt.logs) {
       if (log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef") {
-        const [to, value] = ethers.utils.defaultAbiCoder.decode(["address", "uint256"], log.data);
-        if (to === DEPLOYED_CONTRACTS.CLever.Treasury) treasuryCVX = value;
-        if (to === furnance.address) furnaceCVX = value;
+        const [from] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[1]) as [string];
+        const [to] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[2]) as [string];
+        const [value] = ethers.utils.defaultAbiCoder.decode(["uint256"], log.data) as [BigNumber];
+        if (from === cvxLocker.address && to === DEPLOYED_CONTRACTS.CLever.Treasury) treasuryCVX = value;
+        if (from === cvxLocker.address && to === furnance.address) furnaceCVX = value;
       }
     }
-    const furnaceAfter = await furnance.totalCVXInPool();
-    const treasuryAfter = await cvx.balanceOf(DEPLOYED_CONTRACTS.CLever.Treasury);
     console.log(
       "actual furnace CVX:",
-      ethers.utils.formatEther(furnaceAfter.sub(furnaceCVX)),
+      ethers.utils.formatEther(furnaceCVX),
       "treasury CVX:",
-      ethers.utils.formatEther(treasuryAfter.sub(treasuryCVX))
+      ethers.utils.formatEther(treasuryCVX)
     );
     for (const symbol of manualTokens) {
       const { address, decimals } = TOKENS[symbol];

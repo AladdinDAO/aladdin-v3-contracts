@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { ACRV_VAULTS, ADDRESS, VAULT_CONFIG, ZAP_ROUTES } from "../../scripts/utils";
+import { ACRV_VAULTS, ADDRESS, AVAILABLE_VAULTS, ZAP_ROUTES } from "../../scripts/utils";
 import { AladdinCRVConvexVault, IConvexBooster } from "../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../utils";
@@ -96,7 +96,7 @@ describe("VaultZapMainnetFork.spec", async () => {
 
     const zap = await ethers.getContractAt("AladdinZap", ZAP, zapOwner);
     for (const pool of ["susd", "sbtc", "seth"]) {
-      const { token: name, deposit: addRoutes } = VAULT_CONFIG[pool];
+      const { token: name, deposit: addRoutes } = AVAILABLE_VAULTS[pool];
       for (const [token, routes] of Object.entries(addRoutes)) {
         if (firstCall) {
           console.log(
@@ -126,12 +126,12 @@ describe("VaultZapMainnetFork.spec", async () => {
 
     for (let index = 12; index <= 14; index++) {
       const { name: vaultNmae, fees } = ACRV_VAULTS[index];
-      const { convexId, rewards } = VAULT_CONFIG[vaultNmae];
-      await vault.addPool(convexId, rewards, fees.withdraw, fees.platform, fees.harvest);
+      const { convexCurveID, rewards } = AVAILABLE_VAULTS[vaultNmae];
+      await vault.addPool(convexCurveID, rewards, fees.withdraw, fees.platform, fees.harvest);
       if (firstCall) {
         console.log(
           `add pool[${vaultNmae}]:`,
-          `convexId[${convexId}]`,
+          `convexCurveID[${convexCurveID}]`,
           `rewards[${rewards.toString()}]`,
           `withdrawFee[${fees.withdraw}]`,
           `platformFee[${fees.platform}]`,

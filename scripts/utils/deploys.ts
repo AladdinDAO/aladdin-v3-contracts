@@ -27,6 +27,11 @@ export const DEPLOYED_CONTRACTS = {
       AladdinFXSConvexVault: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
       aFXS: "0xDAF03D70Fe637b91bA6E521A32E1Fb39256d3EC9",
     },
+    frxETH: {
+      ConcentratorGeneralVault: "0x50B47c4A642231dbe0B411a0B2FBC1EBD129346D",
+      afrxETH: "0xb15Ad6113264094Fd9BF2238729410A07EBE5ABa",
+      AutoCompoundingConvexFraxStrategy: "0xc9cfD6205914AB1E209FfE70326d8dd15fc58187",
+    },
     Gauge: {
       Balancer_CTR_aCRV: {
         poolId: "0x80a8ea2f9ebfc2db9a093bd46e01471267914e490002000000000000000002a2",
