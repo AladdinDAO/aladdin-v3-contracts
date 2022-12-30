@@ -2379,6 +2379,43 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
+  sbtc2: {
+    token: "CURVE_sBTC2",
+    composition: "WBTC+sBTC",
+    convexCurveID: 135,
+    rewarder: "0x2a7b6a16Cf7Be51968b69768c3feCaA7E27524A5",
+    rewards: [ADDRESS.CVX, ADDRESS.CRV],
+    deposit: {
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity)],
+      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity)],
+      // WETH ==(CurveV2)==> WBTC
+      WETH: [
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
+      ],
+      // USDC ==(UniV3)==> WETH ==(CurveV2)==> WBTC
+      USDC: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
+      ],
+    },
+    withdraw: {
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity)],
+      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity)],
+      // WBTC ==(CurveV2)==> WETH
+      WETH: [
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
+      ],
+      // WBTC ==(CurveV2)==> WETH ==(UniV3)==> USDC
+      USDC: [
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -2445,7 +2482,8 @@ export const DEPLOYED_VAULTS: {
     { name: "peth", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 31
     { name: "cbeth", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 32
     { name: "frxeth", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 33
-    { name: "blusd", strategy: "ConvexCurve", fees: { withdraw: 0.03e7, harvest: 1e7, platform: 10e7 } }, // 34
+    { name: "blusd", strategy: "ConvexCurve", fees: { withdraw: 0.3e7, harvest: 1e7, platform: 10e7 } }, // 34
+    { name: "sbtc2", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 35
   ],
   aFXS: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 0
@@ -2472,6 +2510,7 @@ export const DEPLOYED_VAULTS: {
     { name: "alusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 9
     { name: "tusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 10
     { name: "lusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 11
-    { name: "blusd", strategy: "ConvexCurve", fees: { withdraw: 0.03e7, harvest: 1e7, platform: 10e7 } }, // 12
+    { name: "blusd", strategy: "ConvexCurve", fees: { withdraw: 0.3e7, harvest: 1e7, platform: 10e7 } }, // 12
+    { name: "sbtc2", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 13
   ],
 };
