@@ -3,29 +3,24 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
-import "./interfaces/IConcentratorGeneralVault.sol";
-import "./interfaces/IConcentratorStrategy.sol";
-import "./interfaces/IMigratableConcentratorVault.sol";
+import "../interfaces/IAladdinCRV.sol";
+import "../interfaces/IConcentratorStrategy.sol";
+import "../../interfaces/IConvexBasicRewards.sol";
+import "../../interfaces/IConvexCRVDepositor.sol";
+import "../../interfaces/ICurveFactoryPlainPool.sol";
 
-import "../common/FeeCustomization.sol";
+import "./ConcentratorAladdinCRVVaultStorage.sol";
+import "../strategies/ConcentratorStrategyFactory.sol";
+import "../strategies/ManualCompoundingConvexCurveStrategy.sol";
+import "../../common/FeeCustomization.sol";
 
-// solhint-disable no-empty-blocks
 // solhint-disable reason-string
 // solhint-disable not-rely-on-time
 
-abstract contract ConcentratorGeneralVault is
-  OwnableUpgradeable,
-  ReentrancyGuardUpgradeable,
-  FeeCustomization,
-  IConcentratorGeneralVault,
-  IMigratableConcentratorVault
-{
+contract ConcentratorAladdinCRVVault is ConcentratorAladdinCRVVaultStorage, FeeCustomization {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -41,19 +36,11 @@ abstract contract ConcentratorGeneralVault is
     uint32 _harvestBountyRatio
   );
 
-  /// @notice Emitted when the platform address is updated.
-  /// @param _platform The new platform address.
-  event UpdatePlatform(address indexed _platform);
-
-  /// @notice Emitted when the zap contract is updated.
-  /// @param _zap The address of the zap contract.
-  event UpdateZap(address indexed _zap);
-
   /// @notice Emitted when pool assets migrated.
   /// @param _pid The pool id to migrate.
   /// @param _oldStrategy The address of old strategy.
   /// @param _newStrategy The address of current strategy.
-  event MigrateStrategy(uint256 indexed _pid, address _oldStrategy, address _newStrategy);
+  event Migrate(uint256 indexed _pid, address _oldStrategy, address _newStrategy);
 
   /// @notice Emitted when the length of reward period is updated.
   /// @param _pid The pool id to update.
@@ -81,10 +68,38 @@ abstract contract ConcentratorGeneralVault is
   /// @param _status The new status.
   event PausePoolWithdraw(uint256 indexed _pid, bool _status);
 
-  /// @notice Emitted when the status of migrator is updated.
-  /// @param _migrator The address of migrator update.
-  /// @param _status The status updated.
-  event UpdateMigrator(address _migrator, bool _status);
+  /// @notice Emitted when someone claim CTR from contract.
+  event ClaimCTR(uint256 indexed _pid, address indexed _caller, address _recipient, uint256 _amount);
+
+  /// @dev The address of Curve cvxCRV/CRV Pool
+  address private constant CURVE_CVXCRV_CRV_POOL = 0x9D0464996170c6B9e75eED71c68B99dDEDf279e8;
+
+  /// @dev The address of Convex CRV => cvxCRV Contract.
+  address private constant CRV_DEPOSITOR = 0x8014595F2AB54cD7c604B00E9fb932176fDc86Ae;
+
+  /// @dev The precision used to calculate accumulated rewards.
+  uint256 internal constant REWARD_PRECISION = 1e18;
+
+  /// @dev The address of cvxCRV token.
+  address internal constant CVXCRV = 0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7;
+
+  ///  @dev The address of CRV token.
+  address internal constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
+
+  /// @dev The type for withdraw fee, used in FeeCustomization.
+  bytes32 internal constant WITHDRAW_FEE_TYPE = keccak256("ConcentratorAladdinCRVVault.WithdrawFee");
+
+  /// @dev The maximum percentage of withdraw fee.
+  uint256 internal constant MAX_WITHDRAW_FEE = 1e8; // 10%
+
+  /// @dev The maximum percentage of platform fee.
+  uint256 internal constant MAX_PLATFORM_FEE = 2e8; // 20%
+
+  /// @dev The maximum percentage of harvest bounty.
+  uint256 internal constant MAX_HARVEST_BOUNTY = 1e8; // 10%
+
+  /// @dev The number of seconds in one week.
+  uint256 internal constant WEEK = 86400 * 7;
 
   /// @dev Compiler will pack this into two `uint256`.
   struct PoolRewardInfo {
@@ -140,83 +155,110 @@ abstract contract ConcentratorGeneralVault is
     PoolFeeInfo fee; // 1 uint256
   }
 
-  struct UserInfo {
-    // The amount of shares the user deposited.
-    uint128 shares;
-    // The amount of current accrued rewards.
-    uint128 rewards;
-    // The reward per share already paid for the user, with 1e18 precision.
-    uint256 rewardPerSharePaid;
-    // mapping from spender to allowance.
-    mapping(address => uint256) allowances;
-  }
-
-  /// @dev The type for withdraw fee, used in FeeCustomization.
-  bytes32 internal constant WITHDRAW_FEE_TYPE = keccak256("ConcentratorGeneralVault.WithdrawFee");
-
-  /// @dev The precision used to calculate accumulated rewards.
-  uint256 internal constant REWARD_PRECISION = 1e18;
-
-  /// @dev The maximum percentage of withdraw fee.
-  uint256 internal constant MAX_WITHDRAW_FEE = 1e8; // 10%
-
-  /// @dev The maximum percentage of platform fee.
-  uint256 internal constant MAX_PLATFORM_FEE = 2e8; // 20%
-
-  /// @dev The maximum percentage of harvest bounty.
-  uint256 internal constant MAX_HARVEST_BOUNTY = 1e8; // 10%
-
-  /// @dev The number of seconds in one week.
-  uint256 internal constant WEEK = 86400 * 7;
-
   /// @notice Mapping from pool id to pool information.
   mapping(uint256 => PoolInfo) public poolInfo;
 
-  /// @notice Mapping from pool id to account address to user share info.
-  mapping(uint256 => mapping(address => UserInfo)) public userInfo;
-
   /// @dev The next unused pool id.
   uint256 private poolIndex;
-
-  /// @notice The address of recipient of platform fee
-  address public platform;
-
-  /// @notice The address of ZAP contract, will be used to swap tokens.
-  address public zap;
-
-  /// @notice The list of available migrators.
-  mapping(address => bool) public migrators;
-
-  /// @dev The reserved slots.
-  uint256[44] private __gap;
 
   modifier onlyExistPool(uint256 _pid) {
     require(_pid < poolIndex, "Concentrator: pool not exist");
     _;
   }
 
-  // fallback function to receive eth.
-  receive() external payable {}
+  modifier tryMigrateToStrategy(uint256 _pid) {
+    if (_pid < legacyPoolInfo.length) {
+      LegacyPoolInfo storage _info = legacyPoolInfo[_pid];
+      uint256 _totalUnderlying = _info.totalUnderlying;
+      if (_totalUnderlying > 0) {
+        // withdraw from rewarder
+        IConvexBasicRewards(_info.crvRewards).withdrawAndUnwrap(_totalUnderlying, false);
+        address _token = _info.lpToken;
+        address _strategy = poolInfo[_pid].strategy.strategy;
 
-  function _initialize(address _zap, address _platform) internal {
-    OwnableUpgradeable.__Ownable_init();
-    ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
+        // deposit to strategy
+        IERC20Upgradeable(_token).safeTransfer(_strategy, _totalUnderlying);
+        IConcentratorStrategy(_strategy).deposit(address(0), _totalUnderlying);
 
-    require(_zap != address(0), "Concentrator: zero zap address");
-    require(_platform != address(0), "Concentrator: zero platform address");
+        _info.totalUnderlying = 0;
+      }
+    }
+    _;
+  }
 
-    platform = _platform;
-    zap = _zap;
+  function initialize(address _factory, address _impl) external {
+    require(poolIndex == 0, "Concentrator: initialized");
+
+    uint256 _length = legacyPoolInfo.length;
+    for (uint256 i = 0; i < _length; i++) {
+      LegacyPoolInfo memory _info = legacyPoolInfo[i];
+      // create strategy
+      address _strategy = ConcentratorStrategyFactory(_factory).createStrategy(_impl);
+
+      // initialize strategy
+      ManualCompoundingConvexCurveStrategy(payable(_strategy)).initialize(
+        address(this),
+        _info.lpToken,
+        _info.crvRewards,
+        _info.convexRewardTokens
+      );
+
+      // set pool info
+      poolInfo[i] = PoolInfo({
+        supply: PoolSupplyInfo({
+          totalUnderlying: uint128(_info.totalUnderlying),
+          totalShare: uint128(_info.totalShare)
+        }),
+        strategy: PoolStrategyInfo({
+          token: _info.lpToken,
+          strategy: _strategy,
+          pauseDeposit: false,
+          pauseWithdraw: false
+        }),
+        reward: PoolRewardInfo({
+          rate: 0,
+          periodLength: 0,
+          lastUpdate: 0,
+          finishAt: 0,
+          accRewardPerShare: _info.accRewardPerShare
+        }),
+        fee: PoolFeeInfo({
+          withdrawFeeRatio: uint32(_info.withdrawFeePercentage),
+          platformFeeRatio: uint32(_info.platformFeePercentage),
+          harvestBountyRatio: uint32(_info.harvestBountyPercentage),
+          reserved: 0
+        })
+      });
+    }
+
+    IERC20Upgradeable(CRV).safeApprove(aladdinCRV, uint256(-1));
+    IERC20Upgradeable(CRV).safeApprove(CURVE_CVXCRV_CRV_POOL, uint256(-1));
+    IERC20Upgradeable(CRV).safeApprove(CRV_DEPOSITOR, uint256(-1));
+
+    poolIndex = _length;
   }
 
   /********************************** View Functions **********************************/
 
   /// @inheritdoc IConcentratorGeneralVault
-  function rewardToken() public view virtual override returns (address) {}
+  function rewardToken() public view virtual override returns (address) {
+    return aladdinCRV;
+  }
 
   /// @notice Returns the number of pools.
   function poolLength() external view returns (uint256 pools) {
     pools = poolIndex;
+  }
+
+  /// @notice Return the amount of pending $CTR rewards for specific pool.
+  /// @param _pid - The pool id.
+  /// @param _account - The address of user.
+  function pendingCTR(uint256 _pid, address _account) public view returns (uint256) {
+    UserInfo storage _userInfo = userInfo[_pid][_account];
+    return
+      userCTRRewards[_pid][_account].add(
+        accCTRPerShare[_pid].sub(userCTRPerSharePaid[_pid][_account]).mul(_userInfo.shares) / REWARD_PRECISION
+      );
   }
 
   /// @inheritdoc IConcentratorGeneralVault
@@ -271,23 +313,28 @@ abstract contract ConcentratorGeneralVault is
 
   /// @inheritdoc IConcentratorGeneralVault
   function allowance(
-    uint256 _pid,
-    address _owner,
-    address _spender
-  ) external view override returns (uint256) {
-    UserInfo storage _info = userInfo[_pid][_owner];
-    return _info.allowances[_spender];
+    uint256,
+    address,
+    address
+  ) external view virtual override returns (uint256) {
+    return 0;
   }
 
   /********************************** Mutated Functions **********************************/
 
   /// @inheritdoc IConcentratorGeneralVault
   function approve(
-    uint256 _pid,
-    address _spender,
-    uint256 _amount
-  ) external override {
-    _approve(_pid, msg.sender, _spender, _amount);
+    uint256,
+    address,
+    uint256
+  ) external virtual override {
+    revert("Concentrator: unimplemented");
+  }
+
+  /// @notice See {IAladdinCRVConvexVault-deposit}
+  /// @dev This function is deprecated.
+  function deposit(uint256 _pid, uint256 _amount) external returns (uint256 share) {
+    return deposit(_pid, msg.sender, _amount);
   }
 
   /// @inheritdoc IConcentratorGeneralVault
@@ -295,7 +342,7 @@ abstract contract ConcentratorGeneralVault is
     uint256 _pid,
     address _recipient,
     uint256 _assetsIn
-  ) public override onlyExistPool(_pid) nonReentrant returns (uint256) {
+  ) public override onlyExistPool(_pid) tryMigrateToStrategy(_pid) nonReentrant returns (uint256) {
     PoolStrategyInfo memory _strategy = poolInfo[_pid].strategy;
     require(!_strategy.pauseDeposit, "Concentrator: deposit paused");
 
@@ -322,20 +369,14 @@ abstract contract ConcentratorGeneralVault is
     uint256 _sharesIn,
     address _recipient,
     address _owner
-  ) public override onlyExistPool(_pid) nonReentrant returns (uint256) {
+  ) public override onlyExistPool(_pid) tryMigrateToStrategy(_pid) nonReentrant returns (uint256) {
     if (_sharesIn == uint256(-1)) {
       _sharesIn = userInfo[_pid][_owner].shares;
     }
     require(_sharesIn > 0, "Concentrator: withdraw zero share");
 
     if (msg.sender != _owner) {
-      UserInfo storage _info = userInfo[_pid][_owner];
-      uint256 _allowance = _info.allowances[msg.sender];
-      require(_allowance >= _sharesIn, "Concentrator: withdraw exceeds allowance");
-      if (_allowance != uint256(-1)) {
-        // decrease allowance if it is not max
-        _approve(_pid, _owner, msg.sender, _allowance - _sharesIn);
-      }
+      revert("Concentrator: withdraw exceeds allowance");
     }
 
     // 1. update rewards
@@ -422,12 +463,57 @@ abstract contract ConcentratorGeneralVault is
     return _claim(_rewards, _minOut, _recipient, _claimAsToken);
   }
 
+  /// @notice Claim pending $CTR from specific pool.
+  /// @param _pid - The pool id.
+  /// @param _recipient The address of recipient who will recieve the token.
+  /// @return claimed - The amount of $CTR sent to caller.
+  function claimCTR(uint256 _pid, address _recipient) external onlyExistPool(_pid) returns (uint256) {
+    _updateRewards(_pid, msg.sender);
+
+    uint256 _rewards = userCTRRewards[_pid][msg.sender];
+    userCTRRewards[_pid][msg.sender] = 0;
+
+    IERC20Upgradeable(ctr).safeTransfer(_recipient, _rewards);
+    emit ClaimCTR(_pid, msg.sender, _recipient, _rewards);
+
+    return _rewards;
+  }
+
+  /// @notice Claim pending $CTR from all pools.
+  /// @param _recipient The address of recipient who will recieve the token.
+  /// @return claimed - The amount of $CTR sent to caller.
+  function claimAllCTR(address _recipient) external returns (uint256) {
+    uint256 _rewards = 0;
+    uint256 _length = poolIndex;
+    for (uint256 _pid = 0; _pid < _length; _pid++) {
+      UserInfo storage _userInfo = userInfo[_pid][msg.sender];
+
+      // update if user has share
+      if (_userInfo.shares > 0) {
+        _updateRewards(_pid, msg.sender);
+      }
+
+      // claim if user has reward
+      uint256 _currentPoolRewards = userCTRRewards[_pid][msg.sender];
+      if (_currentPoolRewards > 0) {
+        _rewards = _rewards.add(_currentPoolRewards);
+        userCTRRewards[_pid][msg.sender] = 0;
+
+        emit ClaimCTR(_pid, msg.sender, _recipient, _currentPoolRewards);
+      }
+    }
+
+    IERC20Upgradeable(ctr).safeTransfer(_recipient, _rewards);
+
+    return _rewards;
+  }
+
   /// @inheritdoc IConcentratorGeneralVault
   function harvest(
     uint256 _pid,
     address _recipient,
     uint256 _minOut
-  ) external virtual override onlyExistPool(_pid) nonReentrant returns (uint256) {
+  ) external virtual override onlyExistPool(_pid) tryMigrateToStrategy(_pid) nonReentrant returns (uint256) {
     // 1. update global pending rewards
     _updateRewards(_pid, address(0));
 
@@ -471,7 +557,7 @@ abstract contract ConcentratorGeneralVault is
     address _recipient,
     address _migrator,
     uint256 _newPid
-  ) external override onlyExistPool(_pid) nonReentrant {
+  ) external override onlyExistPool(_pid) tryMigrateToStrategy(_pid) nonReentrant {
     require(migrators[_migrator], "Concentrator: unknown migrator");
 
     // 1. update rewards
@@ -500,8 +586,8 @@ abstract contract ConcentratorGeneralVault is
 
     // 3. migrate
     address _token = _pool.strategy.token;
-    IERC20Upgradeable(_token).approve(_migrator, 0);
-    IERC20Upgradeable(_token).approve(_migrator, _withdrawable);
+    IERC20Upgradeable(_token).safeApprove(_migrator, 0);
+    IERC20Upgradeable(_token).safeApprove(_migrator, _withdrawable);
     IConcentratorGeneralVault(_migrator).deposit(_newPid, _recipient, _withdrawable);
 
     emit MigrateAsset(_pid, msg.sender, _shares, _recipient, _migrator, _newPid);
@@ -546,23 +632,6 @@ abstract contract ConcentratorGeneralVault is
     require(_ratio <= MAX_WITHDRAW_FEE, "Concentrator: withdraw fee too large");
 
     _setFeeCustomization(_getWithdrawFeeType(_pid), _user, _ratio);
-  }
-
-  /// @notice Update the recipient for platform fee.
-  /// @param _platform The address of new platform.
-  function updatePlatform(address _platform) external onlyOwner {
-    require(_platform != address(0), "Concentrator: zero platform address");
-    platform = _platform;
-
-    emit UpdatePlatform(_platform);
-  }
-
-  /// @dev Update the zap contract
-  function updateZap(address _zap) external onlyOwner {
-    require(_zap != address(0), "Concentrator: zero zap address");
-    zap = _zap;
-
-    emit UpdateZap(_zap);
   }
 
   /// @notice Add new Convex pool.
@@ -653,16 +722,7 @@ abstract contract ConcentratorGeneralVault is
     IConcentratorStrategy(_oldStrategy).finishMigrate(_newStrategy);
     IConcentratorStrategy(_newStrategy).deposit(address(this), _totalUnderlying);
 
-    emit MigrateStrategy(_pid, _oldStrategy, _newStrategy);
-  }
-
-  /// @notice Update the status migrator contract
-  /// @param _migrator The address of migrator to update.
-  /// @param _status The status to update.
-  function updateMigrator(address _migrator, bool _status) external onlyOwner {
-    migrators[_migrator] = _status;
-
-    emit UpdateMigrator(_migrator, _status);
+    emit Migrate(_pid, _oldStrategy, _newStrategy);
   }
 
   /********************************** Internal Functions **********************************/
@@ -715,8 +775,15 @@ abstract contract ConcentratorGeneralVault is
       uint256 _rewards = _pendingReward(_pid, _account, _poolRewardInfo.accRewardPerShare);
       UserInfo storage _userInfo = userInfo[_pid][_account];
 
-      _userInfo.rewards = SafeCastUpgradeable.toUint128(_rewards);
+      _userInfo.rewards = uint128(_rewards);
       _userInfo.rewardPerSharePaid = _poolRewardInfo.accRewardPerShare;
+    }
+
+    // 2. update CTR rewards
+    if (_account != address(0)) {
+      uint256 _ctrRewards = pendingCTR(_pid, _account);
+      userCTRRewards[_pid][_account] = _ctrRewards;
+      userCTRPerSharePaid[_pid][_account] = accCTRPerShare[_pid];
     }
   }
 
@@ -798,25 +865,6 @@ abstract contract ConcentratorGeneralVault is
     return _assetsOut;
   }
 
-  /// @dev Internal function to update allowance.
-  /// @param _pid The pool id to query.
-  /// @param _owner The address of the owner.
-  /// @param _spender The address of the spender.
-  /// @param _amount The amount of allowance.
-  function _approve(
-    uint256 _pid,
-    address _owner,
-    address _spender,
-    uint256 _amount
-  ) internal {
-    require(_owner != address(0), "Concentrator: approve from the zero address");
-    require(_spender != address(0), "Concentrator: approve to the zero address");
-
-    UserInfo storage _info = userInfo[_pid][_owner];
-    _info.allowances[_spender] = _amount;
-    emit Approval(_pid, _owner, _spender, _amount);
-  }
-
   /// @dev Internal function to notify harvested rewards.
   /// @dev The caller should make sure `_updateRewards` is called before.
   /// @param _pid The pool id to notify.
@@ -868,10 +916,81 @@ abstract contract ConcentratorGeneralVault is
     uint256 _minOut,
     address _recipient,
     address _claimAsToken
-  ) internal virtual returns (uint256) {}
+  ) internal virtual returns (uint256) {
+    address _aladdinCRV = aladdinCRV;
+    uint256 _amountOut;
+    if (_claimAsToken == _aladdinCRV) {
+      _amountOut = _amount;
+    } else {
+      _amountOut = IAladdinCRV(_aladdinCRV).withdraw(address(this), _amount, 0, IAladdinCRV.WithdrawOption.Withdraw);
+      if (_claimAsToken != CVXCRV) {
+        address _zap = zap;
+        IERC20Upgradeable(CVXCRV).safeTransfer(_zap, _amountOut);
+        _amountOut = IZap(_zap).zap(CVXCRV, _amountOut, _claimAsToken, 0);
+      }
+    }
+
+    require(_amountOut >= _minOut, "Concentrator: insufficient rewards");
+
+    if (_claimAsToken == address(0)) {
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool _success, ) = msg.sender.call{ value: _amount }("");
+      require(_success, "Concentrator: transfer ETH failed");
+    } else {
+      IERC20Upgradeable(_claimAsToken).safeTransfer(_recipient, _amountOut);
+    }
+
+    return _amountOut;
+  }
 
   /// @dev Internal function to harvest strategy rewards to reward token.
   /// @param _pid The pool id to harvest.
   /// @return The amount of reward token harvested.
-  function _harvest(uint256 _pid) internal virtual returns (uint256) {}
+  function _harvest(uint256 _pid) internal virtual returns (uint256) {
+    uint256 _amountCRV;
+    address _zap = zap;
+
+    // 1. harvest to CRV from legacy pool
+    if (_pid < legacyPoolInfo.length) {
+      LegacyPoolInfo storage _info = legacyPoolInfo[_pid];
+      if (_info.totalShare > 0) {
+        address[] memory _rewardsToken = _info.convexRewardTokens;
+        uint256[] memory _balances = new uint256[](_rewardsToken.length);
+
+        // claim rewards
+        for (uint256 i = 0; i < _rewardsToken.length; i++) {
+          _balances[i] = IERC20Upgradeable(_rewardsToken[i]).balanceOf(address(this));
+        }
+        IConvexBasicRewards(_info.crvRewards).getReward();
+
+        // swap all rewards token to CRV
+        uint256 _amountETH;
+        address _token;
+        for (uint256 i = 0; i < _rewardsToken.length; i++) {
+          _token = _rewardsToken[i];
+          uint256 _amount = IERC20Upgradeable(_token).balanceOf(address(this)) - _balances[i];
+          if (_amount > 0) {
+            // swap all non-CRV token to ETH
+            if (_token != CRV) {
+              IERC20Upgradeable(_token).safeTransfer(_zap, _amount);
+              _amountETH += IZap(_zap).zap(_token, _amount, address(0), 0);
+            } else {
+              _amountCRV += _amount;
+            }
+          }
+        }
+        if (_amountETH > 0) {
+          _amountCRV += IZap(_zap).zap{ value: _amountETH }(address(0), _amountETH, CRV, 0);
+        }
+
+        _info.totalShare = 0;
+      }
+    }
+
+    // 2. harvest to CRV from strategy
+    address _strategy = poolInfo[_pid].strategy.strategy;
+    _amountCRV += IConcentratorStrategy(_strategy).harvest(_zap, CRV);
+
+    return IAladdinCRV(aladdinCRV).depositWithCRV(address(this), _amountCRV);
+  }
 }
