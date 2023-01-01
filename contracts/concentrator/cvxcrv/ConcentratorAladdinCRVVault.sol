@@ -40,7 +40,7 @@ contract ConcentratorAladdinCRVVault is ConcentratorAladdinCRVVaultStorage, FeeC
   /// @param _pid The pool id to migrate.
   /// @param _oldStrategy The address of old strategy.
   /// @param _newStrategy The address of current strategy.
-  event Migrate(uint256 indexed _pid, address _oldStrategy, address _newStrategy);
+  event MigrateStrategy(uint256 indexed _pid, address _oldStrategy, address _newStrategy);
 
   /// @notice Emitted when the length of reward period is updated.
   /// @param _pid The pool id to update.
@@ -71,11 +71,10 @@ contract ConcentratorAladdinCRVVault is ConcentratorAladdinCRVVaultStorage, FeeC
   /// @notice Emitted when someone claim CTR from contract.
   event ClaimCTR(uint256 indexed _pid, address indexed _caller, address _recipient, uint256 _amount);
 
-  /// @dev The address of Curve cvxCRV/CRV Pool
-  address private constant CURVE_CVXCRV_CRV_POOL = 0x9D0464996170c6B9e75eED71c68B99dDEDf279e8;
-
-  /// @dev The address of Convex CRV => cvxCRV Contract.
-  address private constant CRV_DEPOSITOR = 0x8014595F2AB54cD7c604B00E9fb932176fDc86Ae;
+  /// @notice Emitted when the status of migrator is updated.
+  /// @param _migrator The address of migrator update.
+  /// @param _status The status updated.
+  event UpdateMigrator(address _migrator, bool _status);
 
   /// @dev The precision used to calculate accumulated rewards.
   uint256 internal constant REWARD_PRECISION = 1e18;
@@ -229,11 +228,11 @@ contract ConcentratorAladdinCRVVault is ConcentratorAladdinCRVVaultStorage, FeeC
           reserved: 0
         })
       });
+
+      emit MigrateStrategy(i, address(0), _strategy);
     }
 
     IERC20Upgradeable(CRV).safeApprove(aladdinCRV, uint256(-1));
-    IERC20Upgradeable(CRV).safeApprove(CURVE_CVXCRV_CRV_POOL, uint256(-1));
-    IERC20Upgradeable(CRV).safeApprove(CRV_DEPOSITOR, uint256(-1));
 
     poolIndex = _length;
   }
@@ -722,7 +721,16 @@ contract ConcentratorAladdinCRVVault is ConcentratorAladdinCRVVaultStorage, FeeC
     IConcentratorStrategy(_oldStrategy).finishMigrate(_newStrategy);
     IConcentratorStrategy(_newStrategy).deposit(address(this), _totalUnderlying);
 
-    emit Migrate(_pid, _oldStrategy, _newStrategy);
+    emit MigrateStrategy(_pid, _oldStrategy, _newStrategy);
+  }
+
+  /// @notice Update the status migrator contract
+  /// @param _migrator The address of migrator to update.
+  /// @param _status The status to update.
+  function updateMigrator(address _migrator, bool _status) external onlyOwner {
+    migrators[_migrator] = _status;
+
+    emit UpdateMigrator(_migrator, _status);
   }
 
   /********************************** Internal Functions **********************************/
