@@ -35,7 +35,7 @@ abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializab
   }
 
   /// @inheritdoc IConcentratorStrategy
-  function updateRewards(address[] memory _rewards) external override onlyOperator {
+  function updateRewards(address[] memory _rewards) public virtual override onlyOperator {
     _checkRewards(_rewards);
 
     delete rewards;

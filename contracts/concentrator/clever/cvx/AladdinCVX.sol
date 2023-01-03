@@ -3,10 +3,12 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "../../../interfaces/ICurveFactoryPlainPool.sol";
 import "../interfaces/ICurveGauge.sol";
 import "../interfaces/ICurveMinter.sol";
 import "../interfaces/ILegacyFurnace.sol";
+import "../interfaces/ILegacyFurnace.sol";
+import "../interfaces/ICLeverAMOStrategy.sol";
+import "../../../interfaces/ICurveFactoryPlainPool.sol";
 
 import "../CLeverAMOBase.sol";
 import "../math/AMOMath.sol";
@@ -17,11 +19,14 @@ import "../math/AMOMath.sol";
 contract AladdinCVX is CLeverAMOBase {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
-  /// @dev The address of curve gauge.
-  address private immutable gauge;
+  /// @notice Emitted when the zap contract is updated.
+  /// @param _zap The address of the zap contract.
+  event UpdateZap(address _zap);
 
-  /// @dev The address of CRV minter.
-  address private immutable minter;
+  /// @notice Emitted when pool assets migrated.
+  /// @param _oldStrategy The address of old strategy.
+  /// @param _newStrategy The address of current strategy.
+  event MigrateStrategy(address _oldStrategy, address _newStrategy);
 
   /// @dev The base token index in curve pool.
   int128 private immutable baseIndex;
@@ -29,31 +34,39 @@ contract AladdinCVX is CLeverAMOBase {
   /// @dev The debt token index in curve pool.
   int128 private immutable debtIndex;
 
+  /// @notice The address of zap contract.
+  address public zap;
+
+  /// @notice The address of strategy to manage the curve lp token.
+  address public strategy;
+
   constructor(
     address _baseToken,
     address _debtToken,
     address _curvePool,
     address _curveLpToken,
-    address _furnace,
-    address _gauge,
-    address _minter
+    address _furnace
   ) CLeverAMOBase(_baseToken, _debtToken, _curvePool, _curveLpToken, _furnace) {
-    gauge = _gauge;
-    minter = _minter;
-
     address _coin0 = ICurveFactoryPlainPool(_curvePool).coins(0);
     debtIndex = _coin0 == _baseToken ? 1 : 0;
     baseIndex = _coin0 == _baseToken ? 0 : 1;
   }
 
-  function initialize(uint256 _initialRatio, address[] memory _rewards) external initializer {
+  function initialize(
+    address _zap,
+    address _strategy,
+    uint256 _initialRatio,
+    address[] memory _rewards
+  ) external initializer {
     CLeverAMOBase._initialize("Aladdin CVX", "abcCVX", _initialRatio);
     RewardClaimable._initialize(_rewards);
 
     IERC20Upgradeable(baseToken).safeApprove(curvePool, uint256(-1));
     IERC20Upgradeable(debtToken).safeApprove(curvePool, uint256(-1));
-    IERC20Upgradeable(curveLpToken).safeApprove(gauge, uint256(-1));
     IERC20Upgradeable(debtToken).safeApprove(furnace, uint256(-1));
+
+    zap = _zap;
+    strategy = _strategy;
   }
 
   /********************************** Mutated Functions **********************************/
@@ -72,7 +85,7 @@ contract AladdinCVX is CLeverAMOBase {
     AMOConfig memory _config = config;
     {
       uint256 _ratio = ratio();
-      require(_config.minLPRatio <= _ratio && _ratio <= _config.maxLPRatio, "aCVX: ratio out of range");
+      require(_config.minLPRatio <= _ratio && _ratio <= _config.maxLPRatio, "abcCVX: ratio out of range");
     }
 
     uint256 _debtInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(debtIndex));
@@ -105,7 +118,7 @@ contract AladdinCVX is CLeverAMOBase {
       // deposit into Furnace
       ILegacyFurnace(furnace).deposit(_debtTokenOut);
     } else {
-      revert("aCVX: amo in range");
+      revert("abcCVX: amo in range");
     }
 
     // make sure the final ratio is in target range.
@@ -113,10 +126,39 @@ contract AladdinCVX is CLeverAMOBase {
     _baseInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(baseIndex));
     uint256 _targetPoolRatio = (_debtInPool * PRECISION) / _baseInPool;
     // _targetRangeLeft/PRECISION <= _debtInPool/_baseInPool <= _targetRangeRight/PRECISION
-    require(_targetRangeLeft * _baseInPool <= _debtInPool * PRECISION, "aCVX: final ratio below target range");
-    require(_targetRangeRight * _baseInPool >= _debtInPool * PRECISION, "aCVX: final ratio above target range");
+    require(_targetRangeLeft * _baseInPool <= _debtInPool * PRECISION, "abcCVX: final ratio below target range");
+    require(_targetRangeRight * _baseInPool >= _debtInPool * PRECISION, "abcCVX: final ratio above target range");
 
     emit Rebalance(ratio(), _startPoolRatio, _targetPoolRatio);
+  }
+
+  /// @notice Update the zap contract
+  /// @param _zap The address of the zap contract.
+  function updateZap(address _zap) external onlyOwner {
+    require(_zap != address(0), "abcCVX: zero zap address");
+    zap = _zap;
+
+    emit UpdateZap(_zap);
+  }
+
+  /// @notice Migrate pool assets to new strategy.
+  /// @dev harvest should be called before migrate.
+  /// @param _newStrategy The address of new strategy.
+  function migrateStrategy(address _newStrategy) external onlyOwner {
+    require(_newStrategy != address(0), "abcCVX: zero strategy address");
+
+    uint256 _totalCurveLpToken = _lpBalanceInContract();
+    address _oldStrategy = strategy;
+
+    strategy = _newStrategy;
+
+    IConcentratorStrategy(_oldStrategy).prepareMigrate(_newStrategy);
+    IConcentratorStrategy(_oldStrategy).withdraw(_newStrategy, _totalCurveLpToken);
+    IConcentratorStrategy(_oldStrategy).finishMigrate(_newStrategy);
+
+    IConcentratorStrategy(_newStrategy).deposit(address(0), _totalCurveLpToken);
+
+    emit MigrateStrategy(_oldStrategy, _newStrategy);
   }
 
   /********************************** Internal Functions **********************************/
@@ -139,7 +181,7 @@ contract AladdinCVX is CLeverAMOBase {
 
   /// @inheritdoc CLeverAMOBase
   function _lpBalanceInContract() internal view override returns (uint256) {
-    return ICurveGauge(gauge).balanceOf(address(this));
+    return ICLeverAMOStrategy(strategy).strategyBalance();
   }
 
   /// @inheritdoc CLeverAMOBase
@@ -218,15 +260,14 @@ contract AladdinCVX is CLeverAMOBase {
 
   /// @inheritdoc CLeverAMOBase
   function _depositLpToken(uint256 _amount) internal override {
-    ICurveGauge(gauge).deposit(_amount);
+    address _strategy = strategy;
+    IERC20Upgradeable(curveLpToken).safeTransfer(_strategy, _amount);
+    IConcentratorStrategy(_strategy).deposit(address(0), _amount);
   }
 
   /// @inheritdoc CLeverAMOBase
   function _withdrawLpToken(uint256 _amount, address _recipient) internal override {
-    ICurveGauge(gauge).withdraw(_amount);
-    if (_recipient != address(this)) {
-      IERC20Upgradeable(curveLpToken).safeTransfer(_recipient, _amount);
-    }
+    IConcentratorStrategy(strategy).withdraw(_recipient, _amount);
   }
 
   /// @inheritdoc CLeverAMOBase
@@ -237,20 +278,19 @@ contract AladdinCVX is CLeverAMOBase {
       address _token = rewards[i];
       _amounts[i] = IERC20Upgradeable(_token).balanceOf(address(this));
     }
-    // claim CRV
-    ICurveMinter(minter).mint(gauge);
-    // claim extra rewards
-    ICurveGauge(gauge).claim_rewards();
+
+    uint256 _baseHarvested = IConcentratorStrategy(strategy).harvest(zap, baseToken);
 
     uint256 _totalSupply = totalSupply();
     for (uint256 i = 0; i < _length; i++) {
       address _token = rewards[i];
       _amounts[i] = IERC20Upgradeable(_token).balanceOf(address(this)) - _amounts[i];
-
-      rewardPerShare[_token] += (_amounts[i] * REWARD_PRECISION) / _totalSupply;
+      if (_amounts[i] > 0) {
+        rewardPerShare[_token] += (_amounts[i] * REWARD_PRECISION) / _totalSupply;
+      }
     }
 
-    return 0;
+    return _baseHarvested;
   }
 
   /// @inheritdoc RewardClaimable

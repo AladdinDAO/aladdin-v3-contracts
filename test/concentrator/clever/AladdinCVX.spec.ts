@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import { ethers } from "hardhat";
 import * as hre from "hardhat";
-import { MockERC20 } from "../../../typechain";
+import { CLeverGaugeStrategy, MockERC20 } from "../../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../../utils";
 import { DEPLOYED_CONTRACTS, TOKENS } from "../../../scripts/utils";
@@ -23,6 +23,7 @@ describe("AladdinCVX.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
   let acvx: AladdinCVX;
+  let strategy: CLeverGaugeStrategy;
 
   beforeEach(async () => {
     request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, CVX_HOLDER]);
@@ -30,19 +31,28 @@ describe("AladdinCVX.spec", async () => {
     signer = await ethers.getSigner(CVX_HOLDER);
     await deployer.sendTransaction({ to: signer.address, value: ethers.utils.parseEther("10") });
 
+    const CLeverGaugeStrategy = await ethers.getContractFactory("CLeverGaugeStrategy", deployer);
+    strategy = await CLeverGaugeStrategy.deploy();
+
     const AladdinCVX = await ethers.getContractFactory("AladdinCVX", deployer);
     acvx = await AladdinCVX.deploy(
       CVX,
       clevCVX,
       CURVE_clevCVX_TOKEN,
       CURVE_clevCVX_TOKEN,
-      DEPLOYED_CONTRACTS.CLever.CLeverCVX.FurnaceForCVX,
-      DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.gauge,
-      DEPLOYED_CONTRACTS.CLever.CLEVMinter
+      DEPLOYED_CONTRACTS.CLever.CLeverCVX.FurnaceForCVX
     );
     await acvx.deployed();
     // lp/debt = 2:1
-    await acvx.initialize("2000000000000000000", [DEPLOYED_CONTRACTS.CLever.CLEV]);
+    await acvx.initialize(DEPLOYED_CONTRACTS.AladdinZap, strategy.address, "2000000000000000000", [
+      DEPLOYED_CONTRACTS.CLever.CLEV,
+    ]);
+    await strategy.initialize(
+      acvx.address,
+      CURVE_clevCVX_TOKEN,
+      DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.gauge,
+      [DEPLOYED_CONTRACTS.CLever.CLEV]
+    );
   });
 
   it("should initialize correctly", async () => {
@@ -55,7 +65,7 @@ describe("AladdinCVX.spec", async () => {
 
   context("auth", async () => {
     it("should revert, when reinitialize", async () => {
-      await expect(acvx.initialize(constants.Zero, [])).to.revertedWith(
+      await expect(acvx.initialize(constants.AddressZero, constants.AddressZero, constants.Zero, [])).to.revertedWith(
         "Initializable: contract is already initialized"
       );
     });
@@ -137,6 +147,52 @@ describe("AladdinCVX.spec", async () => {
         expect(await acvx.lockPeriod()).to.eq(86400);
         await expect(acvx.updateLockPeriod(period)).to.emit(acvx, "UpdateLockPeriod").withArgs(period);
         expect(await acvx.lockPeriod()).to.eq(period);
+      });
+    });
+
+    context("updateZap", async () => {
+      it("should revert, when non-owner call", async () => {
+        await expect(acvx.connect(signer).updateZap(constants.AddressZero)).to.revertedWith(
+          "Ownable: caller is not the owner"
+        );
+      });
+
+      it("should revert, when zap is zero", async () => {
+        await expect(acvx.updateZap(constants.AddressZero)).to.revertedWith("abcCVX: zero zap address");
+      });
+
+      it("should succeed", async () => {
+        expect(await acvx.zap()).to.eq(DEPLOYED_CONTRACTS.AladdinZap);
+        await expect(acvx.updateZap(deployer.address)).to.emit(acvx, "UpdateZap").withArgs(deployer.address);
+        expect(await acvx.zap()).to.eq(deployer.address);
+      });
+    });
+
+    context("migrateStrategy", async () => {
+      it("should revert, when non-owner call", async () => {
+        await expect(acvx.connect(signer).migrateStrategy(constants.AddressZero)).to.revertedWith(
+          "Ownable: caller is not the owner"
+        );
+      });
+
+      it("should revert, when new strategy is zero", async () => {
+        await expect(acvx.migrateStrategy(constants.AddressZero)).to.revertedWith("abcCVX: zero strategy address");
+      });
+
+      it("should succeed", async () => {
+        const CLeverGaugeStrategy = await ethers.getContractFactory("CLeverGaugeStrategy", deployer);
+        const newStrategy = await CLeverGaugeStrategy.deploy();
+        await newStrategy.initialize(
+          acvx.address,
+          CURVE_clevCVX_TOKEN,
+          DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.gauge,
+          [DEPLOYED_CONTRACTS.CLever.CLEV]
+        );
+        expect(await acvx.strategy()).to.eq(strategy.address);
+        await expect(acvx.migrateStrategy(newStrategy.address))
+          .to.emit(acvx, "MigrateStrategy")
+          .withArgs(strategy.address, newStrategy.address);
+        expect(await acvx.strategy()).to.eq(newStrategy.address);
       });
     });
   });
@@ -657,12 +713,12 @@ describe("AladdinCVX.spec", async () => {
 
     it("should revert, when lp/debt ratio out range", async () => {
       await acvx.updateAMOConfig(0, 1, 0, 1);
-      await expect(acvx.rebalance(0, 0, 0, 0)).to.revertedWith("aCVX: ratio out of range");
+      await expect(acvx.rebalance(0, 0, 0, 0)).to.revertedWith("abcCVX: ratio out of range");
     });
 
     it("should revert, when amo ratio in range", async () => {
       await acvx.updateAMOConfig(0, ethers.utils.parseEther("10"), 0, ethers.utils.parseEther("10"));
-      await expect(acvx.rebalance(0, 0, 0, 0)).to.revertedWith("aCVX: amo in range");
+      await expect(acvx.rebalance(0, 0, 0, 0)).to.revertedWith("abcCVX: amo in range");
     });
 
     it("should revert, when below of target range, withdraw from furnace", async () => {
@@ -681,7 +737,7 @@ describe("AladdinCVX.spec", async () => {
           BigNumber.from("691303695952314714"),
           BigNumber.from("691303695952314714")
         )
-      ).to.revertedWith("aCVX: final ratio below target range");
+      ).to.revertedWith("abcCVX: final ratio below target range");
     });
 
     it("should revert, when above of target range, withdraw from furnace", async () => {
@@ -700,7 +756,7 @@ describe("AladdinCVX.spec", async () => {
           BigNumber.from("691303695952314712"),
           BigNumber.from("691303695952314712")
         )
-      ).to.revertedWith("aCVX: final ratio above target range");
+      ).to.revertedWith("abcCVX: final ratio above target range");
     });
 
     it("should revert, when below of target range, withdraw from gauge", async () => {
@@ -719,7 +775,7 @@ describe("AladdinCVX.spec", async () => {
           BigNumber.from("691293439278589395"),
           BigNumber.from("691293439278589395")
         )
-      ).to.revertedWith("aCVX: final ratio below target range");
+      ).to.revertedWith("abcCVX: final ratio below target range");
     });
 
     it("should revert, when above of target range, withdraw from gauge", async () => {
@@ -738,7 +794,7 @@ describe("AladdinCVX.spec", async () => {
           BigNumber.from("691293439278589393"),
           BigNumber.from("691293439278589393")
         )
-      ).to.revertedWith("aCVX: final ratio above target range");
+      ).to.revertedWith("abcCVX: final ratio above target range");
     });
 
     it("should succeed, when below of target range, withdraw from furnace", async () => {

@@ -159,6 +159,16 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
   /********************************** View Functions **********************************/
 
   /// @inheritdoc ICLeverAMO
+  function totalDebtToken() external view override returns (uint256) {
+    return _debtBalanceInContract();
+  }
+
+  /// @inheritdoc ICLeverAMO
+  function totalCurveLpToken() external view override returns (uint256) {
+    return _lpBalanceInContract();
+  }
+
+  /// @inheritdoc ICLeverAMO
   function ratio() public view override returns (uint256) {
     uint256 _debtBalance = _debtBalanceInContract();
     uint256 _lpBalance = _lpBalanceInContract();

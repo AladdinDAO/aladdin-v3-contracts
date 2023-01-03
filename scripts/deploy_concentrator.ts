@@ -13,6 +13,7 @@ import {
   ConcentratorAladdinETHVault__factory,
   ConcentratorGeneralVault,
   AladdinCVX,
+  CLeverGaugeStrategy,
 } from "../typechain";
 import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS } from "./utils";
 
@@ -41,6 +42,7 @@ interface ICLeverAMOInterface {
     min: string;
     max: string;
   };
+  strategy: string;
   amo: string;
 }
 
@@ -62,6 +64,7 @@ const config: {
       AutoCompoundingConvexFraxStrategy: "0x6Cc546cE582b0dD106c231181f7782C79Ef401da",
       AutoCompoundingConvexCurveStrategy: constants.AddressZero,
       ManualCompoundingConvexCurveStrategy: "0xE25f0E29060AeC19a0559A2EF8366a5AF086222e",
+      CLeverGaugeStrategy: "0x584D58287576D1629a2694613f7a7c5cfd24A3eB",
     },
   },
   UpgradeableBeacon: {
@@ -144,7 +147,8 @@ const config: {
       min: "0",
       max: "0",
     },
-    amo: "0x8935d8B5Ad2678D65B0eA6F2b2c052AA2162c89C",
+    strategy: "0x6ACc16567D59Ad11eCda0d04653afc3b189d11dC",
+    amo: "0x8348FA9c1538Ea3a2c67d7E164F8e0cB981C1AA0",
   },
 };
 
@@ -316,36 +320,6 @@ async function deployConcentratorETH() {
       receipt.gasUsed.toString()
     );
     config.UpgradeableBeacon.ConcentratorAladdinETHVault.beacon = concentratorAladdinETHVaultBeacon.address;
-  }
-
-  if (config.Strategy.factory !== "") {
-    factory = await ethers.getContractAt("ConcentratorStrategyFactory", config.Strategy.factory, deployer);
-    console.log("Found ConcentratorStrategyFactory at:", factory.address);
-  } else {
-    const ConcentratorStrategyFactory = await ethers.getContractFactory("ConcentratorStrategyFactory", deployer);
-    factory = await ConcentratorStrategyFactory.deploy();
-    console.log("Deploying ConcentratorStrategyFactory, hash:", factory.deployTransaction.hash);
-    await factory.deployed();
-    const receipt = await factory.deployTransaction.wait();
-    console.log("✅ Deploy ConcentratorStrategyFactory at:", factory.address, "gas used:", receipt.gasUsed.toString());
-  }
-
-  for (const name of [
-    "AutoCompoundingConvexFraxStrategy",
-    "AutoCompoundingConvexCurveStrategy",
-    "ManualCompoundingConvexCurveStrategy",
-  ]) {
-    if (config.Strategy.impls[name] === "") {
-      const Contract = await ethers.getContractFactory(name, deployer);
-      const impl = await Contract.deploy();
-      console.log(`Deploying ${name} Impl hash:`, impl.deployTransaction.hash);
-      await impl.deployed();
-      const receipt = await impl.deployTransaction.wait();
-      console.log(`✅ Deploy ${name} Impl at:`, impl.address, "gas used:", receipt.gasUsed.toString());
-      config.Strategy.impls[name] = impl.address;
-    } else {
-      console.log(`Found ${name} Impl at:`, config.Strategy.impls[name]);
-    }
   }
 
   for (const name of []) {
@@ -557,6 +531,20 @@ async function deployAbcCVX() {
 
   const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.CLever.ProxyAdmin, deployer);
 
+  let strategy: CLeverGaugeStrategy;
+  if (config.abcCVX.strategy !== "") {
+    strategy = await ethers.getContractAt("CLeverGaugeStrategy", config.abcCVX.strategy, deployer);
+    console.log(`Found CLeverGaugeStrategy for abcCVX, at:`, strategy.address);
+  } else {
+    const address = await factory.callStatic.createStrategy(config.Strategy.impls.CLeverGaugeStrategy);
+    const tx = await factory.createStrategy(config.Strategy.impls.CLeverGaugeStrategy);
+    console.log(`Deploying CLeverGaugeStrategy for abcCVX, hash:`, tx.hash);
+    const receipt = await tx.wait();
+    console.log(`✅ Deploy CLeverGaugeStrategy for abcCVX, at:`, address, "gas used:", receipt.gasUsed.toString());
+    strategy = await ethers.getContractAt("CLeverGaugeStrategy", address, deployer);
+    config.abcCVX.strategy = strategy.address;
+  }
+
   if (config.abcCVX.amo !== "") {
     acvx = await ethers.getContractAt("AladdinCVX", config.abcCVX.amo, deployer);
     console.log("Found AladdinCVX at:", acvx.address);
@@ -567,9 +555,7 @@ async function deployAbcCVX() {
       DEPLOYED_CONTRACTS.CLever.CLeverCVX.clevCVX,
       DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.pool,
       DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.token,
-      DEPLOYED_CONTRACTS.CLever.CLeverCVX.FurnaceForCVX,
-      DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.gauge,
-      DEPLOYED_CONTRACTS.CLever.CLEVMinter
+      DEPLOYED_CONTRACTS.CLever.CLeverCVX.FurnaceForCVX
     );
     console.log("Deploying AladdinCVX Impl, hash:", impl.deployTransaction.hash);
     await impl.deployed();
@@ -577,6 +563,8 @@ async function deployAbcCVX() {
     console.log("✅ Deploy AladdinCVX Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
 
     const data = impl.interface.encodeFunctionData("initialize", [
+      DEPLOYED_CONTRACTS.AladdinZap,
+      strategy.address,
       ethers.utils.parseEther(config.abcCVX.initialRatio),
       [DEPLOYED_CONTRACTS.CLever.CLEV],
     ]);
@@ -588,9 +576,53 @@ async function deployAbcCVX() {
     acvx = await ethers.getContractAt("AladdinCVX", proxy.address, deployer);
     console.log("✅ Deploy AladdinCVX Proxy at:", acvx.address, "gas used:", receipt.gasUsed.toString());
   }
+
+  if ((await strategy.operator()) === constants.AddressZero) {
+    const tx = await strategy.initialize(
+      acvx.address,
+      DEPLOYED_CONTRACTS.CLever.CLeverCVX.clevCVX,
+      DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.gauge,
+      [DEPLOYED_CONTRACTS.CLever.CLEV]
+    );
+    console.log(`CLeverGaugeStrategy.initialize for abcCVX, hash:`, tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
 }
 
 async function main() {
+  const [deployer] = await ethers.getSigners();
+  if (config.Strategy.factory !== "") {
+    factory = await ethers.getContractAt("ConcentratorStrategyFactory", config.Strategy.factory, deployer);
+    console.log("Found ConcentratorStrategyFactory at:", factory.address);
+  } else {
+    const ConcentratorStrategyFactory = await ethers.getContractFactory("ConcentratorStrategyFactory", deployer);
+    factory = await ConcentratorStrategyFactory.deploy();
+    console.log("Deploying ConcentratorStrategyFactory, hash:", factory.deployTransaction.hash);
+    await factory.deployed();
+    const receipt = await factory.deployTransaction.wait();
+    console.log("✅ Deploy ConcentratorStrategyFactory at:", factory.address, "gas used:", receipt.gasUsed.toString());
+  }
+
+  for (const name of [
+    "CLeverGaugeStrategy",
+    "AutoCompoundingConvexFraxStrategy",
+    "AutoCompoundingConvexCurveStrategy",
+    "ManualCompoundingConvexCurveStrategy",
+  ]) {
+    if (config.Strategy.impls[name] === "") {
+      const Contract = await ethers.getContractFactory(name, deployer);
+      const impl = await Contract.deploy();
+      console.log(`Deploying ${name} Impl hash:`, impl.deployTransaction.hash);
+      await impl.deployed();
+      const receipt = await impl.deployTransaction.wait();
+      console.log(`✅ Deploy ${name} Impl at:`, impl.address, "gas used:", receipt.gasUsed.toString());
+      config.Strategy.impls[name] = impl.address;
+    } else {
+      console.log(`Found ${name} Impl at:`, config.Strategy.impls[name]);
+    }
+  }
+
   await deployAbcCVX();
 }
 

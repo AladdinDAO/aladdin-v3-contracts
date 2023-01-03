@@ -82,6 +82,12 @@ interface ICLeverAMO {
   /// @notice The address of furnace contract for debt token.
   function furnace() external view returns (address);
 
+  /// @notice The total amount of debt token in contract.
+  function totalDebtToken() external view returns (uint256);
+
+  /// @notice The total amount of curve lp token in contract.
+  function totalCurveLpToken() external view returns (uint256);
+
   /// @notice The current ratio between curve lp token and debt token, with precision 1e18.
   function ratio() external view returns (uint256);
 
