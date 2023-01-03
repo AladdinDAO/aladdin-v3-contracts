@@ -558,15 +558,16 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     uint256 _harvestedUnderlyingTokenAmount;
     // 2. withdraw some yield token as rewards
     {
-      uint256 _harvestable = _yieldStrategy.harvestableYieldTokenAmount;
+      uint256 _harvestableYieldTokenAmount = _yieldStrategy.harvestableYieldTokenAmount;
+      uint256 _harvestable = (_harvestableYieldTokenAmount * yieldTokenHarvestPercentage[_strategyIndex]) /
+        FEE_PRECISION;
       if (_harvestable > 0) {
-        uint256 _toHarvest = (_harvestable * yieldTokenHarvestPercentage[_strategyIndex]) / FEE_PRECISION;
         _harvestedUnderlyingTokenAmount = IYieldStrategy(_yieldStrategy.strategy).withdraw(
           address(this),
-          _toHarvest,
+          _harvestable,
           true
         );
-        _yieldStrategy.harvestableYieldTokenAmount = _harvestable - _toHarvest;
+        _yieldStrategy.harvestableYieldTokenAmount = _harvestableYieldTokenAmount - _harvestable;
       }
     }
 
