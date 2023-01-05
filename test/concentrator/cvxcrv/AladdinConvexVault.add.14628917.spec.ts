@@ -4,10 +4,10 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-import { ADDRESS } from "../../scripts/utils";
-import { AladdinCRVConvexVault } from "../../typechain";
+import { ADDRESS } from "../../../scripts/utils";
+import { AladdinCRVConvexVault } from "../../../typechain";
 // eslint-disable-next-line camelcase
-import { request_fork } from "../utils";
+import { request_fork } from "../../utils";
 
 const FORK_BLOCK_NUMBER = 14628917;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
