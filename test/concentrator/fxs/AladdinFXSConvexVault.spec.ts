@@ -11,10 +11,10 @@ import {
   IConvexBasicRewards,
   IConvexBooster,
   IERC20,
-} from "../../typechain";
+} from "../../../typechain";
 // eslint-disable-next-line camelcase
-import { request_fork } from "../utils";
-import { ADDRESS, AFXS_VAULTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "../../scripts/utils";
+import { request_fork } from "../../utils";
+import { ADDRESS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES, DEPLOYED_VAULTS } from "../../../scripts/utils";
 
 const FORK_BLOCK_NUMBER = 15302700;
 const FXS = TOKENS.FXS.address;
@@ -40,7 +40,7 @@ const HARVEST_BOUNTY_PERCENTAGE = 5e7; // 5%
 const PRINT_ZAP = true;
 
 if (PRINT_ZAP) {
-  AFXS_VAULTS.forEach(({ name, fees }) => {
+  DEPLOYED_VAULTS.aFXS.forEach(({ name, fees }) => {
     const config = AVAILABLE_VAULTS[name];
     console.log(
       `add pool[${name}]:`,
@@ -52,7 +52,7 @@ if (PRINT_ZAP) {
     );
   });
   console.log("{");
-  AFXS_VAULTS.forEach(({ name }) => {
+  DEPLOYED_VAULTS.aFXS.forEach(({ name }) => {
     const config = AVAILABLE_VAULTS[name];
     console.log(`  "${name}": [`);
     Object.entries(config.deposit).forEach(([symbol, routes]) => {

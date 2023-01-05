@@ -5,16 +5,16 @@ import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
 import {
-  ACRV_IFO_VAULTS,
   ADDRESS,
   DEPLOYED_CONTRACTS,
   TOKENS,
   AVAILABLE_VAULTS,
   ZAP_ROUTES,
-} from "../../scripts/utils";
-import { AladdinZap, ConcentratorGateway, ConcentratorIFOVault, IConvexBooster, IERC20 } from "../../typechain";
+  DEPLOYED_VAULTS,
+} from "../../../scripts/utils";
+import { AladdinZap, ConcentratorGateway, ConcentratorIFOVault, IConvexBooster, IERC20 } from "../../../typechain";
 // eslint-disable-next-line camelcase
-import { request_fork } from "../utils";
+import { request_fork } from "../../utils";
 
 const POOL_HOLDERS: {
   [name: string]: {
@@ -323,7 +323,7 @@ describe("ConcentratorIFOVault.deploy.spec", async () => {
     });
   };
 
-  ACRV_IFO_VAULTS.forEach(({ name, fees }) => {
+  DEPLOYED_VAULTS.aCRV.forEach(({ name, fees }) => {
     genTests(name, fees);
   });
 });

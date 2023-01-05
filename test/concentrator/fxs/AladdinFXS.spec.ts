@@ -5,10 +5,10 @@ import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
 import * as hre from "hardhat";
-import { AladdinFXS, CompounderGateway, IConvexBasicRewards, IConvexBooster, IERC20 } from "../../typechain";
+import { AladdinFXS, CompounderGateway, IConvexBasicRewards, IConvexBooster, IERC20 } from "../../../typechain";
 // eslint-disable-next-line camelcase
-import { request_fork } from "../utils";
-import { ADDRESS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "../../scripts/utils";
+import { request_fork } from "../../utils";
+import { ADDRESS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "../../../scripts/utils";
 
 const FORK_BLOCK_NUMBER = 15074229;
 const WETH = TOKENS.WETH.address;
