@@ -38,8 +38,8 @@ describe("AladdinCVX.spec", async () => {
     acvx = await AladdinCVX.deploy(
       CVX,
       clevCVX,
-      CURVE_clevCVX_TOKEN,
-      CURVE_clevCVX_TOKEN,
+      DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.pool,
+      DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.token,
       DEPLOYED_CONTRACTS.CLever.CLeverCVX.FurnaceForCVX
     );
     await acvx.deployed();
@@ -49,7 +49,7 @@ describe("AladdinCVX.spec", async () => {
     ]);
     await strategy.initialize(
       acvx.address,
-      CURVE_clevCVX_TOKEN,
+      DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.token,
       DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.gauge,
       [DEPLOYED_CONTRACTS.CLever.CLEV]
     );

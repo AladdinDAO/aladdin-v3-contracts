@@ -147,7 +147,7 @@ const config: {
       min: "0",
       max: "0",
     },
-    strategy: "0x6ACc16567D59Ad11eCda0d04653afc3b189d11dC",
+    strategy: "0x29E56d5E68b4819FC4a997b91fc9F4f8818ef1B4",
     amo: "0x8348FA9c1538Ea3a2c67d7E164F8e0cB981C1AA0",
   },
 };
@@ -580,7 +580,7 @@ async function deployAbcCVX() {
   if ((await strategy.operator()) === constants.AddressZero) {
     const tx = await strategy.initialize(
       acvx.address,
-      DEPLOYED_CONTRACTS.CLever.CLeverCVX.clevCVX,
+      DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.token,
       DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.gauge,
       [DEPLOYED_CONTRACTS.CLever.CLEV]
     );
