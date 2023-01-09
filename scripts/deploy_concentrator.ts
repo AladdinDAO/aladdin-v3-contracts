@@ -15,6 +15,14 @@ import {
   AladdinCVX,
   AMOConvexCurveStrategy,
   CvxCrvStakingWrapperStrategy,
+  StakeDAOLockerProxy,
+  StakeDAOLockerProxy__factory,
+  AladdinSdCRV,
+  VeSDTDelegation,
+  VeSDTDelegation__factory,
+  StakeDAOCRVVault,
+  StakeDAOCRVVault__factory,
+  AladdinSdCRV__factory,
 } from "../typechain";
 import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "./utils";
 
@@ -74,6 +82,31 @@ const config: {
   ConcentratorCRV: IConcentratorInterface;
   ConcentratorFXS: IConcentratorInterface;
   abcCVX: ICLeverAMOInterface;
+  ConcentratorStakeDAO: {
+    StakeDAOLockerProxy: {
+      impl: string;
+      proxy: string;
+    };
+    VeSDTDelegation: {
+      impl: string;
+      proxy: string;
+    };
+    StakeDAOCRVVault: {
+      impl: string;
+      proxy: string;
+      gauge: string;
+      lockDuration: number;
+    };
+    AladdinSdCRV: {
+      impl: string;
+      proxy: string;
+      ratio: {
+        platform: number;
+        harvest: number;
+        withdraw: number;
+      };
+    };
+  };
 } = {
   Strategy: {
     factory: "0x23384DD4380b3677b829C6c88c0Ea9cc41C099bb",
@@ -199,6 +232,31 @@ const config: {
       impl: "0x07d9d83df553c013e767872af8da75d84e1368f9",
     },
     gauge: "0xc5022291cA8281745d173bB855DCd34dda67F2f0",
+  },
+  ConcentratorStakeDAO: {
+    StakeDAOLockerProxy: {
+      impl: "0xbE509cC6Ef7d31d1E7Ca98b1d84a0A9dA3D39466",
+      proxy: "0x5380d2580583E33a8B7D168905d11fe1F11Cf94A",
+    },
+    VeSDTDelegation: {
+      impl: "0x4b2C6F67bC775FD64De3CEc188f0F3E960ce0750",
+      proxy: "0xB154E81543CeF2a6E55B46CB28a6654EE5736220",
+    },
+    StakeDAOCRVVault: {
+      impl: "0x617408C93108e1830F27CD532B7C3e393652295A",
+      proxy: "0x94cC627Db80253056B2130aAC39abB252A75F345",
+      gauge: "0x7f50786A0b15723D741727882ee99a0BF34e3466",
+      lockDuration: 86400 * 30,
+    },
+    AladdinSdCRV: {
+      impl: "0x8C7E36A669b4B9f55608C7d3C373e8b9F19c444D",
+      proxy: "0xDEC800C2b17c9673570FDF54450dc1bd79c8E359",
+      ratio: {
+        platform: 25000000, // 2.5%
+        harvest: 25000000, // 2.5%
+        withdraw: 2500000, // 0.25%
+      },
+    },
   },
 };
 
@@ -796,6 +854,173 @@ async function deployAbcCVX() {
   }
 }
 
+async function deployConcentratorStakeDAO() {
+  const [deployer] = await ethers.getSigners();
+  const deployConfig = config.ConcentratorStakeDAO;
+
+  let lockerProxy: StakeDAOLockerProxy;
+  let delegation: VeSDTDelegation;
+  let sdCRVVault: StakeDAOCRVVault;
+  let asdCRV: AladdinSdCRV;
+
+  if (deployConfig.StakeDAOLockerProxy.impl === "") {
+    const StakeDAOLockerProxy = await ethers.getContractFactory("StakeDAOLockerProxy", deployer);
+    const impl = await StakeDAOLockerProxy.deploy();
+    console.log("Deploying StakeDAOLockerProxy Impl, hash:", impl.deployTransaction.hash);
+    const receipt = await impl.deployTransaction.wait();
+    console.log("✅ Deploy StakeDAOLockerProxy Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.StakeDAOLockerProxy.impl = impl.address;
+  } else {
+    console.log("Found StakeDAOLockerProxy Impl at:", deployConfig.StakeDAOLockerProxy.impl);
+  }
+
+  if (deployConfig.StakeDAOLockerProxy.proxy !== "") {
+    lockerProxy = await ethers.getContractAt("StakeDAOLockerProxy", deployConfig.StakeDAOLockerProxy.proxy, deployer);
+    console.log("Found StakeDAOLockerProxy at:", lockerProxy.address);
+  } else {
+    const data = StakeDAOLockerProxy__factory.createInterface().encodeFunctionData("initialize");
+    const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
+    const proxy = await TransparentUpgradeableProxy.deploy(
+      deployConfig.StakeDAOLockerProxy.impl,
+      DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin,
+      data
+    );
+    console.log(`Deploying StakeDAOLockerProxy, hash:`, proxy.deployTransaction.hash);
+    await proxy.deployed();
+    const receipt = await proxy.deployTransaction.wait();
+    console.log(`✅ Deploy StakeDAOLockerProxy, at:`, proxy.address, "gas used:", receipt.gasUsed.toString());
+
+    lockerProxy = await ethers.getContractAt("StakeDAOLockerProxy", proxy.address, deployer);
+    deployConfig.StakeDAOLockerProxy.proxy = lockerProxy.address;
+  }
+
+  if (deployConfig.VeSDTDelegation.impl === "") {
+    const VeSDTDelegation = await ethers.getContractFactory("VeSDTDelegation", deployer);
+    const impl = await VeSDTDelegation.deploy(lockerProxy.address);
+    console.log("Deploying VeSDTDelegation Impl, hash:", impl.deployTransaction.hash);
+    const receipt = await impl.deployTransaction.wait();
+    console.log("✅ Deploy VeSDTDelegation Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.VeSDTDelegation.impl = impl.address;
+  } else {
+    console.log("Found VeSDTDelegation Impl at:", deployConfig.VeSDTDelegation.impl);
+  }
+
+  if (deployConfig.VeSDTDelegation.proxy !== "") {
+    delegation = await ethers.getContractAt("VeSDTDelegation", deployConfig.VeSDTDelegation.proxy, deployer);
+    console.log("Found VeSDTDelegation at:", delegation.address);
+  } else {
+    // @todo change to correct timestamp
+    const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+    const data = VeSDTDelegation__factory.createInterface().encodeFunctionData("initialize", [timestamp]);
+    const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
+    const proxy = await TransparentUpgradeableProxy.deploy(
+      deployConfig.VeSDTDelegation.impl,
+      DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin,
+      data
+    );
+    console.log(`Deploying VeSDTDelegation, hash:`, proxy.deployTransaction.hash);
+    await proxy.deployed();
+    const receipt = await proxy.deployTransaction.wait();
+    console.log(`✅ Deploy VeSDTDelegation, at:`, proxy.address, "gas used:", receipt.gasUsed.toString());
+
+    delegation = await ethers.getContractAt("VeSDTDelegation", proxy.address, deployer);
+    deployConfig.VeSDTDelegation.proxy = delegation.address;
+  }
+
+  if (deployConfig.StakeDAOCRVVault.impl === "") {
+    const StakeDAOCRVVault = await ethers.getContractFactory("StakeDAOCRVVault", deployer);
+    const impl = await StakeDAOCRVVault.deploy(lockerProxy.address, delegation.address);
+    console.log("Deploying StakeDAOCRVVault Impl, hash:", impl.deployTransaction.hash);
+    const receipt = await impl.deployTransaction.wait();
+    console.log("✅ Deploy StakeDAOCRVVault Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.StakeDAOCRVVault.impl = impl.address;
+  } else {
+    console.log("Found StakeDAOCRVVault Impl at:", deployConfig.StakeDAOCRVVault.impl);
+  }
+
+  if (deployConfig.StakeDAOCRVVault.proxy !== "") {
+    sdCRVVault = await ethers.getContractAt("StakeDAOCRVVault", deployConfig.StakeDAOCRVVault.proxy, deployer);
+    console.log("Found StakeDAOCRVVault at:", sdCRVVault.address);
+  } else {
+    const data = StakeDAOCRVVault__factory.createInterface().encodeFunctionData("initialize", [
+      deployConfig.StakeDAOCRVVault.gauge,
+      deployConfig.StakeDAOCRVVault.lockDuration,
+    ]);
+    const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
+    const proxy = await TransparentUpgradeableProxy.deploy(
+      deployConfig.StakeDAOCRVVault.impl,
+      DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin,
+      data
+    );
+    console.log(`Deploying StakeDAOCRVVault, hash:`, proxy.deployTransaction.hash);
+    await proxy.deployed();
+    const receipt = await proxy.deployTransaction.wait();
+    console.log(`✅ Deploy StakeDAOCRVVault, at:`, proxy.address, "gas used:", receipt.gasUsed.toString());
+
+    sdCRVVault = await ethers.getContractAt("StakeDAOCRVVault", proxy.address, deployer);
+    deployConfig.StakeDAOCRVVault.proxy = sdCRVVault.address;
+  }
+
+  if (deployConfig.AladdinSdCRV.impl === "") {
+    const AladdinSdCRV = await ethers.getContractFactory("AladdinSdCRV", deployer);
+    const impl = await AladdinSdCRV.deploy(sdCRVVault.address);
+    console.log("Deploying AladdinSdCRV Impl, hash:", impl.deployTransaction.hash);
+    const receipt = await impl.deployTransaction.wait();
+    console.log("✅ Deploy AladdinSdCRV Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.AladdinSdCRV.impl = impl.address;
+  } else {
+    console.log("Found AladdinSdCRV Impl at:", deployConfig.AladdinSdCRV.impl);
+  }
+
+  if (deployConfig.AladdinSdCRV.proxy !== "") {
+    asdCRV = await ethers.getContractAt("AladdinSdCRV", deployConfig.AladdinSdCRV.proxy, deployer);
+    console.log("Found AladdinSdCRV at:", asdCRV.address);
+  } else {
+    const data = AladdinSdCRV__factory.createInterface().encodeFunctionData("initialize", [
+      DEPLOYED_CONTRACTS.AladdinZap,
+    ]);
+    const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
+    const proxy = await TransparentUpgradeableProxy.deploy(
+      deployConfig.AladdinSdCRV.impl,
+      DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin,
+      data
+    );
+    console.log(`Deploying AladdinSdCRV, hash:`, proxy.deployTransaction.hash);
+    await proxy.deployed();
+    const receipt = await proxy.deployTransaction.wait();
+    console.log(`✅ Deploy AladdinSdCRV, at:`, proxy.address, "gas used:", receipt.gasUsed.toString());
+
+    asdCRV = await ethers.getContractAt("AladdinSdCRV", proxy.address, deployer);
+    deployConfig.AladdinSdCRV.proxy = asdCRV.address;
+  }
+
+  if ((await lockerProxy.operators(deployConfig.StakeDAOCRVVault.gauge)) !== sdCRVVault.address) {
+    const tx = await lockerProxy.updateOperator(deployConfig.StakeDAOCRVVault.gauge, sdCRVVault.address);
+    console.log("updateOperator for sdCRV gauge, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
+
+  if ((await lockerProxy.claimer()) !== sdCRVVault.address) {
+    const tx = await lockerProxy.updateClaimer(sdCRVVault.address);
+    console.log("updateClaimer for sdCRV bribes, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
+
+  if ((await asdCRV.feeInfo()).platform !== DEPLOYED_CONTRACTS.Concentrator.Treasury) {
+    const tx = await asdCRV.updateFeeInfo(
+      DEPLOYED_CONTRACTS.Concentrator.Treasury,
+      deployConfig.AladdinSdCRV.ratio.platform,
+      deployConfig.AladdinSdCRV.ratio.harvest,
+      deployConfig.AladdinSdCRV.ratio.withdraw
+    );
+    console.log(`asdCRV.updateFeeInfo, hash:`, tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
+}
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   if (deployer.address !== "0x07dA2d30E26802ED65a52859a50872cfA615bD0A") {
@@ -836,6 +1061,9 @@ async function main() {
 
   await deployAbcCVX();
   await deployConcentratorCRV();
+  // await deployConcentratorETH();
+
+  await deployConcentratorStakeDAO();
 }
 
 // We recommend this pattern to be able to use async/await everywhere
