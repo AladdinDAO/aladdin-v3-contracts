@@ -1059,11 +1059,27 @@ async function main() {
     }
   }
 
-  await deployAbcCVX();
-  await deployConcentratorCRV();
-  // await deployConcentratorETH();
+  const cmd = process.env.CMD;
 
-  await deployConcentratorStakeDAO();
+  if (cmd === "concentrator.eth") {
+    await deployConcentratorETH();
+  }
+
+  if (cmd === "concentrator.cvxcrv") {
+    await deployConcentratorCRV();
+  }
+
+  if (cmd === "concentrator.fxs") {
+    await deployConcentratorFXS();
+  }
+
+  if (cmd === "concentrator.sdcrv") {
+    await deployConcentratorStakeDAO();
+  }
+
+  if (cmd === "concentrator.abccvx") {
+    await deployAbcCVX();
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
