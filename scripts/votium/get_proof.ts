@@ -39,10 +39,11 @@ const REWARDS: { [round: number]: string[] } = {
   32: ["ALCX", "APEFI", "CRV", "CVX", "cvxCRV", "FXS", "GNO", "T", "TUSD", "USDD"],
   33: ["ALCX", "APEFI", "CRV", "CVX", "FXS", "GNO", "USDD"],
   34: ["ALCX", "APEFI", "CRV", "CVX", "FXS", "GNO", "SNX", "TUSD"],
+  35: ["ALCX", "CRV", "CVX", "EURS", "FXS", "GNO", "INV", "TUSD", "USDD"],
 };
 
 async function main() {
-  for (const token of REWARDS[34]) {
+  for (const token of REWARDS[35]) {
     const address = TOKENS[token].address;
     const amountRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/amount/");
     const proofRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/proof/");
