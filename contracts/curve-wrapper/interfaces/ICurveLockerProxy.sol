@@ -71,7 +71,7 @@ interface ICurveLockerProxy {
   /// @param _tokens The list of reward tokens to claim.
   /// @param _recipient The address of recipient who will receive the rewards.
   /// @return _amounts The list of amount of rewards claim for corresponding tokens.
-  function claimRewards(
+  function claimGaugeRewards(
     address _gauge,
     address[] calldata _tokens,
     address _recipient

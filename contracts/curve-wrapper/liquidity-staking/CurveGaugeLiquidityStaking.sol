@@ -177,7 +177,7 @@ contract CurveGaugeLiquidityStaking is
 
     _amountCRV = ICurveLockerProxy(proxy).claimCRV(_gauge, _booster);
     if (_tokens.length != 0) {
-      _amounts = ICurveLockerProxy(proxy).claimRewards(_gauge, _tokens, _booster);
+      _amounts = ICurveLockerProxy(proxy).claimGaugeRewards(_gauge, _tokens, _booster);
     }
   }
 

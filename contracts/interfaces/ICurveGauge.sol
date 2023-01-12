@@ -20,4 +20,11 @@ interface ICurveGauge {
   function reward_count() external view returns (uint256);
 
   function staking_token() external view returns (address);
+
+  /// @notice Get the number of already-claimed reward tokens for a user
+  /// @dev This method is only available for v3/v4/v5 gauge.
+  /// @param _addr Account to get reward amount for
+  /// @param _token Token to get reward amount for
+  /// @return uint256 Total amount of `_token` already claimed by `_addr`
+  function claimed_reward(address _addr, address _token) external view returns (uint256);
 }

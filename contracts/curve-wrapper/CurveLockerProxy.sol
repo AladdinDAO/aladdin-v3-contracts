@@ -76,6 +76,9 @@ contract CurveLockerProxy is Ownable, ICurveLockerProxy {
   /// @notice Whether the address is an executor.
   mapping(address => bool) public executors;
 
+  /// @notice Mapping from gauge address to reward address to rewards claimed.
+  mapping(address => mapping(address => uint256)) public claimed;
+
   /**********************
    * Function Modifiers *
    **********************/
@@ -187,17 +190,22 @@ contract CurveLockerProxy is Ownable, ICurveLockerProxy {
 
   /// @inheritdoc ICurveLockerProxy
   function claimCRV(address _gauge, address _recipient) external override onlyOperator(_gauge) returns (uint256) {
-    uint256 _balance = 0;
+    // only this contract can claim CRV rewards, so the amount is correct.
+    uint256 _balance = IERC20(CRV).balanceOf(address(this));
     try ICurveMinter(CRV_MINTER).mint(_gauge) {
-      _balance = IERC20(CRV).balanceOf(address(this));
-      IERC20(CRV).safeTransfer(_recipient, _balance);
-    } catch {}
+      _balance = IERC20(CRV).balanceOf(address(this)) - _balance;
+      if (_balance > 0) {
+        IERC20(CRV).safeTransfer(_recipient, _balance);
+      }
+    } catch {
+      _balance = 0;
+    }
 
     return _balance;
   }
 
   /// @inheritdoc ICurveLockerProxy
-  function claimRewards(
+  function claimGaugeRewards(
     address _gauge,
     address[] calldata _tokens,
     address _recipient
@@ -209,9 +217,25 @@ contract CurveLockerProxy is Ownable, ICurveLockerProxy {
     try ICurveGauge(_gauge).claim_rewards() {} catch {}
 
     for (uint256 i = 0; i < _length; i++) {
-      _amounts[i] = IERC20(_tokens[i]).balanceOf(address(this));
-      if (_amounts[i] > 0) {
-        IERC20(_tokens[i]).safeTransfer(_recipient, _amounts[i]);
+      address _token = _tokens[i];
+      uint256 _rewards;
+      uint256 _claimedBefore = claimed[_gauge][_token];
+      try ICurveGauge(_gauge).claimed_reward(address(this), _token) returns (uint256 _claimedNow) {
+        if (_claimedBefore == 0) {
+          // first claim, use balanceOf
+          _rewards = IERC20(_token).balanceOf(address(this));
+        } else {
+          // _claimedNow is always >= _claimedBefore
+          _rewards = _claimedNow - _claimedBefore;
+        }
+        claimed[_gauge][_token] = _claimedNow;
+      } catch {
+        // use balanceOf, since others could claim rewards for the contract.
+        _rewards = IERC20(_token).balanceOf(address(this));
+      }
+      _amounts[i] = _rewards;
+      if (_rewards > 0) {
+        IERC20(_token).safeTransfer(_recipient, _rewards);
       }
     }
   }
