@@ -3,9 +3,13 @@
 pragma solidity ^0.7.6;
 
 interface IConvexBasicRewards {
-  function pid() external returns (uint256);
+  function extraRewardsLength() external view returns (uint256);
 
-  function stakingToken() external returns (address);
+  function extraRewards(uint256 _index) external view returns (address);
+
+  function pid() external view returns (uint256);
+
+  function stakingToken() external view returns (address);
 
   function stakeFor(address, uint256) external returns (bool);
 

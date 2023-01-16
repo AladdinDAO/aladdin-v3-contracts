@@ -80,8 +80,8 @@ abstract contract ConcentratorAladdinCRVVaultStorage is
   /// @notice The address of recipient of platform fee
   address public platform;
 
-  /// @notice The list of available migrators.
-  mapping(address => bool) public migrators;
+  /// @notice The address of vault to migrate.
+  address public migrator;
 
   /******************** Entra storage entries from ConcentratorIFOVault ********************/
 

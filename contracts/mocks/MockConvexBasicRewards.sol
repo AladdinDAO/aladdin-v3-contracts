@@ -12,7 +12,7 @@ contract MockConvexBasicRewards {
     stakingToken = _stakingToken;
   }
 
-  function getReward() external returns (bool) {
+  function getReward() external pure returns (bool) {
     return true;
   }
 }

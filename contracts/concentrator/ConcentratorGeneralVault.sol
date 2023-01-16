@@ -13,6 +13,7 @@ import "./interfaces/IConcentratorGeneralVault.sol";
 import "./interfaces/IConcentratorStrategy.sol";
 import "./interfaces/IMigratableConcentratorVault.sol";
 
+import "../common/AccessControl.sol";
 import "../common/FeeCustomization.sol";
 
 // solhint-disable no-empty-blocks
@@ -22,6 +23,7 @@ import "../common/FeeCustomization.sol";
 abstract contract ConcentratorGeneralVault is
   OwnableUpgradeable,
   ReentrancyGuardUpgradeable,
+  AccessControl,
   FeeCustomization,
   IConcentratorGeneralVault,
   IMigratableConcentratorVault
@@ -80,11 +82,6 @@ abstract contract ConcentratorGeneralVault is
   /// @param _pid The pool id to update.
   /// @param _status The new status.
   event PausePoolWithdraw(uint256 indexed _pid, bool _status);
-
-  /// @notice Emitted when the status of migrator is updated.
-  /// @param _migrator The address of migrator update.
-  /// @param _status The status updated.
-  event UpdateMigrator(address _migrator, bool _status);
 
   /// @dev Compiler will pack this into two `uint256`.
   struct PoolRewardInfo {
@@ -154,6 +151,15 @@ abstract contract ConcentratorGeneralVault is
   /// @dev The type for withdraw fee, used in FeeCustomization.
   bytes32 internal constant WITHDRAW_FEE_TYPE = keccak256("ConcentratorGeneralVault.WithdrawFee");
 
+  /// @dev The role type for keeper.
+  bytes32 private constant KEEPER_ROLE = keccak256("Concentrator.Keeper");
+
+  /// @dev The role type for migrator.
+  bytes32 private constant MIGRATOR_ROLE = keccak256("Concentrator.Migrator");
+
+  /// @dev The role type for pool maintainer.
+  bytes32 private constant POOL_MAINTAINER_ROLE = keccak256("Concentrator.Pool.Maintainer");
+
   /// @dev The precision used to calculate accumulated rewards.
   uint256 internal constant REWARD_PRECISION = 1e18;
 
@@ -184,16 +190,8 @@ abstract contract ConcentratorGeneralVault is
   /// @notice The address of ZAP contract, will be used to swap tokens.
   address public zap;
 
-  /// @notice The list of available migrators.
-  mapping(address => bool) public migrators;
-
   /// @dev The reserved slots.
-  uint256[44] private __gap;
-
-  modifier onlyExistPool(uint256 _pid) {
-    require(_pid < poolIndex, "Concentrator: pool not exist");
-    _;
-  }
+  uint256[45] private __gap;
 
   // fallback function to receive eth.
   receive() external payable {}
@@ -214,8 +212,8 @@ abstract contract ConcentratorGeneralVault is
   /// @inheritdoc IConcentratorGeneralVault
   function rewardToken() public view virtual override returns (address) {}
 
-  /// @notice Returns the number of pools.
-  function poolLength() external view returns (uint256 pools) {
+  /// @inheritdoc IConcentratorGeneralVault
+  function poolLength() external view override returns (uint256 pools) {
     pools = poolIndex;
   }
 
@@ -295,7 +293,7 @@ abstract contract ConcentratorGeneralVault is
     uint256 _pid,
     address _recipient,
     uint256 _assetsIn
-  ) public override onlyExistPool(_pid) nonReentrant returns (uint256) {
+  ) public override nonReentrant returns (uint256) {
     PoolStrategyInfo memory _strategy = poolInfo[_pid].strategy;
     require(!_strategy.pauseDeposit, "Concentrator: deposit paused");
 
@@ -322,7 +320,7 @@ abstract contract ConcentratorGeneralVault is
     uint256 _sharesIn,
     address _recipient,
     address _owner
-  ) public override onlyExistPool(_pid) nonReentrant returns (uint256) {
+  ) public override nonReentrant returns (uint256) {
     if (_sharesIn == uint256(-1)) {
       _sharesIn = userInfo[_pid][_owner].shares;
     }
@@ -353,7 +351,7 @@ abstract contract ConcentratorGeneralVault is
     address _recipient,
     uint256 _minOut,
     address _claimAsToken
-  ) public override onlyExistPool(_pid) nonReentrant returns (uint256) {
+  ) public override nonReentrant returns (uint256) {
     _updateRewards(_pid, msg.sender);
 
     UserInfo storage _userInfo = userInfo[_pid][msg.sender];
@@ -427,7 +425,9 @@ abstract contract ConcentratorGeneralVault is
     uint256 _pid,
     address _recipient,
     uint256 _minOut
-  ) external virtual override onlyExistPool(_pid) nonReentrant returns (uint256) {
+  ) external virtual override nonReentrant returns (uint256) {
+    require(_hasRole(KEEPER_ROLE, msg.sender), "Concentrator: not keeper");
+
     // 1. update global pending rewards
     _updateRewards(_pid, address(0));
 
@@ -471,8 +471,8 @@ abstract contract ConcentratorGeneralVault is
     address _recipient,
     address _migrator,
     uint256 _newPid
-  ) external override onlyExistPool(_pid) nonReentrant {
-    require(migrators[_migrator], "Concentrator: unknown migrator");
+  ) external override nonReentrant {
+    require(_hasRole(MIGRATOR_ROLE, _migrator), "Concentrator: unknown migrator");
 
     // 1. update rewards
     PoolInfo storage _pool = poolInfo[_pid];
@@ -507,77 +507,16 @@ abstract contract ConcentratorGeneralVault is
     emit MigrateAsset(_pid, msg.sender, _shares, _recipient, _migrator, _newPid);
   }
 
-  /********************************** Restricted Functions **********************************/
-
-  /// @notice Update the pool fee ratios.
-  /// @param _pid The pool id.
-  /// @param _withdrawFeeRatio The withdraw fee ratio to update.
-  /// @param _platformFeeRatio The platform fee ratio to update.
-  /// @param _harvestBountyRatio The harvest bounty fee ratio to update.
-  function updatePoolFeeRatio(
-    uint256 _pid,
-    uint32 _withdrawFeeRatio,
-    uint32 _platformFeeRatio,
-    uint32 _harvestBountyRatio
-  ) external onlyExistPool(_pid) onlyOwner {
-    require(_withdrawFeeRatio <= MAX_WITHDRAW_FEE, "Concentrator: withdraw fee too large");
-    require(_platformFeeRatio <= MAX_PLATFORM_FEE, "Concentrator: platform fee too large");
-    require(_harvestBountyRatio <= MAX_HARVEST_BOUNTY, "Concentrator: harvest bounty too large");
-
-    poolInfo[_pid].fee = PoolFeeInfo({
-      withdrawFeeRatio: _withdrawFeeRatio,
-      platformFeeRatio: _platformFeeRatio,
-      harvestBountyRatio: _harvestBountyRatio,
-      reserved: 0
-    });
-
-    emit UpdatePoolFeeRatio(_pid, _withdrawFeeRatio, _platformFeeRatio, _harvestBountyRatio);
-  }
-
-  /// @notice Update withdraw fee for certain user.
-  /// @param _pid The pool id.
-  /// @param _user The address of user to update.
-  /// @param _ratio The withdraw fee ratio to be updated, multipled by 1e9.
-  function setWithdrawFeeForUser(
-    uint256 _pid,
-    address _user,
-    uint32 _ratio
-  ) external onlyExistPool(_pid) onlyOwner {
-    require(_ratio <= MAX_WITHDRAW_FEE, "Concentrator: withdraw fee too large");
-
-    _setFeeCustomization(_getWithdrawFeeType(_pid), _user, _ratio);
-  }
-
-  /// @notice Update the recipient for platform fee.
-  /// @param _platform The address of new platform.
-  function updatePlatform(address _platform) external onlyOwner {
-    require(_platform != address(0), "Concentrator: zero platform address");
-    platform = _platform;
-
-    emit UpdatePlatform(_platform);
-  }
-
-  /// @dev Update the zap contract
-  function updateZap(address _zap) external onlyOwner {
-    require(_zap != address(0), "Concentrator: zero zap address");
-    zap = _zap;
-
-    emit UpdateZap(_zap);
-  }
-
-  /// @notice Add new Convex pool.
-  /// @param _underlying The address of staking token.
-  /// @param _strategy The address of corresponding strategy.
-  /// @param _withdrawFeeRatio The default withdraw fee ratio of the pool.
-  /// @param _platformFeeRatio The platform fee ratio of the pool.
-  /// @param _harvestBountyRatio The harvest bounty ratio of the pool.
+  /// @inheritdoc IConcentratorGeneralVault
   function addPool(
     address _underlying,
     address _strategy,
     uint32 _withdrawFeeRatio,
     uint32 _platformFeeRatio,
     uint32 _harvestBountyRatio
-  ) external onlyOwner {
+  ) external override {
+    require(_hasRole(POOL_MAINTAINER_ROLE, msg.sender), "Concentrator: not maintainer");
+
     require(_withdrawFeeRatio <= MAX_WITHDRAW_FEE, "Concentrator: withdraw fee too large");
     require(_platformFeeRatio <= MAX_PLATFORM_FEE, "Concentrator: platform fee too large");
     require(_harvestBountyRatio <= MAX_HARVEST_BOUNTY, "Concentrator: harvest bounty too large");
@@ -602,10 +541,68 @@ abstract contract ConcentratorGeneralVault is
     emit AddPool(_pid, _underlying, _strategy);
   }
 
+  /********************************** Restricted Functions **********************************/
+
+  /// @notice Update the pool fee ratios.
+  /// @param _pid The pool id.
+  /// @param _withdrawFeeRatio The withdraw fee ratio to update.
+  /// @param _platformFeeRatio The platform fee ratio to update.
+  /// @param _harvestBountyRatio The harvest bounty fee ratio to update.
+  function updatePoolFeeRatio(
+    uint256 _pid,
+    uint32 _withdrawFeeRatio,
+    uint32 _platformFeeRatio,
+    uint32 _harvestBountyRatio
+  ) external onlyOwner {
+    require(_withdrawFeeRatio <= MAX_WITHDRAW_FEE, "Concentrator: withdraw fee too large");
+    require(_platformFeeRatio <= MAX_PLATFORM_FEE, "Concentrator: platform fee too large");
+    require(_harvestBountyRatio <= MAX_HARVEST_BOUNTY, "Concentrator: harvest bounty too large");
+
+    poolInfo[_pid].fee = PoolFeeInfo({
+      withdrawFeeRatio: _withdrawFeeRatio,
+      platformFeeRatio: _platformFeeRatio,
+      harvestBountyRatio: _harvestBountyRatio,
+      reserved: 0
+    });
+
+    emit UpdatePoolFeeRatio(_pid, _withdrawFeeRatio, _platformFeeRatio, _harvestBountyRatio);
+  }
+
+  /// @notice Update withdraw fee for certain user.
+  /// @param _pid The pool id.
+  /// @param _user The address of user to update.
+  /// @param _ratio The withdraw fee ratio to be updated, multipled by 1e9.
+  function setWithdrawFeeForUser(
+    uint256 _pid,
+    address _user,
+    uint32 _ratio
+  ) external onlyOwner {
+    require(_ratio <= MAX_WITHDRAW_FEE, "Concentrator: withdraw fee too large");
+
+    _setFeeCustomization(_getWithdrawFeeType(_pid), _user, _ratio);
+  }
+
+  /// @notice Update the recipient for platform fee.
+  /// @param _platform The address of new platform.
+  function updatePlatform(address _platform) external onlyOwner {
+    require(_platform != address(0), "Concentrator: zero platform address");
+    platform = _platform;
+
+    emit UpdatePlatform(_platform);
+  }
+
+  /// @dev Update the zap contract
+  function updateZap(address _zap) external onlyOwner {
+    require(_zap != address(0), "Concentrator: zero zap address");
+    zap = _zap;
+
+    emit UpdateZap(_zap);
+  }
+
   /// @notice update reward period
   /// @param _pid The pool id.
   /// @param _period The length of the period
-  function updateRewardPeriod(uint256 _pid, uint32 _period) external onlyExistPool(_pid) onlyOwner {
+  function updateRewardPeriod(uint256 _pid, uint32 _period) external onlyOwner {
     require(_period <= WEEK, "Concentrator: reward period too long");
 
     poolInfo[_pid].reward.periodLength = _period;
@@ -616,7 +613,7 @@ abstract contract ConcentratorGeneralVault is
   /// @notice update reward tokens
   /// @param _pid The pool id.
   /// @param _rewardTokens The address list of new reward tokens.
-  function updatePoolRewardTokens(uint256 _pid, address[] memory _rewardTokens) external onlyExistPool(_pid) onlyOwner {
+  function updatePoolRewardTokens(uint256 _pid, address[] memory _rewardTokens) external onlyOwner {
     IConcentratorStrategy(poolInfo[_pid].strategy.strategy).updateRewards(_rewardTokens);
 
     emit UpdatePoolRewardTokens(_pid, _rewardTokens);
@@ -625,7 +622,7 @@ abstract contract ConcentratorGeneralVault is
   /// @notice Pause withdraw for specific pool.
   /// @param _pid The pool id.
   /// @param _status The status to update.
-  function pausePoolWithdraw(uint256 _pid, bool _status) external onlyExistPool(_pid) onlyOwner {
+  function pausePoolWithdraw(uint256 _pid, bool _status) external onlyOwner {
     poolInfo[_pid].strategy.pauseWithdraw = _status;
 
     emit PausePoolWithdraw(_pid, _status);
@@ -634,7 +631,7 @@ abstract contract ConcentratorGeneralVault is
   /// @notice Pause deposit for specific pool.
   /// @param _pid The pool id.
   /// @param _status The status to update.
-  function pausePoolDeposit(uint256 _pid, bool _status) external onlyExistPool(_pid) onlyOwner {
+  function pausePoolDeposit(uint256 _pid, bool _status) external onlyOwner {
     poolInfo[_pid].strategy.pauseDeposit = _status;
 
     emit PausePoolDeposit(_pid, _status);
@@ -643,7 +640,7 @@ abstract contract ConcentratorGeneralVault is
   /// @notice Migrate pool assets to new strategy.
   /// @param _pid The pool id.
   /// @param _newStrategy The address of new strategy.
-  function migrateStrategy(uint256 _pid, address _newStrategy) external onlyExistPool(_pid) onlyOwner {
+  function migrateStrategy(uint256 _pid, address _newStrategy) external onlyOwner {
     uint256 _totalUnderlying = poolInfo[_pid].supply.totalUnderlying;
     address _oldStrategy = poolInfo[_pid].strategy.strategy;
     poolInfo[_pid].strategy.strategy = _newStrategy;
@@ -656,13 +653,16 @@ abstract contract ConcentratorGeneralVault is
     emit MigrateStrategy(_pid, _oldStrategy, _newStrategy);
   }
 
-  /// @notice Update the status migrator contract
-  /// @param _migrator The address of migrator to update.
-  /// @param _status The status to update.
-  function updateMigrator(address _migrator, bool _status) external onlyOwner {
-    migrators[_migrator] = _status;
-
-    emit UpdateMigrator(_migrator, _status);
+  /// @notice Set `status` for `account` with `role`.
+  /// @param _role The type of role.
+  /// @param _account The address of user.
+  /// @param _status The new status.
+  function setRoleStatus(
+    bytes32 _role,
+    address _account,
+    bool _status
+  ) external onlyOwner {
+    _setRole(_role, _account, _status);
   }
 
   /********************************** Internal Functions **********************************/

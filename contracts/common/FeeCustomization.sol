@@ -46,7 +46,7 @@ abstract contract FeeCustomization {
   ) internal {
     require(_rate <= FEE_PRECISION, "rate too large");
 
-    uint256 _slot = _computeStorageSlot(_feeType, _user);
+    uint256 _slot = _computeAccountFeeStorageSlot(_feeType, _user);
     uint256 _encoded = _encode(1, _rate);
     assembly {
       sstore(_slot, _encoded)
@@ -59,7 +59,7 @@ abstract contract FeeCustomization {
   /// @param _feeType The type of fee to update.
   /// @param _user The address of user to update.
   function _cancleFeeCustomization(bytes32 _feeType, address _user) internal {
-    uint256 _slot = _computeStorageSlot(_feeType, _user);
+    uint256 _slot = _computeAccountFeeStorageSlot(_feeType, _user);
     assembly {
       sstore(_slot, 0)
     }
@@ -78,7 +78,7 @@ abstract contract FeeCustomization {
   /// @return customized Whether there is a customization.
   /// @return rate The customized fee rate, multiplied by 1e9.
   function _loadFeeCustomization(bytes32 _feeType, address _user) private view returns (uint8 customized, uint32 rate) {
-    uint256 _slot = _computeStorageSlot(_feeType, _user);
+    uint256 _slot = _computeAccountFeeStorageSlot(_feeType, _user);
     uint256 _encoded;
     assembly {
       _encoded := sload(_slot)
@@ -90,7 +90,7 @@ abstract contract FeeCustomization {
   /// @param _feeType The type of fee.
   /// @param _user The address of user.
   /// @return slot The destination storage slot.
-  function _computeStorageSlot(bytes32 _feeType, address _user) private pure returns (uint256 slot) {
+  function _computeAccountFeeStorageSlot(bytes32 _feeType, address _user) private pure returns (uint256 slot) {
     bytes32 salt = SALT;
     assembly {
       mstore(0x00, _feeType)

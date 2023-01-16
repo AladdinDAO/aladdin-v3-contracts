@@ -66,6 +66,9 @@ interface IConcentratorGeneralVault {
   /// @notice The address of reward token.
   function rewardToken() external view returns (address);
 
+  /// @notice Returns the number of pools.
+  function poolLength() external view returns (uint256 pools);
+
   /// @notice Return the amount of pending rewards for specific pool.
   /// @param pid The pool id.
   /// @param account The address of user.
@@ -183,4 +186,18 @@ interface IConcentratorGeneralVault {
     address recipient,
     uint256 minOut
   ) external returns (uint256 harvested);
+
+  /// @notice Add new Convex pool.
+  /// @param _underlying The address of staking token.
+  /// @param _strategy The address of corresponding strategy.
+  /// @param _withdrawFeeRatio The default withdraw fee ratio of the pool.
+  /// @param _platformFeeRatio The platform fee ratio of the pool.
+  /// @param _harvestBountyRatio The harvest bounty ratio of the pool.
+  function addPool(
+    address _underlying,
+    address _strategy,
+    uint32 _withdrawFeeRatio,
+    uint32 _platformFeeRatio,
+    uint32 _harvestBountyRatio
+  ) external;
 }
