@@ -19,7 +19,7 @@ const CVX_HOLDER = "0x28c6c06298d514db089934071355e5743bf21d60";
 const CURVE_clevCVX_TOKEN = "0xf9078fb962a7d13f55d40d49c8aa6472abd1a5a6";
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 
-describe("AladdinCVX.spec", async () => {
+describe("AladdinCVX.CLeverGauge.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
   let acvx: AladdinCVX;
@@ -44,9 +44,7 @@ describe("AladdinCVX.spec", async () => {
     );
     await acvx.deployed();
     // lp/debt = 2:1
-    await acvx.initialize(DEPLOYED_CONTRACTS.AladdinZap, strategy.address, "2000000000000000000", [
-      DEPLOYED_CONTRACTS.CLever.CLEV,
-    ]);
+    await acvx.initialize(DEPLOYED_CONTRACTS.AladdinZap, strategy.address, "2000000000000000000", []);
     await strategy.initialize(
       acvx.address,
       DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.token,
