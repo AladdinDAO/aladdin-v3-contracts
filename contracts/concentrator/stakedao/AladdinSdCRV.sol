@@ -145,9 +145,9 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
         IERC20Upgradeable(SDT).safeTransfer(_zap, _amountSDT);
         _amountETH += IZap(_zap).zap(SDT, _amountSDT, address(0), 0);
       }
-      if (_amountSDT > 0) {
-        IERC20Upgradeable(THREE_CRV).safeTransfer(_zap, _amountSDT);
-        _amountETH += IZap(_zap).zap(THREE_CRV, _amountSDT, address(0), 0);
+      if (_amount3CRV > 0) {
+        IERC20Upgradeable(THREE_CRV).safeTransfer(_zap, _amount3CRV);
+        _amountETH += IZap(_zap).zap(THREE_CRV, _amount3CRV, address(0), 0);
       }
 
       // 1.3 sell ETH to CRV

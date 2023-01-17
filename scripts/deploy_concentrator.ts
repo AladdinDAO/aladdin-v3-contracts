@@ -249,8 +249,8 @@ const config: {
       lockDuration: 86400 * 30,
     },
     AladdinSdCRV: {
-      impl: "0x8C7E36A669b4B9f55608C7d3C373e8b9F19c444D",
-      proxy: "0xDEC800C2b17c9673570FDF54450dc1bd79c8E359",
+      impl: "0xDd3365Fc80C3e0CC111A58000526973a38686686",
+      proxy: "0x0630d7174bD65b48c4F5f43a66075925165253AE",
       ratio: {
         platform: 25000000, // 2.5%
         harvest: 25000000, // 2.5%
@@ -855,6 +855,19 @@ async function deployAbcCVX() {
 }
 
 async function deployConcentratorStakeDAO() {
+  console.log(
+    "zap SDT => WETH:",
+    `from[${TOKENS.SDT.address}]`,
+    `to[${TOKENS.WETH.address}]`,
+    `routes[${ZAP_ROUTES.SDT.WETH.map((r) => `"${r.toHexString()}"`)}]`
+  );
+  console.log(
+    "zap 3CRV => WETH:",
+    `from[${TOKENS.TRICRV.address}]`,
+    `to[${TOKENS.WETH.address}]`,
+    `routes[${ZAP_ROUTES["3CRV"].WETH.map((r) => `"${r.toHexString()}"`)}]`
+  );
+
   const [deployer] = await ethers.getSigners();
   const deployConfig = config.ConcentratorStakeDAO;
 
