@@ -72,4 +72,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   BADGER: { decimals: 18, address: "0x3472a5a71965499acd81997a54bba8d852c6e53d" },
   bLUSD: { decimals: 18, address: "0xb9d7dddca9a4ac480991865efef82e01273f79c3" },
   "LUSD3CRV-f": { decimals: 18, address: "0xed279fdd11ca84beef15af5d39bb4d4bee23f0ca" },
+  multiBTC: { decimals: 8, address: "0x66eFF5221ca926636224650Fd3B9c497FF828F7D" },
+  crvWSBTC: { decimals: 18, address: "0x051d7e5609917Bd9b73f04BAc0DED8Dd46a74301" },
 };

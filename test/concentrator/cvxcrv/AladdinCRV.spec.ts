@@ -1,10 +1,10 @@
 /* eslint-disable node/no-missing-import */
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Action, encodePoolHintV2, PoolType } from "../../scripts/utils";
-import { AladdinCRV } from "../../typechain";
+import { Action, encodePoolHintV2, PoolType } from "../../../scripts/utils";
+import { AladdinCRV } from "../../../typechain";
 // eslint-disable-next-line camelcase
-import { request_fork } from "../utils";
+import { request_fork } from "../../utils";
 
 const FORK_BLOCK_NUMBER = 14243290;
 const CVX = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
