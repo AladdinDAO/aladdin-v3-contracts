@@ -27,6 +27,9 @@ abstract contract SdCRVLocker {
     uint128 expireAt;
   }
 
+  /// @dev The number of seconds in 1 day.
+  uint256 private constant DAYS = 86400;
+
   /// @dev Mapping from user address to list of locked staking tokens.
   mapping(address => LockedBalance[]) private locks;
 
@@ -82,7 +85,15 @@ abstract contract SdCRVLocker {
   /// @param _recipient The address of recipient who will receive the locked token.
   function _lockToken(uint256 _amount, address _recipient) internal {
     uint256 _expiredAt = block.timestamp + withdrawLockTime();
-    locks[_recipient].push(LockedBalance({ amount: uint128(_amount), expireAt: uint128(_expiredAt) }));
+    // ceil up to 86400 seconds
+    _expiredAt = ((_expiredAt + DAYS - 1) / DAYS) * DAYS;
+
+    uint256 _length = locks[_recipient].length;
+    if (_length == 0 || locks[_recipient][_length - 1].expireAt != _expiredAt) {
+      locks[_recipient].push(LockedBalance({ amount: uint128(_amount), expireAt: uint128(_expiredAt) }));
+    } else {
+      locks[_recipient][_length - 1].amount += uint128(_amount);
+    }
 
     emit Lock(msg.sender, _recipient, _amount, _expiredAt);
   }

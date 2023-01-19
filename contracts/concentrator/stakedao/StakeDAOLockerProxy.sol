@@ -22,25 +22,23 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
   /// @param _operator The address of operator updated.
   event UpdateOperator(address _gauge, address _operator);
 
+  /// @notice Emitted when the status of executor is updated.
+  /// @param _executor The address of executor updated.
+  /// @param _status The status of executor updated.
+  event UpdateExecutor(address _executor, bool _status);
+
   /// @notice Emitted when claimer for sdCRV bribe rewards is update.
   /// @param _claimer The address of claimer updated.
   event UpdateClaimer(address _claimer);
-
-  /// @dev The address of Stake DAO: SDT Token.
-  address private constant SDT = 0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F;
-
-  /// @dev The address of Vote-escrowed SDT contract.
-  // solhint-disable-next-line const-name-snakecase
-  address private constant veSDT = 0x0C30476f66034E11782938DF8e4384970B6c9e8a;
-
-  /// @dev The address of veSDT Fee Distributor contract.
-  address private constant FEE_DISTRIBUTOR = 0x29f3dd38dB24d3935CF1bf841e6b2B461A3E5D92;
 
   /// @dev The address of StakeDAO MultiMerkleStash contract.
   address private constant MULTI_MERKLE_STASH = 0x03E34b085C52985F6a5D27243F20C84bDdc01Db4;
 
   /// @notice Mapping from gauge address to operator address.
   mapping(address => address) public operators;
+
+  /// @notice Whether the address is an executor.
+  mapping(address => bool) public executors;
 
   /// @notice The address of sdCRV bribe rewards claimer.
   address public claimer;
@@ -50,6 +48,11 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
 
   modifier onlyOperator(address _gauge) {
     require(operators[_gauge] == msg.sender, "not operator");
+    _;
+  }
+
+  modifier onlyExecutor() {
+    require(executors[msg.sender], "not executor");
     _;
   }
 
@@ -142,6 +145,20 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     }
   }
 
+  /// @notice External function to execute anycall.
+  /// @param _to The address of target contract to call.
+  /// @param _value The value passed to the target contract.
+  /// @param _data The calldata pseed to the target contract.
+  function execute(
+    address _to,
+    uint256 _value,
+    bytes calldata _data
+  ) external onlyExecutor returns (bool, bytes memory) {
+    // solhint-disable avoid-low-level-calls
+    (bool success, bytes memory result) = _to.call{ value: _value }(_data);
+    return (success, result);
+  }
+
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update the operator for StakeDAO gauge.
@@ -151,6 +168,15 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     operators[_gauge] = _operator;
 
     emit UpdateOperator(_gauge, _operator);
+  }
+
+  /// @notice Update the executor.
+  /// @param _executor The address of executor to update.
+  /// @param _status The status of executor to update.
+  function updateExecutor(address _executor, bool _status) external onlyOwner {
+    executors[_executor] = _status;
+
+    emit UpdateExecutor(_executor, _status);
   }
 
   /// @notice Update the claimer for StakeDAO sdCRV bribe rewards.

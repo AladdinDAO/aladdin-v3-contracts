@@ -429,7 +429,9 @@ describe("StakeDAOCRVVault.spec", async () => {
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("1"));
       expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("9"));
-      expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
       expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
 
@@ -448,7 +450,9 @@ describe("StakeDAOCRVVault.spec", async () => {
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("1"));
       expect((await vault.getUserLocks(operator.address))[0].amount).to.eq(ethers.utils.parseEther("9"));
-      expect((await vault.getUserLocks(operator.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await vault.getUserLocks(operator.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
       expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
 
@@ -467,7 +471,9 @@ describe("StakeDAOCRVVault.spec", async () => {
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("10"));
       expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("90"));
-      expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("0"));
       expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("0"));
 
@@ -487,7 +493,9 @@ describe("StakeDAOCRVVault.spec", async () => {
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("0"));
       expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("10"));
-      expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
       expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
     });
@@ -503,7 +511,9 @@ describe("StakeDAOCRVVault.spec", async () => {
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("0.5"));
       expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("9.5"));
-      expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
       expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
     });
@@ -533,7 +543,7 @@ describe("StakeDAOCRVVault.spec", async () => {
       expect(lists.length).to.eq(10);
       for (let i = 0; i < 10; i++) {
         expect(lists[i].amount).to.eq(ethers.utils.parseEther("10"));
-        expect(lists[i].expireAt).to.eq(timestamps[i] + 86400 * 30);
+        expect(lists[i].expireAt).to.eq(Math.ceil(timestamps[i] / 86400) * 86400 + 86400 * 30);
       }
     });
 
@@ -545,7 +555,9 @@ describe("StakeDAOCRVVault.spec", async () => {
 
     it("should succeed, when with expired to self", async () => {
       for (let i = 0; i < 10; i++) {
-        await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamps[i] + 86400 * 30]);
+        await hre.network.provider.send("evm_setNextBlockTimestamp", [
+          Math.ceil(timestamps[i] / 86400) * 86400 + 86400 * 30,
+        ]);
         const balanceBefore = await sdcrv.balanceOf(signer.address);
         await expect(vault.connect(signer).withdrawExpired(signer.address, signer.address))
           .to.emit(vault, "WithdrawExpired")
@@ -559,7 +571,9 @@ describe("StakeDAOCRVVault.spec", async () => {
 
     it("should succeed, when with expired to others", async () => {
       for (let i = 0; i < 10; i++) {
-        await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamps[i] + 86400 * 30]);
+        await hre.network.provider.send("evm_setNextBlockTimestamp", [
+          Math.ceil(timestamps[i] / 86400) * 86400 + 86400 * 30,
+        ]);
         const balanceBefore = await sdcrv.balanceOf(operator.address);
         await expect(vault.connect(signer).withdrawExpired(signer.address, operator.address))
           .to.emit(vault, "WithdrawExpired")

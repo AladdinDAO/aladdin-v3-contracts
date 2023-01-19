@@ -447,7 +447,9 @@ describe("AladdinSdCRV.spec", async () => {
         );
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect((await asdcrv.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("9"));
-      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await asdcrv.totalSupply()).to.eq(ethers.utils.parseEther("90"));
       expect(await asdcrv.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
     });
@@ -466,7 +468,9 @@ describe("AladdinSdCRV.spec", async () => {
         );
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect((await asdcrv.getUserLocks(operator.address))[0].amount).to.eq(ethers.utils.parseEther("9"));
-      expect((await asdcrv.getUserLocks(operator.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await asdcrv.getUserLocks(operator.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await asdcrv.totalSupply()).to.eq(ethers.utils.parseEther("90"));
       expect(await asdcrv.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
     });
@@ -485,7 +489,9 @@ describe("AladdinSdCRV.spec", async () => {
         );
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect((await asdcrv.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("100"));
-      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await asdcrv.totalSupply()).to.eq(ethers.utils.parseEther("0"));
       expect(await asdcrv.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("0"));
     });
@@ -505,7 +511,9 @@ describe("AladdinSdCRV.spec", async () => {
         );
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect((await asdcrv.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("10"));
-      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await asdcrv.totalSupply()).to.eq(ethers.utils.parseEther("90"));
       expect(await asdcrv.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
     });
@@ -525,7 +533,9 @@ describe("AladdinSdCRV.spec", async () => {
         );
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect((await asdcrv.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("9.5"));
-      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await asdcrv.totalSupply()).to.eq(ethers.utils.parseEther("90"));
       expect(await asdcrv.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
     });
@@ -578,7 +588,9 @@ describe("AladdinSdCRV.spec", async () => {
         );
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect((await asdcrv.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("9.9"));
-      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await asdcrv.totalSupply()).to.eq(ethers.utils.parseEther("88.888888888888888889"));
       expect(await asdcrv.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("88.888888888888888889"));
     });
@@ -597,7 +609,9 @@ describe("AladdinSdCRV.spec", async () => {
         );
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect((await asdcrv.getUserLocks(operator.address))[0].amount).to.eq(ethers.utils.parseEther("9.9"));
-      expect((await asdcrv.getUserLocks(operator.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await asdcrv.getUserLocks(operator.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await asdcrv.totalSupply()).to.eq(ethers.utils.parseEther("88.888888888888888889"));
       expect(await asdcrv.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("88.888888888888888889"));
     });
@@ -616,7 +630,9 @@ describe("AladdinSdCRV.spec", async () => {
         );
       const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
       expect((await asdcrv.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("99"));
-      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+      expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(
+        Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+      );
       expect(await asdcrv.totalSupply()).to.eq(ethers.utils.parseEther("0"));
       expect(await asdcrv.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("0"));
     });
@@ -640,7 +656,9 @@ describe("AladdinSdCRV.spec", async () => {
             .withArgs(signer.address, signer.address, signer.address, amountOut, shares);
           const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
           expect((await asdcrv.getUserLocks(signer.address))[0].amount).to.eq(amountOut);
-          expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(timestamp + 86400 * 30);
+          expect((await asdcrv.getUserLocks(signer.address))[0].expireAt).to.eq(
+            Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
+          );
           expect(await asdcrv.totalSupply()).to.eq(ethers.utils.parseEther("100").sub(shares));
           expect(await asdcrv.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("100").sub(shares));
         });
@@ -674,7 +692,7 @@ describe("AladdinSdCRV.spec", async () => {
       expect(lists.length).to.eq(10);
       for (let i = 0; i < 10; i++) {
         expect(lists[i].amount).to.eq(ethers.utils.parseEther("9.9"));
-        expect(lists[i].expireAt).to.eq(timestamps[i] + 86400 * 30);
+        expect(lists[i].expireAt).to.eq(Math.ceil(timestamps[i] / 86400) * 86400 + 86400 * 30);
       }
     });
 
@@ -686,7 +704,9 @@ describe("AladdinSdCRV.spec", async () => {
 
     it("should succeed, when withdraw expired to self", async () => {
       for (let i = 0; i < 10; i++) {
-        await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamps[i] + 86400 * 30]);
+        await hre.network.provider.send("evm_setNextBlockTimestamp", [
+          Math.ceil(timestamps[i] / 86400) * 86400 + 86400 * 30,
+        ]);
         const balanceBefore = await sdcrv.balanceOf(signer.address);
         await expect(asdcrv.connect(signer).withdrawExpired(signer.address, signer.address))
           .to.emit(asdcrv, "WithdrawExpired")
@@ -700,7 +720,9 @@ describe("AladdinSdCRV.spec", async () => {
 
     it("should succeed, when with expired to others", async () => {
       for (let i = 0; i < 10; i++) {
-        await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamps[i] + 86400 * 30]);
+        await hre.network.provider.send("evm_setNextBlockTimestamp", [
+          Math.ceil(timestamps[i] / 86400) * 86400 + 86400 * 30,
+        ]);
         const balanceBefore = await sdcrv.balanceOf(operator.address);
         await expect(asdcrv.connect(signer).withdrawExpired(signer.address, operator.address))
           .to.emit(asdcrv, "WithdrawExpired")
