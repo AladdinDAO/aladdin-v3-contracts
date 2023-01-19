@@ -130,11 +130,27 @@ const POOL_FORK_CONFIG: {
     amount: "0.00001",
     harvest: true,
   },
+  clevcvx: {
+    height: 16434600,
+    pid: 37,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x1aceff73c5c3afc630c1fc8b484527a23f4eb134",
+    amount: "10",
+    harvest: false,
+  },
+  clevusd: {
+    height: 16434600,
+    pid: 37,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xb957dccaa1ccfb1eb78b495b499801d591d8a403",
+    amount: "10",
+    harvest: false,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const PRINT_ZAP = true;
-const POOL_NEED_TEST: string[] = [];
+const POOL_NEED_TEST: string[] = ["clevcvx", "clevusd"];
 
 describe("ConcentratorIFOVault.add.spec", async () => {
   let deployer: SignerWithAddress;

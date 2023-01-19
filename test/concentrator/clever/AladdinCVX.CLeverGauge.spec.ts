@@ -44,7 +44,9 @@ describe("AladdinCVX.CLeverGauge.spec", async () => {
     );
     await acvx.deployed();
     // lp/debt = 2:1
-    await acvx.initialize(DEPLOYED_CONTRACTS.AladdinZap, strategy.address, "2000000000000000000", []);
+    await acvx.initialize(DEPLOYED_CONTRACTS.AladdinZap, strategy.address, "2000000000000000000", [
+      DEPLOYED_CONTRACTS.CLever.CLEV,
+    ]);
     await strategy.initialize(
       acvx.address,
       DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.token,
@@ -602,6 +604,28 @@ describe("AladdinCVX.CLeverGauge.spec", async () => {
         clevReward.mul(ethers.utils.parseEther("1")).div(signerShares.add(deployerShares))
       );
       expect(poolBalanceAfter.sub(poolBalanceBefore)).to.closeToBn(balanceAfter.sub(balanceBefore).mul(9), 1000);
+    });
+
+    it("should succeed with platform fee", async () => {
+      await acvx.updatePlatformPercentage(DEPLOYED_CONTRACTS.CLever.Treasury, 1e8); // 10% fee
+      const poolBalanceBefore = await baseToken.balanceOf(CURVE_clevCVX_TOKEN);
+      const balanceBeforeDeployer = await baseToken.balanceOf(deployer.address);
+      const balanceBeforeTreasury = await baseToken.balanceOf(DEPLOYED_CONTRACTS.CLever.Treasury);
+      await expect(acvx.harvest(deployer.address, 0)).to.emit(acvx, "Harvest");
+      const poolBalanceAfter = await baseToken.balanceOf(CURVE_clevCVX_TOKEN);
+      const balanceAfterDeployer = await baseToken.balanceOf(deployer.address);
+      const balanceAfterTreasury = await baseToken.balanceOf(DEPLOYED_CONTRACTS.CLever.Treasury);
+      expect(poolBalanceAfter).to.gt(poolBalanceBefore);
+      const clevReward = await clev.balanceOf(acvx.address);
+      expect(clevReward).to.gt(constants.Zero);
+      expect(await acvx.rewardPerShare(clev.address)).to.eq(
+        clevReward.mul(ethers.utils.parseEther("1")).div(signerShares.add(deployerShares))
+      );
+      expect(balanceAfterDeployer).to.eq(balanceBeforeDeployer);
+      expect(poolBalanceAfter.sub(poolBalanceBefore)).to.closeToBn(
+        balanceAfterTreasury.sub(balanceBeforeTreasury).mul(9),
+        1000
+      );
     });
   });
 

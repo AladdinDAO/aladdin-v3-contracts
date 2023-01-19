@@ -13,7 +13,7 @@ import {
   ConcentratorAladdinETHVault__factory,
   ConcentratorGeneralVault,
   AladdinCVX,
-  CLeverGaugeStrategy,
+  AMOConvexCurveStrategy,
 } from "../typechain";
 import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS } from "./utils";
 
@@ -44,6 +44,7 @@ interface ICLeverAMOInterface {
   };
   strategy: string;
   amo: string;
+  gauge: string;
 }
 
 const config: {
@@ -64,7 +65,8 @@ const config: {
       AutoCompoundingConvexFraxStrategy: "0x6Cc546cE582b0dD106c231181f7782C79Ef401da",
       AutoCompoundingConvexCurveStrategy: constants.AddressZero,
       ManualCompoundingConvexCurveStrategy: "0xE25f0E29060AeC19a0559A2EF8366a5AF086222e",
-      CLeverGaugeStrategy: "0x584D58287576D1629a2694613f7a7c5cfd24A3eB",
+      CLeverGaugeStrategy: constants.AddressZero,
+      AMOConvexCurveStrategy: "0x2be5B652836C630E15c3530bf642b544ae901239",
     },
   },
   UpgradeableBeacon: {
@@ -138,17 +140,18 @@ const config: {
     vault: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
   },
   abcCVX: {
-    initialRatio: "1.0",
+    initialRatio: "99",
     AMORatio: {
-      max: "0",
-      min: "0",
+      max: "0.1",
+      min: "0.5",
     },
     LPRatio: {
-      min: "0",
-      max: "0",
+      min: "1",
+      max: "99",
     },
-    strategy: "0x29E56d5E68b4819FC4a997b91fc9F4f8818ef1B4",
-    amo: "0x8348FA9c1538Ea3a2c67d7E164F8e0cB981C1AA0",
+    strategy: "0x2be5B652836C630E15c3530bf642b544ae901239",
+    amo: "0x4b2C6F67bC775FD64De3CEc188f0F3E960ce0750",
+    gauge: "0x617408C93108e1830F27CD532B7C3e393652295A",
   },
 };
 
@@ -531,17 +534,17 @@ async function deployAbcCVX() {
 
   const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.CLever.ProxyAdmin, deployer);
 
-  let strategy: CLeverGaugeStrategy;
+  let strategy: AMOConvexCurveStrategy;
   if (config.abcCVX.strategy !== "") {
-    strategy = await ethers.getContractAt("CLeverGaugeStrategy", config.abcCVX.strategy, deployer);
-    console.log(`Found CLeverGaugeStrategy for abcCVX, at:`, strategy.address);
+    strategy = await ethers.getContractAt("AMOConvexCurveStrategy", config.abcCVX.strategy, deployer);
+    console.log(`Found AMOConvexCurveStrategy for abcCVX, at:`, strategy.address);
   } else {
-    const address = await factory.callStatic.createStrategy(config.Strategy.impls.CLeverGaugeStrategy);
-    const tx = await factory.createStrategy(config.Strategy.impls.CLeverGaugeStrategy);
-    console.log(`Deploying CLeverGaugeStrategy for abcCVX, hash:`, tx.hash);
+    const address = await factory.callStatic.createStrategy(config.Strategy.impls.AMOConvexCurveStrategy);
+    const tx = await factory.createStrategy(config.Strategy.impls.AMOConvexCurveStrategy);
+    console.log(`Deploying AMOConvexCurveStrategy for abcCVX, hash:`, tx.hash);
     const receipt = await tx.wait();
-    console.log(`✅ Deploy CLeverGaugeStrategy for abcCVX, at:`, address, "gas used:", receipt.gasUsed.toString());
-    strategy = await ethers.getContractAt("CLeverGaugeStrategy", address, deployer);
+    console.log(`✅ Deploy AMOConvexCurveStrategy for abcCVX, at:`, address, "gas used:", receipt.gasUsed.toString());
+    strategy = await ethers.getContractAt("AMOConvexCurveStrategy", address, deployer);
     config.abcCVX.strategy = strategy.address;
   }
 
@@ -577,12 +580,26 @@ async function deployAbcCVX() {
     console.log("✅ Deploy AladdinCVX Proxy at:", acvx.address, "gas used:", receipt.gasUsed.toString());
   }
 
+  // Deploy abcCVX Gauge
+  if (config.abcCVX.gauge === "") {
+    const LiquidityGaugeV3 = await ethers.getContractFactory("LiquidityGaugeV3", deployer);
+    const gauge = await LiquidityGaugeV3.deploy(
+      config.abcCVX.amo,
+      DEPLOYED_CONTRACTS.CLever.CLEVMinter,
+      deployer.address
+    );
+    console.log("Deploying abcCVX Gauge, hash:", gauge.deployTransaction.hash);
+    await gauge.deployed();
+    console.log("✅ Deploy abcCVX Gauge at:", gauge.address);
+    config.abcCVX.gauge = gauge.address;
+  }
+
   if ((await strategy.operator()) === constants.AddressZero) {
     const tx = await strategy.initialize(
       acvx.address,
       DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.token,
-      DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.gauge,
-      [DEPLOYED_CONTRACTS.CLever.CLEV]
+      "0x706f34D0aB8f4f9838F15b0D155C8Ef42229294B",
+      [TOKENS.CRV.address, TOKENS.CVX.address]
     );
     console.log(`CLeverGaugeStrategy.initialize for abcCVX, hash:`, tx.hash);
     const receipt = await tx.wait();
@@ -605,7 +622,7 @@ async function main() {
   }
 
   for (const name of [
-    "CLeverGaugeStrategy",
+    "AMOConvexCurveStrategy",
     "AutoCompoundingConvexFraxStrategy",
     "AutoCompoundingConvexCurveStrategy",
     "ManualCompoundingConvexCurveStrategy",

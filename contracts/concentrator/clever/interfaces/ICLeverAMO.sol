@@ -36,6 +36,7 @@ interface ICLeverAMO {
   /// @notice Emitted when someone call harvest.
   /// @param caller The address of the caller.
   /// @param baseAmount The amount of base token harvested.
+  /// @param platformFee The amount of platform fee.
   /// @param bounty The amount of base token as harvest bounty.
   /// @param debtAmount The current amount of debt token harvested.
   /// @param lpAmount The current amount of lp token harvested.
@@ -43,6 +44,7 @@ interface ICLeverAMO {
   event Harvest(
     address indexed caller,
     uint256 baseAmount,
+    uint256 platformFee,
     uint256 bounty,
     uint256 debtAmount,
     uint256 lpAmount,

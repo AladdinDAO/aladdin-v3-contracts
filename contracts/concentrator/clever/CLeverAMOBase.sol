@@ -22,6 +22,11 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
   /// @param _bountyPercentage The new harvest bounty percentage updated.
   event UpdateBountyPercentage(uint32 _bountyPercentage);
 
+  /// @notice Emitted when platform fee percentage is updated.
+  /// @param _platform The address of platform fee recipient.
+  /// @param _platformPercentage The new platform fee percentage updated.
+  event UpdatePlatformPercentage(address _platform, uint32 _platformPercentage);
+
   /// @notice Emitted when owner update AMO configuration.
   /// @param _minAMO The minimum ratio of debt/base in curve pool updated.
   /// @param _maxAMO The maximum ratio of debt/base in curve pool updated.
@@ -45,6 +50,9 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
 
   /// @dev The maximum value of harvest bounty percentage.
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
+
+  /// @dev The maximum value of platform fee percentage.
+  uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
 
   /// @dev The number of seconds in 1 day.
   uint256 private constant DAY = 1 days;
@@ -112,8 +120,14 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
   /// @dev Mapping from user address to next lock index to process.
   mapping(address => uint256) private nextIndex;
 
+  /// @notice The address of platform fee recipient.
+  address public platform;
+
+  /// @notice The platform fee percentage, with precision 1e9.
+  uint256 public platformPercentage;
+
   /// @dev reserved slots.
-  uint256[20] private __gap;
+  uint256[18] private __gap;
 
   modifier NonZeroAmount(uint256 _amount) {
     require(_amount > 0, "CLeverAMO: amount is zero");
@@ -332,14 +346,21 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
 
     uint256 _bounty = (_baseTokenOut * bountyPercentage) / FEE_PRECISION;
 
-    (uint256 _debtAmount, uint256 _lpAmount, uint256 _ratio) = _convertFromBaseToken(_baseTokenOut - _bounty);
+    uint256 _platformFee = (_baseTokenOut * platformPercentage) / FEE_PRECISION;
+
+    (uint256 _debtAmount, uint256 _lpAmount, uint256 _ratio) = _convertFromBaseToken(
+      _baseTokenOut - _bounty - _platformFee
+    );
     _depositDebtToken(_debtAmount);
     _depositLpToken(_lpAmount);
 
-    emit Harvest(_recipient, _baseTokenOut, _bounty, _debtAmount, _lpAmount, _ratio);
+    emit Harvest(_recipient, _baseTokenOut, _platformFee, _bounty, _debtAmount, _lpAmount, _ratio);
 
     if (_bounty > 0) {
       IERC20Upgradeable(baseToken).safeTransfer(_recipient, _bounty);
+    }
+    if (_platformFee > 0) {
+      IERC20Upgradeable(baseToken).safeTransfer(platform, _platformFee);
     }
   }
 
@@ -365,6 +386,18 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     bountyPercentage = _bountyPercentage;
 
     emit UpdateBountyPercentage(_bountyPercentage);
+  }
+
+  /// @notice Update the platform fee percentage.
+  /// @param _platform The address of platform fee recipient.
+  /// @param _platformPercentage The platform fee percentage to be updated, multipled by 1e9.
+  function updatePlatformPercentage(address _platform, uint32 _platformPercentage) external onlyOwner {
+    require(_platformPercentage <= MAX_PLATFORM_FEE, "CLeverAMO: fee too large");
+
+    platform = _platform;
+    platformPercentage = _platformPercentage;
+
+    emit UpdatePlatformPercentage(_platform, _platformPercentage);
   }
 
   /// @notice Update the AMO configuration.

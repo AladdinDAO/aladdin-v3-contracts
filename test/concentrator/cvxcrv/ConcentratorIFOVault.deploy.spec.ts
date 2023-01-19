@@ -183,7 +183,7 @@ describe("ConcentratorIFOVault.deploy.spec", async () => {
         lpToken = await ethers.getContractAt("IERC20", ADDRESS[`${config.token}_TOKEN`]);
 
         // upgrade zap contract
-        const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.ProxyAdmin, admin);
+        const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin, admin);
         const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
         const impl = await AladdinZap.deploy();
         await proxyAdmin.upgrade(DEPLOYED_CONTRACTS.AladdinZap, impl.address);
@@ -207,9 +207,13 @@ describe("ConcentratorIFOVault.deploy.spec", async () => {
 
         const ConcentratorIFOVault = await ethers.getContractFactory("ConcentratorIFOVault", deployer);
         vault = await ConcentratorIFOVault.deploy();
-        await vault.initialize(DEPLOYED_CONTRACTS.Concentrator.aCRV, DEPLOYED_CONTRACTS.AladdinZap, deployer.address);
+        await vault.initialize(
+          DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV,
+          DEPLOYED_CONTRACTS.AladdinZap,
+          deployer.address
+        );
 
-        await vault.addPool(config.convexCurveID, config.rewards, fees.withdraw, fees.platform, fees.harvest);
+        await vault.addPool(config.convexCurveID!, config.rewards, fees.withdraw, fees.platform, fees.harvest);
       });
 
       context("deposit", async () => {
@@ -305,8 +309,8 @@ describe("ConcentratorIFOVault.deploy.spec", async () => {
         });
 
         it("should succeed", async () => {
-          await booster.earmarkRewards(config.convexCurveID);
-          const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.aCRV, deployer);
+          await booster.earmarkRewards(config.convexCurveID!);
+          const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, deployer);
           const amount = await vault.callStatic.harvest(0, deployer.address, 0);
           const before = await token.balanceOf(vault.address);
           await vault.harvest(0, deployer.address, 0);
