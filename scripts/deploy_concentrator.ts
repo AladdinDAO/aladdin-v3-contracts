@@ -12,8 +12,9 @@ import {
   ConcentratorAladdinETHVault,
   ConcentratorAladdinETHVault__factory,
   ConcentratorGeneralVault,
+  CvxCrvStakingWrapperStrategy,
 } from "../typechain";
-import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS } from "./utils";
+import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "./utils";
 
 interface IConcentratorInterface {
   ratio: {
@@ -29,6 +30,8 @@ interface IConcentratorInterface {
   compounder: string;
   vault: string;
 }
+
+const STAKED_CVXCRV = "0xaa0C3f5F7DFD688C6E646F66CD2a6B66ACdbE434";
 
 const config: {
   Strategy: {
@@ -101,7 +104,7 @@ const config: {
     name: "Aladdin cvxCRV",
     symbol: "aCRV",
     rewards: ["CVX", "CRV", "TRICRV"],
-    strategy: "",
+    strategy: "0x94cC627Db80253056B2130aAC39abB252A75F345",
     compounder: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
     vault: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
   },
@@ -210,8 +213,55 @@ async function addVaults(
 async function deployConcentratorFXS() {}
 
 // eslint-disable-next-line no-unused-vars
-async function deployConcentratorCRV() {}
+async function deployConcentratorCRV() {
+  for (const [from, to] of [
+    ["CVX", "CRV"],
+    ["TRICRV", "CRV"],
+    ["cvxCRV", "CRV"],
+    ["cvxCRV", "WETH"],
+  ]) {
+    console.log(
+      `zap ${from} => ${to}:`,
+      `from[${TOKENS[from].address}]`,
+      `to[${TOKENS[to].address}]`,
+      `routes[${ZAP_ROUTES[from][to].map((r) => `"${r.toHexString()}"`)}]`
+    );
+  }
 
+  const [deployer] = await ethers.getSigners();
+  const concentratorCRVConfig = config.ConcentratorCRV;
+
+  let strategy: CvxCrvStakingWrapperStrategy;
+
+  const acrv = await ethers.getContractAt("AladdinCRV", DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, deployer);
+
+  if (concentratorCRVConfig.strategy !== "") {
+    strategy = await ethers.getContractAt("CvxCrvStakingWrapperStrategy", concentratorCRVConfig.strategy, deployer);
+    console.log("Found CvxCrvStakingWrapperStrategy at:", strategy.address);
+  } else {
+    const CvxCrvStakingWrapperStrategy = await ethers.getContractFactory("CvxCrvStakingWrapperStrategy", deployer);
+    strategy = await CvxCrvStakingWrapperStrategy.deploy(acrv.address, STAKED_CVXCRV);
+    console.log("Deploying CvxCrvStakingWrapperStrategy, hash:", strategy.deployTransaction.hash);
+
+    const receipt = await strategy.deployTransaction.wait();
+    console.log(
+      "✅ Deploy CvxCrvStakingWrapperStrategy at:",
+      strategy.address,
+      "gas used:",
+      receipt.gasUsed.toString()
+    );
+
+    concentratorCRVConfig.strategy = strategy.address;
+  }
+
+  const AladdinCRVV2 = await ethers.getContractFactory("AladdinCRVV2", deployer);
+  const acrv_v2_impl = await AladdinCRVV2.deploy("0x9d0464996170c6b9e75eed71c68b99ddedf279e8", STAKED_CVXCRV);
+  console.log("Deploying AladdinCRVV2 Impl, hash:", acrv_v2_impl.deployTransaction.hash);
+  const receipt = await acrv_v2_impl.deployTransaction.wait();
+  console.log("✅ Deploy AladdinCRVV2 Impl at:", strategy.address, "gas used:", receipt.gasUsed.toString());
+}
+
+// eslint-disable-next-line no-unused-vars
 async function deployConcentratorETH() {
   const [deployer] = await ethers.getSigners();
 
@@ -523,7 +573,7 @@ async function deployConcentratorETH() {
 }
 
 async function main() {
-  await deployConcentratorETH();
+  await deployConcentratorCRV();
 }
 
 // We recommend this pattern to be able to use async/await everywhere
