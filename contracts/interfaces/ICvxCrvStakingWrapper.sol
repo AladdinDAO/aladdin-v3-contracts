@@ -19,8 +19,12 @@ interface ICvxCrvStakingWrapper {
   // set a user's reward weight to determine how much of each reward group to receive
   function setRewardWeight(uint256 _weight) external;
 
+  function balanceOf(address) external view returns (uint256);
+
   // get user's weighted balance for specified reward group
   function userRewardBalance(address _address, uint256 _rewardGroup) external view returns (uint256);
+
+  function userRewardWeight(address _address) external view returns (uint256);
 
   // get weighted supply for specified reward group
   function rewardSupply(uint256 _rewardGroup) external view returns (uint256);

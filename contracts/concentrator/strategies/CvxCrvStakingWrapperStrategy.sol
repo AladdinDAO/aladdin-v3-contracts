@@ -45,18 +45,18 @@ contract CvxCrvStakingWrapperStrategy is ConcentratorStrategyBase, Ownable {
   }
 
   /// @inheritdoc IConcentratorStrategy
-  function deposit(address, uint256 _amount) external override {
+  function deposit(address, uint256 _amount) external override onlyOperator {
     ICvxCrvStakingWrapper(wrapper).stake(_amount, address(this));
   }
 
   /// @inheritdoc IConcentratorStrategy
-  function withdraw(address _recipient, uint256 _amount) external override {
+  function withdraw(address _recipient, uint256 _amount) external override onlyOperator {
     ICvxCrvStakingWrapper(wrapper).withdraw(_amount);
     IERC20(cvxCRV).safeTransfer(_recipient, _amount);
   }
 
   /// @inheritdoc IConcentratorStrategy
-  function harvest(address _zapper, address _intermediate) external override returns (uint256 _harvested) {
+  function harvest(address _zapper, address _intermediate) external override onlyOperator returns (uint256 _harvested) {
     // 1. claim rewards from staking wrapper contract.
     address[] memory _rewards = rewards;
     uint256[] memory _amounts = new uint256[](rewards.length);

@@ -295,7 +295,7 @@ contract AladdinCRVV2 is
 
   /// @inheritdoc IAladdinCRV
   /// @dev deprecated.
-  function deposit(address _recipient, uint256 _amount) public override nonReentrant returns (uint256) {
+  function deposit(address _recipient, uint256 _amount) public override returns (uint256) {
     return deposit(_amount, _recipient);
   }
 
@@ -553,17 +553,15 @@ contract AladdinCRVV2 is
 
     // distribute fee and bounty
     uint256 _totalSupply = totalSupply();
-    uint256 _stakeAmount = _amount;
     uint256 _platformFee = platformFeePercentage;
     uint256 _harvestBounty = harvestBountyPercentage;
     if (_platformFee > 0) {
-      _platformFee = (_platformFee * _stakeAmount) / FEE_PRECISION;
-      _stakeAmount = _stakeAmount - _platformFee; // never overflow here
+      _platformFee = (_platformFee * _amount) / FEE_PRECISION;
     }
     if (_harvestBounty > 0) {
-      _harvestBounty = (_harvestBounty * _stakeAmount) / FEE_PRECISION;
-      _stakeAmount = _stakeAmount - _harvestBounty; // never overflow here
+      _harvestBounty = (_harvestBounty * _amount) / FEE_PRECISION;
     }
+    uint256 _stakeAmount = _amount - _platformFee - _harvestBounty; // never overflow here
     // This is the amount of underlying after staking harvested rewards.
     uint256 _underlying = totalUnderlying + _stakeAmount;
     // This is the share for platform fee.
