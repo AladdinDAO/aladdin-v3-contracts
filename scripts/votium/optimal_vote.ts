@@ -254,14 +254,14 @@ function compute(
   }
 }
 
-async function main(round: number, proposalId: string, holderVotes: number, minProfitUSD: number) {
+async function main(round: number, proposalId: string, holderVotes: number, minProfitUSD: number, force: boolean) {
   const proposal_file = `${directory}/${proposalId}.proposal.json`;
   const votes_file = `${directory}/${proposalId}.votes.json`;
   const bribes_file = `${directory}/${proposalId}.bribes.json`;
 
   // load data
   let proposal: ISnapshotProposal;
-  if (fs.existsSync(proposal_file)) {
+  if (fs.existsSync(proposal_file) && !force) {
     proposal = JSON.parse(fs.readFileSync(proposal_file).toString());
   } else {
     const response = await axios.post<ISnapshotProposalResponse>(
@@ -286,7 +286,7 @@ async function main(round: number, proposalId: string, holderVotes: number, minP
   }
 
   let votes: ISnapshotVotes[];
-  if (fs.existsSync(votes_file)) {
+  if (fs.existsSync(votes_file) && !force) {
     votes = JSON.parse(fs.readFileSync(votes_file).toString());
   } else {
     votes = await fetchVotes(proposalId, proposal.votes);
@@ -295,7 +295,7 @@ async function main(round: number, proposalId: string, holderVotes: number, minP
   }
 
   let bribes: IVotiumBribe;
-  if (fs.existsSync(bribes_file)) {
+  if (fs.existsSync(bribes_file) && !force) {
     bribes = JSON.parse(fs.readFileSync(bribes_file).toString());
   } else {
     const response = await axios.post<IVotiumBribeResponse>(
@@ -363,6 +363,7 @@ program.option("--round <round>", "round number");
 program.option("--proposal <proposal id>", "ipfs hash of snapshot proposal");
 program.option("--votes <votes>", "number of votes you have");
 program.option("--min-profit-usd <min profit usd>", "the minimum profit in USD in each choice", "1000");
+program.option("--force", "whether to force update local cache");
 program.parse(process.argv);
 const options = program.opts();
 
@@ -372,7 +373,8 @@ main(
   parseInt(options.round),
   options.proposal || "",
   parseFloat(options.votes),
-  parseFloat(options.minProfitUsd)
+  parseFloat(options.minProfitUsd),
+  options.force
 ).catch((error) => {
   console.error(error);
   process.exitCode = 1;
