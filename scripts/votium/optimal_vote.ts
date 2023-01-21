@@ -5,7 +5,6 @@ import * as fs from "fs";
 import assert from "assert";
 
 const directory = ".store/vlcvx";
-const holder = "0xde1E6A7ED0ad3F61D531a8a78E83CcDdbd6E0c49";
 
 const program = new Command();
 program.version("1.0.0");
@@ -126,6 +125,7 @@ async function fetchVotes(proposalId: string, users: number): Promise<ISnapshotV
 }
 
 function compute(
+  voter: string,
   holderVotes: number,
   minProfitUSD: number,
   proposal: ISnapshotProposal,
@@ -142,6 +142,14 @@ function compute(
     const pool = proposal.choices.findIndex((name) => name === bribe.pool);
     bribes[pool] += bribe.amountDollars;
   }
+
+  for (const vote of votes) {
+    if (vote.voter.toLowerCase() === voter.toLowerCase()) {
+      holderVotes = vote.vp;
+    }
+  }
+  console.log("\nVoter:", voter);
+  console.log("Votes:", holderVotes);
   console.log("\nCurrent Bribes:");
   for (let i = 0; i < bribes.length; i++) {
     if (bribes[i] > 0) {
@@ -156,7 +164,7 @@ function compute(
     for (const value of Object.values(vote.choice)) {
       sum += value;
     }
-    if (vote.voter.toLowerCase() === holder.toLowerCase()) {
+    if (vote.voter.toLowerCase() === voter.toLowerCase()) {
       console.log("\nCurrent Holder Votes:");
       for (const [pool, value] of Object.entries(vote.choice)) {
         const index = parseInt(pool) - 1;
@@ -181,7 +189,7 @@ function compute(
   // holder is votium, 5% is used for cvxCRV
   let cvxCRVExtraVotes = 0;
   const cvxCRVChoiceIndex = proposal.choices.findIndex((name) => name === "CRV+cvxCRV (0x9D04…)");
-  if (holder === "0xde1E6A7ED0ad3F61D531a8a78E83CcDdbd6E0c49") {
+  if (voter.toLowerCase() === "0xde1E6A7ED0ad3F61D531a8a78E83CcDdbd6E0c49".toLowerCase()) {
     cvxCRVExtraVotes = (holderVotes * 5) / 100;
     scores[cvxCRVChoiceIndex] += cvxCRVExtraVotes;
   }
@@ -245,7 +253,7 @@ function compute(
     }
     console.log(`Round[${round}] -`, "Adjusted Profit USD:", adjustedProfit.toFixed(2));
     console.log(
-      `${sumPercentage <= 100 ? "✅ Accepted" : "❌ Abandoned"},`,
+      `${sumPercentage <= 100 + 1e-8 && bribeIgnoreTimes === 0 ? "✅ Accepted" : "❌ Abandoned"},`,
       `sumVotes[${sumVotes.toFixed(4)}]`,
       `actualVotes[${holderVotes.toFixed(4)}]`,
       `sumPercentage[${sumPercentage.toFixed(4)}]`
@@ -254,7 +262,14 @@ function compute(
   }
 }
 
-async function main(round: number, proposalId: string, holderVotes: number, minProfitUSD: number, force: boolean) {
+async function main(
+  round: number,
+  proposalId: string,
+  voter: string,
+  holderVotes: number,
+  minProfitUSD: number,
+  force: boolean
+) {
   const proposal_file = `${directory}/${proposalId}.proposal.json`;
   const votes_file = `${directory}/${proposalId}.votes.json`;
   const bribes_file = `${directory}/${proposalId}.bribes.json`;
@@ -335,11 +350,11 @@ async function main(round: number, proposalId: string, holderVotes: number, minP
   assert.strictEqual(bribes.round, round, "round mismatch");
   assert.strictEqual(bribes.proposal, proposalId, "proposal_id in bribes mismatch");
 
-  console.log("user voted:", proposal.votes);
-  console.log("remote total votes:", proposal.scores_total);
-  console.log("computed total votes:", totalVotes);
-  console.log("holder votes:", holderVotes);
-  console.log("min profit usd:", minProfitUSD);
+  console.log("User voted:", proposal.votes);
+  console.log("Remote total votes:", proposal.scores_total);
+  console.log("Computed total votes:", totalVotes);
+  console.log("Min profit usd:", minProfitUSD);
+  console.log("\nCurrent Status:");
   for (let i = 0; i < scores.length; i++) {
     if (proposal.scores[i] === 0) {
       assert.strictEqual(scores[i], 0, `votes mismatch for choice[${proposal.choices[i]}]`);
@@ -354,13 +369,14 @@ async function main(round: number, proposalId: string, holderVotes: number, minP
     }
   }
 
-  if (holderVotes) {
-    compute(holderVotes, minProfitUSD, proposal, bribes, votes);
+  if (voter) {
+    compute(voter, holderVotes, minProfitUSD, proposal, bribes, votes);
   }
 }
 
 program.option("--round <round>", "round number");
 program.option("--proposal <proposal id>", "ipfs hash of snapshot proposal");
+program.option("--voter <voter>", "the address of voter");
 program.option("--votes <votes>", "number of votes you have");
 program.option("--min-profit-usd <min profit usd>", "the minimum profit in USD in each choice", "1000");
 program.option("--force", "whether to force update local cache");
@@ -372,6 +388,7 @@ const options = program.opts();
 main(
   parseInt(options.round),
   options.proposal || "",
+  options.voter,
   parseFloat(options.votes),
   parseFloat(options.minProfitUsd),
   options.force
