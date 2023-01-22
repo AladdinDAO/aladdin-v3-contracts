@@ -19,6 +19,10 @@ pragma solidity ^0.7.6;
 /// + BTRFLY/ETH: https://curve.fi/factory-crypto/17
 /// + cvxFXS/FXS: https://curve.fi/factory-crypto/18
 interface ICurveCryptoPool {
+  function lp_price() external view returns (uint256);
+
+  function price_oracle() external view returns (uint256);
+
   function add_liquidity(uint256[2] memory amounts, uint256 min_mint_amount) external payable returns (uint256);
 
   function calc_token_amount(uint256[2] memory amounts) external view returns (uint256);

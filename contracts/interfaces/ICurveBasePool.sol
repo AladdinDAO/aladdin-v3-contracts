@@ -41,6 +41,8 @@ interface ICurveBasePool {
 
   // ren and sbtc pool
   function balances(int128 index) external view returns (uint256);
+
+  function get_virtual_price() external view returns (uint256);
 }
 
 /// @dev This is the interface of Curve base-style Pool with 2 tokens, examples:

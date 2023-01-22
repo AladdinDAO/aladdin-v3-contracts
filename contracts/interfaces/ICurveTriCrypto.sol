@@ -19,4 +19,6 @@ interface ICurveTriCrypto {
   ) external view returns (uint256);
 
   function coins(uint256 index) external returns (address);
+
+  function price_oracle(uint256 k) external view returns (uint256);
 }
