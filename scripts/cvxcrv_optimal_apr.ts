@@ -223,10 +223,10 @@ async function main(holder: string) {
   console.log(" + holderBalanceGroup0:", ethers.utils.formatEther(bal0_me), "ratio:", ratio(bal0_me, supply0));
   console.log(" + holderBalanceGroup1:", ethers.utils.formatEther(bal1_me), "ratio:", ratio(bal1_me, supply1));
   console.log(
-    " + dailyRewardUSD:",
-    currentDailyRewardUSD.toFixed(4),
-    `daily APR: ${((currentDailyRewardUSD / balanceUSD) * 100).toFixed(4)} %`,
-    `yearly APR: ${((currentDailyRewardUSD / balanceUSD) * 100 * 365).toFixed(4)} %`
+    ` + dailyRewardUSD: ${currentDailyRewardUSD.toFixed(4)},`,
+    `daily APR: ${((currentDailyRewardUSD / balanceUSD) * 100).toFixed(4)}%,`,
+    `yearly APR: ${((currentDailyRewardUSD / balanceUSD) * 100 * 365).toFixed(4)}%,`,
+    `yearly APY: ${((Math.pow(currentDailyRewardUSD / balanceUSD + 1, 365) - 1) * 100).toFixed(4)}%`
   );
 
   // do adjust computation
@@ -261,10 +261,10 @@ async function main(holder: string) {
     ratio(adjusted_bal1_me, adjusted_supply1)
   );
   console.log(
-    " + dailyRewardUSD:",
-    adjustedCurrentDailyRewardUSD.toFixed(4),
-    `daily APR: ${((adjustedCurrentDailyRewardUSD / balanceUSD) * 100).toFixed(4)} %`,
-    `yearly APR: ${((adjustedCurrentDailyRewardUSD / balanceUSD) * 100 * 365).toFixed(4)} %`
+    ` + dailyRewardUSD: ${adjustedCurrentDailyRewardUSD.toFixed(4)}`,
+    `daily APR: ${((adjustedCurrentDailyRewardUSD / balanceUSD) * 100).toFixed(4)}%,`,
+    `yearly APR: ${((adjustedCurrentDailyRewardUSD / balanceUSD) * 100 * 365).toFixed(4)}%,`,
+    `yearly APY: ${((Math.pow(adjustedCurrentDailyRewardUSD / balanceUSD + 1, 365) - 1) * 100).toFixed(4)}%`
   );
 }
 
