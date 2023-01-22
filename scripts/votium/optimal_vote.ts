@@ -186,29 +186,41 @@ function compute(
     }
   }
 
-  // holder is votium, 5% is used for cvxCRV
-  let cvxCRVExtraVotes = 0;
-  const cvxCRVChoiceIndex = proposal.choices.findIndex((name) => name === "CRV+cvxCRV (0x9D04…)");
-  if (voter.toLowerCase() === "0xde1E6A7ED0ad3F61D531a8a78E83CcDdbd6E0c49".toLowerCase()) {
-    cvxCRVExtraVotes = (holderVotes * 5) / 100;
-    scores[cvxCRVChoiceIndex] += cvxCRVExtraVotes;
-  }
-  console.log("cvxCRVChoiceIndex:", cvxCRVChoiceIndex, "cvxCRVExtraVotes:", cvxCRVExtraVotes);
-
   for (let round = 1; round < 100; ++round) {
+    const extraVotes: number[] = new Array(proposal.choices.length);
     const x: number[] = new Array(proposal.choices.length);
+    const s: number[] = new Array(proposal.choices.length);
+    for (let i = 0; i < s.length; ++i) {
+      s[i] = scores[i];
+      // clip very small value
+      if (s[i] <= 1e-8) s[i] = 0;
+    }
+    extraVotes.fill(0);
+
+    // holder is votium, 5% is used for cvxCRV
+    const cvxCRVChoiceIndex = proposal.choices.findIndex((name) => name === "CRV+cvxCRV (0x9D04…)");
+    if (voter.toLowerCase() === "0xde1E6A7ED0ad3F61D531a8a78E83CcDdbd6E0c49".toLowerCase()) {
+      extraVotes[cvxCRVChoiceIndex] = (holderVotes * 5) / 100;
+      s[cvxCRVChoiceIndex] += extraVotes[cvxCRVChoiceIndex];
+    }
+
     let totalX = 0;
-    let totalVotes = holderVotes - cvxCRVExtraVotes;
+    let totalVotes = holderVotes;
     for (let i = 0; i < x.length; i++) {
-      x[i] = Math.sqrt(scores[i] * bribes[i]);
+      x[i] = Math.sqrt(s[i] * bribes[i]);
       if (x[i] > 0) {
         totalX += x[i];
-        totalVotes += scores[i];
+        totalVotes += s[i];
+      } else if (s[i] === 0 && bribes[i] > 0) {
+        // get small bribes with tiny votes
+        extraVotes[i] += holderVotes / 1e6;
+        s[i] = holderVotes / 1e6;
       }
+      totalVotes -= extraVotes[i];
     }
     for (let i = 0; i < x.length; i++) {
       if (x[i] > 0) {
-        x[i] = (totalVotes * x[i]) / totalX - scores[i];
+        x[i] = (totalVotes * x[i]) / totalX - s[i];
       }
     }
 
@@ -220,19 +232,11 @@ function compute(
     for (let i = 0; i < x.length; i++) {
       if (x[i] === 0) continue;
 
-      if (x[i] > 0) {
-        let profit = 0;
-        let percentage = 0;
-        let voted = 0;
-        if (i === cvxCRVChoiceIndex) {
-          profit = ((x[i] + cvxCRVExtraVotes) * bribes[i]) / (scores[i] + x[i]);
-          percentage = ((x[i] + cvxCRVExtraVotes) * 100) / holderVotes;
-          voted = x[i] + cvxCRVExtraVotes;
-        } else {
-          profit = (x[i] * bribes[i]) / (scores[i] + x[i]);
-          percentage = (x[i] * 100) / holderVotes;
-          voted = x[i];
-        }
+      if (x[i] > 0 || extraVotes[i] > 0) {
+        const profit = ((x[i] + extraVotes[i]) * bribes[i]) / (s[i] + x[i]);
+        const percentage = ((x[i] + extraVotes[i]) * 100) / holderVotes;
+        const voted = x[i] + extraVotes[i];
+
         sumVotes += voted;
         sumPercentage += percentage;
         adjustedProfit += profit;
