@@ -44,7 +44,7 @@ describe("AladdinCVX.CLeverGauge.spec", async () => {
     );
     await acvx.deployed();
     // lp/debt = 2:1
-    await acvx.initialize(DEPLOYED_CONTRACTS.AladdinZap, strategy.address, "2000000000000000000", [
+    await acvx.initialize(DEPLOYED_CONTRACTS.AladdinZap, strategy.address, "20000000000", [
       DEPLOYED_CONTRACTS.CLever.CLEV,
     ]);
     await strategy.initialize(
@@ -56,8 +56,8 @@ describe("AladdinCVX.CLeverGauge.spec", async () => {
   });
 
   it("should initialize correctly", async () => {
-    expect(await acvx.initialRatio()).to.eq(BigNumber.from("2000000000000000000"));
-    expect(await acvx.ratio()).to.eq(BigNumber.from("2000000000000000000"));
+    expect(await acvx.initialRatio()).to.eq(BigNumber.from("20000000000"));
+    expect(await acvx.ratio()).to.eq(BigNumber.from("20000000000"));
     expect(await acvx.totalSupply()).to.eq(constants.Zero);
     expect(await acvx.lockPeriod()).to.eq(BigNumber.from(86400));
     expect(await acvx.minimumDeposit()).to.eq(BigNumber.from("1000000000000000000"));
@@ -101,10 +101,10 @@ describe("AladdinCVX.CLeverGauge.spec", async () => {
       });
 
       it("should succeed", async () => {
-        expect((await acvx.config()).minAMO).to.eq(BigNumber.from("1000000000000000000"));
-        expect((await acvx.config()).maxAMO).to.eq(BigNumber.from("3000000000000000000"));
-        expect((await acvx.config()).minLPRatio).to.eq(BigNumber.from("500000000000000000"));
-        expect((await acvx.config()).maxLPRatio).to.eq(BigNumber.from("1000000000000000000"));
+        expect((await acvx.config()).minAMO).to.eq(BigNumber.from("10000000000"));
+        expect((await acvx.config()).maxAMO).to.eq(BigNumber.from("30000000000"));
+        expect((await acvx.config()).minLPRatio).to.eq(BigNumber.from("5000000000"));
+        expect((await acvx.config()).maxLPRatio).to.eq(BigNumber.from("10000000000"));
         await expect(acvx.updateAMOConfig(0, 1, 2, 3)).to.emit(acvx, "UpdateAMOConfig").withArgs(0, 1, 2, 3);
         expect((await acvx.config()).minAMO).to.eq(BigNumber.from("0"));
         expect((await acvx.config()).maxAMO).to.eq(BigNumber.from("1"));
@@ -313,10 +313,7 @@ describe("AladdinCVX.CLeverGauge.spec", async () => {
       expect((await acvx.getUserLocks(signer.address)).length).to.eq(0);
       expect(await acvx.totalSupply()).to.eq(sharesOut);
       expect(await acvx.balanceOf(signer.address)).to.eq(sharesOut);
-      expect(await acvx.ratio()).closeToBn(
-        BigNumber.from("2000000000000000000"),
-        BigNumber.from("2000000000000000000").div(1e6)
-      );
+      expect(await acvx.ratio()).closeToBn(BigNumber.from("20000000000"), BigNumber.from("20000000000").div(1e6));
     });
 
     it("should succeed, when unlock multiple times", async () => {
@@ -337,10 +334,7 @@ describe("AladdinCVX.CLeverGauge.spec", async () => {
       expect((await acvx.getUserLocks(signer.address)).length).to.eq(0);
       expect(await acvx.totalSupply()).to.eq(sharesOut1);
       expect(await acvx.balanceOf(signer.address)).to.eq(sharesOut1);
-      expect(await acvx.ratio()).closeToBn(
-        BigNumber.from("2000000000000000000"),
-        BigNumber.from("2000000000000000000").div(1e6)
-      );
+      expect(await acvx.ratio()).closeToBn(BigNumber.from("20000000000"), BigNumber.from("20000000000").div(1e6));
 
       const sharesOut2 = await acvx.connect(deployer).callStatic.unlock(0);
       const balanceBefore2 = await cvx.balanceOf(CURVE_clevCVX_TOKEN);
@@ -356,10 +350,7 @@ describe("AladdinCVX.CLeverGauge.spec", async () => {
       expect((await acvx.getUserLocks(deployer.address)).length).to.eq(0);
       expect(await acvx.totalSupply()).to.closeToBn(sharesOut2.add(sharesOut1), sharesOut2.div(1e6));
       expect(await acvx.balanceOf(deployer.address)).to.closeToBn(sharesOut2, sharesOut2.div(1e6));
-      expect(await acvx.ratio()).closeToBn(
-        BigNumber.from("2000000000000000000"),
-        BigNumber.from("2000000000000000000").div(1e6)
-      );
+      expect(await acvx.ratio()).closeToBn(BigNumber.from("20000000000"), BigNumber.from("20000000000").div(1e6));
     });
   });
 
@@ -744,111 +735,87 @@ describe("AladdinCVX.CLeverGauge.spec", async () => {
     });
 
     it("should revert, when below of target range, withdraw from furnace", async () => {
-      // current debt/base is about 691298562941259547:1000000000000000000
-      // ratio after rebalance is 691303695952314713:1000000000000000000
+      // current debt/base is about 6912985629:10000000000
+      // ratio after rebalance is 6913036959:10000000000
       await acvx.updateAMOConfig(
-        ethers.utils.parseEther("10"),
-        ethers.utils.parseEther("10"),
+        ethers.utils.parseUnits("10", 10),
+        ethers.utils.parseUnits("10", 10),
         0,
-        ethers.utils.parseEther("10")
+        ethers.utils.parseUnits("10", 10)
       );
       await expect(
-        acvx.rebalance(
-          ethers.utils.parseEther("1"),
-          0,
-          BigNumber.from("691303695952314714"),
-          BigNumber.from("691303695952314714")
-        )
+        acvx.rebalance(ethers.utils.parseEther("1"), 0, BigNumber.from("6913036960"), BigNumber.from("6913036960"))
       ).to.revertedWith("abcCVX: final ratio below target range");
     });
 
     it("should revert, when above of target range, withdraw from furnace", async () => {
-      // current debt/base is about 691298562941259547:1000000000000000000
-      // ratio after rebalance is 691303695952314713:1000000000000000000
+      // current debt/base is about 6912985629:10000000000
+      // ratio after rebalance is 6913036959:10000000000
       await acvx.updateAMOConfig(
-        ethers.utils.parseEther("10"),
-        ethers.utils.parseEther("10"),
+        ethers.utils.parseUnits("10", 10),
+        ethers.utils.parseUnits("10", 10),
         0,
-        ethers.utils.parseEther("10")
+        ethers.utils.parseUnits("10", 10)
       );
       await expect(
-        acvx.rebalance(
-          ethers.utils.parseEther("1"),
-          0,
-          BigNumber.from("691303695952314712"),
-          BigNumber.from("691303695952314712")
-        )
+        acvx.rebalance(ethers.utils.parseEther("1"), 0, BigNumber.from("6913036958"), BigNumber.from("6913036958"))
       ).to.revertedWith("abcCVX: final ratio above target range");
     });
 
     it("should revert, when below of target range, withdraw from gauge", async () => {
-      // current debt/base is about 691298562941259547:1000000000000000000
-      // ratio after rebalance is 691293439278589394:1000000000000000000
+      // current debt/base is about 6912985629:10000000000
+      // ratio after rebalance is 6912934392:10000000000
       await acvx.updateAMOConfig(
-        ethers.utils.parseEther("0"),
-        ethers.utils.parseEther("0"),
+        ethers.utils.parseUnits("0", 10),
+        ethers.utils.parseUnits("0", 10),
         0,
-        ethers.utils.parseEther("10")
+        ethers.utils.parseUnits("10", 10)
       );
       await expect(
-        acvx.rebalance(
-          ethers.utils.parseEther("1"),
-          0,
-          BigNumber.from("691293439278589395"),
-          BigNumber.from("691293439278589395")
-        )
+        acvx.rebalance(ethers.utils.parseEther("1"), 0, BigNumber.from("6912934393"), BigNumber.from("6912934393"))
       ).to.revertedWith("abcCVX: final ratio below target range");
     });
 
     it("should revert, when above of target range, withdraw from gauge", async () => {
-      // current debt/base is about 691298562941259547:1000000000000000000
-      // ratio after rebalance is 691293439278589394:1000000000000000000
+      // current debt/base is about 6912985629:10000000000
+      // ratio after rebalance is 6912934392:10000000000
       await acvx.updateAMOConfig(
-        ethers.utils.parseEther("0"),
-        ethers.utils.parseEther("0"),
+        ethers.utils.parseUnits("0", 10),
+        ethers.utils.parseUnits("0", 10),
         0,
-        ethers.utils.parseEther("10")
+        ethers.utils.parseUnits("10", 10)
       );
       await expect(
-        acvx.rebalance(
-          ethers.utils.parseEther("1"),
-          0,
-          BigNumber.from("691293439278589393"),
-          BigNumber.from("691293439278589393")
-        )
+        acvx.rebalance(ethers.utils.parseEther("1"), 0, BigNumber.from("6912934391"), BigNumber.from("6912934391"))
       ).to.revertedWith("abcCVX: final ratio above target range");
     });
 
     it("should succeed, when below of target range, withdraw from furnace", async () => {
-      // current debt/base is about 691298562941259547:1000000000000000000
-      // ratio after rebalance is 691303695952314713:1000000000000000000
+      // current debt/base is about 6912985629:10000000000
+      // ratio after rebalance is 6913036959:10000000000
       await acvx.updateAMOConfig(
-        ethers.utils.parseEther("10"),
-        ethers.utils.parseEther("10"),
+        ethers.utils.parseUnits("10", 10),
+        ethers.utils.parseUnits("10", 10),
         0,
-        ethers.utils.parseEther("10")
+        ethers.utils.parseUnits("10", 10)
       );
-      await expect(
-        acvx.rebalance(ethers.utils.parseEther("1"), 0, BigNumber.from("0"), BigNumber.from("1000000000000000000"))
-      )
+      await expect(acvx.rebalance(ethers.utils.parseEther("1"), 0, BigNumber.from("0"), BigNumber.from("10000000000")))
         .to.emit(acvx, "Rebalance")
-        .withArgs(await acvx.ratio(), BigNumber.from("691298562941259547"), BigNumber.from("691303695952314713"));
+        .withArgs(await acvx.ratio(), BigNumber.from("6912985629"), BigNumber.from("6913036959"));
     });
 
     it("should succeed, when above of target range, withdraw from gauge", async () => {
-      // current debt/base is about 691298562941259547:1000000000000000000
-      // ratio after rebalance is 691293439278589394:1000000000000000000
+      // current debt/base is about 6912985629:10000000000
+      // ratio after rebalance is 6912934392:10000000000
       await acvx.updateAMOConfig(
-        ethers.utils.parseEther("0"),
-        ethers.utils.parseEther("0"),
+        ethers.utils.parseUnits("0", 10),
+        ethers.utils.parseUnits("0", 10),
         0,
-        ethers.utils.parseEther("10")
+        ethers.utils.parseUnits("10", 10)
       );
-      await expect(
-        acvx.rebalance(ethers.utils.parseEther("1"), 0, BigNumber.from("0"), BigNumber.from("1000000000000000000"))
-      )
+      await expect(acvx.rebalance(ethers.utils.parseEther("1"), 0, BigNumber.from("0"), BigNumber.from("10000000000")))
         .to.emit(acvx, "Rebalance")
-        .withArgs(await acvx.ratio(), BigNumber.from("691298562941259547"), BigNumber.from("691293439278589394"));
+        .withArgs(await acvx.ratio(), BigNumber.from("6912985629"), BigNumber.from("6912934392"));
     });
   });
 });

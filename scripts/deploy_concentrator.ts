@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { constants, Contract } from "ethers";
+import { BigNumber, constants, Contract } from "ethers";
 import { ethers } from "hardhat";
 import {
   AladdinETH,
@@ -33,17 +33,20 @@ interface IConcentratorInterface {
 }
 
 interface ICLeverAMOInterface {
-  initialRatio: string;
+  initialRatio: BigNumber;
   AMORatio: {
-    min: string;
-    max: string;
+    min: BigNumber;
+    max: BigNumber;
   };
   LPRatio: {
-    min: string;
-    max: string;
+    min: BigNumber;
+    max: BigNumber;
   };
   strategy: string;
-  amo: string;
+  amo: {
+    proxy: string;
+    impl: string;
+  };
   gauge: string;
 }
 
@@ -140,18 +143,21 @@ const config: {
     vault: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
   },
   abcCVX: {
-    initialRatio: "99",
+    initialRatio: ethers.utils.parseUnits("99", 10),
     AMORatio: {
-      max: "0.1",
-      min: "0.5",
+      min: ethers.utils.parseUnits("0.1", 10),
+      max: ethers.utils.parseUnits("0.5", 10),
     },
     LPRatio: {
-      min: "1",
-      max: "99",
+      min: ethers.utils.parseUnits("1", 10),
+      max: ethers.utils.parseUnits("99", 10),
     },
-    strategy: "0x2be5B652836C630E15c3530bf642b544ae901239",
-    amo: "0x4b2C6F67bC775FD64De3CEc188f0F3E960ce0750",
-    gauge: "0x617408C93108e1830F27CD532B7C3e393652295A",
+    strategy: "0x29E56d5E68b4819FC4a997b91fc9F4f8818ef1B4",
+    amo: {
+      proxy: "0xDEC800C2b17c9673570FDF54450dc1bd79c8E359",
+      impl: "0x07d9d83df553c013e767872af8da75d84e1368f9",
+    },
+    gauge: constants.AddressZero,
   },
 };
 
@@ -528,6 +534,7 @@ async function deployConcentratorETH() {
 }
 
 async function deployAbcCVX() {
+  let impl: AladdinCVX;
   let acvx: AladdinCVX;
 
   const [deployer] = await ethers.getSigners();
@@ -548,12 +555,12 @@ async function deployAbcCVX() {
     config.abcCVX.strategy = strategy.address;
   }
 
-  if (config.abcCVX.amo !== "") {
-    acvx = await ethers.getContractAt("AladdinCVX", config.abcCVX.amo, deployer);
-    console.log("Found AladdinCVX at:", acvx.address);
+  if (config.abcCVX.amo.impl !== "") {
+    impl = await ethers.getContractAt("AladdinCVX", config.abcCVX.amo.impl, deployer);
+    console.log("Found AladdinCVX Impl at:", impl.address);
   } else {
     const AladdinCVX = await ethers.getContractFactory("AladdinCVX", deployer);
-    const impl = await AladdinCVX.deploy(
+    impl = await AladdinCVX.deploy(
       TOKENS.CVX.address,
       DEPLOYED_CONTRACTS.CLever.CLeverCVX.clevCVX,
       DEPLOYED_CONTRACTS.CLever.Gauge.Curve_clevCVX_CVX.pool,
@@ -562,20 +569,25 @@ async function deployAbcCVX() {
     );
     console.log("Deploying AladdinCVX Impl, hash:", impl.deployTransaction.hash);
     await impl.deployed();
-    let receipt = await impl.deployTransaction.wait();
+    const receipt = await impl.deployTransaction.wait();
     console.log("✅ Deploy AladdinCVX Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
+  }
 
+  if (config.abcCVX.amo.proxy !== "") {
+    acvx = await ethers.getContractAt("AladdinCVX", config.abcCVX.amo.proxy, deployer);
+    console.log("Found AladdinCVX at:", acvx.address);
+  } else {
     const data = impl.interface.encodeFunctionData("initialize", [
       DEPLOYED_CONTRACTS.AladdinZap,
       strategy.address,
-      ethers.utils.parseEther(config.abcCVX.initialRatio),
+      config.abcCVX.initialRatio,
       [DEPLOYED_CONTRACTS.CLever.CLEV],
     ]);
     const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
     const proxy = await TransparentUpgradeableProxy.deploy(impl.address, proxyAdmin.address, data);
     console.log("Deploying AladdinCVX Proxy, hash:", proxy.deployTransaction.hash);
     await proxy.deployed();
-    receipt = await proxy.deployTransaction.wait();
+    const receipt = await proxy.deployTransaction.wait();
     acvx = await ethers.getContractAt("AladdinCVX", proxy.address, deployer);
     console.log("✅ Deploy AladdinCVX Proxy at:", acvx.address, "gas used:", receipt.gasUsed.toString());
   }
@@ -584,7 +596,7 @@ async function deployAbcCVX() {
   if (config.abcCVX.gauge === "") {
     const LiquidityGaugeV3 = await ethers.getContractFactory("LiquidityGaugeV3", deployer);
     const gauge = await LiquidityGaugeV3.deploy(
-      config.abcCVX.amo,
+      config.abcCVX.amo.proxy,
       DEPLOYED_CONTRACTS.CLever.CLEVMinter,
       deployer.address
     );
@@ -601,7 +613,36 @@ async function deployAbcCVX() {
       "0x706f34D0aB8f4f9838F15b0D155C8Ef42229294B",
       [TOKENS.CRV.address, TOKENS.CVX.address]
     );
-    console.log(`CLeverGaugeStrategy.initialize for abcCVX, hash:`, tx.hash);
+    console.log(`AMOConvexCurveStrategy.initialize for abcCVX, hash:`, tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
+
+  const amoConfig = await acvx.config();
+  if (
+    !amoConfig.minAMO.eq(config.abcCVX.AMORatio.min) ||
+    !amoConfig.maxAMO.eq(config.abcCVX.AMORatio.max) ||
+    !amoConfig.minLPRatio.eq(config.abcCVX.LPRatio.min) ||
+    !amoConfig.maxLPRatio.eq(config.abcCVX.LPRatio.max)
+  ) {
+    const tx = await acvx.updateAMOConfig(
+      config.abcCVX.AMORatio.min,
+      config.abcCVX.AMORatio.max,
+      config.abcCVX.LPRatio.min,
+      config.abcCVX.LPRatio.max
+    );
+    console.log(
+      `Update amo config`,
+      `AMORatio[${ethers.utils.formatUnits(config.abcCVX.AMORatio.min, 10)}-${ethers.utils.formatUnits(
+        config.abcCVX.AMORatio.max,
+        10
+      )}]`,
+      `LPRatio[${ethers.utils.formatUnits(config.abcCVX.LPRatio.min, 10)}-${ethers.utils.formatUnits(
+        config.abcCVX.LPRatio.max,
+        10
+      )}],`,
+      `hash: ${tx.hash}`
+    );
     const receipt = await tx.wait();
     console.log("✅ Done, gas used:", receipt.gasUsed.toString());
   }
@@ -609,6 +650,11 @@ async function deployAbcCVX() {
 
 async function main() {
   const [deployer] = await ethers.getSigners();
+  if (deployer.address === "0x11E91BB6d1334585AA37D8F4fde3932C7960B938") {
+    console.log("invalid deployer");
+    return;
+  }
+
   if (config.Strategy.factory !== "") {
     factory = await ethers.getContractAt("ConcentratorStrategyFactory", config.Strategy.factory, deployer);
     console.log("Found ConcentratorStrategyFactory at:", factory.address);

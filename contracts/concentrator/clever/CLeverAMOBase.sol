@@ -43,7 +43,7 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
   event UpdateMinimumDeposit(uint256 _minimumDeposit);
 
   /// @dev The precision used to compute various ratio.
-  uint256 internal constant PRECISION = 1e18;
+  uint256 internal constant RATIO_PRECISION = 1e10;
 
   /// @dev The precision used to compute various fees.
   uint256 private constant FEE_PRECISION = 1e9;
@@ -160,10 +160,10 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
 
     initialRatio = _initialRatio;
     config = AMOConfig({
-      minAMO: uint64(PRECISION),
-      maxAMO: uint64(PRECISION * 3),
-      minLPRatio: uint64(PRECISION / 2),
-      maxLPRatio: uint64(PRECISION)
+      minAMO: uint64(RATIO_PRECISION),
+      maxAMO: uint64(RATIO_PRECISION * 3),
+      minLPRatio: uint64(RATIO_PRECISION / 2),
+      maxLPRatio: uint64(RATIO_PRECISION)
     });
 
     lockPeriod = 1 days; // default lock 1 day
@@ -188,7 +188,7 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     uint256 _lpBalance = _lpBalanceInContract();
 
     if (_debtBalance == 0) return initialRatio;
-    else return (_lpBalance * PRECISION) / _debtBalance;
+    else return (_lpBalance * RATIO_PRECISION) / _debtBalance;
   }
 
   /// @notice Query the list of locked balance of the user.

@@ -44,7 +44,7 @@ describe("AladdinCVX.ConvexCurve.spec", async () => {
     );
     await acvx.deployed();
     // lp/debt = 2:1
-    await acvx.initialize(DEPLOYED_CONTRACTS.AladdinZap, strategy.address, "2000000000000000000", [
+    await acvx.initialize(DEPLOYED_CONTRACTS.AladdinZap, strategy.address, "20000000000", [
       DEPLOYED_CONTRACTS.CLever.CLEV,
     ]);
     await strategy.initialize(
@@ -56,8 +56,8 @@ describe("AladdinCVX.ConvexCurve.spec", async () => {
   });
 
   it("should initialize correctly", async () => {
-    expect(await acvx.initialRatio()).to.eq(BigNumber.from("2000000000000000000"));
-    expect(await acvx.ratio()).to.eq(BigNumber.from("2000000000000000000"));
+    expect(await acvx.initialRatio()).to.eq(BigNumber.from("20000000000"));
+    expect(await acvx.ratio()).to.eq(BigNumber.from("20000000000"));
     expect(await acvx.totalSupply()).to.eq(constants.Zero);
     expect(await acvx.lockPeriod()).to.eq(BigNumber.from(86400));
     expect(await acvx.minimumDeposit()).to.eq(BigNumber.from("1000000000000000000"));
@@ -101,10 +101,10 @@ describe("AladdinCVX.ConvexCurve.spec", async () => {
       });
 
       it("should succeed", async () => {
-        expect((await acvx.config()).minAMO).to.eq(BigNumber.from("1000000000000000000"));
-        expect((await acvx.config()).maxAMO).to.eq(BigNumber.from("3000000000000000000"));
-        expect((await acvx.config()).minLPRatio).to.eq(BigNumber.from("500000000000000000"));
-        expect((await acvx.config()).maxLPRatio).to.eq(BigNumber.from("1000000000000000000"));
+        expect((await acvx.config()).minAMO).to.eq(BigNumber.from("10000000000"));
+        expect((await acvx.config()).maxAMO).to.eq(BigNumber.from("30000000000"));
+        expect((await acvx.config()).minLPRatio).to.eq(BigNumber.from("5000000000"));
+        expect((await acvx.config()).maxLPRatio).to.eq(BigNumber.from("10000000000"));
         await expect(acvx.updateAMOConfig(0, 1, 2, 3)).to.emit(acvx, "UpdateAMOConfig").withArgs(0, 1, 2, 3);
         expect((await acvx.config()).minAMO).to.eq(BigNumber.from("0"));
         expect((await acvx.config()).maxAMO).to.eq(BigNumber.from("1"));
@@ -313,10 +313,7 @@ describe("AladdinCVX.ConvexCurve.spec", async () => {
       expect((await acvx.getUserLocks(signer.address)).length).to.eq(0);
       expect(await acvx.totalSupply()).to.eq(sharesOut);
       expect(await acvx.balanceOf(signer.address)).to.eq(sharesOut);
-      expect(await acvx.ratio()).closeToBn(
-        BigNumber.from("2000000000000000000"),
-        BigNumber.from("2000000000000000000").div(1e6)
-      );
+      expect(await acvx.ratio()).closeToBn(BigNumber.from("20000000000"), BigNumber.from("20000000000").div(1e6));
     });
 
     it("should succeed, when unlock multiple times", async () => {
@@ -337,10 +334,7 @@ describe("AladdinCVX.ConvexCurve.spec", async () => {
       expect((await acvx.getUserLocks(signer.address)).length).to.eq(0);
       expect(await acvx.totalSupply()).to.eq(sharesOut1);
       expect(await acvx.balanceOf(signer.address)).to.eq(sharesOut1);
-      expect(await acvx.ratio()).closeToBn(
-        BigNumber.from("2000000000000000000"),
-        BigNumber.from("2000000000000000000").div(1e6)
-      );
+      expect(await acvx.ratio()).closeToBn(BigNumber.from("20000000000"), BigNumber.from("20000000000").div(1e6));
 
       const sharesOut2 = await acvx.connect(deployer).callStatic.unlock(0);
       const balanceBefore2 = await cvx.balanceOf(CURVE_clevCVX_TOKEN);
@@ -356,10 +350,7 @@ describe("AladdinCVX.ConvexCurve.spec", async () => {
       expect((await acvx.getUserLocks(deployer.address)).length).to.eq(0);
       expect(await acvx.totalSupply()).to.closeToBn(sharesOut2.add(sharesOut1), sharesOut2.div(1e6));
       expect(await acvx.balanceOf(deployer.address)).to.closeToBn(sharesOut2, sharesOut2.div(1e6));
-      expect(await acvx.ratio()).closeToBn(
-        BigNumber.from("2000000000000000000"),
-        BigNumber.from("2000000000000000000").div(1e6)
-      );
+      expect(await acvx.ratio()).closeToBn(BigNumber.from("20000000000"), BigNumber.from("20000000000").div(1e6));
     });
   });
 

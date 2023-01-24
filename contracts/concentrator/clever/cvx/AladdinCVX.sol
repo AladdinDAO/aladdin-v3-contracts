@@ -90,9 +90,9 @@ contract AladdinCVX is CLeverAMOBase {
 
     uint256 _debtInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(debtIndex));
     uint256 _baseInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(baseIndex));
-    uint256 _startPoolRatio = (_debtInPool * PRECISION) / _baseInPool;
-    if (_debtInPool * PRECISION < _config.minAMO * _baseInPool) {
-      // _debtInPool/_baseInPool < minAMO/PRECISION
+    uint256 _startPoolRatio = (_debtInPool * RATIO_PRECISION) / _baseInPool;
+    if (_debtInPool * RATIO_PRECISION < _config.minAMO * _baseInPool) {
+      // _debtInPool/_baseInPool < minAMO/RATIO_PRECISION
       // withdraw clevCVX from Furnace
       ILegacyFurnace(furnace).withdraw(address(this), _withdrawAmount);
 
@@ -103,8 +103,8 @@ contract AladdinCVX is CLeverAMOBase {
 
       // deposit to gauge
       _depositLpToken(_lpTokenOut);
-    } else if (_debtInPool * PRECISION > _config.maxAMO * _baseInPool) {
-      // _debtInPool/_baseInPool > maxAMO/PRECISION
+    } else if (_debtInPool * RATIO_PRECISION > _config.maxAMO * _baseInPool) {
+      // _debtInPool/_baseInPool > maxAMO/RATIO_PRECISION
       // withdraw clevCVX/CVX lp from gauge
       _withdrawLpToken(_withdrawAmount, address(this));
 
@@ -124,10 +124,10 @@ contract AladdinCVX is CLeverAMOBase {
     // make sure the final ratio is in target range.
     _debtInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(debtIndex));
     _baseInPool = ICurveFactoryPlainPool(curvePool).balances(uint256(baseIndex));
-    uint256 _targetPoolRatio = (_debtInPool * PRECISION) / _baseInPool;
-    // _targetRangeLeft/PRECISION <= _debtInPool/_baseInPool <= _targetRangeRight/PRECISION
-    require(_targetRangeLeft * _baseInPool <= _debtInPool * PRECISION, "abcCVX: final ratio below target range");
-    require(_targetRangeRight * _baseInPool >= _debtInPool * PRECISION, "abcCVX: final ratio above target range");
+    uint256 _targetPoolRatio = (_debtInPool * RATIO_PRECISION) / _baseInPool;
+    // _targetRangeLeft/RATIO_PRECISION <= _debtInPool/_baseInPool <= _targetRangeRight/RATIO_PRECISION
+    require(_targetRangeLeft * _baseInPool <= _debtInPool * RATIO_PRECISION, "abcCVX: final ratio below target range");
+    require(_targetRangeRight * _baseInPool >= _debtInPool * RATIO_PRECISION, "abcCVX: final ratio above target range");
 
     emit Rebalance(ratio(), _startPoolRatio, _targetPoolRatio);
   }
@@ -200,7 +200,7 @@ contract AladdinCVX is CLeverAMOBase {
     // compute split amount
     {
       if (totalSupply() == 0) {
-        _addLiquidityAmount = _searchSplit(_amount, initialRatio, PRECISION);
+        _addLiquidityAmount = _searchSplit(_amount, initialRatio, RATIO_PRECISION);
       } else {
         _debtBalance = _debtBalanceInContract();
         _lpBalance = _lpBalanceInContract();
@@ -221,7 +221,7 @@ contract AladdinCVX is CLeverAMOBase {
       );
     }
     // compute the new ratio
-    _ratio = ((_lpBalance + _lpTokenOut) * PRECISION) / (_debtBalance + _debtTokenOut);
+    _ratio = ((_lpBalance + _lpTokenOut) * RATIO_PRECISION) / (_debtBalance + _debtTokenOut);
   }
 
   /// @inheritdoc CLeverAMOBase
