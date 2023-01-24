@@ -38,6 +38,7 @@ const CRV = TOKENS.CRV.address;
 const OGN = TOKENS.OGN.address;
 const FRAX = TOKENS.FRAX.address;
 const BADGER = TOKENS.BADGER.address;
+const CLEV = TOKENS.CLEV.address;
 
 const Round17Rewards: IClaimParam[] = [
   {
@@ -3341,6 +3342,69 @@ const Round35Rewards: IClaimParam[] = [
   },
 ];
 
+const Round36Rewards: IClaimParam[] = [
+  {
+    token: ALCX,
+    index: 2220,
+    amount: "0x0ec21852ac18320000",
+    merkleProof: [],
+  },
+  {
+    token: CLEV,
+    index: 2220,
+    amount: "0x0ec21852ac18320000",
+    merkleProof: [],
+  },
+  {
+    token: CRV,
+    index: 1338,
+    amount: "0x01a9be63db32daa00000",
+    merkleProof: [],
+  },
+  {
+    token: CVX,
+    index: 2321,
+    amount: "0xfadb0829da8c500000",
+    merkleProof: [],
+  },
+  {
+    token: EURS,
+    index: 1450,
+    amount: "0x06e80e",
+    merkleProof: [],
+  },
+  {
+    token: FXS,
+    index: 2144,
+    amount: "0xa123e0657b1ca00000",
+    merkleProof: [],
+  },
+  {
+    token: GNO,
+    index: 1242,
+    amount: "0x9ceeb02b0825b800",
+    merkleProof: [],
+  },
+  {
+    token: INV,
+    index: 1210,
+    amount: "0x03aa52d3b1e8fc4000",
+    merkleProof: [],
+  },
+  {
+    token: TUSD,
+    index: 1025,
+    amount: "0x838fa972cda2880000",
+    merkleProof: [],
+  },
+  {
+    token: USDD,
+    index: 948,
+    amount: "0x28e44e89ce90ac0000",
+    merkleProof: [],
+  },
+];
+
 export const RoundClaimParams: { [round: number]: IClaimParam[] } = {
   17: Round17Rewards,
   18: Round18Rewards,
@@ -3361,4 +3425,5 @@ export const RoundClaimParams: { [round: number]: IClaimParam[] } = {
   33: Round33Rewards,
   34: Round34Rewards,
   35: Round35Rewards,
+  36: Round36Rewards,
 };

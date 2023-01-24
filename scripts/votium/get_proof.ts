@@ -1,7 +1,11 @@
 /* eslint-disable node/no-missing-import */
+import { Command } from "commander";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { TOKENS } from "../utils";
+
+const program = new Command();
+program.version("1.0.0");
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -40,10 +44,11 @@ const REWARDS: { [round: number]: string[] } = {
   33: ["ALCX", "APEFI", "CRV", "CVX", "FXS", "GNO", "USDD"],
   34: ["ALCX", "APEFI", "CRV", "CVX", "FXS", "GNO", "SNX", "TUSD"],
   35: ["ALCX", "CRV", "CVX", "EURS", "FXS", "GNO", "INV", "TUSD", "USDD"],
+  36: ["ALCX", "CLEV", "CRV", "CVX", "EURS", "FXS", "GNO", "INV", "TUSD", "USDD"],
 };
 
-async function main() {
-  for (const token of REWARDS[35]) {
+async function main(round: number) {
+  for (const token of REWARDS[round]) {
     const address = TOKENS[token].address;
     const amountRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/amount/");
     const proofRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/proof/");
@@ -76,9 +81,13 @@ async function main() {
   }
 }
 
+program.option("--round <round>", "round number");
+program.parse(process.argv);
+const options = program.opts();
+
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main().catch((error) => {
+main(parseInt(options.round)).catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
