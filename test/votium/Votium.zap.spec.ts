@@ -93,13 +93,6 @@ const zap_fork_config: { [symbol: string]: IZapForkConfig } = {
     amount: "100000",
     update_impl: false,
   },
-  INV: {
-    height: 14699276,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xDAe6951Fb927f40d76dA0eF1d5a1a9bee8aF944B",
-    amount: "100",
-    update_impl: false,
-  },
   STG: {
     height: 14790822,
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
@@ -203,6 +196,13 @@ const zap_fork_config: { [symbol: string]: IZapForkConfig } = {
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x681ada67950d96dcc9f2951d32353663ed6e59c9",
     amount: "1000",
+    update_impl: false,
+  },
+  INV: {
+    height: 16474260,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x1a9e40de2e1851bb1e92d78e760d6110e6e0adc6",
+    amount: "100",
     update_impl: false,
   },
 };
