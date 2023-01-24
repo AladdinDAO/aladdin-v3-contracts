@@ -125,7 +125,7 @@ const config: {
       rewards: ["CVX", "CRV", "TRICRV"],
       strategy: "0x94cC627Db80253056B2130aAC39abB252A75F345",
       proxy: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
-      impl: "0xDEC800C2b17c9673570FDF54450dc1bd79c8E359",
+      impl: "0x8C7E36A669b4B9f55608C7d3C373e8b9F19c444D",
     },
     vault: {
       proxy: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",

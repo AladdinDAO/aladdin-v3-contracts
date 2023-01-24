@@ -22,6 +22,7 @@ export const DEPLOYED_CONTRACTS = {
       AladdinCRVConvexVault: "0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8",
       ConcentratorIFOVault: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
       aCRV: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
+      CvxCrvStakingWrapperStrategy: "0x94cC627Db80253056B2130aAC39abB252A75F345",
     },
     cvxFXS: {
       AladdinFXSConvexVault: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
