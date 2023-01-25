@@ -11,6 +11,7 @@ contract AladdinPriceOracle is Ownable, IPriceOracle {
    * Variables *
    *************/
 
+  /// @notice Mapping from token address to price source.
   mapping(address => address) public sources;
 
   /*************************
