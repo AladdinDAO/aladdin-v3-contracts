@@ -150,7 +150,7 @@ const POOL_FORK_CONFIG: {
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const PRINT_ZAP = true;
-const POOL_NEED_TEST: string[] = ["clevcvx", "clevusd"];
+const POOLS = (process.env.POOLS || "").split(",");
 
 describe("ConcentratorIFOVault.add.spec", async () => {
   let deployer: SignerWithAddress;
@@ -167,7 +167,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
       if (fork === undefined) {
         return;
       }
-      if (!POOL_NEED_TEST.includes(name)) return;
+      if (!POOLS.includes(name)) return;
 
       console.log(
         `add pool[${name}]:`,
@@ -185,7 +185,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
       if (fork === undefined) {
         return;
       }
-      if (!POOL_NEED_TEST.includes(name)) return;
+      if (!POOLS.includes(name)) return;
 
       console.log(`  "${name}": [`);
       Object.entries(config.deposit).forEach(([symbol, routes]) => {
@@ -220,7 +220,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
     if (fork === undefined) {
       return;
     }
-    if (!POOL_NEED_TEST.includes(name)) return;
+    if (!POOLS.includes(name)) return;
 
     context(`ifo for pool: ${name}`, async () => {
       beforeEach(async () => {

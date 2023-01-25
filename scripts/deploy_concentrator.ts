@@ -34,6 +34,10 @@ interface IConcentratorInterface {
 
 interface ICLeverAMOInterface {
   initialRatio: BigNumber;
+  feeRatio: {
+    harvest: number;
+    platform: number;
+  };
   AMORatio: {
     min: BigNumber;
     max: BigNumber;
@@ -144,20 +148,24 @@ const config: {
   },
   abcCVX: {
     initialRatio: ethers.utils.parseUnits("99", 10),
+    feeRatio: {
+      harvest: 1e7, // 1%
+      platform: 0,
+    },
     AMORatio: {
-      min: ethers.utils.parseUnits("0.1", 10),
-      max: ethers.utils.parseUnits("0.5", 10),
+      min: ethers.utils.parseUnits("1", 10),
+      max: ethers.utils.parseUnits("5", 10),
     },
     LPRatio: {
       min: ethers.utils.parseUnits("1", 10),
-      max: ethers.utils.parseUnits("99", 10),
+      max: ethers.utils.parseUnits("99.9", 10),
     },
     strategy: "0x29E56d5E68b4819FC4a997b91fc9F4f8818ef1B4",
     amo: {
       proxy: "0xDEC800C2b17c9673570FDF54450dc1bd79c8E359",
       impl: "0x07d9d83df553c013e767872af8da75d84e1368f9",
     },
-    gauge: constants.AddressZero,
+    gauge: "0xc5022291cA8281745d173bB855DCd34dda67F2f0",
   },
 };
 
@@ -537,13 +545,14 @@ async function deployAbcCVX() {
   let impl: AladdinCVX;
   let acvx: AladdinCVX;
 
+  const cvxConfig = config.abcCVX;
   const [deployer] = await ethers.getSigners();
 
   const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.CLever.ProxyAdmin, deployer);
 
   let strategy: AMOConvexCurveStrategy;
-  if (config.abcCVX.strategy !== "") {
-    strategy = await ethers.getContractAt("AMOConvexCurveStrategy", config.abcCVX.strategy, deployer);
+  if (cvxConfig.strategy !== "") {
+    strategy = await ethers.getContractAt("AMOConvexCurveStrategy", cvxConfig.strategy, deployer);
     console.log(`Found AMOConvexCurveStrategy for abcCVX, at:`, strategy.address);
   } else {
     const address = await factory.callStatic.createStrategy(config.Strategy.impls.AMOConvexCurveStrategy);
@@ -552,11 +561,11 @@ async function deployAbcCVX() {
     const receipt = await tx.wait();
     console.log(`✅ Deploy AMOConvexCurveStrategy for abcCVX, at:`, address, "gas used:", receipt.gasUsed.toString());
     strategy = await ethers.getContractAt("AMOConvexCurveStrategy", address, deployer);
-    config.abcCVX.strategy = strategy.address;
+    cvxConfig.strategy = strategy.address;
   }
 
-  if (config.abcCVX.amo.impl !== "") {
-    impl = await ethers.getContractAt("AladdinCVX", config.abcCVX.amo.impl, deployer);
+  if (cvxConfig.amo.impl !== "") {
+    impl = await ethers.getContractAt("AladdinCVX", cvxConfig.amo.impl, deployer);
     console.log("Found AladdinCVX Impl at:", impl.address);
   } else {
     const AladdinCVX = await ethers.getContractFactory("AladdinCVX", deployer);
@@ -573,14 +582,14 @@ async function deployAbcCVX() {
     console.log("✅ Deploy AladdinCVX Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
   }
 
-  if (config.abcCVX.amo.proxy !== "") {
-    acvx = await ethers.getContractAt("AladdinCVX", config.abcCVX.amo.proxy, deployer);
+  if (cvxConfig.amo.proxy !== "") {
+    acvx = await ethers.getContractAt("AladdinCVX", cvxConfig.amo.proxy, deployer);
     console.log("Found AladdinCVX at:", acvx.address);
   } else {
     const data = impl.interface.encodeFunctionData("initialize", [
       DEPLOYED_CONTRACTS.AladdinZap,
       strategy.address,
-      config.abcCVX.initialRatio,
+      cvxConfig.initialRatio,
       [DEPLOYED_CONTRACTS.CLever.CLEV],
     ]);
     const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
@@ -593,17 +602,17 @@ async function deployAbcCVX() {
   }
 
   // Deploy abcCVX Gauge
-  if (config.abcCVX.gauge === "") {
+  if (cvxConfig.gauge === "") {
     const LiquidityGaugeV3 = await ethers.getContractFactory("LiquidityGaugeV3", deployer);
     const gauge = await LiquidityGaugeV3.deploy(
-      config.abcCVX.amo.proxy,
+      cvxConfig.amo.proxy,
       DEPLOYED_CONTRACTS.CLever.CLEVMinter,
       deployer.address
     );
     console.log("Deploying abcCVX Gauge, hash:", gauge.deployTransaction.hash);
     await gauge.deployed();
     console.log("✅ Deploy abcCVX Gauge at:", gauge.address);
-    config.abcCVX.gauge = gauge.address;
+    cvxConfig.gauge = gauge.address;
   }
 
   if ((await strategy.operator()) === constants.AddressZero) {
@@ -620,27 +629,65 @@ async function deployAbcCVX() {
 
   const amoConfig = await acvx.config();
   if (
-    !amoConfig.minAMO.eq(config.abcCVX.AMORatio.min) ||
-    !amoConfig.maxAMO.eq(config.abcCVX.AMORatio.max) ||
-    !amoConfig.minLPRatio.eq(config.abcCVX.LPRatio.min) ||
-    !amoConfig.maxLPRatio.eq(config.abcCVX.LPRatio.max)
+    !amoConfig.minAMO.eq(cvxConfig.AMORatio.min) ||
+    !amoConfig.maxAMO.eq(cvxConfig.AMORatio.max) ||
+    !amoConfig.minLPRatio.eq(cvxConfig.LPRatio.min) ||
+    !amoConfig.maxLPRatio.eq(cvxConfig.LPRatio.max)
   ) {
     const tx = await acvx.updateAMOConfig(
-      config.abcCVX.AMORatio.min,
-      config.abcCVX.AMORatio.max,
-      config.abcCVX.LPRatio.min,
-      config.abcCVX.LPRatio.max
+      cvxConfig.AMORatio.min,
+      cvxConfig.AMORatio.max,
+      cvxConfig.LPRatio.min,
+      cvxConfig.LPRatio.max
     );
     console.log(
       `Update amo config`,
-      `AMORatio[${ethers.utils.formatUnits(config.abcCVX.AMORatio.min, 10)}-${ethers.utils.formatUnits(
-        config.abcCVX.AMORatio.max,
-        10
-      )}]`,
-      `LPRatio[${ethers.utils.formatUnits(config.abcCVX.LPRatio.min, 10)}-${ethers.utils.formatUnits(
-        config.abcCVX.LPRatio.max,
+      "AMORatio:",
+      `[${ethers.utils.formatUnits(amoConfig.minAMO, 10)}-${ethers.utils.formatUnits(amoConfig.maxAMO, 10)}]`,
+      "=>",
+      `[${ethers.utils.formatUnits(cvxConfig.AMORatio.min, 10)}-${ethers.utils.formatUnits(
+        cvxConfig.AMORatio.max,
         10
       )}],`,
+      "LPRatio:",
+      `[${ethers.utils.formatUnits(amoConfig.minLPRatio, 10)}-${ethers.utils.formatUnits(amoConfig.maxLPRatio, 10)}]`,
+      "=>",
+      `[${ethers.utils.formatUnits(cvxConfig.LPRatio.min, 10)}-${ethers.utils.formatUnits(
+        cvxConfig.LPRatio.max,
+        10
+      )}],`,
+      `hash: ${tx.hash}`
+    );
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
+
+  if (!(await acvx.bountyPercentage()).eq(cvxConfig.feeRatio.harvest)) {
+    const tx = await acvx.updateBountyPercentage(cvxConfig.feeRatio.harvest);
+    console.log(
+      `update harvest bounty ratio`,
+      `${ethers.utils.formatUnits(await acvx.bountyPercentage(), 9)}`,
+      "=>",
+      `${ethers.utils.formatUnits(cvxConfig.feeRatio.harvest, 9)}`,
+      `hash: ${tx.hash}`
+    );
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
+
+  if (
+    !(await acvx.platformPercentage()).eq(cvxConfig.feeRatio.platform) ||
+    (await acvx.platform()) !== DEPLOYED_CONTRACTS.Concentrator.Treasury
+  ) {
+    const tx = await acvx.updatePlatformPercentage(
+      DEPLOYED_CONTRACTS.Concentrator.Treasury,
+      cvxConfig.feeRatio.platform
+    );
+    console.log(
+      `update platform fee ratio`,
+      `${ethers.utils.formatUnits(await acvx.platformPercentage(), 9)}`,
+      "=>",
+      `${ethers.utils.formatUnits(cvxConfig.feeRatio.platform, 9)},`,
       `hash: ${tx.hash}`
     );
     const receipt = await tx.wait();
@@ -650,7 +697,7 @@ async function deployAbcCVX() {
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  if (deployer.address === "0x11E91BB6d1334585AA37D8F4fde3932C7960B938") {
+  if (deployer.address !== "0x07dA2d30E26802ED65a52859a50872cfA615bD0A") {
     console.log("invalid deployer");
     return;
   }
