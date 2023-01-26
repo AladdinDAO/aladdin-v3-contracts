@@ -166,6 +166,16 @@ describe("CvxCrvWeightAdjuster.spec", async () => {
         expect(await adjuster.adjusters(deployer.address)).to.eq(false);
       });
     });
+
+    context("forceAdjust", async () => {
+      it("should revert, when non-owner call", async () => {
+        await expect(adjuster.connect(other).forceAdjust(1)).to.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("should succeed", async () => {
+        await adjuster.forceAdjust(1);
+      });
+    });
   });
 
   context("adjust", async () => {

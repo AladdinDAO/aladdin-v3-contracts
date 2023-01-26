@@ -208,6 +208,12 @@ contract CvxCrvWeightAdjuster is Ownable {
     }
   }
 
+  /// @notice Explicitly adjust weight.
+  /// @notice _weight the weight to adjust.
+  function forceAdjust(uint256 _weight) external onlyOwner {
+    ICvxCrvStakingWrapper(strategy).setRewardWeight(_weight);
+  }
+
   /**********************
    * Internal Functions *
    **********************/
