@@ -14,22 +14,29 @@ import {
   ConcentratorGeneralVault,
   AladdinCVX,
   AMOConvexCurveStrategy,
+  CvxCrvStakingWrapperStrategy,
 } from "../typechain";
-import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS } from "./utils";
+import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "./utils";
 
 interface IConcentratorInterface {
-  ratio: {
-    platform: number;
-    harvest: number;
-    withdraw: number;
+  compounder: {
+    ratio: {
+      platform: number;
+      harvest: number;
+      withdraw: number;
+    };
+    underlying: string;
+    name: string;
+    symbol: string;
+    impl: string;
+    proxy: string;
+    strategy: string;
+    rewards: string[];
   };
-  underlying: string;
-  name: string;
-  symbol: string;
-  rewards: string[];
-  strategy: string;
-  compounder: string;
-  vault: string;
+  vault: {
+    impl: string;
+    proxy: string;
+  };
 }
 
 interface ICLeverAMOInterface {
@@ -53,6 +60,8 @@ interface ICLeverAMOInterface {
   };
   gauge: string;
 }
+
+const STAKED_CVXCRV = "0xaa0C3f5F7DFD688C6E646F66CD2a6B66ACdbE434";
 
 const config: {
   Strategy: {
@@ -88,63 +97,87 @@ const config: {
   },
   ConcentratorETHInConvexCurve: {
     steth: {
-      ratio: {
-        platform: 10e7, // 10%
-        harvest: 1e7, // 1%
-        withdraw: 0.25e7, // 0.25%
+      compounder: {
+        ratio: {
+          platform: 10e7, // 10%
+          harvest: 1e7, // 1%
+          withdraw: 0.25e7, // 0.25%
+        },
+        underlying: "steth",
+        name: "Aladdin steCRV",
+        symbol: "astETH",
+        rewards: ["CVX", "CRV", "LDO"],
+        proxy: constants.AddressZero,
+        impl: constants.AddressZero,
+        strategy: constants.AddressZero,
       },
-      underlying: "steth",
-      name: "Aladdin steCRV",
-      symbol: "astETH",
-      rewards: ["CVX", "CRV", "LDO"],
-      strategy: constants.AddressZero,
-      compounder: constants.AddressZero,
-      vault: constants.AddressZero,
+      vault: {
+        impl: constants.AddressZero,
+        proxy: constants.AddressZero,
+      },
     },
   },
   ConcentratorETHInConvexFrax: {
     frxeth: {
-      ratio: {
-        platform: 10e7, // 10%
-        harvest: 1e7, // 1%
-        withdraw: 0.25e7, // 0.25%
+      compounder: {
+        ratio: {
+          platform: 10e7, // 10%
+          harvest: 1e7, // 1%
+          withdraw: 0.25e7, // 0.25%
+        },
+        underlying: "frxeth",
+        name: "AladdinETH: ETH/frxETH",
+        symbol: "afrxETH",
+        rewards: ["CVX", "CRV"],
+        strategy: "0xc9cfD6205914AB1E209FfE70326d8dd15fc58187",
+        proxy: "0xb15Ad6113264094Fd9BF2238729410A07EBE5ABa",
+        impl: "0xC999894424b281cE8602B50DF5F2D57F91e852f7",
       },
-      underlying: "frxeth",
-      name: "AladdinETH: ETH/frxETH",
-      symbol: "afrxETH",
-      rewards: ["CVX", "CRV"],
-      strategy: "0xc9cfD6205914AB1E209FfE70326d8dd15fc58187",
-      compounder: "0xb15Ad6113264094Fd9BF2238729410A07EBE5ABa",
-      vault: "0x50B47c4A642231dbe0B411a0B2FBC1EBD129346D",
+      vault: {
+        proxy: "0x50B47c4A642231dbe0B411a0B2FBC1EBD129346D",
+        impl: "0x7D6c00032cAbc699b908ECE34097ff1A159da998",
+      },
     },
   },
   ConcentratorCRV: {
-    ratio: {
-      platform: 25000000, // 2.5%
-      harvest: 25000000, // 2.5%
-      withdraw: 2500000, // 0.25%
+    compounder: {
+      ratio: {
+        platform: 25000000, // 2.5%
+        harvest: 25000000, // 2.5%
+        withdraw: 2500000, // 0.25%
+      },
+      underlying: "cvxcrv",
+      name: "Aladdin cvxCRV",
+      symbol: "aCRV",
+      rewards: ["CVX", "CRV", "TRICRV"],
+      strategy: "0x94cC627Db80253056B2130aAC39abB252A75F345",
+      proxy: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
+      impl: "0x8C7E36A669b4B9f55608C7d3C373e8b9F19c444D",
     },
-    underlying: "cvxcrv",
-    name: "Aladdin cvxCRV",
-    symbol: "aCRV",
-    rewards: ["CVX", "CRV", "TRICRV"],
-    strategy: "",
-    compounder: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
-    vault: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
+    vault: {
+      proxy: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
+      impl: "0x4D90Ba583Cd7f524ad76C5c07EcCf81A32061E65",
+    },
   },
   ConcentratorFXS: {
-    ratio: {
-      platform: 25000000, // 2.5%
-      harvest: 25000000, // 2.5%
-      withdraw: 2500000, // 0.25%
+    compounder: {
+      ratio: {
+        platform: 25000000, // 2.5%
+        harvest: 25000000, // 2.5%
+        withdraw: 2500000, // 0.25%
+      },
+      underlying: "cvxfxs",
+      name: "Aladdin cvxFXS/FXS",
+      symbol: "aFXS",
+      rewards: ["FXS", "CVX", "CRV"],
+      strategy: "",
+      proxy: "0xDAF03D70Fe637b91bA6E521A32E1Fb39256d3EC9",
+      impl: "0xeb5EB007Ab39e9831a1921E8116Bc353AFE5BA2C",
     },
-    underlying: "cvxfxs",
-    name: "Aladdin cvxFXS/FXS",
-    symbol: "aFXS",
-    rewards: ["FXS", "CVX", "CRV"],
-    strategy: "",
-    compounder: "0xDAF03D70Fe637b91bA6E521A32E1Fb39256d3EC9",
-    vault: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
+    vault: {
+      proxy: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
+      impl: "0xFD265e6FcF0306FBCC69228a77576c45C234baba",
+    },
   },
   abcCVX: {
     initialRatio: ethers.utils.parseUnits("99", 10),
@@ -258,7 +291,62 @@ async function addVaults(
 async function deployConcentratorFXS() {}
 
 // eslint-disable-next-line no-unused-vars
-async function deployConcentratorCRV() {}
+async function deployConcentratorCRV() {
+  for (const [from, to] of [
+    ["CVX", "CRV"],
+    ["TRICRV", "CRV"],
+    ["cvxCRV", "CRV"],
+    ["cvxCRV", "WETH"],
+  ]) {
+    console.log(
+      `zap ${from} => ${to}:`,
+      `from[${TOKENS[from].address}]`,
+      `to[${TOKENS[to].address}]`,
+      `routes[${ZAP_ROUTES[from][to].map((r) => `"${r.toHexString()}"`)}]`
+    );
+  }
+
+  const [deployer] = await ethers.getSigners();
+  const concentratorCRVConfig = config.ConcentratorCRV;
+
+  let strategy: CvxCrvStakingWrapperStrategy;
+
+  const acrv = await ethers.getContractAt("AladdinCRV", DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, deployer);
+
+  if (concentratorCRVConfig.compounder.strategy !== "") {
+    strategy = await ethers.getContractAt(
+      "CvxCrvStakingWrapperStrategy",
+      concentratorCRVConfig.compounder.strategy,
+      deployer
+    );
+    console.log("Found CvxCrvStakingWrapperStrategy at:", strategy.address);
+  } else {
+    const CvxCrvStakingWrapperStrategy = await ethers.getContractFactory("CvxCrvStakingWrapperStrategy", deployer);
+    strategy = await CvxCrvStakingWrapperStrategy.deploy(acrv.address, STAKED_CVXCRV);
+    console.log("Deploying CvxCrvStakingWrapperStrategy, hash:", strategy.deployTransaction.hash);
+
+    const receipt = await strategy.deployTransaction.wait();
+    console.log(
+      "✅ Deploy CvxCrvStakingWrapperStrategy at:",
+      strategy.address,
+      "gas used:",
+      receipt.gasUsed.toString()
+    );
+
+    concentratorCRVConfig.compounder.strategy = strategy.address;
+  }
+
+  if (concentratorCRVConfig.compounder.impl !== "") {
+    console.log("Found AladdinCRVV2 Impl at:", concentratorCRVConfig.compounder.impl);
+  } else {
+    const AladdinCRVV2 = await ethers.getContractFactory("AladdinCRVV2", deployer);
+    const impl = await AladdinCRVV2.deploy("0x9d0464996170c6b9e75eed71c68b99ddedf279e8", STAKED_CVXCRV);
+    console.log("Deploying AladdinCRVV2 Impl, hash:", impl.deployTransaction.hash);
+    const receipt = await impl.deployTransaction.wait();
+    console.log("✅ Deploy AladdinCRVV2 Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
+    concentratorCRVConfig.compounder.impl = impl.address;
+  }
+}
 
 // eslint-disable-next-line no-unused-vars
 async function deployConcentratorETH() {
@@ -341,14 +429,14 @@ async function deployConcentratorETH() {
 
   for (const name of []) {
     const compounderConfig = config.ConcentratorETHInConvexFrax[name];
-    const compounderName = `${compounderConfig.symbol}/ConvexCurve`;
+    const compounderName = `${compounderConfig.compounder.symbol}/ConvexCurve`;
     let strategy: AutoCompoundingConvexCurveStrategy;
     let compounder: AladdinETH;
     const underlying = ADDRESS[`${AVAILABLE_VAULTS[name].token}_TOKEN`];
-    if (config.ConcentratorETHInConvexCurve[name].strategy !== "") {
+    if (config.ConcentratorETHInConvexCurve[name].compounder.strategy !== "") {
       strategy = await ethers.getContractAt(
         "AutoCompoundingConvexCurveStrategy",
-        config.ConcentratorETHInConvexCurve[name].strategy,
+        config.ConcentratorETHInConvexCurve[name].compounder.strategy,
         deployer
       );
       console.log(`Found AutoCompoundingConvexCurveStrategy for ${compounderName} at:`, strategy.address);
@@ -364,13 +452,13 @@ async function deployConcentratorETH() {
         receipt.gasUsed.toString()
       );
       strategy = await ethers.getContractAt("AutoCompoundingConvexCurveStrategy", address, deployer);
-      config.ConcentratorETHInConvexCurve[name].strategy = strategy.address;
+      config.ConcentratorETHInConvexCurve[name].compounder.strategy = strategy.address;
     }
 
-    if (config.ConcentratorETHInConvexCurve[name].compounder !== "") {
+    if (config.ConcentratorETHInConvexCurve[name].compounder.proxy !== "") {
       compounder = await ethers.getContractAt(
         "AladdinETH",
-        config.ConcentratorETHInConvexCurve[name].compounder,
+        config.ConcentratorETHInConvexCurve[name].compounder.proxy,
         deployer
       );
       console.log(`Found AladdinETH For ${compounderName} at:`, compounder.address);
@@ -387,7 +475,7 @@ async function deployConcentratorETH() {
         "gas used:",
         receipt.gasUsed.toString()
       );
-      config.ConcentratorETHInConvexCurve[name].compounder = compounder.address;
+      config.ConcentratorETHInConvexCurve[name].compounder.proxy = compounder.address;
     }
 
     if ((await strategy.operator()) === constants.AddressZero) {
@@ -395,7 +483,7 @@ async function deployConcentratorETH() {
         compounder.address,
         underlying,
         AVAILABLE_VAULTS[name].rewarder!,
-        config.ConcentratorETHInConvexCurve[name].rewards.map((t) => TOKENS[t].address)
+        config.ConcentratorETHInConvexCurve[name].compounder.rewards.map((t) => TOKENS[t].address)
       );
       console.log(`AutoCompoundingConvexCurveStrategy.initialize for ${compounderName}, hash:`, tx.hash);
       const receipt = await tx.wait();
@@ -407,8 +495,8 @@ async function deployConcentratorETH() {
         DEPLOYED_CONTRACTS.AladdinZap,
         underlying,
         strategy.address,
-        config.ConcentratorETHInConvexCurve[name].name,
-        config.ConcentratorETHInConvexCurve[name].symbol
+        config.ConcentratorETHInConvexCurve[name].compounder.name,
+        config.ConcentratorETHInConvexCurve[name].compounder.symbol
       );
       console.log(`AladdinETH.initialize for ${compounderName}, hash:`, tx.hash);
       const receipt = await tx.wait();
@@ -418,9 +506,9 @@ async function deployConcentratorETH() {
     if ((await compounder.feeInfo()).platform !== DEPLOYED_CONTRACTS.Concentrator.Treasury) {
       const tx = await compounder.updateFeeInfo(
         DEPLOYED_CONTRACTS.Concentrator.Treasury,
-        compounderConfig.ratio.platform,
-        compounderConfig.ratio.harvest,
-        compounderConfig.ratio.withdraw
+        compounderConfig.compounder.ratio.platform,
+        compounderConfig.compounder.ratio.harvest,
+        compounderConfig.compounder.ratio.withdraw
       );
       console.log(`AladdinETH.updateFeeInfo for ${compounderName}, hash:`, tx.hash);
       const receipt = await tx.wait();
@@ -430,12 +518,16 @@ async function deployConcentratorETH() {
 
   for (const name of ["frxeth"]) {
     const compounderConfig = config.ConcentratorETHInConvexFrax[name];
-    const compounderName = `${compounderConfig.symbol}/ConvexFrax`;
+    const compounderName = `${compounderConfig.compounder.symbol}/ConvexFrax`;
     let strategy: AutoCompoundingConvexFraxStrategy;
     let compounder: AladdinETH;
     const underlying = ADDRESS[`${AVAILABLE_VAULTS[name].token}_TOKEN`];
-    if (compounderConfig.strategy !== "") {
-      strategy = await ethers.getContractAt("AutoCompoundingConvexFraxStrategy", compounderConfig.strategy, deployer);
+    if (compounderConfig.compounder.strategy !== "") {
+      strategy = await ethers.getContractAt(
+        "AutoCompoundingConvexFraxStrategy",
+        compounderConfig.compounder.strategy,
+        deployer
+      );
       console.log(`Found AutoCompoundingConvexFraxStrategy for ${compounderName}, at:`, strategy.address);
     } else {
       const address = await factory.callStatic.createStrategy(config.Strategy.impls.AutoCompoundingConvexFraxStrategy);
@@ -449,13 +541,13 @@ async function deployConcentratorETH() {
         receipt.gasUsed.toString()
       );
       strategy = await ethers.getContractAt("AutoCompoundingConvexFraxStrategy", address, deployer);
-      compounderConfig.strategy = strategy.address;
+      compounderConfig.compounder.strategy = strategy.address;
     }
 
-    if (compounderConfig.compounder !== "") {
+    if (compounderConfig.compounder.proxy !== "") {
       compounder = await ethers.getContractAt(
         "AladdinETH",
-        config.ConcentratorETHInConvexFrax[name].compounder,
+        config.ConcentratorETHInConvexFrax[name].compounder.proxy,
         deployer
       );
       console.log(`Found AladdinETH For ${compounderName}, at:`, compounder.address);
@@ -472,7 +564,7 @@ async function deployConcentratorETH() {
         "gas used:",
         receipt.gasUsed.toString()
       );
-      compounderConfig.compounder = compounder.address;
+      compounderConfig.compounder.proxy = compounder.address;
     }
 
     if ((await strategy.operator()) === constants.AddressZero) {
@@ -480,7 +572,7 @@ async function deployConcentratorETH() {
         compounder.address,
         underlying,
         AVAILABLE_VAULTS[name].convexFraxID!,
-        compounderConfig.rewards.map((t) => TOKENS[t].address)
+        compounderConfig.compounder.rewards.map((t) => TOKENS[t].address)
       );
       console.log(`AutoCompoundingConvexFraxStrategy.initialize for ${compounderName}, hash:`, tx.hash);
       const receipt = await tx.wait();
@@ -492,8 +584,8 @@ async function deployConcentratorETH() {
         DEPLOYED_CONTRACTS.AladdinZap,
         underlying,
         strategy.address,
-        compounderConfig.name,
-        compounderConfig.symbol
+        compounderConfig.compounder.name,
+        compounderConfig.compounder.symbol
       );
       console.log(`AladdinETH.initialize for ${compounderName}, hash:`, tx.hash);
       const receipt = await tx.wait();
@@ -503,9 +595,9 @@ async function deployConcentratorETH() {
     if ((await compounder.feeInfo()).platform !== DEPLOYED_CONTRACTS.Concentrator.Treasury) {
       const tx = await compounder.updateFeeInfo(
         DEPLOYED_CONTRACTS.Concentrator.Treasury,
-        compounderConfig.ratio.platform,
-        compounderConfig.ratio.harvest,
-        compounderConfig.ratio.withdraw
+        compounderConfig.compounder.ratio.platform,
+        compounderConfig.compounder.ratio.harvest,
+        compounderConfig.compounder.ratio.withdraw
       );
       console.log(`AladdinETH.updateFeeInfo for ${compounderName}, hash:`, tx.hash);
       const receipt = await tx.wait();
@@ -513,8 +605,8 @@ async function deployConcentratorETH() {
     }
 
     let vault: ConcentratorAladdinETHVault;
-    if (compounderConfig.vault !== "") {
-      vault = await ethers.getContractAt("ConcentratorAladdinETHVault", compounderConfig.vault, deployer);
+    if (compounderConfig.vault.proxy !== "") {
+      vault = await ethers.getContractAt("ConcentratorAladdinETHVault", compounderConfig.vault.proxy, deployer);
       console.log(`Found ConcentratorAladdinETHVault For ${compounderName}, at:`, vault.address);
     } else {
       const BeaconProxy = await ethers.getContractFactory("BeaconProxy", deployer);
@@ -534,10 +626,10 @@ async function deployConcentratorETH() {
         "gas used:",
         receipt.gasUsed.toString()
       );
-      compounderConfig.vault = vault.address;
+      compounderConfig.vault.proxy = vault.address;
     }
 
-    await addVaults(deployer, compounderName, DEPLOYED_VAULTS[compounderConfig.symbol], vault);
+    await addVaults(deployer, compounderName, DEPLOYED_VAULTS[compounderConfig.compounder.symbol], vault);
   }
 }
 
@@ -734,6 +826,7 @@ async function main() {
   }
 
   await deployAbcCVX();
+  await deployConcentratorCRV();
 }
 
 // We recommend this pattern to be able to use async/await everywhere

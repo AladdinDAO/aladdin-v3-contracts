@@ -2,6 +2,8 @@
 
 pragma solidity ^0.7.6;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
 import "../interfaces/IConcentratorStrategy.sol";
@@ -10,6 +12,8 @@ import "../interfaces/IConcentratorStrategy.sol";
 // solhint-disable no-empty-blocks
 
 abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializable {
+  using SafeERC20 for IERC20;
+
   /// @notice The address of operator.
   address public operator;
 
@@ -67,6 +71,17 @@ abstract contract ConcentratorStrategyBase is IConcentratorStrategy, Initializab
       for (uint256 j = 0; j < i; j++) {
         require(_rewards[i] != _rewards[j], "ConcentratorStrategy: duplicated reward token");
       }
+    }
+  }
+
+  function _transferTokenBack(address _token, uint256 _amount) internal {
+    // 2. transfer intermediate token back to operator.
+    if (_token == address(0)) {
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool _success, ) = msg.sender.call{ value: _amount }("");
+      require(_success, "ConcentratorStrategy: transfer ETH failed");
+    } else {
+      IERC20(_token).safeTransfer(msg.sender, _amount);
     }
   }
 }
