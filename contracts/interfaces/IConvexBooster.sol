@@ -24,4 +24,6 @@ interface IConvexBooster {
   ) external returns (bool);
 
   function earmarkRewards(uint256 _pid) external returns (bool);
+
+  function earmarkFees() external returns (bool);
 }

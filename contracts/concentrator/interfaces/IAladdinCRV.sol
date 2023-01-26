@@ -21,39 +21,73 @@ interface IAladdinCRV is IERC20Upgradeable {
   event UpdateZap(address indexed _zap);
 
   enum WithdrawOption {
+    // withdraw as cvxCRV
     Withdraw,
+    // withdraw as cvxCRV staking wrapper
     WithdrawAndStake,
+    // withdraw as CRV
     WithdrawAsCRV,
+    // withdraw as CVX
     WithdrawAsCVX,
+    // withdraw as ETH
     WithdrawAsETH
   }
 
-  /// @dev return the total amount of cvxCRV staked.
+  /// @notice return the total amount of cvxCRV staked.
   function totalUnderlying() external view returns (uint256);
 
-  /// @dev return the amount of cvxCRV staked for user
+  /// @notice return the amount of cvxCRV staked for user
+  /// @param _user - The address of the account
   function balanceOfUnderlying(address _user) external view returns (uint256);
 
-  function deposit(address _recipient, uint256 _amount) external returns (uint256);
+  /// @notice Deposit cvxCRV token to this contract
+  /// @param _recipient - The address who will receive the aCRV token.
+  /// @param _amount - The amount of cvxCRV to deposit.
+  /// @return share - The amount of aCRV received.
+  function deposit(address _recipient, uint256 _amount) external returns (uint256 share);
 
-  function depositAll(address _recipient) external returns (uint256);
+  /// @notice Deposit all cvxCRV token of the sender to this contract
+  /// @param _recipient The address who will receive the aCRV token.
+  /// @return share - The amount of aCRV received.
+  function depositAll(address _recipient) external returns (uint256 share);
 
-  function depositWithCRV(address _recipient, uint256 _amount) external returns (uint256);
+  /// @notice Deposit CRV token to this contract
+  /// @param _recipient - The address who will receive the aCRV token.
+  /// @param _amount - The amount of CRV to deposit.
+  /// @return share - The amount of aCRV received.
+  function depositWithCRV(address _recipient, uint256 _amount) external returns (uint256 share);
 
-  function depositAllWithCRV(address _recipient) external returns (uint256);
+  /// @notice Deposit all CRV token of the sender to this contract
+  /// @param _recipient The address who will receive the aCRV token.
+  /// @return share - The amount of aCRV received.
+  function depositAllWithCRV(address _recipient) external returns (uint256 share);
 
+  /// @notice Withdraw cvxCRV in proportion to the amount of shares sent
+  /// @param _recipient - The address who will receive the withdrawn token.
+  /// @param _shares - The amount of aCRV to send.
+  /// @param _minimumOut - The minimum amount of token should be received.
+  /// @param _option - The withdraw option (as cvxCRV or CRV or CVX or ETH or stake to convex).
+  /// @return withdrawn - The amount of token returned to the user.
   function withdraw(
     address _recipient,
     uint256 _shares,
     uint256 _minimumOut,
     WithdrawOption _option
-  ) external returns (uint256);
+  ) external returns (uint256 withdrawn);
 
+  /// @notice Withdraw all cvxCRV in proportion to the amount of shares sent
+  /// @param _recipient - The address who will receive the withdrawn token.
+  /// @param _minimumOut - The minimum amount of token should be received.
+  /// @param _option - The withdraw option (as cvxCRV or CRV or CVX or ETH or stake to convex).
+  /// @return withdrawn - The amount of token returned to the user.
   function withdrawAll(
     address _recipient,
     uint256 _minimumOut,
     WithdrawOption _option
-  ) external returns (uint256);
+  ) external returns (uint256 withdrawn);
 
+  /// @notice Harvest the pending reward and convert to cvxCRV.
+  /// @param _recipient - The address of account to receive harvest bounty.
+  /// @param _minimumOut - The minimum amount of cvxCRV should get.
   function harvest(address _recipient, uint256 _minimumOut) external returns (uint256);
 }
