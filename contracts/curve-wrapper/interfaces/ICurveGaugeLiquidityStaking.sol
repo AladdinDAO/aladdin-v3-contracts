@@ -5,9 +5,6 @@ pragma solidity ^0.7.6;
 import "./ILiquidityStaking.sol";
 
 interface ICurveGaugeLiquidityStaking is ILiquidityStaking {
-  /// @notice The address of staking token.
-  function stakingToken() external view returns (address);
-
   /// @notice Return whether the pool is enabled.
   function enabled() external view returns (bool);
 

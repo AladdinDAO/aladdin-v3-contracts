@@ -18,6 +18,7 @@ contract WardenQuestConverter is BaseBribeConverter {
   /*************
    * Variables *
    *************/
+
   /// @notice The address of Warden Quest Multi Merkle Distributor contract.
   /// @dev Example: https://etherscan.io/address/0x3682518b529e4404fb05250F9ad590C3218E5F9f
   address public wardenDistributor;

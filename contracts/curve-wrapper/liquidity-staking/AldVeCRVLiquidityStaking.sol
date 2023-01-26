@@ -23,8 +23,8 @@ contract AldVeCRVLiquidityStaking is Initializable, OptimizedERC20, BaseLiquidit
   /// @notice The address of CurveLockerProxy contract.
   address public immutable proxy;
 
-  /// @notice The address of aldveCRV token.
-  address public immutable aldveCRV;
+  /// @inheritdoc ILiquidityStaking
+  address public immutable override stakingToken;
 
   /***************
    * Constructor *
@@ -32,7 +32,7 @@ contract AldVeCRVLiquidityStaking is Initializable, OptimizedERC20, BaseLiquidit
 
   constructor(address _proxy, address _aldveCRV) {
     proxy = _proxy;
-    aldveCRV = _aldveCRV;
+    stakingToken = _aldveCRV;
   }
 
   function initialize() external initializer {
@@ -42,6 +42,15 @@ contract AldVeCRVLiquidityStaking is Initializable, OptimizedERC20, BaseLiquidit
     symbol = "stk-aldveCRV";
   }
 
+  /*************************
+   * Public View Functions *
+   *************************/
+
+  /// @inheritdoc ILiquidityStaking
+  function rewardToken() public pure override(BaseLiquidityStaking, ILiquidityStaking) returns (address) {
+    return CRV;
+  }
+
   /****************************
    * Public Mutated Functions *
    ****************************/
@@ -49,13 +58,13 @@ contract AldVeCRVLiquidityStaking is Initializable, OptimizedERC20, BaseLiquidit
   /// @inheritdoc ILiquidityStaking
   function deposit(uint256 _amount, address _recipient) external override {
     if (_amount == uint256(-1)) {
-      _amount = IERC20Upgradeable(aldveCRV).balanceOf(msg.sender);
+      _amount = IERC20Upgradeable(stakingToken).balanceOf(msg.sender);
     }
     require(_amount > 0, "deposit zero amount");
 
     _checkpoint(msg.sender);
 
-    IERC20Upgradeable(aldveCRV).safeTransferFrom(msg.sender, address(this), _amount);
+    IERC20Upgradeable(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
 
     _mint(_recipient, _amount);
 
@@ -77,7 +86,7 @@ contract AldVeCRVLiquidityStaking is Initializable, OptimizedERC20, BaseLiquidit
 
     _burn(msg.sender, _amount);
 
-    IERC20Upgradeable(aldveCRV).safeTransfer(_recipient, _amount);
+    IERC20Upgradeable(stakingToken).safeTransfer(_recipient, _amount);
 
     emit Withdraw(msg.sender, _recipient, _amount);
 
@@ -107,11 +116,6 @@ contract AldVeCRVLiquidityStaking is Initializable, OptimizedERC20, BaseLiquidit
 
       if (_from != _to) _checkpoint(_to);
     }
-  }
-
-  /// @inheritdoc BaseLiquidityStaking
-  function _rewardToken() internal pure override returns (address) {
-    return CRV;
   }
 
   /// @inheritdoc BaseLiquidityStaking

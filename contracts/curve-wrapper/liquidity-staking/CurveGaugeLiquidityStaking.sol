@@ -49,7 +49,7 @@ contract CurveGaugeLiquidityStaking is
   /// @notice The address of curve gauge.
   address public gauge;
 
-  /// @inheritdoc ICurveGaugeLiquidityStaking
+  /// @inheritdoc ILiquidityStaking
   address public override stakingToken;
 
   /// @inheritdoc ICurveGaugeLiquidityStaking
@@ -69,12 +69,20 @@ contract CurveGaugeLiquidityStaking is
 
     address _stakingToken = ICurveGauge(_gauge).staking_token();
 
-    name = string(abi.encodePacked(IERC20Metadata(_stakingToken).name(), " Aladdin Stake"));
+    name = string(abi.encodePacked(IERC20Metadata(_stakingToken).name(), " Aladdin Staked"));
     symbol = string(abi.encodePacked("ald-", IERC20Metadata(_stakingToken).symbol()));
 
-    booster = msg.sender;
     stakingToken = _stakingToken;
     gauge = _gauge;
+  }
+
+  /*************************
+   * Public View Functions *
+   *************************/
+
+  /// @inheritdoc ILiquidityStaking
+  function rewardToken() public pure override(BaseLiquidityStaking, ILiquidityStaking) returns (address) {
+    return CRV;
   }
 
   /****************************
@@ -197,11 +205,6 @@ contract CurveGaugeLiquidityStaking is
 
       if (_from != _to) _checkpoint(_to);
     }
-  }
-
-  /// @inheritdoc BaseLiquidityStaking
-  function _rewardToken() internal pure override returns (address) {
-    return CRV;
   }
 
   /// @inheritdoc BaseLiquidityStaking

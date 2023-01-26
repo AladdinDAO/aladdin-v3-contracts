@@ -94,7 +94,7 @@ contract CurveLockerProxy is Ownable, ICurveLockerProxy {
   }
 
   modifier onlyExecutor() {
-    require(executors[msg.sender], "not operator");
+    require(executors[msg.sender], "not executor");
     _;
   }
 
@@ -162,7 +162,7 @@ contract CurveLockerProxy is Ownable, ICurveLockerProxy {
     uint256 _amount
   ) external override onlyOperator(_gauge) {
     uint256 _balance = IERC20(_token).balanceOf(address(this));
-    require(_amount >= _balance, "balance not enough");
+    require(_amount <= _balance, "balance not enough");
     if (_amount > 0) {
       IERC20(_token).safeApprove(_gauge, 0);
       IERC20(_token).safeApprove(_gauge, _amount);

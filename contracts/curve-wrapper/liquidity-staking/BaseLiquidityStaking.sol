@@ -25,6 +25,9 @@ abstract contract BaseLiquidityStaking is ILiquidityStaking {
   /// @dev The number of seconds in on week.
   uint256 internal constant WEEK = 86400 * 7;
 
+  /// @dev The ratio to notify rewards.
+  uint256 internal constant NOTIFY_REWARD_RATIO = 900; // 90%
+
   /***********
    * Structs *
    ***********/
@@ -57,6 +60,9 @@ abstract contract BaseLiquidityStaking is ILiquidityStaking {
   /// @notice The pool reward information.
   PoolRewardInfo public poolRewards;
 
+  /// @notice The amount of rewards queued.
+  uint256 public queuedRewards;
+
   /// @dev Mapping from user address to account reward information.
   mapping(address => AccountRewardInfo) private accountRewards;
 
@@ -82,6 +88,9 @@ abstract contract BaseLiquidityStaking is ILiquidityStaking {
   /*************************
    * Public View Functions *
    *************************/
+
+  /// @inheritdoc ILiquidityStaking
+  function rewardToken() public view virtual override returns (address);
 
   /// @inheritdoc ILiquidityStaking
   function claimable(address _account) external view override returns (uint256) {
@@ -130,8 +139,39 @@ abstract contract BaseLiquidityStaking is ILiquidityStaking {
     _checkpoint(_account);
   }
 
+  /// @notice Donate some rewards to the contract.
+  /// @param _amount The amount of rewards to donate.
+  function donate(uint256 _amount) external {
+    IERC20Upgradeable(rewardToken()).safeTransferFrom(msg.sender, address(this), _amount);
+    queuedRewards = queuedRewards.add(_amount);
+  }
+
+  /*******************************
+   * Public Restricted Functions *
+   *******************************/
+
   /// @inheritdoc ILiquidityStaking
-  function queueNewRewards(uint256 amount) external override onlyBooster {}
+  function queueNewRewards(uint256 amount) external override onlyBooster {
+    amount = amount + queuedRewards;
+    PoolRewardInfo memory _info = poolRewards;
+
+    if (block.timestamp >= _info.finishAt) {
+      _notifyRewardAmount(amount);
+      queuedRewards = 0;
+    }
+
+    uint256 _elapsedTime = block.timestamp - (_info.finishAt - WEEK);
+    uint256 _distributedRewards = _info.rate * _elapsedTime;
+    uint256 _queuedRatio = _distributedRewards.mul(1000).div(amount);
+
+    // notify rewards if 90% of the queued rewards has been distributed in this period.
+    if (_queuedRatio < NOTIFY_REWARD_RATIO) {
+      queuedRewards = 0;
+      _notifyRewardAmount(amount);
+    } else {
+      queuedRewards = amount;
+    }
+  }
 
   /// @notice Change the address of booster.
   /// @param _newBooster The address of new booster.
@@ -222,16 +262,13 @@ abstract contract BaseLiquidityStaking is ILiquidityStaking {
   function _claim(address _account, address _recipient) internal {
     uint256 _rewards = accountRewards[_account].rewards;
     if (_rewards > 0) {
-      address _token = _rewardToken();
+      address _token = rewardToken();
       accountRewards[_account].rewards = 0;
       IERC20Upgradeable(_token).safeTransfer(_recipient, _rewards);
 
       emit Claim(_token, _account, _recipient, _rewards);
     }
   }
-
-  /// @dev Return the address of reward token.
-  function _rewardToken() internal view virtual returns (address);
 
   /// @dev Return the total amount of staked token.
   function _totalSupply() internal view virtual returns (uint256);

@@ -18,6 +18,7 @@ contract VotiumVeCRVConverter is BaseBribeConverter {
   /*************
    * Variables *
    *************/
+
   /// @notice The address of Votium MultiMerkleStash contract.
   /// @dev Example: https://etherscan.io/address/0x34590960981f98b55d236b70e8b4d9929ad89c9c
   address public stash;

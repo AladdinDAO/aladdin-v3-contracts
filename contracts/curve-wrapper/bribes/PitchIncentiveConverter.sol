@@ -18,6 +18,7 @@ contract PitchIncentiveConverter is BaseBribeConverter {
   /*************
    * Variables *
    *************/
+
   /// @notice The address of Pitch GaugeIncentivesStash contract.
   /// @dev Example: https://etherscan.io/address/0x5D135C1a7604BF0b78018a21bA722e9A06e6D096
   address public stash;

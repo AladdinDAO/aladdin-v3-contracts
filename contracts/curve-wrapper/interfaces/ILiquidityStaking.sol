@@ -30,6 +30,12 @@ interface ILiquidityStaking {
    * Public View Functions *
    *************************/
 
+  /// @notice The address of staking token.
+  function stakingToken() external view returns (address);
+
+  /// @notice Return the address of reward token.
+  function rewardToken() external view returns (address);
+
   /// @notice Return the amount of claimable reward token.
   function claimable(address _account) external view returns (uint256);
 
