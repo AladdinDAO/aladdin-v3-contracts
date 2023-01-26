@@ -1,7 +1,7 @@
 /* eslint-disable no-lone-blocks */
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
-import { BigNumber, constants } from "ethers";
+import { BigNumber, constants, Contract } from "ethers";
 import { ethers } from "hardhat";
 import {
   AladdinCRVStrategy,
@@ -22,15 +22,18 @@ import {
   PlatformFeeDistributor,
   TokenSale,
   TokenZapLogic,
-  UpgradeableBeacon,
   VeCLEV,
   Vesting,
 } from "../typechain";
 import { ADDRESS, DEPLOYED_CONTRACTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "./utils";
 
 const config: {
-  CLeverBeacon: string;
-  FurnaceBeacon: string;
+  UpgradeableBeacon: {
+    [name: string]: {
+      beacon: string;
+      impl: string;
+    };
+  };
   TokenZapLogic: string;
   FundraisingGaugeV1: string;
   FundraisingGaugeFactoryV1: string;
@@ -99,8 +102,16 @@ const config: {
   sale: string;
   vest: string;
 } = {
-  CLeverBeacon: "0xf5D1cA341e1BAadd986D43b226F92B778C75C8cA",
-  FurnaceBeacon: "0xeB937D47ab60DDd50E9C04c98ceCb21E7e009773",
+  UpgradeableBeacon: {
+    MetaCLever: {
+      beacon: "0xf5D1cA341e1BAadd986D43b226F92B778C75C8cA",
+      impl: "0x057810Cf20efD30745b368eC42f0B39879CA4EB1",
+    },
+    MetaFurnace: {
+      beacon: "0xeB937D47ab60DDd50E9C04c98ceCb21E7e009773",
+      impl: "0x7059eAeBAd4f26c0FD4183fCeCBF93bB21E81E3C",
+    },
+  },
   TokenZapLogic: "0x858D62CE483B8ab538d1f9254C3Fd3Efe1c5346F",
   AllInOneGateway: "0x6e513d492Ded19AD8211a57Cc6B4493C9E6C857B",
   FundraisingGaugeV1: "0xB9CD9979718e7E4C341D8D99dA3F1290c908FBdd",
@@ -134,7 +145,7 @@ const config: {
         token: ADDRESS.CURVE_FRAXUSDC_TOKEN,
         pool: ADDRESS.CURVE_FRAXUSDC_POOL,
         reserveRate: 3e8, // 30%
-        repayFeePercentage: 5e6, // 0.5%
+        repayFeePercentage: 0e7, // 0%
         platformFeePercentage: 1e8, // 10%
         harvestBountyPercentage: 0, // 0%
         mintCeiling: ethers.utils.parseEther("50000"),
@@ -148,10 +159,10 @@ const config: {
         token: ADDRESS.CURVE_LUSDFRAXBP_TOKEN,
         pool: ADDRESS.CURVE_LUSDFRAXBP_POOL,
         reserveRate: 3e8, // 30%
-        repayFeePercentage: 5e6, // 0.5%
-        platformFeePercentage: 1e8, // 10%
+        repayFeePercentage: 0e7, // 0%
+        platformFeePercentage: 10e7, // 10%
         harvestBountyPercentage: 0, // 0%
-        mintCeiling: ethers.utils.parseEther("25000"),
+        mintCeiling: ethers.utils.parseEther("35000"),
         concentratorPID: 30,
         strategies: {
           LUSDFRAXBP_100: "0xC65D58A33D9917Df3e1a4033eD73506D9b6aCE6c", // 100% aCRV are zapped to FRAX
@@ -162,13 +173,27 @@ const config: {
         token: ADDRESS.CURVE_TUSDFRAXBP_TOKEN,
         pool: ADDRESS.CURVE_TUSDFRAXBP_POOL,
         reserveRate: 3e8, // 30%
-        repayFeePercentage: 5e6, // 0.5%
-        platformFeePercentage: 1e8, // 10%
+        repayFeePercentage: 0e7, // 0.5%
+        platformFeePercentage: 10e7, // 10%
         harvestBountyPercentage: 0, // 0%
-        mintCeiling: ethers.utils.parseEther("25000"),
+        mintCeiling: ethers.utils.parseEther("35000"),
         concentratorPID: 29,
         strategies: {
           TUSDFRAXBP_100: "0xa7625Dd9F2D8a95a0D1Ac7E8671547197e9fcAf0", // 100% aCRV are zapped to FRAX
+        },
+      },
+      clevUSDFRAXBP: {
+        clever: "0x2C37F1DcEd208530A05B061A183d8937F686157e",
+        token: ADDRESS["CURVE_clevUSD/FRAXBP_TOKEN"],
+        pool: ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
+        reserveRate: 50e7, // 50%
+        repayFeePercentage: 0e7, // 0%
+        platformFeePercentage: 10e7, // 10%
+        harvestBountyPercentage: 0, // 0%
+        mintCeiling: ethers.utils.parseEther("120000"),
+        concentratorPID: 38,
+        strategies: {
+          clevUSDFRAXBP_100: "0x5432526e75d45369970b8616F54b25c831d1e2b2", // 100% aCRV are zapped to FRAX
         },
       },
     },
@@ -210,8 +235,6 @@ const PLATFORM_FEE_PERCENTAGE = 2e7; // 2%
 const HARVEST_BOUNTY_PERCENTAGE = 1e7; // 1%
 const REPAY_FEE_PERCENTAGE = 5e7; // 5%
 
-let cleverBeacon: UpgradeableBeacon;
-let furnaceBeacon: UpgradeableBeacon;
 let logic: TokenZapLogic;
 let gateway: AllInOneGateway;
 let vefunder: FundraisingGaugeV1;
@@ -236,8 +259,20 @@ let distributor: FeeDistributor;
 let vest: Vesting;
 let sale: TokenSale;
 
+// eslint-disable-next-line no-unused-vars
 async function deployCRV() {
   const [deployer] = await ethers.getSigners();
+  const furnaceBeacon = await ethers.getContractAt(
+    "UpgradeableBeacon",
+    config.UpgradeableBeacon.MetaFurnace.beacon,
+    deployer
+  );
+  const cleverBeacon = await ethers.getContractAt(
+    "UpgradeableBeacon",
+    config.UpgradeableBeacon.MetaCLever.beacon,
+    deployer
+  );
+
   if (config.CRV.clevCRV !== "") {
     clevCRV = (await ethers.getContractAt("CLeverToken", config.CRV.clevCRV, deployer)) as CLeverToken;
     console.log("Found clevCRV at:", clevCRV.address);
@@ -354,6 +389,17 @@ async function deployCRV() {
 
 async function deployFRAX() {
   const [deployer] = await ethers.getSigners();
+  const furnaceBeacon = await ethers.getContractAt(
+    "UpgradeableBeacon",
+    config.UpgradeableBeacon.MetaFurnace.beacon,
+    deployer
+  );
+  const cleverBeacon = await ethers.getContractAt(
+    "UpgradeableBeacon",
+    config.UpgradeableBeacon.MetaCLever.beacon,
+    deployer
+  );
+
   console.log(
     "Zap from cvxCRV => FRAX:",
     `from[${ADDRESS.cvxCRV}]`,
@@ -377,6 +423,12 @@ async function deployFRAX() {
     `from[${ADDRESS.CURVE_LUSDFRAXBP_TOKEN}]`,
     `to[${ADDRESS.FRAX}]`,
     `routes[${AVAILABLE_VAULTS.lusdfraxbp.withdraw.FRAX.map((x) => x.toHexString())}]`
+  );
+  console.log(
+    "Zap from clevUSDFRAXBP => FRAX:",
+    `from[${ADDRESS["CURVE_clevUSD/FRAXBP_TOKEN"]}]`,
+    `to[${ADDRESS.FRAX}]`,
+    `routes[${AVAILABLE_VAULTS.clevusd.withdraw.FRAX.map((x) => x.toHexString())}]`
   );
 
   if (config.FRAX.clevUSD !== "") {
@@ -411,14 +463,16 @@ async function deployFRAX() {
   // Set up furnace
   const rewardInfo = await fraxFurnace.rewardInfo();
   if (rewardInfo.periodLength !== config.FRAX.rewardPeriod) {
-    const tx = await fraxFurnace.updatePeriodLength(config.FRAX.rewardPeriod);
-    console.log(
-      "Setup Period Length for FRAX_Furnace, hash:",
-      tx.hash,
-      `length: ${rewardInfo.periodLength} => ${config.FRAX.rewardPeriod}`
-    );
-    const receipt = await tx.wait();
-    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    if ((await fraxFurnace.owner()) === deployer.address) {
+      const tx = await fraxFurnace.updatePeriodLength(config.FRAX.rewardPeriod);
+      console.log(
+        "Setup Period Length for FRAX_Furnace, hash:",
+        tx.hash,
+        `length: ${rewardInfo.periodLength} => ${config.FRAX.rewardPeriod}`
+      );
+      const receipt = await tx.wait();
+      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    }
   }
 
   {
@@ -431,25 +485,27 @@ async function deployFRAX() {
       feeInfo.platformPercentage !== platformPercentage ||
       feeInfo.bountyPercentage !== bountyPercentage
     ) {
-      const tx = await fraxFurnace.updatePlatformInfo(platform, platformPercentage, bountyPercentage);
-      console.log(
-        `Setup fees in FRAX_Furnace, hash: ${tx.hash}`,
-        `platform: ${feeInfo.platform} => ${platform}`,
-        `platformPercentage: ${ethers.utils.formatUnits(feeInfo.platformPercentage, 9)} => ${ethers.utils.formatUnits(
-          platformPercentage,
-          9
-        )}`,
-        `bountyPercentage: ${ethers.utils.formatUnits(feeInfo.bountyPercentage, 9)} => ${ethers.utils.formatUnits(
-          bountyPercentage,
-          9
-        )}`
-      );
-      const receipt = await tx.wait();
-      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      if ((await fraxFurnace.owner()) === deployer.address) {
+        const tx = await fraxFurnace.updatePlatformInfo(platform, platformPercentage, bountyPercentage);
+        console.log(
+          `Setup fees in FRAX_Furnace, hash: ${tx.hash}`,
+          `platform: ${feeInfo.platform} => ${platform}`,
+          `platformPercentage: ${ethers.utils.formatUnits(feeInfo.platformPercentage, 9)} => ${ethers.utils.formatUnits(
+            platformPercentage,
+            9
+          )}`,
+          `bountyPercentage: ${ethers.utils.formatUnits(feeInfo.bountyPercentage, 9)} => ${ethers.utils.formatUnits(
+            bountyPercentage,
+            9
+          )}`
+        );
+        const receipt = await tx.wait();
+        console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      }
     }
   }
 
-  for (const underlying of ["FRAXUSDC", "TUSDFRAXBP", "LUSDFRAXBP"]) {
+  for (const underlying of ["FRAXUSDC", "TUSDFRAXBP", "LUSDFRAXBP", "clevUSDFRAXBP"]) {
     let clever: MetaCLever;
     // deploy CLever and strategies
     if (config.FRAX.CLever[underlying].clever !== "") {
@@ -503,17 +559,19 @@ async function deployFRAX() {
     const expectedReserveRate = config.FRAX.CLever[underlying].reserveRate;
     const currentReserveRate = await clever.reserveRate();
     if (!currentReserveRate.eq(expectedReserveRate)) {
-      const tx = await clever.updateReserveRate(expectedReserveRate);
-      console.log(
-        `Setup reserve rate for CLever_${underlying}, hash:`,
-        tx.hash,
-        `rate: ${ethers.utils.formatUnits(currentReserveRate, 9)} => ${ethers.utils.formatUnits(
-          expectedReserveRate,
-          9
-        )}`
-      );
-      const receipt = await tx.wait();
-      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      if ((await clever.owner()) === deployer.address) {
+        const tx = await clever.updateReserveRate(expectedReserveRate);
+        console.log(
+          `Setup reserve rate for CLever_${underlying}, hash:`,
+          tx.hash,
+          `rate: ${ethers.utils.formatUnits(currentReserveRate, 9)} => ${ethers.utils.formatUnits(
+            expectedReserveRate,
+            9
+          )}`
+        );
+        const receipt = await tx.wait();
+        console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      }
     }
 
     const feeInfo = await clever.feeInfo();
@@ -527,46 +585,75 @@ async function deployFRAX() {
       feeInfo.repayPercentage !== repayPercentage ||
       feeInfo.bountyPercentage !== bountyPercentage
     ) {
-      const tx = await clever.updateFeeInfo(platform, platformPercentage, bountyPercentage, repayPercentage);
-      console.log(
-        `Setup fees in CLever_${underlying}, hash: ${tx.hash}`,
-        `platform: ${feeInfo.platform} => ${platform}`,
-        `platformPercentage: ${ethers.utils.formatUnits(feeInfo.platformPercentage, 9)} => ${ethers.utils.formatUnits(
-          platformPercentage,
-          9
-        )}`,
-        `bountyPercentage: ${ethers.utils.formatUnits(feeInfo.bountyPercentage, 9)} => ${ethers.utils.formatUnits(
-          bountyPercentage,
-          9
-        )}`,
-        `repayPercentage: ${ethers.utils.formatUnits(feeInfo.repayPercentage, 9)} => ${ethers.utils.formatUnits(
-          repayPercentage,
-          9
-        )}`
-      );
-      const receipt = await tx.wait();
-      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      if ((await clever.owner()) === deployer.address) {
+        const tx = await clever.updateFeeInfo(platform, platformPercentage, bountyPercentage, repayPercentage);
+        console.log(
+          `Setup fees in CLever_${underlying}, hash: ${tx.hash}`,
+          `platform: ${feeInfo.platform} => ${platform}`,
+          `platformPercentage: ${ethers.utils.formatUnits(feeInfo.platformPercentage, 9)} => ${ethers.utils.formatUnits(
+            platformPercentage,
+            9
+          )}`,
+          `bountyPercentage: ${ethers.utils.formatUnits(feeInfo.bountyPercentage, 9)} => ${ethers.utils.formatUnits(
+            bountyPercentage,
+            9
+          )}`,
+          `repayPercentage: ${ethers.utils.formatUnits(feeInfo.repayPercentage, 9)} => ${ethers.utils.formatUnits(
+            repayPercentage,
+            9
+          )}`
+        );
+        const receipt = await tx.wait();
+        console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      }
     }
 
     if (!(await fraxFurnace.isWhitelisted(clever.address))) {
-      const tx = await fraxFurnace.updateWhitelists([clever.address], true);
-      console.log(`Add whitelist CLever_${underlying} to fraxFurnace, hash:`, tx.hash);
-      const receipt = await tx.wait();
-      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      if ((await fraxFurnace.owner()) === deployer.address) {
+        const tx = await fraxFurnace.updateWhitelists([clever.address], true);
+        console.log(`Add whitelist CLever_${underlying} to fraxFurnace, hash:`, tx.hash);
+        const receipt = await tx.wait();
+        console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      } else {
+        console.log(
+          `Add whitelist CLever_${underlying} to fraxFurnace:`,
+          `target[${fraxFurnace.address}]`,
+          "method[updateWhitelists]",
+          `param[[${clever.address}], true]`
+        );
+      }
     }
 
     if (!(await clevUSD.isMinter(clever.address))) {
-      const tx = await clevUSD.updateMinters([clever.address], true);
-      console.log(`Setup CLever_${underlying} as minter of clevUSD, hash:`, tx.hash);
-      const receipt = await tx.wait();
-      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      if ((await clevUSD.owner()) === deployer.address) {
+        const tx = await clevUSD.updateMinters([clever.address], true);
+        console.log(`Setup CLever_${underlying} as minter of clevUSD, hash:`, tx.hash);
+        const receipt = await tx.wait();
+        console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      } else {
+        console.log(
+          `Setup CLever_${underlying} as minter of clevUSD:`,
+          `target[${clevUSD.address}]`,
+          "method[updateMinters]",
+          `param[[${clever.address}], true]`
+        );
+      }
     }
 
     if (!(await clevUSD.minterInfo(clever.address)).ceiling.eq(config.FRAX.CLever[underlying].mintCeiling)) {
-      const tx = await clevUSD.updateCeiling(clever.address, config.FRAX.CLever[underlying].mintCeiling);
-      console.log(`Setup minter ceiling for CLever_${underlying}, hash:`, tx.hash);
-      const receipt = await tx.wait();
-      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      if ((await clevUSD.owner()) === deployer.address) {
+        const tx = await clevUSD.updateCeiling(clever.address, config.FRAX.CLever[underlying].mintCeiling);
+        console.log(`Setup minter ceiling for CLever_${underlying}, hash:`, tx.hash);
+        const receipt = await tx.wait();
+        console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+      } else {
+        console.log(
+          `Setup minter ceiling for CLever_${underlying}:`,
+          `target[${clevUSD.address}]`,
+          "method[updateCeiling]",
+          `param[${clever.address}, "${config.FRAX.CLever[underlying].mintCeiling.toHexString()}"]`
+        );
+      }
     }
 
     const [, strategies] = await clever.getActiveYieldStrategies();
@@ -578,15 +665,25 @@ async function deployFRAX() {
         deployer
       );
       if (!strategies.includes(strategy.address)) {
-        const tx = await clever.addYieldStrategy(strategy.address, []);
-        console.log(`setup add ConcentratorStrategy ${name} to CLever_${underlying}, hash:`, tx.hash);
-        const receipt = await tx.wait();
-        console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+        if ((await clever.owner()) === deployer.address) {
+          const tx = await clever.addYieldStrategy(strategy.address, []);
+          console.log(`setup add ConcentratorStrategy ${name} to CLever_${underlying}, hash:`, tx.hash);
+          const receipt = await tx.wait();
+          console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+        } else {
+          console.log(
+            `Setup add ConcentratorStrategy ${name} to CLever_${underlying}:`,
+            `target[${clever.address}]`,
+            "method[addYieldStrategy]",
+            `param[${strategy.address}, []]`
+          );
+        }
       }
     }
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 async function deployTokenAndVe() {
   const [deployer] = await ethers.getSigners();
 
@@ -677,6 +774,7 @@ async function deployTokenAndVe() {
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 async function deployGauge() {
   const [deployer] = await ethers.getSigners();
 
@@ -854,7 +952,8 @@ async function deployGauge() {
     const receipt = await tx.wait();
     console.log("✅ Done, gas used", receipt.gasUsed.toString());
   }
-  /* if ((await controller.get_gauge_weight(config.Gauge.Curve_clevCVX_CVX.gauge)).isZero()) {
+  /*
+  if ((await controller.get_gauge_weight(config.Gauge.Curve_clevCVX_CVX.gauge)).isZero()) {
     const tx = await controller["add_gauge(address,int128,uint256)"](config.Gauge.Curve_clevCVX_CVX.gauge, 0, "25", {
       gasLimit: 1000000,
     });
@@ -869,9 +968,11 @@ async function deployGauge() {
     console.log("add Balancer clevCVX/CVX Gauge, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done, gas used", receipt.gasUsed.toString());
-  } */
+  }
+  */
 }
 
+// eslint-disable-next-line no-unused-vars
 async function deployIDO() {
   const [deployer] = await ethers.getSigners();
 
@@ -906,38 +1007,32 @@ async function deployIDO() {
 async function main() {
   const [deployer] = await ethers.getSigners();
 
-  if (config.CLeverBeacon !== "") {
-    cleverBeacon = await ethers.getContractAt("UpgradeableBeacon", config.CLeverBeacon, deployer);
-    console.log("Found CleverBeacon at:", cleverBeacon.address);
-  } else {
-    const MetaCLever = await ethers.getContractFactory("MetaCLever", deployer);
-    const impl = await MetaCLever.deploy();
-    console.log("Deploying MetaCLever Impl, hash:", impl.deployTransaction.hash);
-    await impl.deployed();
-    console.log("✅ Deploy MetaCLever Impl at:", impl.address);
+  for (const contractName of ["MetaCLever", "MetaFurnace"]) {
+    let impl: Contract;
+    let beacon: Contract;
+    if (config.UpgradeableBeacon[contractName].impl !== "") {
+      impl = await ethers.getContractAt(contractName, config.UpgradeableBeacon[contractName].impl, deployer);
+      console.log(`Found ${contractName} Impl at:`, impl.address);
+    } else {
+      const contract = await ethers.getContractFactory(contractName, deployer);
+      impl = await contract.deploy();
+      console.log(`Deploying ${contractName} Impl, hash:`, impl.deployTransaction.hash);
+      const receipt = await impl.deployTransaction.wait();
+      console.log(`✅ Deploy ${contractName} Impl at:`, impl.address, "gas used:", receipt.gasUsed.toString());
+      config.UpgradeableBeacon[contractName].impl = impl.address;
+    }
 
-    const UpgradeableBeacon = await ethers.getContractFactory("UpgradeableBeacon", deployer);
-    cleverBeacon = await UpgradeableBeacon.deploy(impl.address);
-    console.log("Deploying CleverBeacon, hash:", cleverBeacon.deployTransaction.hash);
-    await cleverBeacon.deployed();
-    console.log("✅ Deploy CleverBeacon at:", cleverBeacon.address);
-  }
-
-  if (config.FurnaceBeacon !== "") {
-    furnaceBeacon = await ethers.getContractAt("UpgradeableBeacon", config.FurnaceBeacon, deployer);
-    console.log("Found FurnaceBeacon at:", furnaceBeacon.address);
-  } else {
-    const MetaFurnace = await ethers.getContractFactory("MetaFurnace", deployer);
-    const impl = await MetaFurnace.deploy();
-    console.log("Deploying MetaFurnace Impl, hash:", impl.deployTransaction.hash);
-    await impl.deployed();
-    console.log("✅ Deploy MetaFurnace Impl at:", impl.address);
-
-    const UpgradeableBeacon = await ethers.getContractFactory("UpgradeableBeacon", deployer);
-    furnaceBeacon = await UpgradeableBeacon.deploy(impl.address);
-    console.log("Deploying FurnaceBeacon, hash:", furnaceBeacon.deployTransaction.hash);
-    await furnaceBeacon.deployed();
-    console.log("✅ Deploy FurnaceBeacon at:", furnaceBeacon.address);
+    if (config.UpgradeableBeacon[contractName].beacon !== "") {
+      beacon = await ethers.getContractAt("UpgradeableBeacon", config.UpgradeableBeacon[contractName].beacon, deployer);
+      console.log(`Found ${contractName} Beacon at:`, beacon.address);
+    } else {
+      const UpgradeableBeacon = await ethers.getContractFactory("UpgradeableBeacon", deployer);
+      beacon = await UpgradeableBeacon.deploy(impl.address);
+      console.log(`Deploying ${contractName} Beacon, hash:`, beacon.deployTransaction.hash);
+      const receipt = await beacon.deployTransaction.wait();
+      console.log(`✅ Deploy ${contractName} Beacon at:`, beacon.address, "gas used:", receipt.gasUsed.toString());
+      config.UpgradeableBeacon[contractName].beacon = beacon.address;
+    }
   }
 
   if (config.TokenZapLogic !== "") {
@@ -1017,11 +1112,13 @@ async function main() {
     console.log("✅ Deploy PlatformFeeDistributor at:", platform.address);
   }
 
-  await deployCRV();
+  // await deployCRV();
   await deployFRAX();
+  /*
   await deployTokenAndVe();
   await deployIDO();
   await deployGauge();
+  */
 }
 
 // We recommend this pattern to be able to use async/await everywhere
