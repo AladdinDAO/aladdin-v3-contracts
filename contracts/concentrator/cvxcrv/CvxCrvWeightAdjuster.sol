@@ -71,6 +71,7 @@ contract CvxCrvWeightAdjuster is Ownable {
   constructor(address _oracle, address _strategy) {
     oracle = _oracle;
     strategy = _strategy;
+    isPermissioned = true;
   }
 
   /*************************
@@ -146,10 +147,12 @@ contract CvxCrvWeightAdjuster is Ownable {
     _supply1 -= _balance1;
 
     uint256 k = sqrt((_reward1USD * _supply1 * 1e18) / (_reward0USD * _supply0));
+    // w = (k/1e9 * (_balance + _supply0) - _supply1) / ((1 + k/1e9) * _balance)
+    // w = (k * (_balance + _supply0) - _supply1 * 1e9) / ((1e9 + k) * _balance)
     uint256 w = k * (_balance + _supply0);
-    if (w < _supply1) w = 0;
+    if (w < _supply1 * 1e9) w = 0;
     else {
-      w = (w - _supply1) / ((1e9 + k) * _balance);
+      w = ((w - _supply1 * 1e9) * 1e9) / ((1e9 + k) * _balance);
       if (w >= 1e9) w = 1e9;
     }
 
