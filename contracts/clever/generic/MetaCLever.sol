@@ -116,6 +116,9 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
   /// @notice The fee information, including platform fee, bounty fee and repay fee.
   FeeInfo public feeInfo;
 
+  /// @notice Mapping from strategy index to the percentage of yield token to sell on harvest.
+  mapping(uint256 => uint256) public yieldTokenHarvestPercentage;
+
   modifier onlyExistingStrategy(uint256 _strategyIndex) {
     require(_strategyIndex < yieldStrategyIndex, "CLever: strategy not exist");
     _;
@@ -555,14 +558,16 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     uint256 _harvestedUnderlyingTokenAmount;
     // 2. withdraw some yield token as rewards
     {
-      uint256 _harvestable = _yieldStrategy.harvestableYieldTokenAmount;
+      uint256 _harvestableYieldTokenAmount = _yieldStrategy.harvestableYieldTokenAmount;
+      uint256 _harvestable = (_harvestableYieldTokenAmount * yieldTokenHarvestPercentage[_strategyIndex]) /
+        FEE_PRECISION;
       if (_harvestable > 0) {
         _harvestedUnderlyingTokenAmount = IYieldStrategy(_yieldStrategy.strategy).withdraw(
           address(this),
           _harvestable,
           true
         );
-        _yieldStrategy.harvestableYieldTokenAmount = 0;
+        _yieldStrategy.harvestableYieldTokenAmount = _harvestableYieldTokenAmount - _harvestable;
       }
     }
 
@@ -671,6 +676,19 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     yieldStrategies[_strategyIndex].isActive = _isActive;
 
     emit SetStrategyActive(_strategyIndex, _isActive);
+  }
+
+  /// @notice Update the percentage of yield token to harvest.
+  /// @param _strategyIndex The index of yield strategy to update.
+  /// @param _percentage The percentage to update.
+  function updateYieldTokenHarvestPercentage(uint256 _strategyIndex, uint256 _percentage)
+    external
+    onlyExistingStrategy(_strategyIndex)
+    onlyOwner
+  {
+    require(_percentage <= FEE_PRECISION, "CLever: percentage too large");
+
+    yieldTokenHarvestPercentage[_strategyIndex] = _percentage;
   }
 
   /// @notice Migrate an existing yield stategy to a new address.
