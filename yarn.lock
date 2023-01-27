@@ -1805,6 +1805,11 @@
   dependencies:
     fs-extra "^9.1.0"
 
+"@types/asciichart@^1.5.6":
+  version "1.5.6"
+  resolved "https://registry.yarnpkg.com/@types/asciichart/-/asciichart-1.5.6.tgz#12c6c8f31170006faa98f2cb3e698314ef0ddcad"
+  integrity sha512-GXq4BojlHJHRlizP9zXQfhgMbAy+kmyMyfV9P6vyYxUE302Km8GU0ebToQ1YVlGlFypVOYWNxqEWWLQW0HzFgA==
+
 "@types/async-eventemitter@^0.2.1":
   version "0.2.1"
   resolved "https://registry.yarnpkg.com/@types/async-eventemitter/-/async-eventemitter-0.2.1.tgz#f8e6280e87e8c60b2b938624b0a3530fb3e24712"
@@ -2405,6 +2410,11 @@ asap@~2.0.6:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/asap/-/asap-2.0.6.tgz#e50347611d7e690943208bbdafebcbc2fb866d46"
   integrity sha1-5QNHYR1+aQlDIIu9r+vLwvuGbUY=
+
+asciichart@^1.5.25:
+  version "1.5.25"
+  resolved "https://registry.yarnpkg.com/asciichart/-/asciichart-1.5.25.tgz#f5aca189801b4e58019139bbb5922ab3cae3ca90"
+  integrity sha512-PNxzXIPPOtWq8T7bgzBtk9cI2lgS4SJZthUHEiQ1aoIc3lNzGfUvIvo9LiAnq26TACo9t1/4qP6KTGAUbzX9Xg==
 
 asn1.js@^5.2.0:
   version "5.4.1"
