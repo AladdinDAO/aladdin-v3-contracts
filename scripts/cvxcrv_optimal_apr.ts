@@ -214,6 +214,7 @@ async function main(holder: string) {
   const reward1USD = as_float(amount3CRV) * price3CRV;
   const balanceUSD = as_float(bal_me) * priceCvxCrv;
   const currentDailyRewardUSD = ratio(bal0_me, supply0) * reward0USD + ratio(bal1_me, supply1) * reward1USD;
+  console.log("block:", block.number);
   console.log("holder:", holder);
   console.log("\nCurrent Status:");
   console.log(" + totalSupplyGroup0:", ethers.utils.formatEther(supply0));
