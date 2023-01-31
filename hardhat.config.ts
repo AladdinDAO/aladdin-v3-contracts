@@ -57,7 +57,7 @@ const config: HardhatUserConfig = {
       accounts,
     },
     mainnet: {
-      url: "https://rpc.ankr.com/eth",
+      url: process.env.MAINNET_URL || "https://rpc.ankr.com/eth",
       chainId: 1,
       accounts,
     },

@@ -90,12 +90,19 @@ const config: {
     VeSDTDelegation: {
       impl: string;
       proxy: string;
+      start: number;
     };
     StakeDAOCRVVault: {
       impl: string;
       proxy: string;
       gauge: string;
       lockDuration: number;
+      ratio: {
+        platform: number;
+        harvest: number;
+        boost: number;
+        withdraw: number;
+      };
     };
     AladdinSdCRV: {
       impl: string;
@@ -235,25 +242,32 @@ const config: {
   },
   ConcentratorStakeDAO: {
     StakeDAOLockerProxy: {
-      impl: "0xbE509cC6Ef7d31d1E7Ca98b1d84a0A9dA3D39466",
-      proxy: "0x5380d2580583E33a8B7D168905d11fe1F11Cf94A",
+      impl: "0xbccb5BCD5DeA5511aC11114Ef4FeD908a45832CF",
+      proxy: "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09",
     },
     VeSDTDelegation: {
-      impl: "0x4b2C6F67bC775FD64De3CEc188f0F3E960ce0750",
-      proxy: "0xB154E81543CeF2a6E55B46CB28a6654EE5736220",
+      impl: "0xA5d31B528D2710af19E57fedA324483c14aE0F12",
+      proxy: "0x6037Bb1BBa598bf88D816cAD90A28cC00fE3ff64",
+      start: 1675728000, // Tue Feb 07 2023 00:00:00 GMT+0000
     },
     StakeDAOCRVVault: {
-      impl: "0x617408C93108e1830F27CD532B7C3e393652295A",
-      proxy: "0x94cC627Db80253056B2130aAC39abB252A75F345",
+      impl: "0xe86Cf56582Ee0A798b3490886de6CB59D56e4aAd",
+      proxy: "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6",
       gauge: "0x7f50786A0b15723D741727882ee99a0BF34e3466",
-      lockDuration: 86400 * 30,
+      lockDuration: 86400 * 14,
+      ratio: {
+        platform: 10e7 / 100, // 10%
+        harvest: 1e7 / 100, // 1%
+        boost: 15e7 / 100, // 15%
+        withdraw: 0 / 100, // 0%
+      },
     },
     AladdinSdCRV: {
-      impl: "0xDd3365Fc80C3e0CC111A58000526973a38686686",
-      proxy: "0x0630d7174bD65b48c4F5f43a66075925165253AE",
+      impl: "0xdC4Ca266b54084cB2371A4258e080bCE9e23545E",
+      proxy: "0x43E54C2E7b3e294De3A155785F52AB49d87B9922",
       ratio: {
-        platform: 25000000, // 2.5%
-        harvest: 25000000, // 2.5%
+        platform: 10e7, // 10%
+        harvest: 1e7, // 1%
         withdraw: 2500000, // 0.25%
       },
     },
@@ -922,9 +936,9 @@ async function deployConcentratorStakeDAO() {
     delegation = await ethers.getContractAt("VeSDTDelegation", deployConfig.VeSDTDelegation.proxy, deployer);
     console.log("Found VeSDTDelegation at:", delegation.address);
   } else {
-    // @todo change to correct timestamp
-    const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-    const data = VeSDTDelegation__factory.createInterface().encodeFunctionData("initialize", [timestamp]);
+    const data = VeSDTDelegation__factory.createInterface().encodeFunctionData("initialize", [
+      deployConfig.VeSDTDelegation.start,
+    ]);
     const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
     const proxy = await TransparentUpgradeableProxy.deploy(
       deployConfig.VeSDTDelegation.impl,
@@ -1008,27 +1022,107 @@ async function deployConcentratorStakeDAO() {
   }
 
   if ((await lockerProxy.operators(deployConfig.StakeDAOCRVVault.gauge)) !== sdCRVVault.address) {
-    const tx = await lockerProxy.updateOperator(deployConfig.StakeDAOCRVVault.gauge, sdCRVVault.address);
+    const tx = await lockerProxy.updateOperator(deployConfig.StakeDAOCRVVault.gauge, sdCRVVault.address, {
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+    });
     console.log("updateOperator for sdCRV gauge, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done, gas used:", receipt.gasUsed.toString());
   }
 
   if ((await lockerProxy.claimer()) !== sdCRVVault.address) {
-    const tx = await lockerProxy.updateClaimer(sdCRVVault.address);
+    const tx = await lockerProxy.updateClaimer(sdCRVVault.address, {
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+    });
     console.log("updateClaimer for sdCRV bribes, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done, gas used:", receipt.gasUsed.toString());
   }
 
-  if ((await asdCRV.feeInfo()).platform !== DEPLOYED_CONTRACTS.Concentrator.Treasury) {
+  const vaultFeeInfo = await sdCRVVault.feeInfo();
+  if (
+    vaultFeeInfo.platform !== DEPLOYED_CONTRACTS.Concentrator.Treasury ||
+    vaultFeeInfo.platformPercentage !== deployConfig.StakeDAOCRVVault.ratio.platform ||
+    vaultFeeInfo.bountyPercentage !== deployConfig.StakeDAOCRVVault.ratio.harvest ||
+    vaultFeeInfo.withdrawPercentage !== deployConfig.StakeDAOCRVVault.ratio.withdraw ||
+    vaultFeeInfo.boostPercentage !== deployConfig.StakeDAOCRVVault.ratio.boost
+  ) {
+    const tx = await sdCRVVault.updateFeeInfo(
+      DEPLOYED_CONTRACTS.Concentrator.Treasury,
+      deployConfig.StakeDAOCRVVault.ratio.platform,
+      deployConfig.StakeDAOCRVVault.ratio.harvest,
+      deployConfig.StakeDAOCRVVault.ratio.boost,
+      deployConfig.StakeDAOCRVVault.ratio.withdraw
+    );
+    console.log(
+      "sdCRVVault.updateFeeInfo",
+      `platform[${vaultFeeInfo.platform}=>${DEPLOYED_CONTRACTS.Concentrator.Treasury}]`,
+      `withdrawRatio[${ethers.utils.formatUnits(vaultFeeInfo.withdrawPercentage, 7)}=>${ethers.utils.formatUnits(
+        deployConfig.StakeDAOCRVVault.ratio.withdraw,
+        7
+      )}]`,
+      `bountyRatio[${ethers.utils.formatUnits(vaultFeeInfo.bountyPercentage, 7)}=>${ethers.utils.formatUnits(
+        deployConfig.StakeDAOCRVVault.ratio.harvest,
+        7
+      )}]`,
+      `platformRatio[${ethers.utils.formatUnits(vaultFeeInfo.platformPercentage, 7)}=>${ethers.utils.formatUnits(
+        deployConfig.StakeDAOCRVVault.ratio.platform,
+        7
+      )}]`,
+      `boostRatio[${ethers.utils.formatUnits(vaultFeeInfo.boostPercentage, 7)}=>${ethers.utils.formatUnits(
+        deployConfig.StakeDAOCRVVault.ratio.boost,
+        7
+      )}]`,
+      `hash[${tx.hash}]`
+    );
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
+
+  const withdrawLockTime = await sdCRVVault.withdrawLockTime();
+  if (withdrawLockTime.toNumber() !== deployConfig.StakeDAOCRVVault.lockDuration) {
+    const tx = await sdCRVVault.updateWithdrawLockTime(deployConfig.StakeDAOCRVVault.lockDuration);
+    console.log(
+      "sdCRVVault.updateWithdrawLockTime",
+      `withdrawLockTime[${withdrawLockTime.toNumber()}=>${deployConfig.StakeDAOCRVVault.lockDuration}]`,
+      `hash[${tx.hash}]`
+    );
+    const receipt = await tx.wait();
+    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+  }
+
+  const asdCRVFeeInfo = await asdCRV.feeInfo();
+  if (
+    asdCRVFeeInfo.platform !== DEPLOYED_CONTRACTS.Concentrator.Treasury ||
+    asdCRVFeeInfo.platformPercentage !== deployConfig.AladdinSdCRV.ratio.platform ||
+    asdCRVFeeInfo.bountyPercentage !== deployConfig.AladdinSdCRV.ratio.harvest ||
+    asdCRVFeeInfo.withdrawPercentage !== deployConfig.AladdinSdCRV.ratio.withdraw
+  ) {
     const tx = await asdCRV.updateFeeInfo(
       DEPLOYED_CONTRACTS.Concentrator.Treasury,
       deployConfig.AladdinSdCRV.ratio.platform,
       deployConfig.AladdinSdCRV.ratio.harvest,
       deployConfig.AladdinSdCRV.ratio.withdraw
     );
-    console.log(`asdCRV.updateFeeInfo, hash:`, tx.hash);
+    console.log(
+      "asdCRV.updateFeeInfo",
+      `platform[${asdCRVFeeInfo.platform}=>${DEPLOYED_CONTRACTS.Concentrator.Treasury}]`,
+      `withdrawRatio[${ethers.utils.formatUnits(asdCRVFeeInfo.withdrawPercentage, 9)}=>${ethers.utils.formatUnits(
+        deployConfig.AladdinSdCRV.ratio.withdraw,
+        9
+      )}]`,
+      `bountyRatio[${ethers.utils.formatUnits(asdCRVFeeInfo.bountyPercentage, 9)}=>${ethers.utils.formatUnits(
+        deployConfig.AladdinSdCRV.ratio.harvest,
+        9
+      )}]`,
+      `platformRatio[${ethers.utils.formatUnits(asdCRVFeeInfo.platformPercentage, 9)}=>${ethers.utils.formatUnits(
+        deployConfig.AladdinSdCRV.ratio.platform,
+        9
+      )}]`,
+      `hash[${tx.hash}]`
+    );
     const receipt = await tx.wait();
     console.log("✅ Done, gas used:", receipt.gasUsed.toString());
   }
