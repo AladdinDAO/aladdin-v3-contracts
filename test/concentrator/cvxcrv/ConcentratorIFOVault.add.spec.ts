@@ -146,6 +146,14 @@ const POOL_FORK_CONFIG: {
     amount: "10",
     harvest: false,
   },
+  "ETH/CLEV": {
+    height: 16524480,
+    pid: 39,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x0a27dab612e9f254417ea61598de46e88f3d1730",
+    amount: "1",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
