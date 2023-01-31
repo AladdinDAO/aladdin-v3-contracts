@@ -16,6 +16,7 @@ import "../../interfaces/ICurveFactoryPlainPool.sol";
 import "../../interfaces/ICvxCrvStakingWrapper.sol";
 import "../../interfaces/IZap.sol";
 
+import "../../common/ConcentratorHarvester.sol";
 import "../../common/FeeCustomization.sol";
 
 // solhint-disable no-empty-blocks, reason-string
@@ -23,6 +24,7 @@ contract AladdinCRVV2 is
   ERC20Upgradeable,
   OwnableUpgradeable,
   ReentrancyGuardUpgradeable,
+  ConcentratorHarvester,
   FeeCustomization,
   IAladdinCRV,
   IAladdinCompounder
@@ -378,6 +380,8 @@ contract AladdinCRVV2 is
     nonReentrant
     returns (uint256)
   {
+    require(canHarvest(msg.sender), "cannot harvest");
+
     return _harvest(_recipient, _minimumOut);
   }
 
@@ -442,6 +446,22 @@ contract AladdinCRVV2 is
     IConcentratorStrategy(_newStrategy).deposit(address(this), _totalUnderlying);
 
     emit MigrateStrategy(_oldStrategy, _newStrategy);
+  }
+
+  /// @notice Update withdraw fee for certain user.
+  /// @param _user The address of user to update.
+  /// @param _percentage The withdraw fee percentage to be updated, multipled by 1e9.
+  function setWithdrawFeeForUser(address _user, uint32 _percentage) external onlyOwner {
+    require(_percentage <= MAX_WITHDRAW_FEE, "withdraw fee too large");
+
+    _setFeeCustomization(WITHDRAW_FEE_TYPE, _user, _percentage);
+  }
+
+  /// @notice Update harvest limitation
+  /// @param _amount The amount of veCTR needed.
+  /// @param _duration The minimum locked duration needed.
+  function setHarvestLimitation(uint256 _amount, uint256 _duration) external onlyOwner {
+    _setHarvestLimitation(_amount, _duration);
   }
 
   /********************************** Internal Functions **********************************/

@@ -10,12 +10,19 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "./interfaces/ICLeverAMO.sol";
 
 import "./RewardClaimable.sol";
+import "../../common/ConcentratorHarvester.sol";
 
 // solhint-disable contract-name-camelcase
 // solhint-disable not-rely-on-time
 // solhint-disable reason-string
 
-abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upgradeable, ICLeverAMO {
+abstract contract CLeverAMOBase is
+  OwnableUpgradeable,
+  RewardClaimable,
+  ERC20Upgradeable,
+  ConcentratorHarvester,
+  ICLeverAMO
+{
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   /// @notice Emitted when harvest bounty percentage is updated.
@@ -159,12 +166,15 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     ERC20Upgradeable.__ERC20_init(_name, _symbol);
 
     initialRatio = _initialRatio;
+    /*
+    // remove this to reduce bytecode size
     config = AMOConfig({
       minAMO: uint64(RATIO_PRECISION),
       maxAMO: uint64(RATIO_PRECISION * 3),
       minLPRatio: uint64(RATIO_PRECISION / 2),
       maxLPRatio: uint64(RATIO_PRECISION)
     });
+    */
 
     lockPeriod = 1 days; // default lock 1 day
     minimumDeposit = 10**18; // default 1 base token.
@@ -338,6 +348,8 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
 
   /// @inheritdoc ICLeverAMO
   function harvest(address _recipient, uint256 _minBaseOut) external override returns (uint256 _baseTokenOut) {
+    require(canHarvest(msg.sender), "cannot harvest");
+
     // claim from furnace
     _baseTokenOut = _claimBaseFromFurnace();
     // harvest external rewards
@@ -435,6 +447,13 @@ abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upg
     lockPeriod = _lockPeriod;
 
     emit UpdateLockPeriod(_lockPeriod);
+  }
+
+  /// @notice Update harvest limitation
+  /// @param _amount The amount of veCTR needed.
+  /// @param _duration The minimum locked duration needed.
+  function setHarvestLimitation(uint256 _amount, uint256 _duration) external onlyOwner {
+    _setHarvestLimitation(_amount, _duration);
   }
 
   /********************************** Internal Functions **********************************/
