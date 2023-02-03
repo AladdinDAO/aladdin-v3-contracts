@@ -109,7 +109,7 @@ const config: {
     },
     MetaFurnace: {
       beacon: "0xeB937D47ab60DDd50E9C04c98ceCb21E7e009773",
-      impl: "0x7059eAeBAd4f26c0FD4183fCeCBF93bB21E81E3C",
+      impl: "0x6F77685Ae7A1288d2480440b7bB0Fa2C317950F9",
     },
   },
   TokenZapLogic: "0x858D62CE483B8ab538d1f9254C3Fd3Efe1c5346F",
