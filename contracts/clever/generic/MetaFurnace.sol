@@ -365,6 +365,14 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     emit UpdatePeriodLength(_length);
   }
 
+  /// @notice Fix wrong accUnrealisedFractionPaid for users.
+  /// @dev This is a temporary method.
+  function fixStatus(address[] memory _accounts, uint128[] memory _values) external onlyOwner {
+    for (uint256 i = 0; i < _accounts.length; i++) {
+      userInfo[_accounts[i]].accUnrealisedFractionPaid = _values[i];
+    }
+  }
+
   /********************************** Internal Functions **********************************/
 
   /// @dev Internal function to reduce global debt based on pending rewards.
@@ -399,7 +407,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
       userInfo[_account] = UserInfo({
         unrealised: 0,
         realised: _userInfo.unrealised + _userInfo.realised, // never overflow here
-        accUnrealisedFractionPaid: 0,
+        accUnrealisedFractionPaid: _accUnrealisedFraction,
         lastDistributeIndex: _distributeIndex
       });
     } else {

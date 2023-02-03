@@ -37,13 +37,6 @@ const zap_fork_config: { [symbol: string]: IZapForkConfig } = {
     amount: "10000",
     update_impl: false,
   },
-  LDO: {
-    height: 14699276,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xC24da173A250e9Ca5c54870639EbE5f88be5102d",
-    amount: "10000",
-    update_impl: false,
-  },
   ALCX: {
     height: 14699276,
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
@@ -203,6 +196,13 @@ const zap_fork_config: { [symbol: string]: IZapForkConfig } = {
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x1a9e40de2e1851bb1e92d78e760d6110e6e0adc6",
     amount: "100",
+    update_impl: false,
+  },
+  LDO: {
+    height: 16546260,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x77b35ea0573868f849c4bee6a1f5dc21d17fa842",
+    amount: "10000",
     update_impl: false,
   },
 };

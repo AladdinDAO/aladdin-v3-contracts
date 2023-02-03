@@ -426,7 +426,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
       userInfo[_account] = UserInfo({
         unrealised: 0,
         realised: _info.unrealised + _info.realised, // never overflow here
-        accUnrealisedFractionPaid: 0,
+        accUnrealisedFractionPaid: _accUnrealisedFraction,
         lastDistributeIndex: _distributeIndex
       });
     } else {
