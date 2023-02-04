@@ -249,9 +249,9 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
       encodePoolHintV2(ADDRESS.CURVE_CTRETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
     ],
     // USDC ==(UniV3)==> WETH
-    Curve_CLEVETH_TOKEN: [
+    "CURVE_ETH/CLEV_TOKEN": [
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-      encodePoolHintV2(ADDRESS.CURVE_CLEVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+      encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
     ],
     // USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX ==(Curve)==> Curve_CLEVCVX_TOKEN
     Curve_CLEVCVX_TOKEN: [
@@ -300,9 +300,9 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
     Curve_CTRETH_TOKEN: [
       encodePoolHintV2(ADDRESS.CURVE_CTRETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
     ],
-    // WETH ==(Curve)==> Curve_CLEVETH_TOKEN
-    Curve_CLEVETH_TOKEN: [
-      encodePoolHintV2(ADDRESS.CURVE_CLEVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+    // WETH ==(Curve)==> "CURVE_ETH/CLEV_TOKEN"
+    "CURVE_ETH/CLEV_TOKEN": [
+      encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
     ],
     // WETH ==(CurveV2)==> CVX ==(Curve)==> Curve_CLEVCVX_TOKEN
     Curve_CLEVCVX_TOKEN: [
@@ -311,12 +311,12 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
     ],
   },
   CLEV: {
-    Curve_CLEVETH_TOKEN: [
-      encodePoolHintV2(ADDRESS.CURVE_CLEVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+    "CURVE_ETH/CLEV_TOKEN": [
+      encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
     ],
     // CLEV ==(CurveV2)==> WETH ==(CurveV2)==> CVX
     CVX: [
-      encodePoolHintV2(ADDRESS.CURVE_CLEVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },

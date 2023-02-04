@@ -268,22 +268,31 @@ async function addVaults(
       throw new Error(`strategy ${strategyName} not supported`);
     }
 
-    // add pool with strategy
-    const tx = await vault.addPool(
-      underlying,
-      strategy.address,
-      pool.fees.withdraw,
-      pool.fees.platform,
-      pool.fees.harvest,
-      {
-        gasLimit: 1000000,
-        maxFeePerGas,
-        maxPriorityFeePerGas,
-      }
-    );
-    console.log(`Add pool ${pool.name} with pid[${pid}] and Compounder[${compounderName}], hash:`, tx.hash);
-    const receipt = await tx.wait();
-    console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    if ((await vault.owner()) === deployer.address) {
+      // add pool with strategy
+      const tx = await vault.addPool(
+        underlying,
+        strategy.address,
+        pool.fees.withdraw,
+        pool.fees.platform,
+        pool.fees.harvest,
+        {
+          gasLimit: 1000000,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+        }
+      );
+      console.log(`Add pool ${pool.name} with pid[${pid}] and Compounder[${compounderName}], hash:`, tx.hash);
+      const receipt = await tx.wait();
+      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    } else {
+      console.log(
+        `Add pool ${pool.name} with pid[${pid}] and Compounder[${compounderName}]:`,
+        `target[${vault.address}]`,
+        `method[addPool]`,
+        `params[${underlying},${strategy.address},${pool.fees.withdraw},${pool.fees.platform},${pool.fees.harvest}]`
+      );
+    }
   }
 }
 

@@ -2741,6 +2741,33 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
+  "ETH/CLEV": {
+    token: "CURVE_ETH/CLEV",
+    composition: "ETH+CLEV",
+    convexCurveID: 142,
+    rewarder: "0x6be96D00B50375AF852D63DB7d55656B306f398e",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
+      CLEV: [encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      USDC: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+      ],
+    },
+    withdraw: {
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+      ],
+      CLEV: [
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+      ],
+      USDC: [
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -2812,6 +2839,7 @@ export const DEPLOYED_VAULTS: {
     { name: "multibtc", strategy: "ConvexCurve", fees: { withdraw: 0.03e7, harvest: 1e7, platform: 10e7 } }, // 36
     { name: "clevcvx", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 37
     { name: "clevusd", strategy: "ConvexCurve", fees: { withdraw: 0.01e7, harvest: 1e7, platform: 10e7 } }, // 38
+    { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0.03e7, harvest: 1e7, platform: 10e7 } }, // 39
   ],
   aFXS: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 0
@@ -2825,6 +2853,7 @@ export const DEPLOYED_VAULTS: {
     { name: "tusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0.5e7, harvest: 1e7, platform: 10e7 } }, // 8
     { name: "frxeth", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 9
     { name: "clevusd", strategy: "ConvexCurve", fees: { withdraw: 0.01e7, harvest: 1e7, platform: 10e7 } }, // 10
+    { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0.03e7, harvest: 1e7, platform: 10e7 } }, // 11
   ],
   afrxETH: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 0
@@ -2842,5 +2871,6 @@ export const DEPLOYED_VAULTS: {
     { name: "blusd", strategy: "ConvexCurve", fees: { withdraw: 0.3e7, harvest: 1e7, platform: 10e7 } }, // 12
     { name: "sbtc2", strategy: "ConvexCurve", fees: { withdraw: 0.05e7, harvest: 1e7, platform: 10e7 } }, // 13
     { name: "multibtc", strategy: "ConvexCurve", fees: { withdraw: 0.03e7, harvest: 1e7, platform: 10e7 } }, // 14
+    { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0.03e7, harvest: 1e7, platform: 10e7 } }, // 15
   ],
 };
