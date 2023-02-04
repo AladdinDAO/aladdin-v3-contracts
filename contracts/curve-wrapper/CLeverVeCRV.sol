@@ -4,7 +4,7 @@ pragma solidity ^0.7.6;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract AldVeCRV is ERC20 {
+contract CLeverVeCRV is ERC20 {
   /*************
    * Variables *
    *************/
@@ -24,7 +24,7 @@ contract AldVeCRV is ERC20 {
    * Constructor *
    ***************/
 
-  constructor() ERC20("Aladdin DAO veCRV", "aldveCRV") {
+  constructor() ERC20("CLever veCRV", "cveCRV") {
     minter = msg.sender;
   }
 

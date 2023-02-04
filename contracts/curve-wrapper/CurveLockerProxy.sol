@@ -12,6 +12,7 @@ import "./interfaces/ICurveLockerProxy.sol";
 import "./interfaces/ICurveMinter.sol";
 import "./interfaces/ICurveProposalVoting.sol";
 import "./interfaces/ICurveVoteEscrow.sol";
+import "./interfaces/ILiquidityStaking.sol";
 import "../interfaces/ICurveGauge.sol";
 
 // solhint-disable no-empty-blocks
@@ -256,6 +257,17 @@ contract CurveLockerProxy is Ownable, ICurveLockerProxy {
     return _balance;
   }
 
+  /// @notice Update the operator for Curve gauge.
+  /// @param _gauge The address of gauge to update.
+  /// @param _operator The address of operator to update.
+  function updateOperator(address _gauge, address _operator) external {
+    require(msg.sender == ILiquidityStaking(_operator).booster() || msg.sender == owner(), "only booster or owner");
+
+    operators[_gauge] = _operator;
+
+    emit UpdateOperator(_gauge, _operator);
+  }
+
   /// @inheritdoc ICurveLockerProxy
   function execute(
     address _to,
@@ -270,15 +282,6 @@ contract CurveLockerProxy is Ownable, ICurveLockerProxy {
   /*******************************
    * Public Restricted Functions *
    *******************************/
-
-  /// @notice Update the operator for Curve gauge.
-  /// @param _gauge The address of gauge to update.
-  /// @param _operator The address of operator to update.
-  function updateOperator(address _gauge, address _operator) external onlyOwner {
-    operators[_gauge] = _operator;
-
-    emit UpdateOperator(_gauge, _operator);
-  }
 
   /// @notice Update the executor.
   /// @param _executor The address of executor to update.

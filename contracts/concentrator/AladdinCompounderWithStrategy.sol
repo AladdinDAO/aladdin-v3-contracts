@@ -134,6 +134,14 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
   /// @inheritdoc AladdinCompounder
   /// @dev The caller should make sure `_distributePendingReward` is called before.
   function _deposit(uint256 _assets, address _receiver) internal override returns (uint256) {
+    address _strategy = strategy; // gas saving
+    IERC20Upgradeable(asset()).safeTransfer(_strategy, _assets);
+    IConcentratorStrategy(_strategy).deposit(_receiver, _assets);
+
+    return _mintShares(_assets, _receiver);
+  }
+
+  function _mintShares(uint256 _assets, address _receiver) internal returns (uint256) {
     require(_assets > 0, "AladdinCompounder: deposit zero amount");
 
     uint256 _totalAssets = totalAssetsStored; // the value is correct
@@ -145,10 +153,6 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
     _mint(_receiver, _shares);
 
     totalAssetsStored = _totalAssets + _assets;
-
-    address _strategy = strategy; // gas saving
-    IERC20Upgradeable(asset()).safeTransfer(_strategy, _assets);
-    IConcentratorStrategy(_strategy).deposit(_receiver, _assets);
 
     emit Deposit(msg.sender, _receiver, _assets, _shares);
 

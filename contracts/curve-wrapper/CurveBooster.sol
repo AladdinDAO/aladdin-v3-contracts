@@ -81,6 +81,9 @@ contract CurveBooster is Ownable {
   /// @dev The address of 3CRV token.
   address public constant THREE_CRV = 0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490;
 
+  /// @dev The address of Curve Gauge Controller contract.
+  address private constant GAUGE_CONTROLLER = 0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB;
+
   /// @notice The address of CurveLockerProxy contract.
   address public immutable proxy;
 
@@ -167,6 +170,8 @@ contract CurveBooster is Ownable {
   /// @param _gauge The address of curve gauge.
   function deployGauge(address _gauge) external {
     require(liquidityStakers[_gauge] == address(0), "CurveBooster: gauge already deployed");
+
+    // @todo check gauge controller
 
     address _proxy = address(new BeaconProxy(curveGaugeLiquidityStakingBeacon, new bytes(0)));
     ICurveGaugeLiquidityStaking(_proxy).initialize(_gauge);

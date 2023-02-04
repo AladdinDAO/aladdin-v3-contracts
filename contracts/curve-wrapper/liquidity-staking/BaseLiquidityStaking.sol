@@ -54,8 +54,8 @@ abstract contract BaseLiquidityStaking is ILiquidityStaking {
    * Variables *
    *************/
 
-  /// @notice The address of CurveBooster;
-  address public booster;
+  /// @inheritdoc ILiquidityStaking
+  address public override booster;
 
   /// @notice The pool reward information.
   PoolRewardInfo public poolRewards;

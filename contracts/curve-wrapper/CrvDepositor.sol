@@ -10,7 +10,7 @@ import "./interfaces/ICrvDepositor.sol";
 import "./interfaces/ICurveLockerProxy.sol";
 import "./interfaces/ILiquidityStaking.sol";
 
-import "./AldVeCRV.sol";
+import "./CLeverVeCRV.sol";
 
 // solhint-disable not-rely-on-time
 
@@ -34,8 +34,8 @@ contract CrvDepositor is ICrvDepositor {
   /// @notice The address of CurveLockerProxy contract.
   address public immutable proxy;
 
-  /// @notice The address of aldveCRV token.
-  address public immutable aldveCRV;
+  /// @notice The address of cveCRV token.
+  address public immutable cveCRV;
 
   /*************
    * Variables *
@@ -48,9 +48,9 @@ contract CrvDepositor is ICrvDepositor {
    * Constructor *
    ***************/
 
-  constructor(address _proxy, address _aldveCRV) {
+  constructor(address _proxy, address _cveCRV) {
     proxy = _proxy;
-    aldveCRV = _aldveCRV;
+    cveCRV = _cveCRV;
   }
 
   /****************************
@@ -69,7 +69,7 @@ contract CrvDepositor is ICrvDepositor {
       unlockTime = _unlockInWeeks;
 
       // mint initial token
-      AldVeCRV(aldveCRV).mint(msg.sender, crvBalanceStaker);
+      CLeverVeCRV(cveCRV).mint(msg.sender, crvBalanceStaker);
     }
   }
 
@@ -88,12 +88,12 @@ contract CrvDepositor is ICrvDepositor {
     _lockCurve();
 
     if (_staking == address(0)) {
-      AldVeCRV(aldveCRV).mint(_recipient, _amount);
+      CLeverVeCRV(cveCRV).mint(_recipient, _amount);
     } else {
-      AldVeCRV(aldveCRV).mint(address(this), _amount);
+      CLeverVeCRV(cveCRV).mint(address(this), _amount);
 
-      IERC20(aldveCRV).safeApprove(_staking, 0);
-      IERC20(aldveCRV).safeApprove(_staking, _amount);
+      IERC20(cveCRV).safeApprove(_staking, 0);
+      IERC20(cveCRV).safeApprove(_staking, _amount);
       ILiquidityStaking(_staking).deposit(_amount, _recipient);
     }
 

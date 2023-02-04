@@ -30,6 +30,9 @@ interface ILiquidityStaking {
    * Public View Functions *
    *************************/
 
+  /// @notice The address of Curve Booster.
+  function booster() external view returns (address);
+
   /// @notice The address of staking token.
   function stakingToken() external view returns (address);
 

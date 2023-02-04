@@ -11,10 +11,11 @@ import "../../interfaces/IZap.sol";
 
 import "../ConcentratorGeneralVault.sol";
 import "../interfaces/IAladdinCompounder.sol";
+import "../interfaces/IAladdinCompounderExtensions.sol";
 
 // solhint-disable reason-string
 
-contract ConcentratorAladdinVeCRVVault is ConcentratorGeneralVault {
+contract ConcentratorVaultForCLeverVeCRV is ConcentratorGeneralVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -24,39 +25,39 @@ contract ConcentratorAladdinVeCRVVault is ConcentratorGeneralVault {
   /// @notice The address of AldVeCRVLiquidityStaking contract.
   address public immutable crvDepositor;
 
-  /// @notice The address of aldveCRV token.
-  address public immutable aldveCRV;
+  /// @notice The address of CLeverVeCRV token.
+  address public immutable cveCRV;
 
-  /// @dev The address of aladdinVeCRV token.
-  address private aladdinVeCRV;
+  /// @dev The address of auto compounding CLeverVeCRV token.
+  address private acveCRV;
 
-  constructor(address _aldveCRV, address _crvDepositor) {
-    aldveCRV = _aldveCRV;
+  constructor(address _cveCRV, address _crvDepositor) {
+    cveCRV = _cveCRV;
     crvDepositor = _crvDepositor;
   }
 
   function initialize(
-    address _aladdinVeCRV,
+    address _acveCRV,
     address _zap,
     address _platform
   ) external initializer {
-    require(_aladdinVeCRV != address(0), "Concentrator: zero aladdinVeCRV address");
+    require(_acveCRV != address(0), "Concentrator: zero acveCRV address");
     ConcentratorGeneralVault._initialize(_zap, _platform);
 
-    address _underlying = IAladdinCompounder(_aladdinVeCRV).asset();
-    require(_underlying == aldveCRV, "Concentrator: underlying mismatch");
+    address _underlying = IAladdinCompounder(_acveCRV).asset();
+    require(_underlying == cveCRV, "Concentrator: underlying mismatch");
 
-    IERC20Upgradeable(aldveCRV).safeApprove(_aladdinVeCRV, uint256(-1));
+    IERC20Upgradeable(CRV).safeApprove(_acveCRV, uint256(-1));
     IERC20Upgradeable(CRV).safeApprove(crvDepositor, uint256(-1));
 
-    aladdinVeCRV = _aladdinVeCRV;
+    acveCRV = _acveCRV;
   }
 
   /********************************** View Functions **********************************/
 
   /// @inheritdoc IConcentratorGeneralVault
   function rewardToken() public view virtual override returns (address) {
-    return aladdinVeCRV;
+    return acveCRV;
   }
 
   /********************************** Internal Functions **********************************/
@@ -68,16 +69,16 @@ contract ConcentratorAladdinVeCRVVault is ConcentratorGeneralVault {
     address _recipient,
     address _claimAsToken
   ) internal virtual override returns (uint256) {
-    address _aladdinVeCRV = aladdinVeCRV;
+    address _acveCRV = acveCRV;
     uint256 _amountOut;
-    if (_claimAsToken == _aladdinVeCRV) {
+    if (_claimAsToken == _acveCRV) {
       _amountOut = _amount;
     } else {
-      _amountOut = IAladdinCompounder(_aladdinVeCRV).redeem(_amount, address(this), address(this));
-      if (_claimAsToken != aldveCRV) {
+      _amountOut = IAladdinCompounder(_acveCRV).redeem(_amount, address(this), address(this));
+      if (_claimAsToken != cveCRV) {
         address _zap = zap;
-        IERC20Upgradeable(aldveCRV).safeTransfer(_zap, _amountOut);
-        _amountOut = IZap(_zap).zap(aldveCRV, _amountOut, _claimAsToken, 0);
+        IERC20Upgradeable(cveCRV).safeTransfer(_zap, _amountOut);
+        _amountOut = IZap(_zap).zap(cveCRV, _amountOut, _claimAsToken, 0);
       }
     }
 
@@ -100,9 +101,6 @@ contract ConcentratorAladdinVeCRVVault is ConcentratorGeneralVault {
     address _zap = zap;
     uint256 _amountCRV = IConcentratorStrategy(_strategy).harvest(_zap, CRV);
 
-    // swap from curve pool or simple stake.
-    ICrvDepositor(crvDepositor).deposit(_amountCRV, address(this));
-
-    return IAladdinCompounder(aladdinVeCRV).deposit(_amountCRV, address(this));
+    return IAladdinCompounderExtensions(acveCRV).depositWithCRV(address(this), _amountCRV);
   }
 }

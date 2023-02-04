@@ -10,7 +10,12 @@ import "../interfaces/ICurveLockerProxy.sol";
 import "./BaseLiquidityStaking.sol";
 import "../../common/OptimizedERC20.sol";
 
-contract AldVeCRVLiquidityStaking is Initializable, OptimizedERC20, BaseLiquidityStaking, ICrvLockerLiquidityStaking {
+contract CLeverVeCRVLiquidityStaking is
+  Initializable,
+  OptimizedERC20,
+  BaseLiquidityStaking,
+  ICrvLockerLiquidityStaking
+{
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   /*************
@@ -38,8 +43,8 @@ contract AldVeCRVLiquidityStaking is Initializable, OptimizedERC20, BaseLiquidit
   function initialize() external initializer {
     BaseLiquidityStaking._initialize();
 
-    name = "Staked Aladdin DAO veCRV";
-    symbol = "stk-aldveCRV";
+    name = "Staked CLever veCRV";
+    symbol = "stk-cveCRV";
   }
 
   /*************************
