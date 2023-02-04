@@ -85,4 +85,5 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   "LUSD3CRV-f": { decimals: 18, address: "0xed279fdd11ca84beef15af5d39bb4d4bee23f0ca" },
   multiBTC: { decimals: 8, address: "0x66eFF5221ca926636224650Fd3B9c497FF828F7D" },
   crvWSBTC: { decimals: 18, address: "0x051d7e5609917Bd9b73f04BAc0DED8Dd46a74301" },
+  MULTI: { decimals: 18, address: "0x65Ef703f5594D2573eb71Aaf55BC0CB548492df4" },
 };
