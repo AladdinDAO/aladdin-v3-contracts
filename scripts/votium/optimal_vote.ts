@@ -3,6 +3,7 @@ import { Command } from "commander";
 import axios from "axios";
 import * as fs from "fs";
 import assert from "assert";
+import Table from "tty-table";
 
 const directory = ".store/vlcvx";
 
@@ -134,13 +135,18 @@ function compute(
 ) {
   const scores: number[] = new Array(proposal.choices.length);
   const bribes: number[] = new Array(proposal.choices.length);
+  const bribeTokens: string[][] = new Array(proposal.choices.length);
   scores.fill(0);
   bribes.fill(0);
+  for (let i = 0; i < proposal.choices.length; i++) {
+    bribeTokens[i] = [];
+  }
 
   // compute bribes for each choice
   for (const bribe of votium.bribes) {
     const pool = proposal.choices.findIndex((name) => name === bribe.pool);
     bribes[pool] += bribe.amountDollars;
+    bribeTokens[pool].push(bribe.token);
   }
 
   for (const vote of votes) {
@@ -153,7 +159,7 @@ function compute(
   console.log("\nCurrent Bribes:");
   for (let i = 0; i < bribes.length; i++) {
     if (bribes[i] > 0) {
-      console.log(`  + choice[${proposal.choices[i]}] amountUSD[${bribes[i]}]`);
+      console.log(`  + choice[${proposal.choices[i]}] amountUSD[${bribes[i].toFixed(2)}] tokens[${bribeTokens[i]}]`);
     }
   }
 
@@ -186,6 +192,24 @@ function compute(
     }
   }
 
+  // Assume that
+  //   + the current votes for each choice is v[1], v[2], ..., v[n]
+  //   + the current bribes for each choice is b[1], b[2], ..., b[n]
+  //   + the current votes we have is s
+  //
+  // We want to maximum
+  //                                  b[i] * x[i]
+  //   f(x[1], x[2], ..., x[n]) = sum -----------    (1 <= i <= n)
+  //                                  x[i] + v[i]
+  //   where, x[i] >= 0 and x[1] + x[2] + ... + x[n] = s
+  //
+  // By using the method of Lagrange multipliers, we can find the optimal value of x[1], x[2], ..., x[n]
+  //          (s + sum v[i]) * sqrt(b[i] * v[i])
+  //   x[i] = ----------------------------------  - v[i]
+  //                sum sqrt(b[i] * v[i])
+  //
+  // Notice that  some of the x[i] may be negative, we should ignore such choice.
+  // To achieve this, we can run the algorithm iteratively until all the x[i] is non-negative.
   for (let round = 1; round < 100; ++round) {
     const extraVotes: number[] = new Array(proposal.choices.length);
     const x: number[] = new Array(proposal.choices.length);
@@ -229,6 +253,7 @@ function compute(
     let bribeIgnoreTimes = 0;
     let sumVotes = 0;
     let sumPercentage = 0;
+    const tokenAmounts: { [symbol: string]: { amount: number; dollar: number } } = {};
     for (let i = 0; i < x.length; i++) {
       if (x[i] === 0) continue;
 
@@ -250,19 +275,60 @@ function compute(
           bribes[i] = 0;
           bribeIgnoreTimes++;
         }
+        for (const bribe of votium.bribes) {
+          const pool = proposal.choices.findIndex((name) => name === bribe.pool);
+          if (pool !== i) continue;
+          if (tokenAmounts[bribe.token] === undefined) {
+            tokenAmounts[bribe.token] = { amount: 0, dollar: 0 };
+          }
+          tokenAmounts[bribe.token].amount += (bribe.amount * voted) / (s[i] + x[i]);
+          tokenAmounts[bribe.token].dollar += (bribe.amountDollars * voted) / (s[i] + x[i]);
+        }
       } else if (bribes[i] !== 0) {
         bribes[i] = 0;
         bribeIgnoreTimes++;
       }
     }
+    const accepted = sumPercentage <= 100 + 1e-8 && bribeIgnoreTimes === 0;
     console.log(`Round[${round}] -`, "Adjusted Profit USD:", adjustedProfit.toFixed(2));
     console.log(
-      `${sumPercentage <= 100 + 1e-8 && bribeIgnoreTimes === 0 ? "✅ Accepted" : "❌ Abandoned"},`,
+      `${accepted ? "✅ Accepted" : "❌ Abandoned"},`,
       `sumVotes[${sumVotes.toFixed(4)}]`,
       `actualVotes[${holderVotes.toFixed(4)}]`,
       `sumPercentage[${sumPercentage.toFixed(4)}]`
     );
-    if (bribeIgnoreTimes === 0) break;
+    if (accepted) {
+      const symbols = Object.keys(tokenAmounts).sort();
+      const computeWidth = (symbol: string) => {
+        const dollar = tokenAmounts[symbol].dollar.toFixed(1);
+        const amount = tokenAmounts[symbol].amount.toFixed(0);
+        return Math.floor(Math.max(dollar.length, amount.length) * 1.5);
+      };
+      const computeAmount = (symbol: string) => {
+        const dollar = tokenAmounts[symbol].dollar.toFixed(1);
+        const amount = tokenAmounts[symbol].amount.toFixed(0);
+        if (dollar.length <= amount.length) return amount;
+        else return tokenAmounts[symbol].amount.toFixed(dollar.length - amount.length - 1);
+      };
+      console.log(
+        Table(
+          [
+            { value: "", width: 10 },
+            ...symbols.map((s) => {
+              return {
+                value: s,
+                width: computeWidth(s),
+              };
+            }),
+          ],
+          [
+            ["Amount", ...symbols.map((s) => computeAmount(s))],
+            ["Dollar", ...symbols.map((s) => tokenAmounts[s].dollar.toFixed(1))],
+          ]
+        ).render()
+      );
+    }
+    if (accepted) break;
   }
 }
 
