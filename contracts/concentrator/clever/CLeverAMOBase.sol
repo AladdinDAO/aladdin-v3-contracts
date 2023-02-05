@@ -10,19 +10,12 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "./interfaces/ICLeverAMO.sol";
 
 import "./RewardClaimable.sol";
-import "../../common/ConcentratorHarvester.sol";
 
 // solhint-disable contract-name-camelcase
 // solhint-disable not-rely-on-time
 // solhint-disable reason-string
 
-abstract contract CLeverAMOBase is
-  OwnableUpgradeable,
-  RewardClaimable,
-  ERC20Upgradeable,
-  ConcentratorHarvester,
-  ICLeverAMO
-{
+abstract contract CLeverAMOBase is OwnableUpgradeable, RewardClaimable, ERC20Upgradeable, ICLeverAMO {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   /// @notice Emitted when harvest bounty percentage is updated.
@@ -348,8 +341,6 @@ abstract contract CLeverAMOBase is
 
   /// @inheritdoc ICLeverAMO
   function harvest(address _recipient, uint256 _minBaseOut) external override returns (uint256 _baseTokenOut) {
-    require(canHarvest(msg.sender), "cannot harvest");
-
     // claim from furnace
     _baseTokenOut = _claimBaseFromFurnace();
     // harvest external rewards
@@ -447,13 +438,6 @@ abstract contract CLeverAMOBase is
     lockPeriod = _lockPeriod;
 
     emit UpdateLockPeriod(_lockPeriod);
-  }
-
-  /// @notice Update harvest limitation
-  /// @param _amount The amount of veCTR needed.
-  /// @param _duration The minimum locked duration needed.
-  function setHarvestLimitation(uint256 _amount, uint256 _duration) external onlyOwner {
-    _setHarvestLimitation(_amount, _duration);
   }
 
   /********************************** Internal Functions **********************************/

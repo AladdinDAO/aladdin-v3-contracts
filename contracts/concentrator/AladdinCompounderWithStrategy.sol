@@ -55,8 +55,6 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
 
   /// @inheritdoc IAladdinCompounder
   function harvest(address _recipient, uint256 _minAssets) external override nonReentrant returns (uint256) {
-    require(canHarvest(msg.sender), "cannot harvest");
-
     _distributePendingReward();
 
     uint256 _amountLP = IConcentratorStrategy(strategy).harvest(zap, _intermediate());

@@ -16,15 +16,8 @@ import "../../interfaces/IConvexCRVDepositor.sol";
 import "../../interfaces/ICurveFactoryPlainPool.sol";
 import "../../interfaces/IZap.sol";
 
-import "../../common/ConcentratorHarvester.sol";
-
 // solhint-disable no-empty-blocks, reason-string
-contract AladdinCRVConvexVault is
-  OwnableUpgradeable,
-  ReentrancyGuardUpgradeable,
-  ConcentratorHarvester,
-  IAladdinCRVConvexVault
-{
+contract AladdinCRVConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, IAladdinCRVConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -476,8 +469,6 @@ contract AladdinCRVConvexVault is
     address _recipient,
     uint256 _minimumOut
   ) external virtual override onlyExistPool(_pid) nonReentrant returns (uint256 harvested) {
-    require(canHarvest(msg.sender), "cannot harvest");
-
     PoolInfo storage _pool = poolInfo[_pid];
     // 1. claim rewards
     IConvexBasicRewards(_pool.crvRewards).getReward();
@@ -657,13 +648,6 @@ contract AladdinCRVConvexVault is
     poolInfo[_pid].pauseDeposit = _status;
 
     emit PausePoolDeposit(_pid, _status);
-  }
-
-  /// @notice Update harvest limitation
-  /// @param _amount The amount of veCTR needed.
-  /// @param _duration The minimum locked duration needed.
-  function setHarvestLimitation(uint256 _amount, uint256 _duration) external onlyOwner {
-    _setHarvestLimitation(_amount, _duration);
   }
 
   /********************************** Internal Functions **********************************/

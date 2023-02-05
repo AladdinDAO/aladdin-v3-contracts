@@ -10,7 +10,6 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 
 import "./interfaces/IAladdinCompounder.sol";
 
-import "../common/ConcentratorHarvester.sol";
 import "../common/FeeCustomization.sol";
 
 // solhint-disable no-empty-blocks
@@ -21,7 +20,6 @@ abstract contract AladdinCompounder is
   OwnableUpgradeable,
   ReentrancyGuardUpgradeable,
   ERC20Upgradeable,
-  ConcentratorHarvester,
   FeeCustomization,
   IAladdinCompounder
 {
@@ -310,13 +308,6 @@ abstract contract AladdinCompounder is
     require(_percentage <= MAX_WITHDRAW_FEE, "withdraw fee too large");
 
     _setFeeCustomization(WITHDRAW_FEE_TYPE, _user, _percentage);
-  }
-
-  /// @notice Update harvest limitation
-  /// @param _amount The amount of veCTR needed.
-  /// @param _duration The minimum locked duration needed.
-  function setHarvestLimitation(uint256 _amount, uint256 _duration) external onlyOwner {
-    _setHarvestLimitation(_amount, _duration);
   }
 
   /********************************** Internal Functions **********************************/

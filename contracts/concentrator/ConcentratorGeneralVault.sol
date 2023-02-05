@@ -12,7 +12,6 @@ import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 import "./interfaces/IConcentratorGeneralVault.sol";
 import "./interfaces/IConcentratorStrategy.sol";
 
-import "../common/ConcentratorHarvester.sol";
 import "../common/FeeCustomization.sol";
 
 // solhint-disable no-empty-blocks
@@ -22,7 +21,6 @@ import "../common/FeeCustomization.sol";
 abstract contract ConcentratorGeneralVault is
   OwnableUpgradeable,
   ReentrancyGuardUpgradeable,
-  ConcentratorHarvester,
   FeeCustomization,
   IConcentratorGeneralVault
 {
@@ -420,8 +418,6 @@ abstract contract ConcentratorGeneralVault is
     address _recipient,
     uint256 _minOut
   ) external virtual override onlyExistPool(_pid) nonReentrant returns (uint256) {
-    require(canHarvest(msg.sender), "cannot harvest");
-
     // 1. update global pending rewards
     _updateRewards(_pid, address(0));
 
@@ -605,13 +601,6 @@ abstract contract ConcentratorGeneralVault is
     IConcentratorStrategy(_newStrategy).deposit(address(this), _totalUnderlying);
 
     emit Migrate(_pid, _oldStrategy, _newStrategy);
-  }
-
-  /// @notice Update harvest limitation
-  /// @param _amount The amount of veCTR needed.
-  /// @param _duration The minimum locked duration needed.
-  function setHarvestLimitation(uint256 _amount, uint256 _duration) external onlyOwner {
-    _setHarvestLimitation(_amount, _duration);
   }
 
   /********************************** Internal Functions **********************************/

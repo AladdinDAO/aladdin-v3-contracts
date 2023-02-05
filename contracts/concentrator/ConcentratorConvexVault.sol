@@ -13,15 +13,8 @@ import "./interfaces/IConcentratorConvexVault.sol";
 import "../interfaces/IConvexBooster.sol";
 import "../interfaces/IConvexBasicRewards.sol";
 
-import "../common/ConcentratorHarvester.sol";
-
 // solhint-disable no-empty-blocks, reason-string, not-rely-on-time
-abstract contract ConcentratorConvexVault is
-  OwnableUpgradeable,
-  ReentrancyGuardUpgradeable,
-  ConcentratorHarvester,
-  IConcentratorConvexVault
-{
+abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, IConcentratorConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -363,8 +356,6 @@ abstract contract ConcentratorConvexVault is
     address _recipient,
     uint256 _minOut
   ) external virtual override onlyExistPool(_pid) nonReentrant returns (uint256) {
-    require(canHarvest(msg.sender), "cannot harvest");
-
     PoolInfo storage _pool = poolInfo[_pid];
     _updateRewards(_pid, address(0));
 
@@ -527,13 +518,6 @@ abstract contract ConcentratorConvexVault is
     poolInfo[_pid].pauseDeposit = _status;
 
     emit PausePoolDeposit(_pid, _status);
-  }
-
-  /// @notice Update harvest limitation
-  /// @param _amount The amount of veCTR needed.
-  /// @param _duration The minimum locked duration needed.
-  function setHarvestLimitation(uint256 _amount, uint256 _duration) external onlyOwner {
-    _setHarvestLimitation(_amount, _duration);
   }
 
   /********************************** Internal Functions **********************************/
