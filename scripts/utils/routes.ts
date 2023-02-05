@@ -341,6 +341,21 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
   },
+  SDT: {
+    // SDT ==(CurveV2)==> WET
+    WETH: [encodePoolHintV2(ADDRESS.CURVE_SDTETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap)],
+    // SDT ==(CurveV2)==> WETH ==(CurveV2)==> CRV
+    CRV: [
+      encodePoolHintV2(ADDRESS.CURVE_SDTETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
+  },
+  "3CRV": {
+    WETH: [
+      encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.RemoveLiquidity),
+      encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 2, Action.Swap),
+    ],
+  },
   OGN: {
     // OGN ==(UniV3)==> WETH ==(CurveV2)==> CVX
     CVX: [
