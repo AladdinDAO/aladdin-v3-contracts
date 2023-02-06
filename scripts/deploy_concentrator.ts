@@ -254,11 +254,11 @@ const config: {
       impl: "0xe86Cf56582Ee0A798b3490886de6CB59D56e4aAd",
       proxy: "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6",
       gauge: "0x7f50786A0b15723D741727882ee99a0BF34e3466",
-      lockDuration: 86400 * 14,
+      lockDuration: 86400 * 1,
       ratio: {
-        platform: 10e7 / 100, // 10%
+        platform: 5e7 / 100, // 5%
         harvest: 1e7 / 100, // 1%
-        boost: 15e7 / 100, // 15%
+        boost: 10e7 / 100, // 10%
         withdraw: 0 / 100, // 0%
       },
     },
@@ -268,7 +268,7 @@ const config: {
       ratio: {
         platform: 10e7, // 10%
         harvest: 1e7, // 1%
-        withdraw: 2500000, // 0.25%
+        withdraw: 0.25e7, // 0.25%
       },
     },
   },

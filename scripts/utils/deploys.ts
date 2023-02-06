@@ -33,6 +33,14 @@ export const DEPLOYED_CONTRACTS = {
       afrxETH: "0xb15Ad6113264094Fd9BF2238729410A07EBE5ABa",
       AutoCompoundingConvexFraxStrategy: "0xc9cfD6205914AB1E209FfE70326d8dd15fc58187",
     },
+    StakeDAO: {
+      VeSDTDelegation: "0x6037Bb1BBa598bf88D816cAD90A28cC00fE3ff64",
+      StakeDAOLockerProxy: "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09",
+      sdCRV: {
+        asdCRV: "0x43E54C2E7b3e294De3A155785F52AB49d87B9922",
+        StakeDAOCRVVault: "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6",
+      },
+    },
     Gauge: {
       Balancer_CTR_aCRV: {
         poolId: "0x80a8ea2f9ebfc2db9a093bd46e01471267914e490002000000000000000002a2",
