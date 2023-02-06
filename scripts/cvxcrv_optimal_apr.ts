@@ -8,6 +8,7 @@ import { IConvexBasicRewards, IConvexToken, ICvxCrvStakingWrapper, IMulticall2 }
 import { TOKENS } from "./utils";
 import { Interface, Result } from "ethers/lib/utils";
 import { Command } from "commander";
+import { plot } from "asciichart";
 
 const program = new Command();
 program.version("1.0.0");
@@ -214,6 +215,7 @@ async function main(holder: string) {
   const reward1USD = as_float(amount3CRV) * price3CRV;
   const balanceUSD = as_float(bal_me) * priceCvxCrv;
   const currentDailyRewardUSD = ratio(bal0_me, supply0) * reward0USD + ratio(bal1_me, supply1) * reward1USD;
+  console.log("block:", block.number);
   console.log("holder:", holder);
   console.log("\nCurrent Status:");
   console.log(" + totalSupplyGroup0:", ethers.utils.formatEther(supply0));
@@ -265,6 +267,35 @@ async function main(holder: string) {
     `daily APR: ${((adjustedCurrentDailyRewardUSD / balanceUSD) * 100).toFixed(4)}%,`,
     `yearly APR: ${((adjustedCurrentDailyRewardUSD / balanceUSD) * 100 * 365).toFixed(4)}%,`,
     `yearly APY: ${((Math.pow(adjustedCurrentDailyRewardUSD / balanceUSD + 1, 365) - 1) * 100).toFixed(4)}%`
+  );
+
+  const getApy = (weight: number) => {
+    const adjusted_bal0_me = bal_me.mul(Math.floor((1 - weight) * 10000)).div(10000);
+    const adjusted_bal1_me = bal_me.sub(adjusted_bal0_me);
+    const adjusted_supply0 = supply0.sub(bal0_me).add(adjusted_bal0_me);
+    const adjusted_supply1 = supply1.sub(bal1_me).add(adjusted_bal1_me);
+    const adjustedCurrentDailyRewardUSD =
+      ratio(adjusted_bal0_me, adjusted_supply0) * reward0USD + ratio(adjusted_bal1_me, adjusted_supply1) * reward1USD;
+    return (adjustedCurrentDailyRewardUSD / balanceUSD) * 100 * 365;
+  };
+  const aprList = new Array(101);
+  let maxAPR = 0;
+  let maxWeight = 0;
+  for (let i = 0; i <= 10000; i++) {
+    const apr = getApy(i / 10000);
+    if (apr > maxAPR) {
+      maxAPR = apr;
+      maxWeight = i / 10000;
+    }
+    if (i % 100 === 0) {
+      aprList[i / 100] = apr;
+    }
+  }
+  console.log(`\nOptimal APR: ${maxAPR.toFixed(4)}%,`, `Optimal Weight: ${maxWeight.toFixed(4)}`);
+  console.log(
+    plot(aprList, {
+      height: 50,
+    })
   );
 }
 
