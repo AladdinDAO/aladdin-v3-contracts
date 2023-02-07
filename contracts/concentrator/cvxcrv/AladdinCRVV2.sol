@@ -17,6 +17,7 @@ import "../../interfaces/ICvxCrvStakingWrapper.sol";
 import "../../interfaces/IZap.sol";
 
 import "../../common/FeeCustomization.sol";
+import "../ConcentratorBase.sol";
 
 // solhint-disable no-empty-blocks, reason-string
 contract AladdinCRVV2 is
@@ -24,6 +25,7 @@ contract AladdinCRVV2 is
   OwnableUpgradeable,
   ReentrancyGuardUpgradeable,
   FeeCustomization,
+  ConcentratorBase,
   IAladdinCRV,
   IAladdinCompounder
 {
@@ -378,6 +380,8 @@ contract AladdinCRVV2 is
     nonReentrant
     returns (uint256)
   {
+    ensureCallerIsHarvester();
+
     return _harvest(_recipient, _minimumOut);
   }
 
@@ -424,6 +428,12 @@ contract AladdinCRVV2 is
     zap = _zap;
 
     emit UpdateZap(_zap);
+  }
+
+  /// @notice Update the harvester contract
+  /// @param _harvester The address of the harvester contract.
+  function updateHarvester(address _harvester) external onlyOwner {
+    _updateHarvester(_harvester);
   }
 
   /// @notice Migrate pool assets to new strategy.

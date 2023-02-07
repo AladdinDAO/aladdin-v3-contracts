@@ -18,7 +18,6 @@ interface IAladdinCRV is IERC20Upgradeable {
   event UpdatePlatformFeePercentage(uint256 _feePercentage);
   event UpdateHarvestBountyPercentage(uint256 _percentage);
   event UpdatePlatform(address indexed _platform);
-  event UpdateZap(address indexed _zap);
 
   enum WithdrawOption {
     // withdraw as cvxCRV

@@ -13,6 +13,7 @@ import "./interfaces/IConcentratorGeneralVault.sol";
 import "./interfaces/IConcentratorStrategy.sol";
 
 import "../common/FeeCustomization.sol";
+import "./ConcentratorBase.sol";
 
 // solhint-disable no-empty-blocks
 // solhint-disable reason-string
@@ -22,6 +23,7 @@ abstract contract ConcentratorGeneralVault is
   OwnableUpgradeable,
   ReentrancyGuardUpgradeable,
   FeeCustomization,
+  ConcentratorBase,
   IConcentratorGeneralVault
 {
   using SafeMathUpgradeable for uint256;
@@ -42,10 +44,6 @@ abstract contract ConcentratorGeneralVault is
   /// @notice Emitted when the platform address is updated.
   /// @param _platform The new platform address.
   event UpdatePlatform(address indexed _platform);
-
-  /// @notice Emitted when the zap contract is updated.
-  /// @param _zap The address of the zap contract.
-  event UpdateZap(address indexed _zap);
 
   /// @notice Emitted when pool assets migrated.
   /// @param _pid The pool id to migrate.
@@ -418,6 +416,8 @@ abstract contract ConcentratorGeneralVault is
     address _recipient,
     uint256 _minOut
   ) external virtual override onlyExistPool(_pid) nonReentrant returns (uint256) {
+    ensureCallerIsHarvester();
+
     // 1. update global pending rewards
     _updateRewards(_pid, address(0));
 
@@ -504,12 +504,18 @@ abstract contract ConcentratorGeneralVault is
     emit UpdatePlatform(_platform);
   }
 
-  /// @dev Update the zap contract
+  /// @notice Update the zap contract
   function updateZap(address _zap) external onlyOwner {
     require(_zap != address(0), "Concentrator: zero zap address");
     zap = _zap;
 
     emit UpdateZap(_zap);
+  }
+
+  /// @notice Update the harvester contract
+  /// @param _harvester The address of the harvester contract.
+  function updateHarvester(address _harvester) external onlyOwner {
+    _updateHarvester(_harvester);
   }
 
   /// @notice Add new Convex pool.

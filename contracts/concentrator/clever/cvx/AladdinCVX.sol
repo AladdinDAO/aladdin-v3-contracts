@@ -19,10 +19,6 @@ import "../math/AMOMath.sol";
 contract AladdinCVX is CLeverAMOBase {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
-  /// @notice Emitted when the zap contract is updated.
-  /// @param _zap The address of the zap contract.
-  event UpdateZap(address _zap);
-
   /// @notice Emitted when pool assets migrated.
   /// @param _oldStrategy The address of old strategy.
   /// @param _newStrategy The address of current strategy.
