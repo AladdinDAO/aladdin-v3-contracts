@@ -45,6 +45,7 @@ library LibConcentratorHarvester {
     uint128 minLockCTR;
     uint128 minLockDuration;
     mapping(address => bool) whitelist;
+    mapping(address => bool) blacklist;
   }
 
   /**********************
@@ -76,6 +77,12 @@ library LibConcentratorHarvester {
     HarvesterStorage storage hs = harvesterStorage();
 
     hs.whitelist[_account] = _status;
+  }
+
+  function updateBlacklist(address _account, bool _status) internal {
+    HarvesterStorage storage hs = harvesterStorage();
+
+    hs.blacklist[_account] = _status;
   }
 
   function enforceIsContractOwner() internal view {

@@ -26,6 +26,8 @@ contract ConcentratorHarvesterFacet {
     ICurveVoteEscrow.LockedBalance memory _locked = ICurveVoteEscrow(LibConcentratorHarvester.veCTR).locked(msg.sender);
     LibConcentratorHarvester.HarvesterStorage storage hs = LibConcentratorHarvester.harvesterStorage();
 
+    if (hs.blacklist[_account]) return false;
+
     return
       hs.whitelist[_account] ||
       (uint128(_locked.amount) >= hs.minLockCTR && _locked.end >= hs.minLockDuration + block.timestamp);
@@ -69,5 +71,13 @@ contract ConcentratorHarvesterFacet {
   function updateWhitelist(address _account, bool _status) external {
     LibConcentratorHarvester.enforceIsContractOwner();
     LibConcentratorHarvester.updateWhitelist(_account, _status);
+  }
+
+  /// @notice Update the blacklist status of account.
+  /// @param _account The address to update.
+  /// @param _status The status to update.
+  function updateBlacklist(address _account, bool _status) external {
+    LibConcentratorHarvester.enforceIsContractOwner();
+    LibConcentratorHarvester.updateBlacklist(_account, _status);
   }
 }
