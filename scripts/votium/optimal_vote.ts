@@ -164,6 +164,40 @@ function compute(
   }
 
   let currentProfit = 0;
+  let tokenAmounts: { [symbol: string]: { amount: number; dollar: number } } = {};
+
+  const showTable = () => {
+    const symbols = Object.keys(tokenAmounts).sort();
+    const computeWidth = (symbol: string) => {
+      const dollar = tokenAmounts[symbol].dollar.toFixed(1);
+      const amount = tokenAmounts[symbol].amount.toFixed(0);
+      return Math.floor(Math.max(dollar.length, amount.length) * 1.5);
+    };
+    const computeAmount = (symbol: string) => {
+      const dollar = tokenAmounts[symbol].dollar.toFixed(1);
+      const amount = tokenAmounts[symbol].amount.toFixed(0);
+      if (dollar.length <= amount.length) return amount;
+      else return tokenAmounts[symbol].amount.toFixed(dollar.length - amount.length - 1);
+    };
+    console.log(
+      Table(
+        [
+          { value: "", width: 10 },
+          ...symbols.map((s) => {
+            return {
+              value: s,
+              width: computeWidth(s),
+            };
+          }),
+        ],
+        [
+          ["Amount", ...symbols.map((s) => computeAmount(s))],
+          ["Dollar", ...symbols.map((s) => tokenAmounts[s].dollar.toFixed(1))],
+        ]
+      ).render()
+    );
+  };
+
   // compute score without holder
   for (const vote of votes) {
     let sum = 0;
@@ -183,8 +217,19 @@ function compute(
           `profitUSD[${profit.toFixed(2)}]`
         );
         currentProfit += (score * bribes[index]) / proposal.scores[index];
+
+        for (const bribe of votium.bribes) {
+          const pool = proposal.choices.findIndex((name) => name === bribe.pool);
+          if (pool !== index) continue;
+          if (tokenAmounts[bribe.token] === undefined) {
+            tokenAmounts[bribe.token] = { amount: 0, dollar: 0 };
+          }
+          tokenAmounts[bribe.token].amount += (bribe.amount * score) / proposal.scores[index];
+          tokenAmounts[bribe.token].dollar += (bribe.amountDollars * score) / proposal.scores[index];
+        }
       }
       console.log("Current Profit USD:", currentProfit.toFixed(2));
+      showTable();
     } else {
       for (const [pool, value] of Object.entries(vote.choice)) {
         scores[parseInt(pool) - 1] += (vote.vp * value) / sum;
@@ -253,7 +298,7 @@ function compute(
     let bribeIgnoreTimes = 0;
     let sumVotes = 0;
     let sumPercentage = 0;
-    const tokenAmounts: { [symbol: string]: { amount: number; dollar: number } } = {};
+    tokenAmounts = {};
     for (let i = 0; i < x.length; i++) {
       if (x[i] === 0) continue;
 
@@ -298,35 +343,7 @@ function compute(
       `sumPercentage[${sumPercentage.toFixed(4)}]`
     );
     if (accepted) {
-      const symbols = Object.keys(tokenAmounts).sort();
-      const computeWidth = (symbol: string) => {
-        const dollar = tokenAmounts[symbol].dollar.toFixed(1);
-        const amount = tokenAmounts[symbol].amount.toFixed(0);
-        return Math.floor(Math.max(dollar.length, amount.length) * 1.5);
-      };
-      const computeAmount = (symbol: string) => {
-        const dollar = tokenAmounts[symbol].dollar.toFixed(1);
-        const amount = tokenAmounts[symbol].amount.toFixed(0);
-        if (dollar.length <= amount.length) return amount;
-        else return tokenAmounts[symbol].amount.toFixed(dollar.length - amount.length - 1);
-      };
-      console.log(
-        Table(
-          [
-            { value: "", width: 10 },
-            ...symbols.map((s) => {
-              return {
-                value: s,
-                width: computeWidth(s),
-              };
-            }),
-          ],
-          [
-            ["Amount", ...symbols.map((s) => computeAmount(s))],
-            ["Dollar", ...symbols.map((s) => tokenAmounts[s].dollar.toFixed(1))],
-          ]
-        ).render()
-      );
+      showTable();
     }
     if (accepted) break;
   }
