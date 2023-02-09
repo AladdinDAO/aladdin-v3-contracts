@@ -98,7 +98,7 @@ describe("CvxCrvWeightAdjuster.spec", async () => {
     await curveV2OracleWETH.setPools([TOKENS.CVX.address], [WETH_POOLS.CVX]); // CVX
     await curveV2OracleFraxBP.setPools([TOKENS.cvxCRV.address], [FRAXBP_POOLS.cvxCRV]); // cvxCRV
     await curveBasePoolOracle.setPools([TOKENS.crvFRAX.address], ["0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2"]); // fraxBP
-    await curveBasePoolOracle.setPools([TOKENS.TRICRV.address], ["0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"]); // fraxBP
+    await curveBasePoolOracle.setPools([TOKENS.TRICRV.address], ["0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"]); // 3crv
 
     await oracle.setSources([TOKENS.CRV.address], [curveV2OracleWETH.address]); // CRV
     await oracle.setSources([TOKENS.CVX.address], [curveV2OracleWETH.address]); // CVX
