@@ -21,7 +21,22 @@ contract ConcentratorHarvesterFacet {
     return LibConcentratorHarvester.harvesterStorage().minLockDuration;
   }
 
+  /// @notice Return whether the account is whitelisted.
+  /// @param _account The address of account to query.
+  function isWhitelist(address _account) external view returns (bool) {
+    LibConcentratorHarvester.HarvesterStorage storage hs = LibConcentratorHarvester.harvesterStorage();
+    return hs.whitelist[_account];
+  }
+
+  /// @notice Return whether the account is blacklisted.
+  /// @param _account The address of account to query.
+  function isBlacklist(address _account) external view returns (bool) {
+    LibConcentratorHarvester.HarvesterStorage storage hs = LibConcentratorHarvester.harvesterStorage();
+    return hs.blacklist[_account];
+  }
+
   /// @notice Return whether the account can do harvest.
+  /// @param _account The address of account to query.
   function hasPermission(address _account) external view returns (bool) {
     ICurveVoteEscrow.LockedBalance memory _locked = ICurveVoteEscrow(LibConcentratorHarvester.veCTR).locked(msg.sender);
     LibConcentratorHarvester.HarvesterStorage storage hs = LibConcentratorHarvester.harvesterStorage();
@@ -61,7 +76,6 @@ contract ConcentratorHarvesterFacet {
   /// @param _minLockDuration The minimum number of seconds that veCTR should be locked.
   function updatePermission(uint128 _minLockCTR, uint128 _minLockDuration) external {
     LibConcentratorHarvester.enforceIsContractOwner();
-
     LibConcentratorHarvester.updatePermission(_minLockCTR, _minLockDuration);
   }
 

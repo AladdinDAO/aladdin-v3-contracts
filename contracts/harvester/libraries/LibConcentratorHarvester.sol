@@ -93,6 +93,9 @@ library LibConcentratorHarvester {
     ICurveVoteEscrow.LockedBalance memory _locked = ICurveVoteEscrow(veCTR).locked(msg.sender);
     HarvesterStorage storage hs = harvesterStorage();
 
+    // check whether is blacklisted
+    require(!hs.blacklist[msg.sender], "account blacklisted");
+
     // check whether is whitelisted
     if (hs.whitelist[msg.sender]) return;
 
