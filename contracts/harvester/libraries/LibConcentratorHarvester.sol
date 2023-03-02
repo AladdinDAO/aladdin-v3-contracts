@@ -60,7 +60,7 @@ library LibConcentratorHarvester {
   }
 
   function harvesterStorage() internal pure returns (HarvesterStorage storage hs) {
-    bytes32 position = DIAMOND_STORAGE_POSITION;
+    bytes32 position = HARVESTER_STORAGE_POSITION;
     assembly {
       hs.slot := position
     }
@@ -97,7 +97,7 @@ library LibConcentratorHarvester {
     require(!hs.blacklist[msg.sender], "account blacklisted");
 
     // check whether is whitelisted
-    if (hs.whitelist[msg.sender]) return;
+    if (hs.whitelist[msg.sender] || hs.minLockCTR == 0) return;
 
     // check veCTR locking
     require(uint128(_locked.amount) >= hs.minLockCTR, "insufficient lock amount");

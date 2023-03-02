@@ -38,14 +38,17 @@ contract ConcentratorHarvesterFacet {
   /// @notice Return whether the account can do harvest.
   /// @param _account The address of account to query.
   function hasPermission(address _account) external view returns (bool) {
-    ICurveVoteEscrow.LockedBalance memory _locked = ICurveVoteEscrow(LibConcentratorHarvester.veCTR).locked(msg.sender);
+    ICurveVoteEscrow.LockedBalance memory _locked = ICurveVoteEscrow(LibConcentratorHarvester.veCTR).locked(_account);
     LibConcentratorHarvester.HarvesterStorage storage hs = LibConcentratorHarvester.harvesterStorage();
 
+    // check whether is blacklisted
     if (hs.blacklist[_account]) return false;
 
-    return
-      hs.whitelist[_account] ||
-      (uint128(_locked.amount) >= hs.minLockCTR && _locked.end >= hs.minLockDuration + block.timestamp);
+    // check whether is whitelisted
+    if (hs.whitelist[_account] || hs.minLockCTR == 0) return true;
+
+    // check veCTR locking
+    return uint128(_locked.amount) >= hs.minLockCTR && _locked.end >= hs.minLockDuration + block.timestamp;
   }
 
   /// @notice Harvest pending rewards from concentrator vault.
