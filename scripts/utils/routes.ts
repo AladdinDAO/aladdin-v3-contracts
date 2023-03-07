@@ -407,5 +407,9 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
   CNC: {
     // CNC ==(CurveV2)==> WETH
     WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap)],
+    CVX: [
+      encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+    ],
   },
 };
