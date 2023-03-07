@@ -11,6 +11,7 @@ import "./interfaces/IStakeDAOGauge.sol";
 import "./interfaces/IStakeDAOLockerProxy.sol";
 import "./interfaces/IStakeDAOMultiMerkleStash.sol";
 import "../../interfaces/ISnapshotDelegateRegistry.sol";
+import "../../voting/ISignatureVerifier.sol";
 
 /// @title StakeDaoLockerProxy
 /// @notice This contract is the main entry for stake tokens in StakeDAO.
@@ -46,6 +47,9 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
   /// @notice The sdCRV bribe claim status for token => merkleRoot mapping.
   mapping(address => mapping(address => bool)) public claimed;
 
+  /// @notice The address of SignatureVerifier contract.
+  ISignatureVerifier public verifier;
+
   modifier onlyOperator(address _gauge) {
     require(operators[_gauge] == msg.sender, "not operator");
     _;
@@ -60,6 +64,25 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
 
   function initialize() external initializer {
     OwnableUpgradeable.__Ownable_init();
+  }
+
+  /********************************** View Functions **********************************/
+
+  /// @notice Should return whether the signature provided is valid for the provided hash
+  /// @dev See https://eips.ethereum.org/EIPS/eip-1271 for more details.
+  /// @param _hash      Hash of the data to be signed
+  /// @param _signature Signature byte array associated with _hash
+  ///
+  /// MUST return the bytes4 magic value 0x1626ba7e when function passes.
+  /// MUST NOT modify state (using STATICCALL for solc < 0.5, view modifier for solc > 0.5)
+  /// MUST allow external calls
+  function isValidSignature(bytes32 _hash, bytes calldata _signature) external view returns (bytes4) {
+    // Validate signatures
+    if (verifier.verifySignature(_hash, _signature) == true) {
+      return 0x1626ba7e;
+    } else {
+      return 0xffffffff;
+    }
   }
 
   /********************************** Mutated Functions **********************************/
@@ -197,5 +220,11 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     address _delegate
   ) external onlyOwner {
     ISnapshotDelegateRegistry(_registry).setDelegate(_id, _delegate);
+  }
+
+  /// @notice Update the address of SignatureVerifier contract.
+  /// @param _verifier The address of new SignatureVerifier contract.
+  function updateVerifier(address _verifier) external onlyOwner {
+    verifier = ISignatureVerifier(_verifier);
   }
 }
