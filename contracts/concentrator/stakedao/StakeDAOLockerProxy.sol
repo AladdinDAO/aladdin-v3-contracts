@@ -44,7 +44,7 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
   address public claimer;
 
   /// @notice The sdCRV bribe claim status for token => merkleRoot mapping.
-  mapping(address => mapping(address => bool)) public claimed;
+  mapping(address => mapping(bytes32 => bool)) public claimed;
 
   modifier onlyOperator(address _gauge) {
     require(operators[_gauge] == msg.sender, "not operator");
@@ -137,7 +137,7 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     // 2. transfer bribe rewards to _recipient
     for (uint256 i = 0; i < _length; i++) {
       address _token = _claims[i].token;
-      address _root = IStakeDAOMultiMerkleStash(MULTI_MERKLE_STASH).merkleRoot(_token);
+      bytes32 _root = IStakeDAOMultiMerkleStash(MULTI_MERKLE_STASH).merkleRoot(_token);
       require(!claimed[_token][_root], "bribe rewards claimed");
 
       IERC20Upgradeable(_token).safeTransfer(_recipient, _claims[i].amount);
