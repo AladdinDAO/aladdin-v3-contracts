@@ -12,9 +12,29 @@ import {
   ZAP_ROUTES,
   DEPLOYED_VAULTS,
 } from "../../../scripts/utils";
-import { AladdinZap, ConcentratorGateway, ConcentratorIFOVault, IConvexBooster, IERC20 } from "../../../typechain";
+import {
+  AladdinZap,
+  ConcentratorGateway,
+  ConcentratorAladdinETHVault,
+  IConvexBooster,
+  IERC20,
+} from "../../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../../utils";
+
+const strategies: {
+  factory: string;
+  impls: { [name: string]: string };
+} = {
+  factory: "0x23384DD4380b3677b829C6c88c0Ea9cc41C099bb",
+  impls: {
+    AutoCompoundingConvexFraxStrategy: "0x6Cc546cE582b0dD106c231181f7782C79Ef401da",
+    AutoCompoundingConvexCurveStrategy: constants.AddressZero,
+    ManualCompoundingConvexCurveStrategy: "0xE25f0E29060AeC19a0559A2EF8366a5AF086222e",
+    CLeverGaugeStrategy: constants.AddressZero,
+    AMOConvexCurveStrategy: "0x2be5B652836C630E15c3530bf642b544ae901239",
+  },
+};
 
 const POOL_FORK_CONFIG: {
   [name: string]: {
@@ -26,205 +46,21 @@ const POOL_FORK_CONFIG: {
     harvest: boolean;
   };
 } = {
-  silofrax: {
-    height: 15193360,
-    pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xabc508dda7517f195e416d77c822a4861961947a",
-    amount: "1000",
-    harvest: true,
-  },
-  tusd: {
-    height: 15193360,
-    pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xd34f3e85bb7c8020c7959b80a4b87a369d639dc0",
-    amount: "1000",
-    harvest: false,
-  },
-  susdfraxbp: {
-    height: 15193360,
-    pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x99F4176EE457afedFfCB1839c7aB7A030a5e4A92",
-    amount: "1000",
-    harvest: false,
-  },
-  busdfraxbp: {
-    height: 15193360,
-    pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
-    amount: "1000",
-    harvest: false,
-  },
-  alusdfraxbp: {
-    height: 15193360,
-    pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x5180db0237291a6449dda9ed33ad90a38787621c",
-    amount: "1000",
-    harvest: false,
-  },
-  tusdfraxbp: {
-    height: 15193360,
-    pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x5180db0237291a6449dda9ed33ad90a38787621c",
-    amount: "1000",
-    harvest: false,
-  },
-  lusdfraxbp: {
-    height: 15190189,
-    pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xb1748c79709f4ba2dd82834b8c82d4a505003f27",
-    amount: "1000",
-    harvest: false,
-  },
-  peth: {
-    height: 15876065,
-    pid: 31,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x51c2cef9efa48e08557a361b52db34061c025a1b",
-    amount: "10",
-    harvest: true,
-  },
-  cbeth: {
-    height: 15876065,
-    pid: 31,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x7a16ff8270133f063aab6c9977183d9e72835428",
-    amount: "10",
-    harvest: false,
-  },
-  frxeth: {
-    height: 15876065,
-    pid: 31,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xda035641151d42aa4a25ce51de8f6e53eae0ded7",
-    amount: "10",
-    harvest: false,
-  },
-  blusd: {
-    height: 16245350,
-    pid: 34,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xa5cd3bc3f3d34b3a716111643e19db88bfa649c7",
-    amount: "10000",
-    harvest: true,
-  },
-  sbtc2: {
-    height: 16248720,
-    pid: 34,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x7a16ff8270133f063aab6c9977183d9e72835428",
-    amount: "1",
-    harvest: false,
-  },
-  multibtc: {
-    height: 16340740,
-    pid: 36,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x6ae7bf291028ccf52991bd020d2dc121b40bce2a",
-    amount: "0.00001",
-    harvest: true,
-  },
-  clevcvx: {
-    height: 16434600,
-    pid: 37,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x1aceff73c5c3afc630c1fc8b484527a23f4eb134",
-    amount: "10",
-    harvest: false,
-  },
-  clevusd: {
-    height: 16434600,
-    pid: 37,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xb957dccaa1ccfb1eb78b495b499801d591d8a403",
-    amount: "10",
-    harvest: false,
-  },
-  "ETH/CLEV": {
-    height: 16524480,
-    pid: 39,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x0a27dab612e9f254417ea61598de46e88f3d1730",
-    amount: "1",
-    harvest: true,
-  },
-  "ETH/rETH": {
-    height: 16701141,
-    pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x17fd68F4F3035A1b51E6e662238784001f76A8F9",
-    amount: "1",
-    harvest: false,
-  },
-  "GEAR/ETH": {
-    height: 16701141,
-    pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x7338afb07db145220849B04A45243956f20B14d9",
-    amount: "1000",
-    harvest: true,
-  },
-  "WETH/stETH": {
-    height: 16701141,
-    pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xD1caD198fa57088C01f2B6a8c64273ef6D1eC085",
-    amount: "10",
-    harvest: false,
-  },
-  "STG/USDC": {
-    height: 16701141,
-    pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xA489e9daf10cEd86811d59e4D00ce1b0DEC95f5e",
-    amount: "1000",
-    harvest: true,
-  },
-  "ETH/LDO": {
-    height: 16701141,
-    pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xdB5F9b2869Cec66382790cFE883fbBFa8a1f6B27",
-    amount: "10",
-    harvest: true,
-  },
-  "ETH/MATIC": {
-    height: 16701141,
-    pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x3732FE38e7497Da670bd0633D565a5d80D3565e2",
-    amount: "1000",
-    harvest: true,
-  },
-  "ETH/CNC": {
-    height: 16701141,
-    pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x4e122c62742eB4811659f6d85fdA51cC63764940",
-    amount: "10",
-    harvest: true,
-  },
   "tBTC/crvWSBTC": {
     height: 16776780,
-    pid: 47,
+    pid: 21,
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x9bC8d30d971C9e74298112803036C05db07D73e3",
     amount: "0.01",
     harvest: true,
   },
-  "ETH/CTR": {
+  "CRV/sdCRV": {
     height: 16776780,
-    pid: 47,
+    pid: 21,
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xC62eECc24cb6E84dA2409e945Ddcf7386118c57a",
-    amount: "100",
-    harvest: false,
+    holder: "0xC5d3D004a223299C4F95Bb702534C14A32e8778c",
+    amount: "10000",
+    harvest: true,
   },
 };
 
@@ -232,16 +68,16 @@ const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const PRINT_ZAP = true;
 const POOLS = (process.env.POOLS || "").split(",");
 
-describe("ConcentratorIFOVault.add.spec", async () => {
+describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
   let lpToken: IERC20;
-  let vault: ConcentratorIFOVault;
+  let vault: ConcentratorAladdinETHVault;
   let zap: AladdinZap;
   let gateway: ConcentratorGateway;
 
   if (PRINT_ZAP) {
-    DEPLOYED_VAULTS.aCRV.forEach(({ name, fees }) => {
+    DEPLOYED_VAULTS.afrxETH.forEach(({ name, fees }) => {
       const config = AVAILABLE_VAULTS[name];
       const fork = POOL_FORK_CONFIG[name];
       if (fork === undefined) {
@@ -259,7 +95,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
       );
     });
     console.log("{");
-    DEPLOYED_VAULTS.aCRV.forEach(({ name }) => {
+    DEPLOYED_VAULTS.afrxETH.forEach(({ name }) => {
       const config = AVAILABLE_VAULTS[name];
       const fork = POOL_FORK_CONFIG[name];
       if (fork === undefined) {
@@ -289,6 +125,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
 
   const genTests = async (
     name: string,
+    strategy: string,
     fees: {
       withdraw: number;
       harvest: number;
@@ -302,7 +139,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
     }
     if (!POOLS.includes(name)) return;
 
-    context(`ifo for pool: ${name}`, async () => {
+    context(`afrxETH vault for pool: ${name}`, async () => {
       beforeEach(async () => {
         request_fork(fork.height, [
           fork.deployer,
@@ -350,32 +187,36 @@ describe("ConcentratorIFOVault.add.spec", async () => {
         );
         await gateway.updateLogic(logic.address);
 
+        const strategyName = `ManualCompounding${strategy}Strategy`;
+        const factory = await ethers.getContractAt("ConcentratorStrategyFactory", strategies.factory, deployer);
+        const strategyAddress = await factory.callStatic.createStrategy(strategies.impls[strategyName]);
+        await factory.createStrategy(strategies.impls[strategyName]);
+        const strategyContract = await ethers.getContractAt(strategyName, strategyAddress, deployer);
+        const underlying = ADDRESS[`${config.token}_TOKEN`];
+
         vault = await ethers.getContractAt(
-          "ConcentratorIFOVault",
-          DEPLOYED_CONTRACTS.Concentrator.cvxCRV.ConcentratorIFOVault,
+          "ConcentratorAladdinETHVault",
+          DEPLOYED_CONTRACTS.Concentrator.frxETH.ConcentratorGeneralVault,
           owner
         );
-        await vault.addPool(config.convexCurveID!, config.rewards, fees.withdraw, fees.platform, fees.harvest);
+        await strategyContract.initialize(vault.address, underlying, config.rewarder!, config.rewards);
+        await vault.addPool(underlying, strategyAddress, fees.withdraw, fees.platform, fees.harvest);
       });
 
       context("deposit", async () => {
         const amountLP = ethers.utils.parseEther(fork.amount);
         if (config.deposit.WETH !== undefined) {
           it("deposit, withdraw as ETH, deposit from ETH", async () => {
-            // deposit
-            await lpToken.connect(signer).approve(vault.address, amountLP);
-            await vault.connect(signer)["deposit(uint256,uint256)"](fork.pid, amountLP);
-            const sharesOut = await vault.getUserShare(fork.pid, signer.address);
-            expect(sharesOut).to.eq(amountLP);
-            // withdraw to ETH
+            // zap to ETH
+            await lpToken.connect(signer).approve(zap.address, amountLP);
             const etherBefore = await signer.getBalance();
-            const tx = await vault.connect(signer).withdrawAndZap(fork.pid, sharesOut, constants.AddressZero, 0);
-            expect(await vault.getUserShare(fork.pid, signer.address)).to.eq(constants.Zero);
+            const tx = await zap.connect(signer).zapFrom(lpToken.address, amountLP, constants.AddressZero, 0);
             const receipt = await tx.wait();
             const baseFee = (await ethers.provider.getFeeData()).lastBaseFeePerGas!;
             const effectiveGasPrice = tx.gasPrice ? tx.gasPrice : baseFee.add(tx.maxPriorityFeePerGas!);
             const etherAfter = await signer.getBalance();
             expect(etherAfter.add(receipt.gasUsed.mul(effectiveGasPrice))).gt(etherBefore);
+
             // zap from ETH
             const amountIn = etherAfter.add(receipt.gasUsed.mul(effectiveGasPrice)).sub(etherBefore);
             await gateway
@@ -399,21 +240,17 @@ describe("ConcentratorIFOVault.add.spec", async () => {
               `zapSharesOut[${ethers.utils.formatEther(zapSharesOut)}]`
             );
             expect(zapSharesOut).to.gt(constants.Zero);
-            expect(zapSharesOut).to.closeToBn(sharesOut, sharesOut.mul(2).div(100)); // 2% error
+            expect(zapSharesOut).to.closeToBn(amountLP, amountLP.mul(2).div(100)); // 2% error
           });
         }
 
         Object.entries(config.deposit).forEach(([symbol, routes]) => {
           it(`deposit, withdraw as ${symbol}, deposit from ${symbol}`, async () => {
-            // deposit
-            await lpToken.connect(signer).approve(vault.address, amountLP);
-            await vault.connect(signer)["deposit(uint256,uint256)"](fork.pid, amountLP);
-            const sharesOut = await vault.getUserShare(fork.pid, signer.address);
-            expect(sharesOut).to.eq(amountLP);
-            // withdraw to token
             const token = await ethers.getContractAt("IERC20", ADDRESS[symbol], signer);
+            // zap to token
+            await lpToken.connect(signer).approve(zap.address, amountLP);
             const tokenBefore = await token.balanceOf(signer.address);
-            await vault.connect(signer).withdrawAndZap(fork.pid, sharesOut, token.address, 0);
+            await zap.connect(signer).zapFrom(lpToken.address, amountLP, token.address, 0);
             const tokenAfter = await token.balanceOf(signer.address);
             expect(tokenAfter.gt(tokenBefore));
             // zap from token
@@ -429,7 +266,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
               `zapSharesOut[${ethers.utils.formatEther(zapSharesOut)}]`
             );
             expect(zapSharesOut).to.gt(constants.Zero);
-            expect(zapSharesOut).to.closeToBn(sharesOut, sharesOut.mul(2).div(100)); // 2% error
+            expect(zapSharesOut).to.closeToBn(amountLP, amountLP.mul(2).div(100)); // 2% error
           });
         });
       });
@@ -459,7 +296,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
             firstCall = false;
 
             await lpToken.connect(signer).approve(vault.address, amountLP);
-            await vault.connect(signer)["deposit(uint256,uint256)"](fork.pid, amountLP);
+            await vault.connect(signer).deposit(fork.pid, signer.address, amountLP);
             const sharesOut = await vault.getUserShare(fork.pid, signer.address);
             expect(sharesOut).to.eq(amountLP);
           });
@@ -484,7 +321,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
     });
   };
 
-  DEPLOYED_VAULTS.aCRV.forEach(({ name, fees }) => {
-    genTests(name, fees);
+  DEPLOYED_VAULTS.afrxETH.forEach(({ name, fees, strategy }) => {
+    genTests(name, strategy, fees);
   });
 });

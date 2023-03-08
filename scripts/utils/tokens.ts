@@ -75,6 +75,8 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   aCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV },
   aFXS: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxFXS.aFXS },
   CTR: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.CTR },
+  sdCRV: { decimals: 18, address: "0xd1b5651e55d4ceed36251c61c50c889b36f6abb5" },
+  tBTC: { decimals: 18, address: "0x18084fba666a33d37592fa2633fd49a74dd93a88" },
   CLEV: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLEV },
   clevCVX: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLeverCVX.clevCVX },
   clevUSD: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLeverUSD.clevUSD },
