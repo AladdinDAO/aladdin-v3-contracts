@@ -212,6 +212,13 @@ const zap_fork_config: { [symbol: string]: IZapForkConfig } = {
     amount: "10000",
     update_impl: false,
   },
+  CNC: {
+    height: 16770540,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x991a26269Cc54B42DD108b982Afc550bB517871E",
+    amount: "1000",
+    update_impl: false,
+  },
 };
 
 const SYMBOLS = (process.env.SYMBOLS || "").split(",");

@@ -114,6 +114,12 @@ const config: {
       };
     };
   };
+  PriceOracle: {
+    AladdinPriceOracle: string;
+    ChainlinkPriceOracle: string;
+    CurveBasePoolPriceOracle: string;
+    CurveV2PriceOracle: { [base: string]: string };
+  };
 } = {
   Strategy: {
     factory: "0x23384DD4380b3677b829C6c88c0Ea9cc41C099bb",
@@ -256,7 +262,7 @@ const config: {
       gauge: "0x7f50786A0b15723D741727882ee99a0BF34e3466",
       lockDuration: 86400 * 1,
       ratio: {
-        platform: 5e7 / 100, // 5%
+        platform: 0e7 / 100, // 0%
         harvest: 1e7 / 100, // 1%
         boost: 10e7 / 100, // 10%
         withdraw: 0 / 100, // 0%
@@ -270,6 +276,15 @@ const config: {
         harvest: 1e7, // 1%
         withdraw: 0.25e7, // 0.25%
       },
+    },
+  },
+  PriceOracle: {
+    AladdinPriceOracle: "0x304047F1D867A00082C8549E81a2F0b389d869B4",
+    ChainlinkPriceOracle: "0xa1DeeC3F57567Ae1800433b698d2602acD544819",
+    CurveBasePoolPriceOracle: "0x6e230F8Df4157aDd23Bd1BAA5D00b0a167B56a05",
+    CurveV2PriceOracle: {
+      WETH: "0x4dda42b56756c3fB0Aa654857B09D939A5e0B1DD",
+      crvFRAX: "0x7aE753d916A812E6031Ce0774dE1d6D623c295F8",
     },
   },
 };
@@ -1128,6 +1143,224 @@ async function deployConcentratorStakeDAO() {
   }
 }
 
+async function deployPriceOracle() {
+  const [deployer] = await ethers.getSigners();
+  const deployConfig = config.PriceOracle;
+
+  if (deployConfig.AladdinPriceOracle === "") {
+    const AladdinPriceOracle = await ethers.getContractFactory("AladdinPriceOracle", deployer);
+    const oracle = await AladdinPriceOracle.deploy();
+    console.log("Deploying AladdinPriceOracle, hash:", oracle.deployTransaction.hash);
+    const receipt = await oracle.deployTransaction.wait();
+    console.log("✅ Deploy AladdinPriceOracle at:", oracle.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.AladdinPriceOracle = oracle.address;
+  } else {
+    console.log("Found AladdinPriceOracle at:", deployConfig.AladdinPriceOracle);
+  }
+
+  if (deployConfig.ChainlinkPriceOracle === "") {
+    const ChainlinkPriceOracle = await ethers.getContractFactory("ChainlinkPriceOracle", deployer);
+    const oracle = await ChainlinkPriceOracle.deploy();
+    console.log("Deploying ChainlinkPriceOracle, hash:", oracle.deployTransaction.hash);
+    const receipt = await oracle.deployTransaction.wait();
+    console.log("✅ Deploy ChainlinkPriceOracle at:", oracle.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.ChainlinkPriceOracle = oracle.address;
+  } else {
+    console.log("Found ChainlinkPriceOracle at:", deployConfig.ChainlinkPriceOracle);
+  }
+
+  if (deployConfig.CurveBasePoolPriceOracle === "") {
+    const CurveBasePoolPriceOracle = await ethers.getContractFactory("CurveBasePoolPriceOracle", deployer);
+    const oracle = await CurveBasePoolPriceOracle.deploy(deployConfig.ChainlinkPriceOracle, {
+      nonce: 516,
+      gasPrice: 23.1e9,
+    });
+    console.log("Deploying CurveBasePoolPriceOracle, hash:", oracle.deployTransaction.hash);
+    const receipt = await oracle.deployTransaction.wait();
+    console.log("✅ Deploy CurveBasePoolPriceOracle at:", oracle.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.CurveBasePoolPriceOracle = oracle.address;
+  } else {
+    console.log("Found CurveBasePoolPriceOracle at:", deployConfig.CurveBasePoolPriceOracle);
+  }
+
+  // WETH base CurveV2
+  if (deployConfig.CurveV2PriceOracle.WETH === "") {
+    const CurveV2PriceOracle = await ethers.getContractFactory("CurveV2PriceOracle", deployer);
+    const oracle = await CurveV2PriceOracle.deploy(deployConfig.ChainlinkPriceOracle, TOKENS.WETH.address);
+    console.log("Deploying CurveV2PriceOracle.WETH, hash:", oracle.deployTransaction.hash);
+    const receipt = await oracle.deployTransaction.wait();
+    console.log("✅ Deploy CurveV2PriceOracle.WETH at:", oracle.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.CurveV2PriceOracle.WETH = oracle.address;
+  } else {
+    console.log("Found CurveV2PriceOracle.WETH at:", deployConfig.CurveV2PriceOracle.WETH);
+  }
+
+  // crvFRAX base CurveV2
+  if (deployConfig.CurveV2PriceOracle.crvFRAX === "") {
+    const CurveV2PriceOracle = await ethers.getContractFactory("CurveV2PriceOracle", deployer);
+    const oracle = await CurveV2PriceOracle.deploy(deployConfig.CurveBasePoolPriceOracle, TOKENS.crvFRAX.address);
+    console.log("Deploying CurveV2PriceOracle.crvFRAX, hash:", oracle.deployTransaction.hash);
+    const receipt = await oracle.deployTransaction.wait();
+    console.log("✅ Deploy CurveV2PriceOracle.crvFRAX at:", oracle.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.CurveV2PriceOracle.crvFRAX = oracle.address;
+  } else {
+    console.log("Found CurveV2PriceOracle.crvFRAX at:", deployConfig.CurveV2PriceOracle.crvFRAX);
+  }
+
+  // set chainlink oracle
+  {
+    const CHAINLINK_FEEDS: { [symbol: string]: string } = {
+      CRV: "0xCd627aA160A6fA45Eb793D19Ef54f5062F20f33f",
+      CVX: "0xd962fC30A72A84cE50161031391756Bf2876Af5D",
+      DAI: "0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9",
+      USDC: "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6",
+      USDT: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
+      FRAX: "0xB9E1E3A9feFf48998E45Fa90847ed4D467E8BcfD",
+      WETH: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+    };
+    const oracle = await ethers.getContractAt("ChainlinkPriceOracle", deployConfig.ChainlinkPriceOracle, deployer);
+    const symbols: string[] = [];
+    for (const symbol of ["WETH", "USDC", "DAI", "USDT", "FRAX"]) {
+      const feed = (await oracle.feeds(TOKENS[symbol].address)).feed;
+      if (feed === constants.AddressZero) {
+        symbols.push(symbol);
+      } else {
+        console.log(`Found feed for ChainlinkPriceOracle/${symbol} at ${feed}`);
+      }
+    }
+    if (symbols.length > 0) {
+      const addresses = symbols.map((s) => TOKENS[s].address);
+      const feeds = symbols.map((s) => CHAINLINK_FEEDS[s]);
+      const tx = await oracle.setFeeds(addresses, feeds);
+      console.log("Setup ChainlinkPriceOracle", `symbols[${symbols}]`, `feeds[${feeds}]`, `hash[${tx.hash}]`);
+      const receipt = await tx.wait();
+      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    }
+  }
+
+  // set curve base pool oracle
+  {
+    const oracle = await ethers.getContractAt(
+      "CurveBasePoolPriceOracle",
+      deployConfig.CurveBasePoolPriceOracle,
+      deployer
+    );
+    const POOLS: { [symbol: string]: string } = {
+      crvFRAX: "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2",
+      TRICRV: "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7",
+    };
+    const symbols: string[] = [];
+    for (const symbol of ["TRICRV", "crvFRAX"]) {
+      const pool = await oracle.pools(TOKENS[symbol].address);
+      if (pool === constants.AddressZero) {
+        symbols.push(symbol);
+      } else {
+        console.log(`Found pool for CurveBasePoolPriceOracle/${symbol} at ${pool}`);
+      }
+    }
+    if (symbols.length > 0) {
+      const addresses = symbols.map((s) => TOKENS[s].address);
+      const pools = symbols.map((s) => POOLS[s]);
+      const tx = await oracle.setPools(addresses, pools);
+      console.log("Setup CurveBasePoolPriceOracle", `symbols[${symbols}]`, `pools[${pools}]`, `hash[${tx.hash}]`);
+      const receipt = await tx.wait();
+      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    }
+  }
+
+  // set curve v2 oracle, WETH base
+  {
+    const WETH_POOLS: { [symbol: string]: string } = {
+      CRV: "0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511",
+      CVX: "0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4",
+      LDO: "0x9409280DC1e6D33AB7A8C6EC03e5763FB61772B5",
+      YFI: "0xC26b89A667578ec7b3f11b2F98d6Fd15C07C54ba",
+      KP3R: "0x21410232B484136404911780bC32756D5d1a9Fa9",
+      cbETH: "0x5FAE7E604FC3e24fd43A72867ceBaC94c65b404A",
+      T: "0x752eBeb79963cf0732E9c0fec72a49FD1DEfAEAC",
+      GEAR: "0x0E9B5B092caD6F1c5E6bc7f89Ffe1abb5c95F1C2",
+    };
+    const oracle = await ethers.getContractAt("CurveV2PriceOracle", deployConfig.CurveV2PriceOracle.WETH, deployer);
+    const symbols: string[] = [];
+    for (const symbol of ["CRV", "CVX"]) {
+      const pool = (await oracle.pools(TOKENS[symbol].address)).pool;
+      if (pool === constants.AddressZero) {
+        symbols.push(symbol);
+      } else {
+        console.log(`Found pool for CurveV2PriceOracle.WETH/${symbol} at ${pool}`);
+      }
+    }
+    if (symbols.length > 0) {
+      const addresses = symbols.map((s) => TOKENS[s].address);
+      const pools = symbols.map((s) => WETH_POOLS[s]);
+      const tx = await oracle.setPools(addresses, pools);
+      console.log("Setup CurveV2PriceOracle.WETH", `symbols[${symbols}]`, `pools[${pools}]`, `hash[${tx.hash}]`);
+      const receipt = await tx.wait();
+      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    }
+  }
+
+  // set curve v2 oracle, crvFRAX base
+  {
+    const FRAXBP_POOLS: { [symbol: string]: string } = {
+      cvxFXS: "0x21d158d95c2e150e144c36fc64e3653b8d6c6267",
+      RSR: "0x6a6283ab6e31c2aec3fa08697a8f806b740660b2",
+      cvxCRV: "0x31c325a01861c7dbd331a9270296a31296d797a0",
+      CVX: "0xbec570d92afb7ffc553bdd9d4b4638121000b10d",
+      BADGER: "0x13b876c26ad6d21cb87ae459eaf6d7a1b788a113",
+      agEUR: "0x58257e4291f95165184b4bea7793a1d6f8e7b627",
+      SDT: "0x3e3c6c7db23cddef80b694679aaf1bcd9517d0ae",
+      ALCX: "0x4149d1038575ce235e03e03b39487a80fd709d31",
+    };
+    const oracle = await ethers.getContractAt("CurveV2PriceOracle", deployConfig.CurveV2PriceOracle.crvFRAX, deployer);
+    const symbols: string[] = [];
+    for (const symbol of ["cvxCRV"]) {
+      const pool = (await oracle.pools(TOKENS[symbol].address)).pool;
+      if (pool === constants.AddressZero) {
+        symbols.push(symbol);
+      } else {
+        console.log(`Found pool for CurveV2PriceOracle.crvFRAX/${symbol} at ${pool}`);
+      }
+    }
+    if (symbols.length > 0) {
+      const addresses = symbols.map((s) => TOKENS[s].address);
+      const pools = symbols.map((s) => FRAXBP_POOLS[s]);
+      const tx = await oracle.setPools(addresses, pools);
+      console.log("Setup CurveV2PriceOracle.crvFRAX", `symbols[${symbols}]`, `pools[${pools}]`, `hash[${tx.hash}]`);
+      const receipt = await tx.wait();
+      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    }
+  }
+
+  // set aladdin oracle
+  {
+    const SOURCES: { [symbol: string]: string } = {
+      CRV: deployConfig.CurveV2PriceOracle.WETH,
+      CVX: deployConfig.CurveV2PriceOracle.WETH,
+      cvxCRV: deployConfig.CurveV2PriceOracle.crvFRAX,
+      TRICRV: deployConfig.CurveBasePoolPriceOracle,
+    };
+    const oracle = await ethers.getContractAt("AladdinPriceOracle", deployConfig.AladdinPriceOracle, deployer);
+    const symbols: string[] = [];
+    for (const symbol of ["CRV", "CVX", "cvxCRV", "TRICRV"]) {
+      const source = await oracle.sources(TOKENS[symbol].address);
+      if (source === constants.AddressZero) {
+        symbols.push(symbol);
+      } else {
+        console.log(`Found source for AladdinPriceOracle/${symbol} at ${source}`);
+      }
+    }
+    if (symbols.length > 0) {
+      const addresses = symbols.map((s) => TOKENS[s].address);
+      const sources = symbols.map((s) => SOURCES[s]);
+      const tx = await oracle.setSources(addresses, sources);
+      console.log("Setup AladdinPriceOracle", `symbols[${symbols}]`, `sources[${sources}]`, `hash[${tx.hash}]`);
+      const receipt = await tx.wait();
+      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    }
+  }
+}
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   if (deployer.address !== "0x07dA2d30E26802ED65a52859a50872cfA615bD0A") {
@@ -1186,6 +1419,10 @@ async function main() {
 
   if (cmd === "concentrator.abccvx") {
     await deployAbcCVX();
+  }
+
+  if (cmd === "concentrator.oracle") {
+    await deployPriceOracle();
   }
 }
 

@@ -75,6 +75,8 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   aCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV },
   aFXS: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxFXS.aFXS },
   CTR: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.CTR },
+  sdCRV: { decimals: 18, address: "0xd1b5651e55d4ceed36251c61c50c889b36f6abb5" },
+  tBTC: { decimals: 18, address: "0x18084fba666a33d37592fa2633fd49a74dd93a88" },
   CLEV: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLEV },
   clevCVX: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLeverCVX.clevCVX },
   clevUSD: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLeverUSD.clevUSD },
@@ -85,4 +87,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   multiBTC: { decimals: 8, address: "0x66eFF5221ca926636224650Fd3B9c497FF828F7D" },
   crvWSBTC: { decimals: 18, address: "0x051d7e5609917Bd9b73f04BAc0DED8Dd46a74301" },
   MULTI: { decimals: 18, address: "0x65Ef703f5594D2573eb71Aaf55BC0CB548492df4" },
+  MATIC: { decimals: 18, address: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0" },
+  CNC: { decimals: 18, address: "0x9ae380f0272e2162340a5bb646c354271c0f5cfc" },
 };
