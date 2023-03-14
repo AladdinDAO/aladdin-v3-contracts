@@ -18,10 +18,6 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
-  /// @notice Emitted when the zap contract is updated.
-  /// @param _zap The address of the zap contract.
-  event UpdateZap(address _zap);
-
   /// @notice Emitted when pool assets migrated.
   /// @param _oldStrategy The address of old strategy.
   /// @param _newStrategy The address of current strategy.
@@ -55,6 +51,8 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
 
   /// @inheritdoc IAladdinCompounder
   function harvest(address _recipient, uint256 _minAssets) external override nonReentrant returns (uint256) {
+    ensureCallerIsHarvester();
+
     _distributePendingReward();
 
     uint256 _amountLP = IConcentratorStrategy(strategy).harvest(zap, _intermediate());
@@ -93,7 +91,7 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
     IConcentratorStrategy(strategy).updateRewards(_rewards);
   }
 
-  /// @dev Update the zap contract
+  /// @notice Update the zap contract
   /// @param _zap The address of the zap contract.
   function updateZap(address _zap) external onlyOwner {
     require(_zap != address(0), "AladdinCompounder: zero zap address");

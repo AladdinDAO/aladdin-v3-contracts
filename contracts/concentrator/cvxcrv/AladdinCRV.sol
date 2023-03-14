@@ -15,8 +15,10 @@ import "../../interfaces/ICVXMining.sol";
 import "../../interfaces/IEllipsisMerkleDistributor.sol";
 import "../../interfaces/IZap.sol";
 
+import "../ConcentratorBase.sol";
+
 // solhint-disable no-empty-blocks, reason-string
-contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable, IAladdinCRV {
+contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable, ConcentratorBase, IAladdinCRV {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -193,6 +195,8 @@ contract AladdinCRV is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUpgr
   /// @param _recipient - The address of account to receive harvest bounty.
   /// @param _minimumOut - The minimum amount of cvxCRV should get.
   function harvest(address _recipient, uint256 _minimumOut) public override nonReentrant returns (uint256) {
+    ensureCallerIsHarvester();
+
     return _harvest(_recipient, _minimumOut);
   }
 

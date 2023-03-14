@@ -13,8 +13,15 @@ import "./interfaces/IConcentratorConvexVault.sol";
 import "../interfaces/IConvexBooster.sol";
 import "../interfaces/IConvexBasicRewards.sol";
 
+import "./ConcentratorBase.sol";
+
 // solhint-disable no-empty-blocks, reason-string, not-rely-on-time
-abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, IConcentratorConvexVault {
+abstract contract ConcentratorConvexVault is
+  OwnableUpgradeable,
+  ReentrancyGuardUpgradeable,
+  ConcentratorBase,
+  IConcentratorConvexVault
+{
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -355,7 +362,9 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     uint256 _pid,
     address _recipient,
     uint256 _minOut
-  ) external virtual override onlyExistPool(_pid) nonReentrant returns (uint256) {
+  ) public virtual override onlyExistPool(_pid) nonReentrant returns (uint256) {
+    ensureCallerIsHarvester();
+
     PoolInfo storage _pool = poolInfo[_pid];
     _updateRewards(_pid, address(0));
 
@@ -518,6 +527,12 @@ abstract contract ConcentratorConvexVault is OwnableUpgradeable, ReentrancyGuard
     poolInfo[_pid].pauseDeposit = _status;
 
     emit PausePoolDeposit(_pid, _status);
+  }
+
+  /// @notice Update the harvester contract
+  /// @param _harvester The address of the harvester contract.
+  function updateHarvester(address _harvester) external onlyOwner {
+    _updateHarvester(_harvester);
   }
 
   /********************************** Internal Functions **********************************/

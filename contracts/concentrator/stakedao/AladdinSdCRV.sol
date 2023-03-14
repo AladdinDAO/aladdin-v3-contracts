@@ -6,18 +6,14 @@ pragma abicoder v2;
 import "./interfaces/IStakeDAOCRVVault.sol";
 import "../../interfaces/IZap.sol";
 
-import "./SdCRVLocker.sol";
 import "../AladdinCompounder.sol";
+import "./SdCRVLocker.sol";
 
 // solhint-disable reason-string
 
 contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
-
-  /// @notice Emitted when the zap contract is updated.
-  /// @param _zap The address of the zap contract.
-  event UpdateZap(address _zap);
 
   /// @dev The type for withdraw fee in StakeDAOVaultBase
   bytes32 private constant VAULT_WITHDRAW_FEE_TYPE = keccak256("StakeDAOVaultBase.WithdrawFee");
@@ -124,6 +120,8 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
 
   /// @inheritdoc IAladdinCompounder
   function harvest(address _recipient, uint256 _minAssets) external override nonReentrant returns (uint256 assets) {
+    ensureCallerIsHarvester();
+
     _distributePendingReward();
 
     // 1. claim rewards and sell to sdCRV
@@ -185,7 +183,7 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
 
   /********************************** Restricted Functions **********************************/
 
-  /// @dev Update the zap contract
+  /// @notice Update the zap contract
   /// @param _zap The address of the zap contract.
   function updateZap(address _zap) external onlyOwner {
     require(_zap != address(0), "asdCRV: zero zap address");

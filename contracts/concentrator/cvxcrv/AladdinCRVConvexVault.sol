@@ -16,8 +16,15 @@ import "../../interfaces/IConvexCRVDepositor.sol";
 import "../../interfaces/ICurveFactoryPlainPool.sol";
 import "../../interfaces/IZap.sol";
 
+import "../ConcentratorBase.sol";
+
 // solhint-disable no-empty-blocks, reason-string
-contract AladdinCRVConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable, IAladdinCRVConvexVault {
+contract AladdinCRVConvexVault is
+  OwnableUpgradeable,
+  ReentrancyGuardUpgradeable,
+  ConcentratorBase,
+  IAladdinCRVConvexVault
+{
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -468,7 +475,9 @@ contract AladdinCRVConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable
     uint256 _pid,
     address _recipient,
     uint256 _minimumOut
-  ) external virtual override onlyExistPool(_pid) nonReentrant returns (uint256 harvested) {
+  ) public virtual override onlyExistPool(_pid) nonReentrant returns (uint256 harvested) {
+    ensureCallerIsHarvester();
+
     PoolInfo storage _pool = poolInfo[_pid];
     // 1. claim rewards
     IConvexBasicRewards(_pool.crvRewards).getReward();
@@ -570,6 +579,12 @@ contract AladdinCRVConvexVault is OwnableUpgradeable, ReentrancyGuardUpgradeable
     zap = _zap;
 
     emit UpdateZap(_zap);
+  }
+
+  /// @notice Update the harvester contract
+  /// @param _harvester The address of the harvester contract.
+  function updateHarvester(address _harvester) external onlyOwner {
+    _updateHarvester(_harvester);
   }
 
   /// @dev Update the migrator contract

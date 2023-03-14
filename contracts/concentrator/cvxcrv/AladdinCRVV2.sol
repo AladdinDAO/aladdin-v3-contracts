@@ -17,6 +17,7 @@ import "../../interfaces/ICvxCrvStakingWrapper.sol";
 import "../../interfaces/IZap.sol";
 
 import "../../common/FeeCustomization.sol";
+import "../ConcentratorBase.sol";
 
 // solhint-disable no-empty-blocks, reason-string
 contract AladdinCRVV2 is
@@ -24,6 +25,7 @@ contract AladdinCRVV2 is
   OwnableUpgradeable,
   ReentrancyGuardUpgradeable,
   FeeCustomization,
+  ConcentratorBase,
   IAladdinCRV,
   IAladdinCompounder
 {
@@ -378,6 +380,8 @@ contract AladdinCRVV2 is
     nonReentrant
     returns (uint256)
   {
+    ensureCallerIsHarvester();
+
     return _harvest(_recipient, _minimumOut);
   }
 
@@ -426,6 +430,12 @@ contract AladdinCRVV2 is
     emit UpdateZap(_zap);
   }
 
+  /// @notice Update the harvester contract
+  /// @param _harvester The address of the harvester contract.
+  function updateHarvester(address _harvester) external onlyOwner {
+    _updateHarvester(_harvester);
+  }
+
   /// @notice Migrate pool assets to new strategy.
   /// @param _newStrategy The address of new strategy.
   function migrateStrategy(address _newStrategy) external onlyOwner {
@@ -442,6 +452,15 @@ contract AladdinCRVV2 is
     IConcentratorStrategy(_newStrategy).deposit(address(this), _totalUnderlying);
 
     emit MigrateStrategy(_oldStrategy, _newStrategy);
+  }
+
+  /// @notice Update withdraw fee for certain user.
+  /// @param _user The address of user to update.
+  /// @param _percentage The withdraw fee percentage to be updated, multipled by 1e9.
+  function setWithdrawFeeForUser(address _user, uint32 _percentage) external onlyOwner {
+    require(_percentage <= MAX_WITHDRAW_FEE, "withdraw fee too large");
+
+    _setFeeCustomization(WITHDRAW_FEE_TYPE, _user, _percentage);
   }
 
   /********************************** Internal Functions **********************************/
