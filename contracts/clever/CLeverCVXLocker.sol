@@ -14,6 +14,7 @@ import "../interfaces/IConvexCVXLocker.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
 import "../interfaces/ISnapshotDelegateRegistry.sol";
 import "../interfaces/IZap.sol";
+import "../voting/ISignatureVerifier.sol";
 
 // solhint-disable not-rely-on-time, max-states-count, reason-string
 
@@ -145,11 +146,11 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev The list of whitelist keeper.
   mapping(address => bool) public isKeeper;
 
-  /// @dev The start timestamp to pause deposit
-  uint128 public pauseStartTimestamp;
+  /// @notice The list of rewards token.
+  address[] public rewardTokens;
 
-  /// @dev The finish timestamp to pause deposit
-  uint128 public pauseFinishTimestamp;
+  /// @notice The address of SignatureVerifier contract.
+  ISignatureVerifier public verifier;
 
   modifier onlyGovernorOrOwner() {
     require(msg.sender == governor || msg.sender == owner(), "CLeverCVXLocker: only governor or owner");
@@ -305,15 +306,28 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
       );
   }
 
+  /// @notice Should return whether the signature provided is valid for the provided hash
+  /// @dev See https://eips.ethereum.org/EIPS/eip-1271 for more details.
+  /// @param _hash      Hash of the data to be signed
+  /// @param _signature Signature byte array associated with _hash
+  ///
+  /// MUST return the bytes4 magic value 0x1626ba7e when function passes.
+  /// MUST NOT modify state (using STATICCALL for solc < 0.5, view modifier for solc > 0.5)
+  /// MUST allow external calls
+  function isValidSignature(bytes32 _hash, bytes calldata _signature) external view returns (bytes4) {
+    // Validate signatures
+    if (verifier.verifySignature(_hash, _signature) == true) {
+      return 0x1626ba7e;
+    } else {
+      return 0xffffffff;
+    }
+  }
+
   /********************************** Mutated Functions **********************************/
 
   /// @dev Deposit CVX and lock into CVXLockerV2
   /// @param _amount The amount of CVX to lock.
   function deposit(uint256 _amount) external override {
-    require(
-      block.timestamp < pauseStartTimestamp || block.timestamp > pauseFinishTimestamp,
-      "CLeverCVXLocker: deposit is paused"
-    );
     require(_amount > 0, "CLeverCVXLocker: deposit zero CVX");
     IERC20Upgradeable(CVX).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -534,24 +548,23 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @return The amount of CVX harvested.
   function harvest(address _recipient, uint256 _minimumOut) external override returns (uint256) {
     // 1. harvest from CVXLockerV2 and CVXRewardPool
+    address[] memory _rewardTokens = rewardTokens;
+    uint256[] memory _balances = new uint256[](_rewardTokens.length);
+    for (uint256 i = 0; i < _rewardTokens.length; i++) {
+      _balances[i] = IERC20Upgradeable(_rewardTokens[i]).balanceOf(address(this));
+    }
     IConvexCVXRewardPool(CVX_REWARD_POOL).getReward(false);
     IConvexCVXLocker(CVX_LOCKER).getReward(address(this));
 
-    // 2. convert all cvxCRV/cvxFXS to ETH, then to CVX
+    // 2. convert all reward tokens to ETH, then to CVX
     uint256 _amount; // store the amount of ETH
     address _zap = zap;
-    {
-      uint256 _cvxcrvAmount = IERC20Upgradeable(CVXCRV).balanceOf(address(this));
-      if (_cvxcrvAmount > 0) {
-        IERC20Upgradeable(CVXCRV).safeTransfer(_zap, _cvxcrvAmount);
-        _amount += IZap(_zap).zap(CVXCRV, _cvxcrvAmount, address(0), 0);
-      }
-    }
-    {
-      uint256 _cvxfxsAmount = IERC20Upgradeable(CVXFXS).balanceOf(address(this));
-      if (_cvxfxsAmount > 0) {
-        IERC20Upgradeable(CVXFXS).safeTransfer(_zap, _cvxfxsAmount);
-        _amount += IZap(_zap).zap(CVXFXS, _cvxfxsAmount, address(0), 0);
+    for (uint256 i = 0; i < _rewardTokens.length; i++) {
+      address _token = _rewardTokens[i];
+      uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this)) - _balances[i];
+      if (_balance > 0) {
+        IERC20Upgradeable(_token).safeTransfer(_zap, _balance);
+        _amount += IZap(_zap).zap(_token, _balance, address(0), 0);
       }
     }
     if (_amount > 0) {
@@ -793,13 +806,17 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     }
   }
 
-  function updatePauseTimestamp(uint128 _start, uint128 _finish) external onlyGovernorOrOwner {
-    require(_start <= _finish, "CLeverCVXLocker: invalid timestamp interval");
+  /// @notice Update the address of SignatureVerifier contract.
+  /// @param _verifier The address of new SignatureVerifier contract.
+  function updateVerifier(address _verifier) external onlyOwner {
+    verifier = ISignatureVerifier(_verifier);
+  }
 
-    pauseStartTimestamp = _start;
-    pauseFinishTimestamp = _finish;
-
-    emit UpdatePauseTimestamp(_start, _finish);
+  /// @notice Update the list of reward tokens.
+  /// @param _tokens The list of reward tokens to update.
+  function updateRewardTokens(address[] memory _tokens) external onlyOwner {
+    delete rewardTokens;
+    rewardTokens = _tokens;
   }
 
   /********************************** Internal Functions **********************************/

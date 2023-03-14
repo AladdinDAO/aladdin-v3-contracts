@@ -23,6 +23,8 @@ import {
   StakeDAOCRVVault,
   StakeDAOCRVVault__factory,
   AladdinSdCRV__factory,
+  Diamond,
+  IDiamond,
 } from "../typechain";
 import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "./utils";
 
@@ -120,6 +122,13 @@ const config: {
     CurveBasePoolPriceOracle: string;
     CurveV2PriceOracle: { [base: string]: string };
   };
+  Diamonds: { [name: string]: string };
+  Facets: {
+    [name: string]: {
+      address: string;
+      selectors: string[];
+    };
+  };
 } = {
   Strategy: {
     factory: "0x23384DD4380b3677b829C6c88c0Ea9cc41C099bb",
@@ -133,11 +142,11 @@ const config: {
   },
   UpgradeableBeacon: {
     AladdinETH: {
-      impl: "0x7f6Ce8b08BcA036c60F71693cD9425614Ab8f9BE",
+      impl: "0xd3B15898d10B63Ddc309c287f7B68b768Afb777c",
       beacon: "0xC999894424b281cE8602B50DF5F2D57F91e852f7",
     },
     ConcentratorAladdinETHVault: {
-      impl: "0x06dFAf0E53ce24d43eaC332BbDC07b690894DF74",
+      impl: "0x1af1639f02E03107d95c6d1670adE9E7262C9fA5",
       beacon: "0x7D6c00032cAbc699b908ECE34097ff1A159da998",
     },
   },
@@ -177,11 +186,11 @@ const config: {
         rewards: ["CVX", "CRV"],
         strategy: "0xc9cfD6205914AB1E209FfE70326d8dd15fc58187",
         proxy: "0xb15Ad6113264094Fd9BF2238729410A07EBE5ABa",
-        impl: "0xC999894424b281cE8602B50DF5F2D57F91e852f7",
+        impl: "0xd3B15898d10B63Ddc309c287f7B68b768Afb777c",
       },
       vault: {
         proxy: "0x50B47c4A642231dbe0B411a0B2FBC1EBD129346D",
-        impl: "0x7D6c00032cAbc699b908ECE34097ff1A159da998",
+        impl: "0x1af1639f02E03107d95c6d1670adE9E7262C9fA5",
       },
     },
   },
@@ -198,11 +207,11 @@ const config: {
       rewards: ["CVX", "CRV", "TRICRV"],
       strategy: "0x94cC627Db80253056B2130aAC39abB252A75F345",
       proxy: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
-      impl: "0x8C7E36A669b4B9f55608C7d3C373e8b9F19c444D",
+      impl: "0x9142d4aDAE1D0b43798E1C5a844Cc4F2e3De92Fb",
     },
     vault: {
       proxy: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
-      impl: "0x4D90Ba583Cd7f524ad76C5c07EcCf81A32061E65",
+      impl: "0xe6fbe09f13d652d647594b4cd13a06946c2b5844",
     },
   },
   ConcentratorFXS: {
@@ -218,11 +227,11 @@ const config: {
       rewards: ["FXS", "CVX", "CRV"],
       strategy: "",
       proxy: "0xDAF03D70Fe637b91bA6E521A32E1Fb39256d3EC9",
-      impl: "0xeb5EB007Ab39e9831a1921E8116Bc353AFE5BA2C",
+      impl: "0x165A7a410C14054cd39d03b4b7Cb392f61be6EDc",
     },
     vault: {
       proxy: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
-      impl: "0xFD265e6FcF0306FBCC69228a77576c45C234baba",
+      impl: "0x4b5cfdc5d2b8185b73Deb54f9060D70D82b49fE7",
     },
   },
   abcCVX: {
@@ -242,7 +251,7 @@ const config: {
     strategy: "0x29E56d5E68b4819FC4a997b91fc9F4f8818ef1B4",
     amo: {
       proxy: "0xDEC800C2b17c9673570FDF54450dc1bd79c8E359",
-      impl: "0x07d9d83df553c013e767872af8da75d84e1368f9",
+      impl: "0x705299acafCb8974057cEE1b7529ddA12A0042fc",
     },
     gauge: "0xc5022291cA8281745d173bB855DCd34dda67F2f0",
   },
@@ -269,7 +278,7 @@ const config: {
       },
     },
     AladdinSdCRV: {
-      impl: "0xdC4Ca266b54084cB2371A4258e080bCE9e23545E",
+      impl: "0x165A7a410C14054cd39d03b4b7Cb392f61be6EDc",
       proxy: "0x43E54C2E7b3e294De3A155785F52AB49d87B9922",
       ratio: {
         platform: 10e7, // 10%
@@ -285,6 +294,62 @@ const config: {
     CurveV2PriceOracle: {
       WETH: "0x4dda42b56756c3fB0Aa654857B09D939A5e0B1DD",
       crvFRAX: "0x7aE753d916A812E6031Ce0774dE1d6D623c295F8",
+    },
+  },
+  Diamonds: {
+    ConcentratorHarvester: "0xfa86aa141e45da5183B42792d99Dede3D26Ec515",
+  },
+  Facets: {
+    DiamondCutFacet: {
+      address: "0x9a3c5ec5De774E30074E623e2BF35395Beee3C98",
+      selectors: [
+        "0x1f931c1c", // diamondCut((address,uint8,bytes4[])[],address,bytes)
+      ],
+    },
+    DiamondLoupeFacet: {
+      address: "0x190c58357B8dAb707FdCE1f646eE147f5c0ed85B",
+      selectors: [
+        "0x7a0ed627", // facets()
+        "0xadfca15e", // facetFunctionSelectors(address)
+        "0x52ef6b2c", // facetAddresses()
+        "0xcdffacc6", // facetAddress(bytes4)
+        "0x01ffc9a7", // supportsInterface(bytes4)
+      ],
+    },
+    OwnershipFacet: {
+      address: "0x359eB1D2F45dBE9E74C8c8F51FDe70fbf76f230F",
+      selectors: [
+        "0xf2fde38b", // transferOwnership(address)
+        "0x8da5cb5b", // owner()
+      ],
+    },
+    ConcentratorHarvesterFacet: {
+      address: "0x1B544Befd7a51D5CDb40F79eEF5205f16A63Cd98",
+      selectors: [
+        "0xc76b4ae2", // minLockCTR()
+        "0xd6a298e9", // minLockDuration()
+        "0xc683630d", // isWhitelist(address)
+        "0x333e99db", // isBlacklist(address)
+        "0x97128e00", // hasPermission(address)
+        "0xc7f884c6", // harvestConcentratorVault(address,uint256,uint256)
+        "0x04117561", // harvestConcentratorCompounder(address,uint256)
+        "0x0f45b177", // updatePermission(uint128,uint128)
+        "0x0d392cd9", // updateWhitelist(address,bool)
+        "0x9155e083", // updateBlacklist(address,bool)
+      ],
+    },
+    StakeDaoHarvesterFacet: {
+      address: "0xc56b67f58ecf4C9906548Cb28d13ba6B8F18249c",
+      selectors: [
+        "0xb0af8758", // harvestStakeDaoVault(address)
+        "0xa486d532", // harvestStakeDaoVaultAndCompounder(address,address,uint256)
+      ],
+    },
+    CLeverAMOHarvesterFacet: {
+      address: "0xD912d922E7E6d11d5caaE204f7907F38E70AbEd2",
+      selectors: [
+        "0x7edadc04", // harvestCLeverAMO(address,uint256)
+      ],
     },
   },
 };
@@ -736,7 +801,7 @@ async function deployAbcCVX() {
   const cvxConfig = config.abcCVX;
   const [deployer] = await ethers.getSigners();
 
-  const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.CLever.ProxyAdmin, deployer);
+  const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin, deployer);
 
   let strategy: AMOConvexCurveStrategy;
   if (cvxConfig.strategy !== "") {
@@ -1361,6 +1426,68 @@ async function deployPriceOracle() {
   }
 }
 
+async function deployConcentratorHarvester() {
+  const [deployer] = await ethers.getSigners();
+  const facets = config.Facets;
+  const diamonds = config.Diamonds;
+  for (const name of [
+    "OwnershipFacet",
+    "DiamondLoupeFacet",
+    "DiamondCutFacet",
+    "ConcentratorHarvesterFacet",
+    "StakeDaoHarvesterFacet",
+    "CLeverAMOHarvesterFacet",
+  ]) {
+    if (facets[name].address !== "") {
+      console.log(`Found ${name} at: ${facets[name].address}`);
+    } else {
+      const contract = await ethers.getContractFactory(name, deployer);
+      const facet = await contract.deploy();
+      console.log(`Deploying ${name}, hash:`, facet.deployTransaction.hash);
+      const receipt = await facet.deployTransaction.wait();
+      console.log(`✅ Deploy ${name} at:`, facet.address, "gas used:", receipt.gasUsed.toString());
+      facets[name].address = facet.address;
+    }
+  }
+
+  let diamond: Diamond;
+  if (diamonds.ConcentratorHarvester !== "") {
+    diamond = await ethers.getContractAt("Diamond", diamonds.ConcentratorHarvester, deployer);
+    console.log("Found ConcentratorHarvester Diamond at:", diamond.address);
+  } else {
+    const Diamond = await ethers.getContractFactory("Diamond", deployer);
+    const diamondCuts: IDiamond.FacetCutStruct[] = [];
+    for (const name of [
+      "OwnershipFacet",
+      "DiamondLoupeFacet",
+      "DiamondCutFacet",
+      "ConcentratorHarvesterFacet",
+      "StakeDaoHarvesterFacet",
+      "CLeverAMOHarvesterFacet",
+    ]) {
+      diamondCuts.push({
+        facetAddress: facets[name].address,
+        action: 0,
+        functionSelectors: facets[name].selectors,
+      });
+    }
+    diamond = await Diamond.deploy(diamondCuts, {
+      owner: deployer.address,
+      init: constants.AddressZero,
+      initCalldata: "0x",
+    });
+    console.log(`Deploying ConcentratorHarvester Diamond, hash:`, diamond.deployTransaction.hash);
+    const receipt = await diamond.deployTransaction.wait();
+    console.log(
+      `✅ Deploy ConcentratorHarvester Diamond, at:`,
+      diamond.address,
+      "gas used:",
+      receipt.gasUsed.toString()
+    );
+    diamonds.ConcentratorHarvester = diamond.address;
+  }
+}
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   if (deployer.address !== "0x07dA2d30E26802ED65a52859a50872cfA615bD0A") {
@@ -1423,6 +1550,10 @@ async function main() {
 
   if (cmd === "concentrator.oracle") {
     await deployPriceOracle();
+  }
+
+  if (cmd === "concentrator.harvester") {
+    await deployConcentratorHarvester();
   }
 }
 

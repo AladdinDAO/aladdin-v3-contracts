@@ -21,7 +21,6 @@ interface IAladdinCRVConvexVault {
   event UpdatePlatformFeePercentage(uint256 indexed _pid, uint256 _feePercentage);
   event UpdateHarvestBountyPercentage(uint256 indexed _pid, uint256 _percentage);
   event UpdatePlatform(address indexed _platform);
-  event UpdateZap(address indexed _zap);
   event UpdatePoolRewardTokens(uint256 indexed _pid, address[] _rewardTokens);
   event AddPool(uint256 indexed _pid, uint256 _convexPid, address[] _rewardTokens);
   event PausePoolDeposit(uint256 indexed _pid, bool _status);

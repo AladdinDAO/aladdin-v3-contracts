@@ -5,21 +5,18 @@ pragma solidity ^0.7.6;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "../AladdinCompounder.sol";
 import "../../interfaces/IConvexBooster.sol";
 import "../../interfaces/IConvexBasicRewards.sol";
 import "../../interfaces/ICurveCryptoPool.sol";
 import "../../interfaces/IZap.sol";
+
+import "../AladdinCompounder.sol";
 
 // solhint-disable no-empty-blocks
 
 contract AladdinFXS is AladdinCompounder {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
-
-  /// @notice Emitted when the zap contract is updated.
-  /// @param _zap The address of the zap contract.
-  event UpdateZap(address _zap);
 
   /// @dev The address of Curve cvxfxs pool.
   address private constant CURVE_cvxFXS_POOL = 0xd658A338613198204DCa1143Ac3F01A722b5d94A;
@@ -72,6 +69,8 @@ contract AladdinFXS is AladdinCompounder {
 
   /// @inheritdoc IAladdinCompounder
   function harvest(address _recipient, uint256 _minAssets) external override nonReentrant returns (uint256) {
+    ensureCallerIsHarvester();
+
     _distributePendingReward();
 
     // 1. claim rewards
@@ -147,7 +146,7 @@ contract AladdinFXS is AladdinCompounder {
     rewards = _rewards;
   }
 
-  /// @dev Update the zap contract
+  /// @notice Update the zap contract
   /// @param _zap The address of the zap contract.
   function updateZap(address _zap) external onlyOwner {
     require(_zap != address(0), "aFXS: zero zap address");
