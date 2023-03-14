@@ -801,7 +801,7 @@ async function deployAbcCVX() {
   const cvxConfig = config.abcCVX;
   const [deployer] = await ethers.getSigners();
 
-  const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.CLever.ProxyAdmin, deployer);
+  const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin, deployer);
 
   let strategy: AMOConvexCurveStrategy;
   if (cvxConfig.strategy !== "") {
