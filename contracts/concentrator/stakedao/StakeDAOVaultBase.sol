@@ -303,10 +303,8 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
     }
   }
 
-  /// @notice Donate some token to this contract.
-  /// @param _tokens The list of tokens to donate.
-  /// @param _amounts The corresponding amounts to donate.
-  function donate(address[] memory _tokens, uint256[] memory _amounts) external {
+  /// @inheritdoc IStakeDAOVault
+  function donate(address[] memory _tokens, uint256[] memory _amounts) external override {
     require(_tokens.length == _amounts.length, "length mismatch");
 
     for (uint256 i = 0; i < _tokens.length; i++) {

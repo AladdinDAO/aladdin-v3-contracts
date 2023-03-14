@@ -6,7 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import "./StakeDAOCRVVault.sol";
+import "./StakeDAOVaultBase.sol";
+
+// solhint-disable const-name-snakecase
 
 contract SdCRVBribeBurner is Ownable {
   using SafeERC20 for IERC20;
@@ -24,14 +26,17 @@ contract SdCRVBribeBurner is Ownable {
    * Constants *
    *************/
 
-  /// @notice The address of StakeDAOCRVVault contract.
-  address public immutable vault;
-
   /// @dev The address of CRV Token.
   address private constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
 
   /// @dev The address of Stake DAO: SDT Token.
   address private constant SDT = 0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F;
+
+  /// @dev The address of StakeDAOCRVVault contract.
+  address private constant vault = 0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6;
+
+  /// @dev The address of VeSDTDelegation contract.
+  address private constant delegator = 0x6037Bb1BBa598bf88D816cAD90A28cC00fE3ff64;
 
   /*************
    * Variables *
@@ -46,9 +51,10 @@ contract SdCRVBribeBurner is Ownable {
   /***************
    * Constructor *
    ***************/
-  constructor(address _vault, address _logic) {
-    vault = _vault;
+  constructor(address _logic) {
     logic = _logic;
+
+    IERC20(CRV).safeApprove(vault, uint256(-1));
   }
 
   /****************************
@@ -69,8 +75,33 @@ contract SdCRVBribeBurner is Ownable {
     require(isWhitelist[msg.sender], "only whitelist");
 
     uint256 _balance = IERC20(token).balanceOf(address(this));
-    (address _platform, uint256 _platformPercentage, , uint256 _boostPercentage, ) = StakeDAOCRVVault(vault).feeInfo();
-    if (_platformPercentage > 0) {}
+    (address _platform, uint256 _platformFee, , uint256 _boostFee, ) = StakeDAOVaultBase(vault).feeInfo();
+
+    if (_platformFee > 0) {
+      _platformFee = (_platformFee * _balance) / 1e7;
+
+      IERC20(token).safeTransfer(_platform, _platformFee);
+    }
+
+    if (_boostFee > 0) {
+      _boostFee = (_boostFee * _balance) / 1e7;
+      _boostFee = _convert(_boostFee, routeSDT);
+      require(_boostFee >= minSDT, "insufficient SDT");
+
+      IERC20(SDT).safeTransfer(delegator, _boostFee);
+    }
+
+    _balance -= _platformFee + _boostFee;
+    if (_balance > 0) {
+      _balance = _convert(_balance, routeCRV);
+      require(_boostFee >= minCRV, "insufficient CRV");
+
+      uint256[] memory _amounts = new uint256[](1);
+      address[] memory _tokens = new address[](1);
+      _amounts[0] = _balance;
+      _tokens[0] = CRV;
+      StakeDAOVaultBase(vault).donate(_tokens, _amounts);
+    }
   }
 
   // solhint-disable-next-line no-empty-blocks
@@ -80,6 +111,9 @@ contract SdCRVBribeBurner is Ownable {
    * Public Restricted Functions *
    *******************************/
 
+  /// @notice Update the whitelist status of account.
+  /// @param _account The address to update.
+  /// @param _status The status to update.
   function updateWhitelist(address _account, bool _status) external onlyOwner {
     isWhitelist[_account] = _status;
   }
@@ -108,11 +142,30 @@ contract SdCRVBribeBurner is Ownable {
    * Internal Functions *
    **********************/
 
-  function _convert(
-    address _token,
-    uint256 _amount,
-    uint256[] memory _route
-  ) internal returns (uint256) {
-    if (_route.length == 0) return _amount;
+  /// @dev Internal function to convert token with routes.
+  /// @param _amount The amount of input token.
+  /// @param _routes The routes to do zap. See comments in `TokenZapLogic` for more details.
+  function _convert(uint256 _amount, uint256[] memory _routes) internal returns (uint256) {
+    if (_routes.length == 0) return _amount;
+
+    address _logic = logic;
+    for (uint256 i = 0; i < _routes.length; i++) {
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool _success, bytes memory _result) = _logic.delegatecall(
+        abi.encodeWithSignature("swap(uint256,uint256)", _routes[i], _amount)
+      );
+      // below lines will propagate inner error up
+      if (!_success) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+          let ptr := mload(0x40)
+          let size := returndatasize()
+          returndatacopy(ptr, 0, size)
+          revert(ptr, size)
+        }
+      }
+      _amount = abi.decode(_result, (uint256));
+    }
+    return _amount;
   }
 }
