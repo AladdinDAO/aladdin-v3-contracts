@@ -1,14 +1,39 @@
+/* eslint-disable node/no-extraneous-import */
 /* eslint-disable camelcase */
 import { Command } from "commander";
 import axios from "axios";
 import * as fs from "fs";
 import assert from "assert";
 import Table from "tty-table";
+import { Wallet } from "ethers";
+import snapshot from "@snapshot-labs/snapshot.js";
+import { JsonRpcProvider } from "@ethersproject/providers";
 
 const directory = ".store/vlcvx";
 
 const program = new Command();
 program.version("1.0.0");
+
+export declare type ProposalType = "single-choice" | "approval" | "quadratic" | "ranked-choice" | "weighted" | "basic";
+
+interface ISnapshotVote {
+  from?: string;
+  space: string;
+  timestamp?: number;
+  proposal: string;
+  type: ProposalType;
+  choice:
+    | number
+    | number[]
+    | string
+    | {
+        [key: string]: number;
+      };
+  privacy?: string;
+  reason?: string;
+  app?: string;
+  metadata?: string;
+}
 
 interface ISnapshotProposal {
   author: string;
@@ -95,6 +120,10 @@ interface IVotiumBribeResponse {
   epoch: IVotiumBribe;
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function fetchVotes(proposalId: string, users: number): Promise<ISnapshotVotes[]> {
   const batchSize = 100;
   const votes: ISnapshotVotes[] = [];
@@ -132,7 +161,7 @@ function compute(
   proposal: ISnapshotProposal,
   votium: IVotiumBribe,
   votes: ISnapshotVotes[]
-) {
+): Array<number> {
   const scores: number[] = new Array(proposal.choices.length);
   const bribes: number[] = new Array(proposal.choices.length);
   const bribeTokens: string[][] = new Array(proposal.choices.length);
@@ -255,6 +284,7 @@ function compute(
   //
   // Notice that  some of the x[i] may be negative, we should ignore such choice.
   // To achieve this, we can run the algorithm iteratively until all the x[i] is non-negative.
+  const finalWeights: Array<number> = new Array(proposal.choices.length);
   for (let round = 1; round < 100; ++round) {
     const extraVotes: number[] = new Array(proposal.choices.length);
     const x: number[] = new Array(proposal.choices.length);
@@ -299,13 +329,13 @@ function compute(
     let sumVotes = 0;
     let sumPercentage = 0;
     tokenAmounts = {};
+    finalWeights.fill(0);
     for (let i = 0; i < x.length; i++) {
-      if (x[i] === 0) continue;
-
-      if (x[i] > 0 || extraVotes[i] > 0) {
+      if (x[i] > 0 || (x[i] === 0 && extraVotes[i] > 0)) {
         const profit = ((x[i] + extraVotes[i]) * bribes[i]) / (s[i] + x[i]);
         const percentage = ((x[i] + extraVotes[i]) * 100) / holderVotes;
         const voted = x[i] + extraVotes[i];
+        finalWeights[i] = Math.floor(percentage * 10000 + 1e-8);
 
         sumVotes += voted;
         sumPercentage += percentage;
@@ -316,7 +346,7 @@ function compute(
           `votes[${voted.toFixed(4)}]`,
           `profitUSD[${profit.toFixed(2)}]`
         );
-        if (profit < minProfitUSD) {
+        if (x[i] > 0 && profit < minProfitUSD) {
           bribes[i] = 0;
           bribeIgnoreTimes++;
         }
@@ -329,7 +359,7 @@ function compute(
           tokenAmounts[bribe.token].amount += (bribe.amount * voted) / (s[i] + x[i]);
           tokenAmounts[bribe.token].dollar += (bribe.amountDollars * voted) / (s[i] + x[i]);
         }
-      } else if (bribes[i] !== 0) {
+      } else if (x[i] < 0 && bribes[i] !== 0) {
         bribes[i] = 0;
         bribeIgnoreTimes++;
       }
@@ -347,138 +377,195 @@ function compute(
     }
     if (accepted) break;
   }
+  return finalWeights;
 }
 
 async function main(
   round: number,
-  proposalId: string,
   voter: string,
   holderVotes: number,
   minProfitUSD: number,
-  force: boolean
+  force: boolean,
+  voteConfig?: {
+    private: string;
+    mode: string;
+    autoInterval: number;
+  }
 ) {
-  const proposal_file = `${directory}/${proposalId}.proposal.json`;
-  const votes_file = `${directory}/${proposalId}.votes.json`;
-  const bribes_file = `${directory}/${proposalId}.bribes.json`;
+  const proposal_file = `${directory}/${round}.proposal.json`;
+  const votes_file = `${directory}/${round}.votes.json`;
+  const bribes_file = `${directory}/${round}.bribes.json`;
 
-  // load data
-  let proposal: ISnapshotProposal;
-  if (fs.existsSync(proposal_file) && !force) {
-    proposal = JSON.parse(fs.readFileSync(proposal_file).toString());
-  } else {
-    const response = await axios.post<ISnapshotProposalResponse>(
-      "https://hub.snapshot.org/graphql",
-      JSON.stringify({
-        operationName: "Proposal",
-        variables: {
-          id: proposalId,
-        },
-        query:
-          "query Proposal($id: String!) {\n  proposal(id: $id) {\n    id\n    ipfs\n    title\n    body\n    discussion\n    choices\n    start\n    end\n    snapshot\n    state\n    author\n    created\n    plugins\n    network\n    type\n    quorum\n    symbol\n    privacy\n    strategies {\n      name\n      network\n      params\n    }\n    space {\n      id\n      name\n    }\n    scores_state\n    scores\n    scores_by_strategy\n    scores_total\n    votes\n  }\n}",
-      }),
-      {
-        headers: {
-          "content-type": "application/json",
-        },
-      }
-    );
-    proposal = response.data.data.proposal;
-    console.log("save proposal data to:", proposal_file);
-    fs.writeFileSync(proposal_file, JSON.stringify(proposal));
-  }
+  if (voteConfig) force = true;
 
-  let votes: ISnapshotVotes[];
-  if (fs.existsSync(votes_file) && !force) {
-    votes = JSON.parse(fs.readFileSync(votes_file).toString());
-  } else {
-    votes = await fetchVotes(proposalId, proposal.votes);
-    console.log("save votes data to:", votes_file);
-    fs.writeFileSync(votes_file, JSON.stringify(votes));
-  }
-
-  let bribes: IVotiumBribe;
-  if (fs.existsSync(bribes_file) && !force) {
-    bribes = JSON.parse(fs.readFileSync(bribes_file).toString());
-  } else {
-    const response = await axios.post<IVotiumBribeResponse>(
-      "https://api.llama.airforce//bribes",
-      JSON.stringify({
-        platform: "votium",
-        protocol: "cvx-crv",
-        round: round.toString(),
-      }),
-      {
-        headers: {
-          "content-type": "application/json; charset=utf-8",
-        },
-      }
-    );
-    bribes = response.data.epoch;
-    console.log("save bribes data to:", bribes_file);
-    fs.writeFileSync(bribes_file, JSON.stringify(bribes));
-  }
-
-  // do verification
-  const scores: number[] = new Array(proposal.choices.length);
-  scores.fill(0);
-  let totalVotes = 0;
-  for (const vote of votes) {
-    let sum = 0;
-    for (const value of Object.values(vote.choice)) {
-      sum += value;
-    }
-    for (const [pool, value] of Object.entries(vote.choice)) {
-      scores[parseInt(pool) - 1] += (vote.vp * value) / sum;
-    }
-    totalVotes += vote.vp;
-  }
-  assert.strictEqual(proposal.votes, votes.length, "user count mismatch");
-  assert.strictEqual(proposal.id, proposalId, "proposal_id mismatch");
-  assert.strictEqual(bribes.round, round, "round mismatch");
-  assert.strictEqual(bribes.proposal, proposalId, "proposal_id in bribes mismatch");
-
-  console.log("User voted:", proposal.votes);
-  console.log("Remote total votes:", proposal.scores_total);
-  console.log("Computed total votes:", totalVotes);
-  console.log("Min profit usd:", minProfitUSD);
-  console.log("\nCurrent Status:");
-  for (let i = 0; i < scores.length; i++) {
-    if (proposal.scores[i] === 0) {
-      assert.strictEqual(scores[i], 0, `votes mismatch for choice[${proposal.choices[i]}]`);
+  while (true) {
+    let bribes: IVotiumBribe;
+    if (fs.existsSync(bribes_file) && !force) {
+      bribes = JSON.parse(fs.readFileSync(bribes_file).toString());
     } else {
-      console.log(
-        `  + choice[${proposal.choices[i]}] remote_votes[${proposal.scores[i]}] computed_votes[${scores[i]}]`
+      const response = await axios.post<IVotiumBribeResponse>(
+        "https://api.llama.airforce//bribes",
+        JSON.stringify({
+          platform: "votium",
+          protocol: "cvx-crv",
+          round: round.toString(),
+        }),
+        {
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+          },
+        }
       );
-      const absError = Math.abs(proposal.scores[i] - scores[i]);
-      if (absError > 1e-5) {
-        assert.fail(`absolute error[${absError}] for choice[${proposal.choices[i]}] exceed 1e-5`);
+      bribes = response.data.epoch;
+      console.log("save bribes data to:", bribes_file);
+      fs.writeFileSync(bribes_file, JSON.stringify(bribes));
+    }
+
+    const proposalId = bribes.proposal;
+
+    // load data
+    let proposal: ISnapshotProposal;
+    if (fs.existsSync(proposal_file) && !force) {
+      proposal = JSON.parse(fs.readFileSync(proposal_file).toString());
+    } else {
+      const response = await axios.post<ISnapshotProposalResponse>(
+        "https://hub.snapshot.org/graphql",
+        JSON.stringify({
+          operationName: "Proposal",
+          variables: {
+            id: proposalId,
+          },
+          query:
+            "query Proposal($id: String!) {\n  proposal(id: $id) {\n    id\n    ipfs\n    title\n    body\n    discussion\n    choices\n    start\n    end\n    snapshot\n    state\n    author\n    created\n    plugins\n    network\n    type\n    quorum\n    symbol\n    privacy\n    strategies {\n      name\n      network\n      params\n    }\n    space {\n      id\n      name\n    }\n    scores_state\n    scores\n    scores_by_strategy\n    scores_total\n    votes\n  }\n}",
+        }),
+        {
+          headers: {
+            "content-type": "application/json",
+          },
+        }
+      );
+      proposal = response.data.data.proposal;
+      console.log("save proposal data to:", proposal_file);
+      fs.writeFileSync(proposal_file, JSON.stringify(proposal));
+    }
+
+    let votes: ISnapshotVotes[];
+    if (fs.existsSync(votes_file) && !force) {
+      votes = JSON.parse(fs.readFileSync(votes_file).toString());
+    } else {
+      votes = await fetchVotes(proposalId, proposal.votes);
+      console.log("save votes data to:", votes_file);
+      fs.writeFileSync(votes_file, JSON.stringify(votes));
+    }
+
+    // do verification
+    const scores: number[] = new Array(proposal.choices.length);
+    scores.fill(0);
+    let totalVotes = 0;
+    for (const vote of votes) {
+      let sum = 0;
+      for (const value of Object.values(vote.choice)) {
+        sum += value;
+      }
+      for (const [pool, value] of Object.entries(vote.choice)) {
+        scores[parseInt(pool) - 1] += (vote.vp * value) / sum;
+      }
+      totalVotes += vote.vp;
+    }
+    assert.strictEqual(proposal.votes, votes.length, "user count mismatch");
+    assert.strictEqual(proposal.id, proposalId, "proposal_id mismatch");
+    assert.strictEqual(bribes.round, round, "round mismatch");
+    assert.strictEqual(bribes.proposal, proposalId, "proposal_id in bribes mismatch");
+
+    console.log("User voted:", proposal.votes);
+    console.log("Remote total votes:", proposal.scores_total);
+    console.log("Computed total votes:", totalVotes);
+    console.log("Min profit usd:", minProfitUSD);
+    console.log("\nCurrent Status:");
+    for (let i = 0; i < scores.length; i++) {
+      if (proposal.scores[i] === 0) {
+        assert.strictEqual(scores[i], 0, `votes mismatch for choice[${proposal.choices[i]}]`);
+      } else {
+        console.log(
+          `  + choice[${proposal.choices[i]}] remote_votes[${proposal.scores[i]}] computed_votes[${scores[i]}]`
+        );
+        const absError = Math.abs(proposal.scores[i] - scores[i]);
+        if (absError > 1e-5) {
+          assert.fail(`absolute error[${absError}] for choice[${proposal.choices[i]}] exceed 1e-5`);
+        }
       }
     }
-  }
 
-  if (voter) {
-    compute(voter, holderVotes, minProfitUSD, proposal, bribes, votes);
+    if (voter) {
+      const finalWeights = compute(voter, holderVotes, minProfitUSD, proposal, bribes, votes);
+      const choices: { [index: string]: number } = {};
+      finalWeights.forEach((weight, index) => {
+        if (weight > 0) {
+          choices[(index + 1).toString()] = weight;
+        }
+      });
+      console.log("Vote choices:", choices);
+      if (voteConfig) {
+        const provider = new JsonRpcProvider("https://rpc.ankr.com/eth");
+        const account = new Wallet(voteConfig.private, provider);
+
+        const hub = "https://hub.snapshot.org";
+        const client = new snapshot.Client712(hub);
+        const message: ISnapshotVote = {
+          space: "cvx.eth",
+          proposal: proposalId,
+          timestamp: Math.floor(Date.now() / 1000),
+          type: "weighted",
+          choice: choices,
+          reason: "CLever",
+        };
+        console.log("Do voting:", message);
+        const receipt = await client.vote(account, voter, message);
+        console.log("Voted:", receipt);
+        if (voteConfig.mode === "manual") {
+          break;
+        } else {
+          console.log(`Sleep for ${voteConfig.autoInterval} seconds for next vote round`);
+          await delay(voteConfig.autoInterval * 1000);
+          continue;
+        }
+      } else {
+        break;
+      }
+    } else {
+      break;
+    }
   }
 }
 
 program.option("--round <round>", "round number");
-program.option("--proposal <proposal id>", "ipfs hash of snapshot proposal");
 program.option("--voter <voter>", "the address of voter");
 program.option("--votes <votes>", "number of votes you have");
 program.option("--min-profit-usd <min profit usd>", "the minimum profit in USD in each choice", "1000");
 program.option("--force", "whether to force update local cache");
+program.option("--private <private key>", "the private key of signer", "");
+program.option("--mode <mode>", "current vote mode: manual, auto", "manual");
+program.option("--auto-interval <interval>", "the number of seconds between each vote when in auto mode", "60");
 program.parse(process.argv);
 const options = program.opts();
+
+console.log(options);
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main(
   parseInt(options.round),
-  options.proposal || "",
   options.voter,
   parseFloat(options.votes),
   parseFloat(options.minProfitUsd),
-  options.force
+  options.force,
+  options.private
+    ? {
+        private: options.private!,
+        mode: options.mode || "manual",
+        autoInterval: parseInt(options.autoInterval || "60"),
+      }
+    : undefined
 ).catch((error) => {
   console.error(error);
   process.exitCode = 1;
