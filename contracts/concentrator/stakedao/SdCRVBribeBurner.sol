@@ -94,7 +94,7 @@ contract SdCRVBribeBurner is Ownable {
     _balance -= _platformFee + _boostFee;
     if (_balance > 0) {
       _balance = _convert(_balance, routeCRV);
-      require(_boostFee >= minCRV, "insufficient CRV");
+      require(_balance >= minCRV, "insufficient CRV");
 
       uint256[] memory _amounts = new uint256[](1);
       address[] memory _tokens = new address[](1);
