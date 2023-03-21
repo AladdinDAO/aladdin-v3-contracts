@@ -349,6 +349,7 @@ function compute(
         if (x[i] > 0 && profit < minProfitUSD) {
           bribes[i] = 0;
           bribeIgnoreTimes++;
+          console.log(`  + Ignore choice[${proposal.choices[i]}] due to small profit`);
         }
         for (const bribe of votium.bribes) {
           const pool = proposal.choices.findIndex((name) => name === bribe.pool);
@@ -362,6 +363,7 @@ function compute(
       } else if (x[i] < 0 && bribes[i] !== 0) {
         bribes[i] = 0;
         bribeIgnoreTimes++;
+        console.log(`  + Ignore choice[${proposal.choices[i]}] due to negative votes`);
       }
     }
     const accepted = sumPercentage <= 100 + 1e-8 && bribeIgnoreTimes === 0;
