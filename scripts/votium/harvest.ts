@@ -59,7 +59,7 @@ async function main(round: number, manualStr: string) {
 
   if (KEEPER === deployer.address) {
     const fee = await ethers.provider.getFeeData();
-    const tx = await cvxLocker.harvestVotium(RoundClaimParams[round], estimate.mul(999).div(1000), {
+    const tx = await cvxLocker.harvestVotium(RoundClaimParams[round], estimate.mul(9995).div(10000), {
       gasLimit: gasEstimate.mul(12).div(10),
       maxFeePerGas: fee.maxFeePerGas,
       maxPriorityFeePerGas: ethers.utils.parseUnits("2", "gwei"),
