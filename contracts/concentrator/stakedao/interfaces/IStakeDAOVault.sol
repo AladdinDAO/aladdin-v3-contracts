@@ -68,4 +68,9 @@ interface IStakeDAOVault {
   /// @notice Update the user information.
   /// @param _user The address of user to update.
   function checkpoint(address _user) external;
+
+  /// @notice Donate some token to this contract.
+  /// @param _tokens The list of tokens to donate.
+  /// @param _amounts The corresponding amounts to donate.
+  function donate(address[] memory _tokens, uint256[] memory _amounts) external;
 }

@@ -9,6 +9,7 @@
     "votium:vote": "yarn ts-node scripts/votium/optimal_vote.ts",
     "votium:proof": "yarn ts-node scripts/votium/get_proof.ts --round",
     "votium:harvest": "env HARDHAT_NETWORK=mainnet yarn ts-node scripts/votium/harvest.ts --round",
+    "sdcrv:harvest": "env HARDHAT_NETWORK=mainnet yarn ts-node scripts/stakedao/harvest.ts --round",
     "cvxcrv:weight": "env HARDHAT_NETWORK=mainnet yarn ts-node scripts/cvxcrv_optimal_apr.ts --holder",
     "solhint": "./node_modules/.bin/solhint -f table 'contracts/**/*.sol'",
     "prettier:solidity": "./node_modules/.bin/prettier --write 'contracts/**/*.sol'",

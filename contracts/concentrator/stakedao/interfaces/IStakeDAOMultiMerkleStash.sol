@@ -14,7 +14,7 @@ interface IStakeDAOMultiMerkleStash {
 
   function isClaimed(address token, uint256 index) external view returns (bool);
 
-  function merkleRoot(address token) external returns (address);
+  function merkleRoot(address token) external returns (bytes32);
 
   function claim(
     address token,

@@ -18,6 +18,10 @@ import "./StakeDAOVaultBase.sol";
 contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
+  /// @notice Emitted when BribeBurner contract is updated.
+  /// @param bribeBurner The new BribeBurner contract.
+  event UpdateBribeBurner(address bribeBurner);
+
   /// @dev The minimum number of seconds needed to lock.
   uint256 private constant MIN_WITHDRAW_LOCK_TIME = 86400;
 
@@ -47,6 +51,9 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
 
   /// @dev The number of seconds to lock for withdrawing assets from the contract.
   uint256 private _withdrawLockTime;
+
+  /// @notice The address of BribeBurner contract.
+  address public bribeBurner;
 
   /********************************** Constructor **********************************/
 
@@ -164,23 +171,24 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
       uint256 _platformFee = uint256(_fee.platformPercentage) * 100;
       uint256 _boostFee = uint256(_fee.boostPercentage) * 100;
 
-      // Currently, we will only receive SDT as bribe rewards.
-      // If there are other tokens, we will transfer all of them to platform contract.
-      if (_token != SDT) {
-        _platformFee = FEE_PRECISION;
-        _boostFee = 0;
-      }
-      if (_platformFee > 0) {
-        _platformFee = (_reward * _platformFee) / FEE_PRECISION;
-        IERC20Upgradeable(_token).safeTransfer(_fee.platform, _platformFee);
-      }
-      if (_boostFee > 0) {
-        _boostFee = (_reward * _boostFee) / FEE_PRECISION;
-        IERC20Upgradeable(_token).safeTransfer(delegation, _boostFee);
-      }
-      emit HarvestBribe(_token, _reward, _platformFee, _boostFee);
+      _platformFee = (_reward * _platformFee) / FEE_PRECISION;
+      _boostFee = (_reward * _boostFee) / FEE_PRECISION;
 
-      _amounts[i] = _reward - _platformFee - _boostFee;
+      // For non-SDT rewards, it will be transfered to BribeBurner contract waiting for burn.
+      // For SDT rewards, it will be distributed intermediately.
+      if (_token != SDT) {
+        IERC20Upgradeable(_token).safeTransfer(bribeBurner, _reward);
+      } else {
+        if (_platformFee > 0) {
+          IERC20Upgradeable(_token).safeTransfer(_fee.platform, _platformFee);
+        }
+        if (_boostFee > 0) {
+          IERC20Upgradeable(_token).safeTransfer(delegation, _boostFee);
+        }
+        _amounts[i] = _reward - _platformFee - _boostFee;
+      }
+
+      emit HarvestBribe(_token, _reward, _platformFee, _boostFee);
       _tokens[i] = _token;
     }
     _distribute(_tokens, _amounts);
@@ -196,6 +204,14 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
     _withdrawLockTime = __withdrawLockTime;
 
     emit UpdateWithdrawLockTime(_withdrawLockTime);
+  }
+
+  /// @notice Update the BribeBurner contract.
+  /// @param _bribeBurner The BribeBurner contract to update.
+  function updateBribeBurner(address _bribeBurner) external onlyOwner {
+    bribeBurner = _bribeBurner;
+
+    emit UpdateBribeBurner(_bribeBurner);
   }
 
   /********************************** Internal Functions **********************************/

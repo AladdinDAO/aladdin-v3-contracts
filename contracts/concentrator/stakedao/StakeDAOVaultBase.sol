@@ -303,6 +303,18 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
     }
   }
 
+  /// @inheritdoc IStakeDAOVault
+  function donate(address[] memory _tokens, uint256[] memory _amounts) external override {
+    require(_tokens.length == _amounts.length, "length mismatch");
+
+    for (uint256 i = 0; i < _tokens.length; i++) {
+      if (_amounts[i] > 0) {
+        IERC20Upgradeable(_tokens[i]).safeTransferFrom(msg.sender, address(this), _amounts[i]);
+      }
+    }
+    _distribute(_tokens, _amounts);
+  }
+
   /********************************** Restricted Functions **********************************/
 
   /// @notice Withdraw and reset all pending withdraw fee from the contract.

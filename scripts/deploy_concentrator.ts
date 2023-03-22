@@ -257,7 +257,7 @@ const config: {
   },
   ConcentratorStakeDAO: {
     StakeDAOLockerProxy: {
-      impl: "0xbccb5BCD5DeA5511aC11114Ef4FeD908a45832CF",
+      impl: "0x0303e55B9b43Fc5A0876Bb8E41ca9EFdD82E4768",
       proxy: "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09",
     },
     VeSDTDelegation: {
