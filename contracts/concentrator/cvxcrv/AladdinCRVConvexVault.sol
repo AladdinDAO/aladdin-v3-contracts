@@ -89,7 +89,7 @@ contract AladdinCRVConvexVault is
   // The address of Convex Booster Contract
   address private constant BOOSTER = 0xF403C135812408BFbE8713b5A23a04b3D48AAE31;
   // The address of Curve cvxCRV/CRV Pool
-  address private constant CURVE_CVXCRV_CRV_POOL = 0x9D0464996170c6B9e75eED71c68B99dDEDf279e8;
+  address private constant CURVE_CVXCRV_CRV_POOL = 0x971add32Ea87f10bD192671630be3BE8A11b8623;
   // The address of Convex CRV => cvxCRV Contract.
   address private constant CRV_DEPOSITOR = 0x8014595F2AB54cD7c604B00E9fb932176fDc86Ae;
 

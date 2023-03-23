@@ -501,7 +501,7 @@ async function deployConcentratorCRV() {
     console.log("Found AladdinCRVV2 Impl at:", concentratorCRVConfig.compounder.impl);
   } else {
     const AladdinCRVV2 = await ethers.getContractFactory("AladdinCRVV2", deployer);
-    const impl = await AladdinCRVV2.deploy("0x9d0464996170c6b9e75eed71c68b99ddedf279e8", STAKED_CVXCRV);
+    const impl = await AladdinCRVV2.deploy("0x971add32ea87f10bd192671630be3be8a11b8623", STAKED_CVXCRV);
     console.log("Deploying AladdinCRVV2 Impl, hash:", impl.deployTransaction.hash);
     const receipt = await impl.deployTransaction.wait();
     console.log("✅ Deploy AladdinCRVV2 Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
