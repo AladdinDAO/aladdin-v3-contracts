@@ -226,6 +226,22 @@ const POOL_FORK_CONFIG: {
     amount: "100",
     harvest: false,
   },
+  "USDP/3CRV": {
+    height: 16889700,
+    pid: 49,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x4e7c361be194Beb26C3666225d4A7301b917Ea87",
+    amount: "1000",
+    harvest: false,
+  },
+  "CRV/cvxCRV": {
+    height: 16889700,
+    pid: 49,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xecdED8b1c603cF21299835f1DFBE37f10F2a29Af",
+    amount: "10000",
+    harvest: false,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";

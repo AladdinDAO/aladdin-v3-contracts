@@ -207,11 +207,11 @@ const config: {
       rewards: ["CVX", "CRV", "TRICRV"],
       strategy: "0x94cC627Db80253056B2130aAC39abB252A75F345",
       proxy: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
-      impl: "0x9142d4aDAE1D0b43798E1C5a844Cc4F2e3De92Fb",
+      impl: "0xCffd499C1A8699E0A57C82C95FCc9a33BB70ef90",
     },
     vault: {
       proxy: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
-      impl: "0xe6fbe09f13d652d647594b4cd13a06946c2b5844",
+      impl: "0x4657e91f056a77493B7E47D4CCD8c8AFAfC84283",
     },
   },
   ConcentratorFXS: {
@@ -458,6 +458,8 @@ async function deployConcentratorCRV() {
     ["TRICRV", "CRV"],
     ["cvxCRV", "CRV"],
     ["cvxCRV", "WETH"],
+    ["cvxCRV", "FRAX"],
+    ["cvxCRV", "CVX"],
   ]) {
     console.log(
       `zap ${from} => ${to}:`,
@@ -501,7 +503,7 @@ async function deployConcentratorCRV() {
     console.log("Found AladdinCRVV2 Impl at:", concentratorCRVConfig.compounder.impl);
   } else {
     const AladdinCRVV2 = await ethers.getContractFactory("AladdinCRVV2", deployer);
-    const impl = await AladdinCRVV2.deploy("0x9d0464996170c6b9e75eed71c68b99ddedf279e8", STAKED_CVXCRV);
+    const impl = await AladdinCRVV2.deploy("0x971add32ea87f10bd192671630be3be8a11b8623", STAKED_CVXCRV);
     console.log("Deploying AladdinCRVV2 Impl, hash:", impl.deployTransaction.hash);
     const receipt = await impl.deployTransaction.wait();
     console.log("✅ Deploy AladdinCRVV2 Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());

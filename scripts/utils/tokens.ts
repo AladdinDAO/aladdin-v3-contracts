@@ -89,4 +89,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   MULTI: { decimals: 18, address: "0x65Ef703f5594D2573eb71Aaf55BC0CB548492df4" },
   MATIC: { decimals: 18, address: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0" },
   CNC: { decimals: 18, address: "0x9ae380f0272e2162340a5bb646c354271c0f5cfc" },
+  "cvxcrv-f": { decimals: 18, address: "0x9D0464996170c6B9e75eED71c68B99dDEDf279e8" },
+  USDP: { decimals: 18, address: "0x8e870d67f660d95d5be530380d0ec0bd388289e1" },
 };
