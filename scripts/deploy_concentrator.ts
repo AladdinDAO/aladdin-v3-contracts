@@ -115,6 +115,7 @@ const config: {
         withdraw: number;
       };
     };
+    SdCRVBribeBurner: string;
   };
   PriceOracle: {
     AladdinPriceOracle: string;
@@ -257,7 +258,7 @@ const config: {
   },
   ConcentratorStakeDAO: {
     StakeDAOLockerProxy: {
-      impl: "0x0303e55B9b43Fc5A0876Bb8E41ca9EFdD82E4768",
+      impl: "0xcB968efeFC641b832dB39470423CD88470c36075",
       proxy: "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09",
     },
     VeSDTDelegation: {
@@ -266,7 +267,7 @@ const config: {
       start: 1675728000, // Tue Feb 07 2023 00:00:00 GMT+0000
     },
     StakeDAOCRVVault: {
-      impl: "0xe86Cf56582Ee0A798b3490886de6CB59D56e4aAd",
+      impl: "0x7dd09b5309dFb3531e6A35475a647474588AcdA6",
       proxy: "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6",
       gauge: "0x7f50786A0b15723D741727882ee99a0BF34e3466",
       lockDuration: 86400 * 1,
@@ -286,6 +287,7 @@ const config: {
         withdraw: 0.25e7, // 0.25%
       },
     },
+    SdCRVBribeBurner: "0xf98Af660d1ff28Cd986b205d6201FB1D5EE231A3",
   },
   PriceOracle: {
     AladdinPriceOracle: "0x304047F1D867A00082C8549E81a2F0b389d869B4",
@@ -1101,6 +1103,18 @@ async function deployConcentratorStakeDAO() {
 
     asdCRV = await ethers.getContractAt("AladdinSdCRV", proxy.address, deployer);
     deployConfig.AladdinSdCRV.proxy = asdCRV.address;
+  }
+
+  if (deployConfig.SdCRVBribeBurner !== "") {
+    const burner = await ethers.getContractAt("SdCRVBribeBurner", deployConfig.SdCRVBribeBurner, deployer);
+    console.log("Found SdCRVBribeBurner at:", burner.address);
+  } else {
+    const SdCRVBribeBurner = await ethers.getContractFactory("SdCRVBribeBurner", deployer);
+    const burner = await SdCRVBribeBurner.deploy(DEPLOYED_CONTRACTS.TokenZapLogic);
+    console.log("Deploying SdCRVBribeBurner, hash:", burner.deployTransaction.hash);
+    const receipt = await burner.deployTransaction.wait();
+    console.log("✅ Deploy SdCRVBribeBurner at:", burner.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.SdCRVBribeBurner = burner.address;
   }
 
   if ((await lockerProxy.operators(deployConfig.StakeDAOCRVVault.gauge)) !== sdCRVVault.address) {
