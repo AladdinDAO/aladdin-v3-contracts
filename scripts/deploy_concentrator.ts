@@ -207,11 +207,11 @@ const config: {
       rewards: ["CVX", "CRV", "TRICRV"],
       strategy: "0x94cC627Db80253056B2130aAC39abB252A75F345",
       proxy: "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
-      impl: "0x9142d4aDAE1D0b43798E1C5a844Cc4F2e3De92Fb",
+      impl: "0xCffd499C1A8699E0A57C82C95FCc9a33BB70ef90",
     },
     vault: {
       proxy: "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
-      impl: "0xe6fbe09f13d652d647594b4cd13a06946c2b5844",
+      impl: "0x4657e91f056a77493B7E47D4CCD8c8AFAfC84283",
     },
   },
   ConcentratorFXS: {
@@ -458,6 +458,8 @@ async function deployConcentratorCRV() {
     ["TRICRV", "CRV"],
     ["cvxCRV", "CRV"],
     ["cvxCRV", "WETH"],
+    ["cvxCRV", "FRAX"],
+    ["cvxCRV", "CVX"],
   ]) {
     console.log(
       `zap ${from} => ${to}:`,

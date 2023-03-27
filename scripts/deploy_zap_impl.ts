@@ -4,10 +4,10 @@ import { ethers } from "hardhat";
 async function main() {
   const [deployer] = await ethers.getSigners();
 
-  const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
-  const impl = await AladdinZap.deploy();
+  const ConcentratorIFOVault = await ethers.getContractFactory("ConcentratorIFOVault", deployer);
+  const impl = await ConcentratorIFOVault.deploy();
   await impl.deployed();
-  console.log("Deploy AladdinZap Impl at:", impl.address);
+  console.log("Deploy ConcentratorIFOVault Impl at:", impl.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
