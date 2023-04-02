@@ -42,6 +42,7 @@ const CLEV = TOKENS.CLEV.address;
 const MULTI = TOKENS.MULTI.address;
 const USDC = TOKENS.USDC.address;
 const CNC = TOKENS.CNC.address;
+const eUSD = TOKENS.eUSD.address;
 
 const Round17Rewards: IClaimParam[] = [
   {
@@ -4383,6 +4384,87 @@ const Round40Rewards: IClaimParam[] = [
   },
 ];
 
+const Round41Rewards: IClaimParam[] = [
+  {
+    token: ALCX,
+    index: 2223,
+    amount: "0x24bfb4881bb8a60000",
+    merkleProof: [],
+  },
+  {
+    token: CLEV,
+    index: 617,
+    amount: "0x0a6f6ee626d3078000",
+    merkleProof: [],
+  },
+  {
+    token: CNC,
+    index: 513,
+    amount: "0x3ca4202a7853f60000",
+    merkleProof: [],
+  },
+  {
+    token: CRV,
+    index: 1374,
+    amount: "0xc76195d6eee5180000",
+    merkleProof: [],
+  },
+  {
+    token: CVX,
+    index: 2305,
+    amount: "0x016bf0513640bee00000",
+    merkleProof: [],
+  },
+  {
+    token: FXS,
+    index: 2059,
+    amount: "0xbc38140ca6a1c80000",
+    merkleProof: [],
+  },
+  {
+    token: GNO,
+    index: 1298,
+    amount: "0x992aa5442212d800",
+    merkleProof: [],
+  },
+  {
+    token: INV,
+    index: 1296,
+    amount: "0x07123de6eba52f4000",
+    merkleProof: [],
+  },
+  {
+    token: SPELL,
+    index: 1958,
+    amount: "0x02dea6bc8f158480000000",
+    merkleProof: [],
+  },
+  {
+    token: STG,
+    index: 1089,
+    amount: "0x245c8b118bed660000",
+    merkleProof: [],
+  },
+  {
+    token: TUSD,
+    index: 1089,
+    amount: "0x245c8b118bed660000",
+    merkleProof: [],
+  },
+  {
+    token: USDD,
+    index: 1021,
+    amount: "0x46c8680981e7880000",
+    merkleProof: [],
+  },
+  {
+    token: eUSD,
+    index: 1021,
+    amount: "0x46c8680981e7880000",
+    merkleProof: [],
+  },
+];
+
 export const RoundClaimParams: { [round: number]: IClaimParam[] } = {
   17: Round17Rewards,
   18: Round18Rewards,
@@ -4408,4 +4490,5 @@ export const RoundClaimParams: { [round: number]: IClaimParam[] } = {
   38: Round38Rewards,
   39: Round39Rewards,
   40: Round40Rewards,
+  41: Round41Rewards,
 };

@@ -173,7 +173,11 @@ function compute(
 
   // compute bribes for each choice
   for (const bribe of votium.bribes) {
-    const pool = proposal.choices.findIndex((name) => name === bribe.pool);
+    let nameToSearch = bribe.pool;
+    if (nameToSearch === "CRV+cvxCRV (0x9D04…)") {
+      nameToSearch = "CRV+cvxCRV (0x971a…)";
+    }
+    const pool = proposal.choices.findIndex((name) => name === nameToSearch);
     bribes[pool] += bribe.amountDollars;
     bribeTokens[pool].push(bribe.token);
   }
