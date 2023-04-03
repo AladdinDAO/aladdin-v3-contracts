@@ -301,7 +301,7 @@ function compute(
     extraVotes.fill(0);
 
     // holder is votium, 5% is used for cvxCRV
-    const cvxCRVChoiceIndex = proposal.choices.findIndex((name) => name === "CRV+cvxCRV (0x9D04…)");
+    const cvxCRVChoiceIndex = proposal.choices.findIndex((name) => name === "CRV+cvxCRV (0x971a…)");
     if (voter.toLowerCase() === "0xde1E6A7ED0ad3F61D531a8a78E83CcDdbd6E0c49".toLowerCase()) {
       extraVotes[cvxCRVChoiceIndex] = (holderVotes * 5) / 100;
       s[cvxCRVChoiceIndex] += extraVotes[cvxCRVChoiceIndex];
