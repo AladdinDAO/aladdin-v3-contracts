@@ -4,7 +4,7 @@ import { BigNumber, constants } from "ethers";
 import * as hre from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { DEPLOYED_CONTRACTS, TOKENS, ZAP_ROUTES } from "../utils";
-import { RoundClaimParams } from "./config";
+import { loadParams } from "./config";
 
 const ethers = hre.ethers;
 const program = new Command();
@@ -24,7 +24,8 @@ async function main(round: number, manualStr: string) {
   const manualTokens = manualStr === "" ? [] : manualStr.split(",");
   console.log("Harvest Round:", round);
   const routes: BigNumber[][] = [];
-  for (const item of RoundClaimParams[round]) {
+  const claimParams = loadParams(round);
+  for (const item of claimParams) {
     const symbol: string = Object.entries(TOKENS).filter(
       ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
     )[0][0];
@@ -51,20 +52,20 @@ async function main(round: number, manualStr: string) {
     await ethers.provider.call({
       from: KEEPER,
       to: cvxLocker.address,
-      data: cvxLocker.interface.encodeFunctionData("harvestVotium", [RoundClaimParams[round], routes, 0]),
+      data: cvxLocker.interface.encodeFunctionData("harvestVotium", [claimParams, routes, 0]),
     })
   );
   console.log("estimate harvested CVX:", ethers.utils.formatEther(estimate.toString()));
   const gasEstimate = await ethers.provider.estimateGas({
     from: KEEPER,
     to: cvxLocker.address,
-    data: cvxLocker.interface.encodeFunctionData("harvestVotium", [RoundClaimParams[round], routes, 0]),
+    data: cvxLocker.interface.encodeFunctionData("harvestVotium", [claimParams, routes, 0]),
   });
   console.log("gas estimate:", gasEstimate.toString());
 
   if (KEEPER === deployer.address) {
     const fee = await ethers.provider.getFeeData();
-    const tx = await cvxLocker.harvestVotium(RoundClaimParams[round], routes, estimate.mul(9995).div(10000), {
+    const tx = await cvxLocker.harvestVotium(claimParams, routes, estimate.mul(9995).div(10000), {
       gasLimit: gasEstimate.mul(12).div(10),
       maxFeePerGas: fee.maxFeePerGas!,
       maxPriorityFeePerGas: ethers.utils.parseUnits("2", "gwei"),

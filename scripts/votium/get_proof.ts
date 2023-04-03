@@ -1,8 +1,11 @@
 /* eslint-disable node/no-missing-import */
 import { Command } from "commander";
+import fs from "fs";
+import path from "path";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { TOKENS } from "../utils";
+import { IClaimParam } from "./config";
 
 const program = new Command();
 program.version("1.0.0");
@@ -53,6 +56,16 @@ const REWARDS: { [round: number]: string[] } = {
 };
 
 async function main(round: number) {
+  const filepath = path.join(__dirname, "data", `${round}.json`);
+  const claimParams: { [symbol: string]: IClaimParam } = {};
+  for (const token of REWARDS[round]) {
+    claimParams[token] = {
+      token: TOKENS[token].address,
+      index: 0,
+      amount: "0x",
+      merkleProof: [],
+    };
+  }
   for (const token of REWARDS[round]) {
     const address = TOKENS[token].address;
     const amountRef = ref(db, "claims/" + address.toUpperCase() + "/claims/" + LOCKER + "/amount/");
@@ -63,25 +76,31 @@ async function main(round: number) {
       const data = snapshot.val();
       if (data !== null) {
         console.log("token:", token, "index:", data.toString());
+        claimParams[token].index = parseInt(data.toString());
       } else {
-        console.log("tolen:", token, "Couldn't get index from db");
+        console.log("token:", token, "Couldn't get index from db");
       }
+      fs.writeFileSync(filepath, JSON.stringify(Object.values(claimParams), undefined, 2));
     });
     onValue(amountRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         console.log("token:", token, "amount:", data.toString());
+        claimParams[token].amount = data.toString();
       } else {
-        console.log("tolen:", token, "Couldn't get earned balance from db");
+        console.log("token:", token, "Couldn't get earned balance from db");
       }
+      fs.writeFileSync(filepath, JSON.stringify(Object.values(claimParams), undefined, 2));
     });
     onValue(proofRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         console.log("token:", token, "proof:", data);
+        claimParams[token].merkleProof = data;
       } else {
-        console.log("tolen:", token, "Couldn't get merkle proof from db");
+        console.log("token:", token, "Couldn't get merkle proof from db");
       }
+      fs.writeFileSync(filepath, JSON.stringify(Object.values(claimParams), undefined, 2));
     });
   }
 }

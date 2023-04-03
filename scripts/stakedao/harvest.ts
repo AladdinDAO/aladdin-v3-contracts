@@ -4,7 +4,7 @@ import { BigNumber, constants } from "ethers";
 import * as hre from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { DEPLOYED_CONTRACTS, TOKENS } from "../utils";
-import { RoundClaimParams } from "./config";
+import { loadParams } from "./config";
 
 const ethers = hre.ethers;
 const program = new Command();
@@ -25,16 +25,17 @@ async function main(round: string) {
     deployer
   );
   console.log("Harvest Round:", round);
-  console.log("data:", vault.interface.encodeFunctionData("harvestBribes", [RoundClaimParams[round]]));
+  const claimParams = loadParams(round);
+  console.log("data:", vault.interface.encodeFunctionData("harvestBribes", [claimParams]));
   const gasEstimate = await ethers.provider.estimateGas({
     from: KEEPER,
     to: vault.address,
-    data: vault.interface.encodeFunctionData("harvestBribes", [RoundClaimParams[round]]),
+    data: vault.interface.encodeFunctionData("harvestBribes", [claimParams]),
   });
   console.log("gas estimate:", gasEstimate.toString());
 
   if (KEEPER === deployer.address) {
-    const tx = await vault.harvestBribes(RoundClaimParams[round]);
+    const tx = await vault.harvestBribes(claimParams);
     console.log("waiting for tx:", tx.hash);
     const receipt = await tx.wait();
     console.log("confirmed, gas used:", receipt.gasUsed.toString());
