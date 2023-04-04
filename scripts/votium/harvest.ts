@@ -35,7 +35,7 @@ async function main(round: number, manualStr: string) {
       await ethers.provider.call({
         from: KEEPER,
         to: cvxLocker.address,
-        data: cvxLocker.interface.encodeFunctionData("harvestVotium", [[item], [routeToCVX, routeToETH], 0]),
+        data: cvxLocker.interface.encodeFunctionData("harvestVotium", [[item], [routeToETH, routeToCVX], 0]),
       })
     );
     console.log(
