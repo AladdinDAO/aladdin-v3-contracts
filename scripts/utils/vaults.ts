@@ -3492,6 +3492,57 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
+  "FPIS/cvxFPIS": {
+    token: "CURVE_FPIS/cvxFPIS",
+    composition: "FPIS+cvxFPIS",
+    convexCurveID: 159,
+    rewarder: "0x929c7Ac52ef6D2bB03b9d6c2131BE94E2a1cf5e3",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      FPIS: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_FPIS/cvxFPIS_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          0,
+          0,
+          Action.AddLiquidity
+        ),
+      ],
+      cvxFPIS: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_FPIS/cvxFPIS_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          1,
+          1,
+          Action.AddLiquidity
+        ),
+      ],
+    },
+    withdraw: {
+      FPIS: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_FPIS/cvxFPIS_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          0,
+          0,
+          Action.RemoveLiquidity
+        ),
+      ],
+      cvxFPIS: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_FPIS/cvxFPIS_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          1,
+          1,
+          Action.RemoveLiquidity
+        ),
+      ],
+    },
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -3589,6 +3640,7 @@ export const DEPLOYED_VAULTS: {
     { name: "frxeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 9
     { name: "clevusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 10
     { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 11
+    { name: "FPIS/cvxFPIS", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 12
   ],
   afrxETH: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 0

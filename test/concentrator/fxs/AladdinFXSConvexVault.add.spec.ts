@@ -12,29 +12,9 @@ import {
   ZAP_ROUTES,
   DEPLOYED_VAULTS,
 } from "../../../scripts/utils";
-import {
-  AladdinZap,
-  ConcentratorGateway,
-  ConcentratorAladdinETHVault,
-  IConvexBooster,
-  IERC20,
-} from "../../../typechain";
+import { AladdinFXSConvexVault, AladdinZap, ConcentratorGateway, IConvexBooster, IERC20 } from "../../../typechain";
 // eslint-disable-next-line camelcase
 import { request_fork } from "../../utils";
-
-const strategies: {
-  factory: string;
-  impls: { [name: string]: string };
-} = {
-  factory: "0x23384DD4380b3677b829C6c88c0Ea9cc41C099bb",
-  impls: {
-    AutoCompoundingConvexFraxStrategy: "0x6Cc546cE582b0dD106c231181f7782C79Ef401da",
-    AutoCompoundingConvexCurveStrategy: constants.AddressZero,
-    ManualCompoundingConvexCurveStrategy: "0xE25f0E29060AeC19a0559A2EF8366a5AF086222e",
-    CLeverGaugeStrategy: constants.AddressZero,
-    AMOConvexCurveStrategy: "0x2be5B652836C630E15c3530bf642b544ae901239",
-  },
-};
 
 const POOL_FORK_CONFIG: {
   [name: string]: {
@@ -46,21 +26,13 @@ const POOL_FORK_CONFIG: {
     harvest: boolean;
   };
 } = {
-  "tBTC/crvWSBTC": {
-    height: 16776780,
-    pid: 21,
+  "FPIS/cvxFPIS": {
+    height: 16937969,
+    pid: 12,
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0x9bC8d30d971C9e74298112803036C05db07D73e3",
-    amount: "0.01",
-    harvest: true,
-  },
-  "CRV/sdCRV": {
-    height: 16776780,
-    pid: 21,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
-    holder: "0xC5d3D004a223299C4F95Bb702534C14A32e8778c",
-    amount: "10000",
-    harvest: true,
+    holder: "0x947b7742c403f20e5faccdac5e092c943e7d0277",
+    amount: "1000",
+    harvest: false,
   },
 };
 
@@ -68,16 +40,16 @@ const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const PRINT_ZAP = true;
 const POOLS = (process.env.POOLS || "").split(",");
 
-describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
+describe("AladdinFXSConvexVault.add.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
   let lpToken: IERC20;
-  let vault: ConcentratorAladdinETHVault;
+  let vault: AladdinFXSConvexVault;
   let zap: AladdinZap;
   let gateway: ConcentratorGateway;
 
   if (PRINT_ZAP) {
-    DEPLOYED_VAULTS.afrxETH.forEach(({ name, fees }) => {
+    DEPLOYED_VAULTS.aFXS.forEach(({ name, fees }) => {
       const config = AVAILABLE_VAULTS[name];
       const fork = POOL_FORK_CONFIG[name];
       if (fork === undefined) {
@@ -95,7 +67,7 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
       );
     });
     console.log("{");
-    DEPLOYED_VAULTS.afrxETH.forEach(({ name }) => {
+    DEPLOYED_VAULTS.aFXS.forEach(({ name }) => {
       const config = AVAILABLE_VAULTS[name];
       const fork = POOL_FORK_CONFIG[name];
       if (fork === undefined) {
@@ -125,7 +97,6 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
 
   const genTests = async (
     name: string,
-    strategy: string,
     fees: {
       withdraw: number;
       harvest: number;
@@ -139,7 +110,7 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
     }
     if (!POOLS.includes(name)) return;
 
-    context(`afrxETH vault for pool: ${name}`, async () => {
+    context(`vault for pool: ${name}`, async () => {
       beforeEach(async () => {
         request_fork(fork.height, [
           fork.deployer,
@@ -187,20 +158,12 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
         );
         await gateway.updateLogic(logic.address);
 
-        const strategyName = `ManualCompounding${strategy}Strategy`;
-        const factory = await ethers.getContractAt("ConcentratorStrategyFactory", strategies.factory, deployer);
-        const strategyAddress = await factory.callStatic.createStrategy(strategies.impls[strategyName]);
-        await factory.createStrategy(strategies.impls[strategyName]);
-        const strategyContract = await ethers.getContractAt(strategyName, strategyAddress, deployer);
-        const underlying = ADDRESS[`${config.token}_TOKEN`];
-
         vault = await ethers.getContractAt(
-          "ConcentratorAladdinETHVault",
-          DEPLOYED_CONTRACTS.Concentrator.frxETH.ConcentratorGeneralVault,
+          "AladdinFXSConvexVault",
+          DEPLOYED_CONTRACTS.Concentrator.cvxFXS.AladdinFXSConvexVault,
           owner
         );
-        await strategyContract.initialize(vault.address, underlying, config.rewarder!, config.rewards);
-        await vault.addPool(underlying, strategyAddress, fees.withdraw, fees.platform, fees.harvest);
+        await vault.addPool(config.convexCurveID!, config.rewards, fees.withdraw, fees.platform, fees.harvest);
       });
 
       context("deposit", async () => {
@@ -303,15 +266,15 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
 
           it("should succeed", async () => {
             await booster.earmarkRewards(config.convexCurveID!);
-            const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, deployer);
+            const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.cvxFXS.aFXS, deployer);
             const amount = await vault.callStatic.harvest(fork.pid, deployer.address, 0);
             const before = await token.balanceOf(vault.address);
             await vault.harvest(fork.pid, deployer.address, 0);
             const after = await token.balanceOf(vault.address);
             console.log(
-              "harvested ETH/frxETH LP:",
+              "harvested FXS/cvxFXS LP:",
               ethers.utils.formatEther(amount),
-              "afrxETH:",
+              "aFXS:",
               ethers.utils.formatEther(after.sub(before))
             );
             expect(amount).gt(constants.Zero);
@@ -321,7 +284,7 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
     });
   };
 
-  DEPLOYED_VAULTS.afrxETH.forEach(({ name, fees, strategy }) => {
-    genTests(name, strategy, fees);
+  DEPLOYED_VAULTS.aFXS.forEach(({ name, fees }) => {
+    genTests(name, fees);
   });
 });
