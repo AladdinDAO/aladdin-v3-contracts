@@ -219,6 +219,13 @@ const zap_fork_config: { [symbol: string]: IZapForkConfig } = {
     amount: "1000",
     update_impl: false,
   },
+  eUSD: {
+    height: 16963400,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x79E76c14b3BB6236dFc06d2D7fF219c8b070169c",
+    amount: "1000",
+    update_impl: false,
+  },
 };
 
 const SYMBOLS = (process.env.SYMBOLS || "").split(",");
@@ -282,6 +289,9 @@ describe("Votium.zap.spec", async () => {
         await zap.connect(signer).zapFrom(token.address, amountIn, CVX, 0);
         const afterCVX = await cvx.balanceOf(signer.address);
 
+        console.log(
+          `amountIn[${config.amount} ${symbol}], amountOut[${ethers.utils.formatEther(afterCVX.sub(beforeCVX))} CVX]`
+        );
         expect(afterCVX.sub(beforeCVX)).gte(expectCVX);
       });
     });
