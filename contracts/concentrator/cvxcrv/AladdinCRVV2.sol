@@ -607,6 +607,8 @@ contract AladdinCRVV2 is
     bool useCurve = _amountOut > _amountIn;
 
     if (useCurve) {
+      IERC20Upgradeable(CRV).safeApprove(curveCvxCrvPool, 0);
+      IERC20Upgradeable(CRV).safeApprove(curveCvxCrvPool, _amountIn);
       _amountOut = ICurveFactoryPlainPool(curveCvxCrvPool).exchange(
         poolIndexCRV,
         1 - poolIndexCRV,
