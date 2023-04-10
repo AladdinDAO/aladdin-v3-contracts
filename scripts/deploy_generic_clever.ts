@@ -227,12 +227,12 @@ const config: {
       address: "0xA5D9358c60fC9Bd2b508eDa17c78C67A43A4458C",
     },
     CVX: {
-      start: 1681344000,
-      address: "0x55055b53867ED4CD182b3a87444f02F560907985",
+      start: 1681948800,
+      address: "0x261E3aEB4cd1ebfD0Fa532d6AcDd4B21EbdCd2De",
     },
     FRAX: {
-      start: 1675296000,
-      address: "0xa47A8a0fA6Bd6a596D15E83C4a91c97305a75c5B",
+      start: 1681948800,
+      address: "0xb5e7F9cb9d3897808658F1991AD32912959b42E2",
     },
     CRV: {
       start: 0,
@@ -1018,6 +1018,10 @@ async function deployIDO() {
 
 async function main() {
   const [deployer] = await ethers.getSigners();
+  if (deployer.address !== "0x07dA2d30E26802ED65a52859a50872cfA615bD0A") {
+    console.log("invalid deployer");
+    return;
+  }
 
   for (const contractName of ["MetaCLever", "MetaFurnace"]) {
     let impl: Contract;
