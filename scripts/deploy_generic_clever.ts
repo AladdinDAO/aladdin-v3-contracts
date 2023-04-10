@@ -227,8 +227,8 @@ const config: {
       address: "0xA5D9358c60fC9Bd2b508eDa17c78C67A43A4458C",
     },
     CVX: {
-      start: 1675296000,
-      address: "0x927ddC5A776F2bc225B9fb9ec16bDCEE09eB6C0D",
+      start: 1681344000,
+      address: "0x55055b53867ED4CD182b3a87444f02F560907985",
     },
     FRAX: {
       start: 1675296000,
