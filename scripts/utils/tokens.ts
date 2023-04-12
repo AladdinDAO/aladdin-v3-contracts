@@ -94,4 +94,5 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   USDP: { decimals: 18, address: "0x8e870d67f660d95d5be530380d0ec0bd388289e1" },
   FPIS: { decimals: 18, address: "0xc2544a32872a91f4a553b404c6950e89de901fdb" },
   cvxFPIS: { decimals: 18, address: "0xa2847348b58ced0ca58d23c7e9106a49f1427df6" },
+  eCFX: { decimals: 18, address: "0xa1f82e14bc09a1b42710df1a8a999b62f294e592" },
 };
