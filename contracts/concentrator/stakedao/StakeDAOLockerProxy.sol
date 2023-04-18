@@ -4,6 +4,7 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
@@ -154,6 +155,10 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
           _claims[i].amount,
           _claims[i].merkleProof
         );
+      } else {
+        bytes32 root = IStakeDAOMultiMerkleStash(MULTI_MERKLE_STASH).merkleRoot(_claims[i].token);
+        bytes32 node = keccak256(abi.encodePacked(_claims[i].index, address(this), _claims[i].amount));
+        require(MerkleProofUpgradeable.verify(_claims[i].merkleProof, root, node), "invalid merkle proof");
       }
     }
 
