@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
+import "../misc/PlatformFeeDistributor.sol";
+
 contract VeFeeGateway is Ownable {
   using SafeERC20 for IERC20;
 
@@ -19,13 +21,27 @@ contract VeFeeGateway is Ownable {
   /// @param _distributor The address of distributor removed.
   event RemoveDistributor(address _token, address _distributor);
 
+  /// @notice The address of PlatformFeeDistributor contract
+  address public immutable platform;
+
   /// @notice Mapping from reward token address to ve fee distributor contract.
   mapping(address => address) public token2distributor;
 
   /// @notice Mapping from ve fee distributor contract to reward token address.
   mapping(address => address) public distributor2token;
 
+  constructor(address _platform) {
+    platform = _platform;
+  }
+
+  /// @notice Distribute platform rewards to ve fee distributors.
+  /// @param _distributors The address list of ve fee distributors.
   function distribute(address[] memory _distributors) external {
+    // claim rewards to this contract.
+    if (platform != address(0)) {
+      PlatformFeeDistributor(platform).claim();
+    }
+
     for (uint256 i = 0; i < _distributors.length; i++) {
       address _token = distributor2token[_distributors[i]];
       require(_token != address(0), "invalid distributor");

@@ -5,7 +5,6 @@ import { BigNumber, constants, Contract } from "ethers";
 import { ethers } from "hardhat";
 import {
   AladdinCRVStrategy,
-  AllInOneGateway,
   CLEV,
   CLeverToken,
   ConcentratorStrategy,
@@ -18,7 +17,6 @@ import {
   MetaFurnace,
   MetaFurnace__factory,
   Minter,
-  MultipleVestHelper,
   PlatformFeeDistributor,
   TokenSale,
   TokenZapLogic,
@@ -97,7 +95,9 @@ const config: {
   veCLEV: string;
   Minter: string;
   GaugeController: string;
-  FeeDistributor: { [reward: string]: string };
+  VeFeeGateway: string;
+  RewardClaimHelper: string;
+  FeeDistributor: { [reward: string]: { start: number; address: string } };
   PlatformFeeDistributor: string;
   sale: string;
   vest: string;
@@ -219,11 +219,25 @@ const config: {
   veCLEV: "0x94be07d45d57c7973A535C1c517Bd79E602E051e",
   GaugeController: "0xB992E8E1943f40f89301aB89A5C254F567aF5b63",
   Minter: "0x4aa2afd5616bEEC2321a9EfD7349400d4F18566A",
+  VeFeeGateway: "0x8Fc7906Fc6047679DaD53c0c3B40E135486421e9",
+  RewardClaimHelper: "0xAf59d144357DCc8a852AD601f27BF6310b657a7f",
   FeeDistributor: {
-    aCRV: "0xA5D9358c60fC9Bd2b508eDa17c78C67A43A4458C",
-    CVX: "0xEA99147773782cc88a03d76a7c9E30152D97Fc0b",
-    CRV: constants.AddressZero,
-    FRAX: constants.AddressZero,
+    aCRV: {
+      start: 1666224000,
+      address: "0xA5D9358c60fC9Bd2b508eDa17c78C67A43A4458C",
+    },
+    CVX: {
+      start: 1681948800,
+      address: "0x261E3aEB4cd1ebfD0Fa532d6AcDd4B21EbdCd2De",
+    },
+    FRAX: {
+      start: 1681948800,
+      address: "0xb5e7F9cb9d3897808658F1991AD32912959b42E2",
+    },
+    CRV: {
+      start: 0,
+      address: constants.AddressZero,
+    },
   },
   PlatformFeeDistributor: "0xD6eFa5B63531e9ae61e225b02CbACD59092a35bE",
   sale: "0x07867298d99B95772008583bd603cfA68B8C75E7",
@@ -236,10 +250,8 @@ const HARVEST_BOUNTY_PERCENTAGE = 1e7; // 1%
 const REPAY_FEE_PERCENTAGE = 5e7; // 5%
 
 let logic: TokenZapLogic;
-let gateway: AllInOneGateway;
 let vefunder: FundraisingGaugeV1;
 let factory: FundraisingGaugeFactoryV1;
-let helper: MultipleVestHelper;
 let platform: PlatformFeeDistributor;
 
 let clevCRV: CLeverToken;
@@ -736,12 +748,12 @@ async function deployTokenAndVe() {
   }
 
   for (const reward of ["aCRV", "CVX", "CRV", "FRAX"]) {
-    if (config.FeeDistributor[reward] !== "") {
-      distributor = await ethers.getContractAt("FeeDistributor", config.FeeDistributor[reward], deployer);
+    if (config.FeeDistributor[reward].address !== "") {
+      distributor = await ethers.getContractAt("FeeDistributor", config.FeeDistributor[reward].address, deployer);
       console.log(`Found FeeDistributor for ${reward} at:`, distributor.address);
     } else {
       const FeeDistributor = await ethers.getContractFactory("FeeDistributor", deployer);
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+      const timestamp = config.FeeDistributor[reward].start;
       if (reward === "aCRV") {
         distributor = await FeeDistributor.deploy(
           DEPLOYED_CONTRACTS.Concentrator.veCTR,
@@ -1006,6 +1018,10 @@ async function deployIDO() {
 
 async function main() {
   const [deployer] = await ethers.getSigners();
+  if (deployer.address !== "0x07dA2d30E26802ED65a52859a50872cfA615bD0A") {
+    console.log("invalid deployer");
+    return;
+  }
 
   for (const contractName of ["MetaCLever", "MetaFurnace"]) {
     let impl: Contract;
@@ -1048,11 +1064,11 @@ async function main() {
   }
 
   if (config.AllInOneGateway !== "") {
-    gateway = await ethers.getContractAt("AllInOneGateway", config.AllInOneGateway, deployer);
+    const gateway = await ethers.getContractAt("AllInOneGateway", config.AllInOneGateway, deployer);
     console.log("Found AllInOneGateway at:", gateway.address);
   } else {
     const AllInOneGateway = await ethers.getContractFactory("AllInOneGateway", deployer);
-    gateway = await AllInOneGateway.deploy(logic.address);
+    const gateway = await AllInOneGateway.deploy(logic.address);
     console.log("Deploying AllInOneGateway, hash:", gateway.deployTransaction.hash);
     await gateway.deployed();
     config.AllInOneGateway = gateway.address;
@@ -1084,11 +1100,11 @@ async function main() {
   }
 
   if (config.MultipleVestHelper !== "") {
-    helper = await ethers.getContractAt("MultipleVestHelper", config.MultipleVestHelper, deployer);
+    const helper = await ethers.getContractAt("MultipleVestHelper", config.MultipleVestHelper, deployer);
     console.log("Found MultipleVestHelper at:", helper.address);
   } else {
     const MultipleVestHelper = await ethers.getContractFactory("MultipleVestHelper", deployer);
-    helper = await MultipleVestHelper.deploy();
+    const helper = await MultipleVestHelper.deploy();
     console.log("Deploying MultipleVestHelper, hash:", helper.deployTransaction.hash);
     await helper.deployed();
     config.MultipleVestHelper = helper.address;
@@ -1112,13 +1128,36 @@ async function main() {
     console.log("✅ Deploy PlatformFeeDistributor at:", platform.address);
   }
 
-  // await deployCRV();
+  if (config.VeFeeGateway !== "") {
+    const gateway = await ethers.getContractAt("VeFeeGateway", config.VeFeeGateway, deployer);
+    console.log("Found VeFeeGateway at:", gateway.address);
+  } else {
+    const VeFeeGateway = await ethers.getContractFactory("VeFeeGateway", deployer);
+    const gateway = await VeFeeGateway.deploy(platform.address);
+    console.log("Deploying VeFeeGateway, hash:", gateway.deployTransaction.hash);
+    await gateway.deployed();
+    config.VeFeeGateway = gateway.address;
+    console.log("✅ Deploy VeFeeGateway at:", gateway.address);
+  }
+
+  if (config.RewardClaimHelper !== "") {
+    const helper = await ethers.getContractAt("RewardClaimHelper", config.RewardClaimHelper, deployer);
+    console.log("Found RewardClaimHelper at:", helper.address);
+  } else {
+    const RewardClaimHelper = await ethers.getContractFactory("RewardClaimHelper", deployer);
+    const helper = await RewardClaimHelper.deploy();
+    console.log("Deploying RewardClaimHelper, hash:", helper.deployTransaction.hash);
+    await helper.deployed();
+    config.RewardClaimHelper = helper.address;
+    console.log("✅ Deploy RewardClaimHelper at:", helper.address);
+  }
+
+  await deployCRV();
   await deployFRAX();
-  /*
+
   await deployTokenAndVe();
   await deployIDO();
   await deployGauge();
-  */
 }
 
 // We recommend this pattern to be able to use async/await everywhere
