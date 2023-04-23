@@ -250,6 +250,46 @@ const POOL_FORK_CONFIG: {
     amount: "10000",
     harvest: false,
   },
+  "rETH/frxETH": {
+    height: 17108720,
+    pid: 52,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
+    amount: "10",
+    harvest: true,
+  },
+  "stETH/frxETH": {
+    height: 17108720,
+    pid: 52,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
+    amount: "20",
+    harvest: true,
+  },
+  "cbETH/frxETH": {
+    height: 17108720,
+    pid: 52,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
+    amount: "15",
+    harvest: true,
+  },
+  "sETH/frxETH": {
+    height: 17108720,
+    pid: 52,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
+    amount: "15",
+    harvest: true,
+  },
+  "FRAX/USDP": {
+    height: 17108720,
+    pid: 52,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x39E761E4F039Ed77286F393c948AD6716170F897",
+    amount: "10000",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
@@ -379,6 +419,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
           DEPLOYED_CONTRACTS.Concentrator.cvxCRV.ConcentratorIFOVault,
           owner
         );
+        await vault.updateHarvester(constants.AddressZero).catch((_) => {});
         await vault.addPool(config.convexCurveID!, config.rewards, fees.withdraw, fees.platform, fees.harvest);
       });
 
