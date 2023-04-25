@@ -12,7 +12,6 @@
 # https://resources.curve.fi/base-features/understanding-gauges
 # https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/GaugeController.vy
 # This contract is an almost-identical fork of Curve's contract
-# veCLEV is used instead of veCRV. 
 
 # 7 * 86400 seconds - all future times are rounded by week
 WEEK: constant(uint256) = 604800
@@ -75,7 +74,7 @@ MULTIPLIER: constant(uint256) = 10 ** 18
 admin: public(address)  # Can and will be a smart contract
 future_admin: public(address)  # Can and will be a smart contract
 
-token: public(address)  # CLEV token
+token: public(address)  # governance token
 voting_escrow: public(address)  # Voting escrow
 
 # Gauge parameters
@@ -117,16 +116,17 @@ time_type_weight: public(uint256[1000000000])  # type_id -> last scheduled time 
 
 
 @external
-def __init__(_token: address, _voting_escrow: address):
+def initialize(_admin: address, _token: address, _voting_escrow: address):
     """
     @notice Contract constructor
-    @param _token `ERC20 CLEV` contract address
+    @param _token `governance token` contract address
     @param _voting_escrow `VotingEscrow` contract address
     """
     assert _token != ZERO_ADDRESS
     assert _voting_escrow != ZERO_ADDRESS
+    assert self.admin == ZERO_ADDRESS, "already initialized"
 
-    self.admin = msg.sender
+    self.admin = _admin
     self.token = _token
     self.voting_escrow = _voting_escrow
     self.time_total = block.timestamp / WEEK * WEEK

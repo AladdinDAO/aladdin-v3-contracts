@@ -40,7 +40,9 @@ allowed_to_mint_for: public(HashMap[address, HashMap[address, bool]])
 
 
 @external
-def __init__(_token: address, _controller: address):
+def initialize(_token: address, _controller: address):
+    assert self.token == ZERO_ADDRESS, "already initialized"
+
     self.token = _token
     self.controller = _controller
 

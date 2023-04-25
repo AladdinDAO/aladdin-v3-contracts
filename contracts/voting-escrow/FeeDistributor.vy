@@ -10,7 +10,6 @@
 # https://curve.readthedocs.io/dao-fees.html
 # https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/FeeDistributor.vy
 # This contract is an almost-identical fork of Curve's contract
-# veACT is used instead of veCRV. 
 
 from vyper.interfaces import ERC20
 
@@ -76,13 +75,12 @@ is_killed: public(bool)
 
 
 @external
-def __init__(
+def initialize(
     _voting_escrow: address,
     _start_time: uint256,
     _token: address,
     _admin: address,
-    _emergency_return: address
-):
+    _emergency_return: address):
     """
     @notice Contract constructor
     @param _voting_escrow VotingEscrow contract address
@@ -92,6 +90,8 @@ def __init__(
     @param _emergency_return Address to transfer `_token` balance to
                              if this contract is killed
     """
+    assert self.start_time == 0, "already initialized"
+
     t: uint256 = _start_time / WEEK * WEEK
     self.start_time = t
     self.last_token_time = t
@@ -184,10 +184,10 @@ def _find_timestamp_user_epoch(ve: address, user: address, _timestamp: uint256, 
 @external
 def ve_for_at(_user: address, _timestamp: uint256) -> uint256:
     """
-    @notice Get the veACT balance for `_user` at `_timestamp`
+    @notice Get the veToken balance for `_user` at `_timestamp`
     @param _user Address to query balance for
     @param _timestamp Epoch time
-    @return uint256 veACT balance
+    @return uint256 veToken balance
     """
     ve: address = self.voting_escrow
     max_user_epoch: uint256 = VotingEscrow(ve).user_point_epoch(_user)
@@ -223,7 +223,7 @@ def _checkpoint_total_supply():
 @external
 def checkpoint_total_supply():
     """
-    @notice Update the veACT total supply checkpoint
+    @notice Update the veToken total supply checkpoint
     @dev The checkpoint is also updated by the first claimant each
          new epoch week. This function may be called independently
          of a claim, to reduce claiming gas costs.
@@ -305,8 +305,8 @@ def _claim(addr: address, ve: address, _last_token_time: uint256) -> uint256:
 def claim(_addr: address = msg.sender) -> uint256:
     """
     @notice Claim fees for `_addr`
-    @dev Each call to claim look at a maximum of 50 user veACT points.
-         For accounts with many veACT related actions, this function
+    @dev Each call to claim look at a maximum of 50 user veToken points.
+         For accounts with many veToken related actions, this function
          may need to be called more than once to claim all available
          fees. In the `Claimed` event that fires, if `claim_epoch` is
          less than `max_epoch`, the account may claim again.
@@ -342,7 +342,7 @@ def claim_many(_receivers: address[20]) -> bool:
     @notice Make multiple fee claims in a single call
     @dev Used to claim for many accounts at once, or to make
          multiple claims for the same address when that address
-         has significant veACT history
+         has significant veToken history
     @param _receivers List of addresses to claim for. Claiming
                       terminates at the first `ZERO_ADDRESS`.
     @return bool success

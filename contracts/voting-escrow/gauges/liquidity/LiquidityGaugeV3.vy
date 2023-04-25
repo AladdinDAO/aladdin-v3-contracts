@@ -140,16 +140,17 @@ is_killed: public(bool)
 
 
 @external
-def __init__(_lp_token: address, _minter: address, _admin: address):
+def initialize(_lp_token: address, _minter: address, _admin: address):
     """
     @notice Contract constructor
     @param _lp_token Liquidity Pool contract address
     @param _minter Minter contract address
     @param _admin Admin who can kill the gauge
     """
+    assert self.lp_token == ZERO_ADDRESS, "already initialized"
 
     symbol: String[26] = ERC20Extended(_lp_token).symbol()
-    self.name = concat("Curve.fi ", symbol, " Gauge Deposit")
+    self.name = concat("AladdinDAO ", symbol, " Gauge Deposit")
     self.symbol = concat(symbol, "-gauge")
 
     crv_token: address = Minter(_minter).token()
