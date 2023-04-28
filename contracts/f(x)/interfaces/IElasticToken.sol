@@ -10,6 +10,15 @@ interface IElasticToken {
   /// @notice Return the net asset value for the token.
   function nav() external view returns (uint256);
 
+  /*************************
+   * Public View Functions *
+   *************************/
+
+  /// @notice Compute the new nav with multiple.
+  /// @param multiple The multiplier used to update the nav, multiplied by 1e18.
+  /// @return newNav The new net asset value of the token.
+  function getNav(int256 multiple) external view returns (uint256 newNav);
+
   /****************************
    * Public Mutated Functions *
    ****************************/

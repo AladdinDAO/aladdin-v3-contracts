@@ -6,11 +6,12 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import { IMarket } from "./interfaces/IMarket.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
-contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
+contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   /**********
@@ -149,15 +150,6 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
   /// @notice Whether the sender is allowed to do permissioned liquidation.
   mapping(address => bool) public liquidationWhitelist;
 
-  /*************
-   * Modifiers *
-   *************/
-
-  modifier SettleTreasury() {
-    ITreasury(treasury).settle();
-    _;
-  }
-
   /***************
    * Constructor *
    ***************/
@@ -181,7 +173,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
     address _recipient,
     uint256 _minFOut,
     uint256 _minXOut
-  ) external override nonReentrant SettleTreasury returns (uint256 _fOut, uint256 _xOut) {
+  ) external override nonReentrant whenNotPaused returns (uint256 _fOut, uint256 _xOut) {
     address _baseToken = baseToken;
     if (_amount == uint256(-1)) {
       _amount = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
@@ -211,7 +203,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
     uint256 _amount,
     address _recipient,
     uint256 _minFOut
-  ) external override nonReentrant SettleTreasury returns (uint256 _fOut) {
+  ) external override nonReentrant whenNotPaused returns (uint256 _fOut) {
     address _baseToken = baseToken;
     if (_amount == uint256(-1)) {
       _amount = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
@@ -254,7 +246,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
     uint256 _amount,
     address _recipient,
     uint256 _minXOut
-  ) external override nonReentrant SettleTreasury returns (uint256 _xOut) {
+  ) external override nonReentrant whenNotPaused returns (uint256 _xOut) {
     address _baseToken = baseToken;
     if (_amount == uint256(-1)) {
       _amount = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
@@ -297,7 +289,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
     uint256 _amount,
     address _recipient,
     uint256 _minXOut
-  ) external override nonReentrant SettleTreasury returns (uint256 _xOut) {
+  ) external override nonReentrant whenNotPaused returns (uint256 _xOut) {
     ITreasury _treasury = ITreasury(treasury);
     uint256 _collateralRatio = _treasury.collateralRatio();
 
@@ -329,7 +321,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
     uint256 _xAmt,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant SettleTreasury returns (uint256 _baseOut) {
+  ) external override nonReentrant whenNotPaused returns (uint256 _baseOut) {
     if (_fAmt == uint256(-1)) {
       _fAmt = IERC20Upgradeable(fToken).balanceOf(msg.sender);
     }
@@ -373,7 +365,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
     uint256 _fAmt,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant SettleTreasury returns (uint256 _baseOut) {
+  ) external override nonReentrant whenNotPaused returns (uint256 _baseOut) {
     ITreasury _treasury = ITreasury(treasury);
     uint256 _collateralRatio = _treasury.collateralRatio();
 
@@ -394,7 +386,7 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
     uint256 _fAmt,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant SettleTreasury returns (uint256 _baseOut) {
+  ) external override nonReentrant whenNotPaused returns (uint256 _baseOut) {
     require(liquidationWhitelist[msg.sender], "not liquidation whitelist");
 
     ITreasury _treasury = ITreasury(treasury);
@@ -535,5 +527,15 @@ contract Market is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
     liquidationWhitelist[_account] = _status;
 
     emit UpdateLiquidationWhitelist(_account, _status);
+  }
+
+  /// @notice Pause or unpause the contract.
+  /// @param _status The pause status.
+  function pause(bool _status) external onlyOwner {
+    if (_status) {
+      _pause();
+    } else {
+      _unpause();
+    }
   }
 }

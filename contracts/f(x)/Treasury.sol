@@ -129,11 +129,14 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @notice Return the current collateral ratio.
   function collateralRatio() external view override returns (uint256) {
-    address _fToken = fToken;
-    uint256 _fVal = IERC20Upgradeable(_fToken).totalSupply().mul(IElasticToken(_fToken).nav());
-    uint256 _totalVal = totalUnderlying.mul(lastPrice);
+    uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (uint256 _fNav, ) = _computeNav(_newPrice);
+
+    uint256 _fVal = IERC20Upgradeable(fToken).totalSupply().mul(_fNav);
+    uint256 _totalVal = totalUnderlying.mul(_newPrice);
 
     if (_totalVal == 0) return PRECISION;
+    if (_fVal == 0) return PRECISION * PRECISION;
 
     return _totalVal.mul(PRECISION).div(_fVal);
   }
@@ -149,34 +152,30 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     MintOption _option
   ) external override onlyMarket returns (uint256 _fOut, uint256 _xOut) {
     uint256 _totalUnderlying = totalUnderlying;
-    if (_totalUnderlying == 0) {
-      require(_option == MintOption.Both, "first mint not both");
-      lastPrice = IPriceOracle(priceOracle).price(baseToken);
-    }
 
-    address _fToken = fToken;
-    address _xToken = xToken;
-    uint256 _fNav = IElasticToken(_fToken).nav();
-    uint256 _xNav = IElasticToken(_xToken).nav();
-    uint256 _fVal = IERC20Upgradeable(_fToken).totalSupply().mul(_fNav);
-    uint256 _xVal = IERC20Upgradeable(_xToken).totalSupply().mul(_xNav);
+    uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (uint256 _fNav, uint256 _xNav) = _computeNav(_newPrice);
+    uint256 _fVal = IERC20Upgradeable(fToken).totalSupply().mul(_fNav);
+    uint256 _xVal = IERC20Upgradeable(xToken).totalSupply().mul(_xNav);
 
     if (_option == MintOption.FToken) {
       // (n + dn) * nav = (n_f + df) * nav_f + n_x * nav_x
-      _fOut = _totalUnderlying.add(_amount).mul(lastPrice);
+      _fOut = _totalUnderlying.add(_amount).mul(_newPrice);
       _fOut = _fOut.sub(_fVal).sub(_xVal).div(_fNav);
     } else if (_option == MintOption.XToken) {
       // (n + dn) * nav = n_f * nav_f + (n_x + dx) * nav_x
-      _xOut = _totalUnderlying.add(_amount).mul(lastPrice);
+      _xOut = _totalUnderlying.add(_amount).mul(_newPrice);
       _xOut = _xOut.sub(_fVal).sub(_xVal).div(_xNav);
     } else {
-      uint256 _totalDeltaVal = _amount.mul(lastPrice);
+      uint256 _totalDeltaVal;
       if (_totalUnderlying == 0) {
+        _totalDeltaVal = _amount.mul(lastPrice);
         _fOut = _totalDeltaVal.mul(initialMintRatio).div(PRECISION);
         _xOut = _totalDeltaVal.sub(_fOut);
       } else {
+        _totalDeltaVal = _amount.mul(_newPrice);
         // (n + dn) * nav = (n_f + df) * nav_f + (n_x + dx) * nav_x
-        uint256 _totalVal = _totalUnderlying.mul(lastPrice);
+        uint256 _totalVal = _totalUnderlying.mul(_newPrice);
         _fOut = _fVal.mul(_totalDeltaVal).div(_totalVal).div(_fNav);
         _xOut = _xVal.mul(_totalDeltaVal).div(_totalVal).div(_xNav);
       }
@@ -185,10 +184,10 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     totalUnderlying = _totalUnderlying + _amount;
 
     if (_fOut > 0) {
-      IElasticToken(_fToken).mint(_recipient, _fOut);
+      IElasticToken(fToken).mint(_recipient, _fOut);
     }
     if (_xOut > 0) {
-      IElasticToken(_xToken).mint(_recipient, _xOut);
+      IElasticToken(xToken).mint(_recipient, _xOut);
     }
   }
 
@@ -208,13 +207,15 @@ contract Treasury is OwnableUpgradeable, ITreasury {
       IElasticToken(xToken).burn(_owner, _xAmt);
     }
 
-    // (n - dn) * nav = (n_f - df) * nav_f + (n_x - dx) * nav_x
-    uint256 _fVal = IERC20Upgradeable(_fToken).totalSupply().mul(IElasticToken(_fToken).nav());
-    uint256 _xVal = IERC20Upgradeable(_xToken).totalSupply().mul(IElasticToken(_xToken).nav());
+    uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (uint256 _fNav, uint256 _xNav) = _computeNav(_newPrice);
 
-    uint256 _price = lastPrice;
+    // (n - dn) * nav = (n_f - df) * nav_f + (n_x - dx) * nav_x
+    uint256 _fVal = IERC20Upgradeable(_fToken).totalSupply().mul(_fNav);
+    uint256 _xVal = IERC20Upgradeable(_xToken).totalSupply().mul(_xNav);
+
     uint256 _totalUnderlying = totalUnderlying;
-    _baseOut = _totalUnderlying.sub(_fVal.add(_xVal).div(_price));
+    _baseOut = _totalUnderlying.sub(_fVal.add(_xVal).div(_newPrice));
 
     totalUnderlying = _totalUnderlying - _baseOut;
 
@@ -235,15 +236,15 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     // =>
     //  dx * nav_x = (1 + lambda) * dn * nav
 
-    address _xToken = xToken;
-    uint256 _xNav = IElasticToken(_xToken).nav();
+    uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (, uint256 _xNav) = _computeNav(_newPrice);
 
-    _xOut = _amount.mul(lastPrice).mul(PRECISION + _incentiveRatio).div(PRECISION).div(_xNav);
+    _xOut = _amount.mul(_newPrice).mul(PRECISION + _incentiveRatio).div(PRECISION).div(_xNav);
 
     totalUnderlying = totalUnderlying + _amount;
 
     if (_xOut > 0) {
-      IElasticToken(_xToken).mint(_recipient, _xOut);
+      IElasticToken(xToken).mint(_recipient, _xOut);
     }
   }
 
@@ -263,16 +264,17 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     //  dn = df * nav_f * (1 + lambda) / nav
     //  d_nav_f = lambda * (df * nav_f) / (n_f - df)
 
-    address _fToken = fToken;
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
-    uint256 _fNav = IElasticToken(_fToken).nav();
+    uint256 _fSupply = IERC20Upgradeable(fToken).totalSupply();
+    uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (uint256 _fNav, ) = _computeNav(_newPrice);
 
-    IElasticToken(_fToken).burn(_owner, _fAmt);
-
-    _baseOut = _fAmt.mul(_fNav).mul(PRECISION + _incentiveRatio).div(PRECISION).div(lastPrice);
+    _baseOut = _fAmt.mul(_fNav).mul(PRECISION + _incentiveRatio).div(PRECISION).div(_newPrice);
     uint256 _fDeltaNav = _incentiveRatio.mul(_fAmt).mul(_fNav).div(_fSupply.sub(_fAmt));
 
-    IElasticToken(_fToken).setNav(_fNav.sub(_fDeltaNav));
+    IElasticToken(fToken).burn(_owner, _fAmt);
+
+    // @note be careful that the nav is updated.
+    IElasticToken(fToken).setNav(_fNav.sub(_fDeltaNav));
 
     if (_baseOut > 0) {
       _transferBaseToken(_baseOut, _recipient);
@@ -284,30 +286,11 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     require(settleWhitelist[msg.sender], "only settle whitelist");
     if (totalUnderlying == 0) return;
 
-    // rho = n_f * old_nav_f / (n * old_nav)
-    // ratio = new_nav / old_nav - 1
-    // new_nav_f = old_nav_f * (1 + beta * ratio)
-    // new_nav_x = old_nav_x * (1 + (1 - rho * beta) / (1 - rho) * ratio)
-
-    uint256 _lastPrice = lastPrice;
     uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (int256 _fMultiple, int256 _xMultiple) = _computeMultiple(_newPrice);
 
-    address _fToken = fToken;
-    address _xToken = xToken;
-
-    uint256 _rho;
-    {
-      uint256 _rhoNum = IElasticToken(_fToken).nav().mul(IERC20Upgradeable(_fToken).totalSupply());
-      uint256 _rhoDen = _lastPrice.mul(totalUnderlying);
-      _rho = _rhoDen.mul(PRECISION).sub(_rhoNum.mul(beta)).div(_rhoDen.sub(_rhoNum));
-    }
-
-    int256 _ratioNum = int256(_newPrice) - int256(_lastPrice);
-    int256 _fMultiple = (int256(beta) * _ratioNum) / int256(_lastPrice);
-    int256 _xMultiple = (int256(_rho) * _ratioNum) / int256(_lastPrice);
-
-    uint256 _fNav = IElasticToken(_fToken).updateNav(_fMultiple);
-    uint256 _xNav = IElasticToken(_xToken).updateNav(_xMultiple);
+    uint256 _fNav = IElasticToken(fToken).updateNav(_fMultiple);
+    uint256 _xNav = IElasticToken(xToken).updateNav(_xMultiple);
     emit Settle(_newPrice, _fNav, _xNav);
 
     lastPrice = _newPrice;
@@ -376,5 +359,41 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     }
 
     IERC20Upgradeable(_baseToken).safeTransfer(_recipient, _amount);
+  }
+
+  /// @dev Internal function to compute latest nav multiple based on current price.
+  /// @param _newPrice The current price of base token.
+  /// @return _fMultiple The multiple for fToken.
+  /// @return _xMultiple The multiple for xToken.
+  function _computeMultiple(uint256 _newPrice) internal view returns (int256 _fMultiple, int256 _xMultiple) {
+    // rho = n_f * old_nav_f / (n * old_nav)
+    // ratio = new_nav / old_nav - 1
+    // new_nav_f = old_nav_f * (1 + beta * ratio)
+    // new_nav_x = old_nav_x * (1 + (1 - rho * beta) / (1 - rho) * ratio)
+
+    uint256 _lastPrice = lastPrice;
+
+    address _fToken = fToken;
+    uint256 _rho;
+    {
+      uint256 _rhoNum = IElasticToken(_fToken).nav().mul(IERC20Upgradeable(_fToken).totalSupply());
+      uint256 _rhoDen = _lastPrice.mul(totalUnderlying);
+      _rho = _rhoDen.mul(PRECISION).sub(_rhoNum.mul(beta)).div(_rhoDen.sub(_rhoNum));
+    }
+
+    int256 _ratioNum = int256(_newPrice) - int256(_lastPrice);
+    _fMultiple = (int256(beta) * _ratioNum) / int256(_lastPrice);
+    _xMultiple = (int256(_rho) * _ratioNum) / int256(_lastPrice);
+  }
+
+  /// @dev Internal function to compute latest nav based on current price.
+  /// @param _newPrice The current price of base token.
+  /// @return _fNav The multiple for fToken.
+  /// @return _xNav The multiple for xToken.
+  function _computeNav(uint256 _newPrice) internal view returns (uint256 _fNav, uint256 _xNav) {
+    (int256 _fMultiple, int256 _xMultiple) = _computeMultiple(_newPrice);
+
+    _fNav = IElasticToken(fToken).getNav(_fMultiple);
+    _xNav = IElasticToken(xToken).getNav(_xMultiple);
   }
 }

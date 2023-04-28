@@ -60,6 +60,24 @@ contract ElasticToken is ERC20Upgradeable, IElasticToken {
     nav = PRECISION;
   }
 
+  /*************************
+   * Public View Functions *
+   *************************/
+
+  /// @inheritdoc IElasticToken
+  /// @dev Normally `multiple/1e18` should be in the range `(-1, 1e18)`.
+  function getNav(int256 multiple) public view override returns (uint256) {
+    if (multiple < 0) {
+      require(uint256(-multiple) < PRECISION, "multiple too small");
+    } else {
+      require(uint256(multiple) < PRECISION * PRECISION, "multiple too large");
+    }
+
+    uint256 _newNav = nav.mul(uint256(int256(PRECISION) + multiple)).div(PRECISION);
+
+    return _newNav;
+  }
+
   /****************************
    * Public Mutated Functions *
    ****************************/
@@ -67,14 +85,8 @@ contract ElasticToken is ERC20Upgradeable, IElasticToken {
   /// @inheritdoc IElasticToken
   /// @dev Normally `multiple/1e18` should be in the range `(-1, 1e18)`.
   function updateNav(int256 multiple) external override onlyTreasury returns (uint256) {
-    if (multiple < 0) {
-      require(uint256(-multiple) < PRECISION, "multiple too small");
-    } else {
-      require(uint256(multiple) < PRECISION * PRECISION, "multiple too large");
-    }
-
     uint256 _oldNav = nav;
-    uint256 _newNav = _oldNav.mul(uint256(int256(PRECISION) + multiple)).div(PRECISION);
+    uint256 _newNav = getNav(multiple);
     nav = _newNav;
 
     emit UpdateNav(_oldNav, _newNav);
