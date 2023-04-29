@@ -13,12 +13,14 @@ interface IMarket {
   /// @param baseTokenIn The amount of base token deposited.
   /// @param fTokenOut The amount of fToken minted.
   /// @param xTokenOut The amount of xToken minted.
+  /// @param mintFee The amount of mint fee charged.
   event Mint(
     address indexed owner,
     address indexed recipient,
     uint256 baseTokenIn,
     uint256 fTokenOut,
-    uint256 xTokenOut
+    uint256 xTokenOut,
+    uint256 mintFee
   );
 
   /// @notice Emitted when someone redeem base token with fToken or xToken.
@@ -27,12 +29,14 @@ interface IMarket {
   /// @param fTokenIn The amount of fToken burned.
   /// @param xTokenIn The amount of xToken burned.
   /// @param baseTokenOut The amount of base token redeemed.
+  /// @param redeemFee The amount of redeem fee charged.
   event Redeem(
     address indexed owner,
     address indexed recipient,
     uint256 fTokenIn,
     uint256 xTokenIn,
-    uint256 baseTokenOut
+    uint256 baseTokenOut,
+    uint256 redeemFee
   );
 
   /// @notice Emitted when someone add more base token.

@@ -3,6 +3,7 @@
 pragma solidity ^0.7.6;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
@@ -13,6 +14,7 @@ import { ITreasury } from "./interfaces/ITreasury.sol";
 
 contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
   using SafeERC20Upgradeable for IERC20Upgradeable;
+  using SafeMathUpgradeable for uint256;
 
   /**********
    * Events *
@@ -195,7 +197,7 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
 
     require(_treasury.collateralRatio() >= _marketConfig.stabilityRatio, "not normal mode after mint");
 
-    emit Mint(msg.sender, _recipient, _amount, _fOut, _xOut);
+    emit Mint(msg.sender, _recipient, _amount, _fOut, _xOut, 0);
   }
 
   /// @inheritdoc IMarket
@@ -211,34 +213,15 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     require(_amount > 0, "mint zero amount");
 
     ITreasury _treasury = ITreasury(treasury);
-    uint256 _collateralRatio = _treasury.collateralRatio();
+    uint256 _maxBaseInBeforeSystemStabilityMode = _treasury.tryMintFTokenTo(marketConfig.stabilityRatio);
 
-    MarketConfig memory _marketConfig = marketConfig;
-    require(_collateralRatio >= _marketConfig.stabilityRatio, "Not normal mode");
+    uint256 _amountWithoutFee = _deductMintFee(_amount, fTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
 
-    uint256 _feeRatio;
-    {
-      FeeRatio memory _ratio = fTokenMintFeeRatio;
-      _feeRatio = _ratio.defaultFeeRatio;
-      if (_collateralRatio < _marketConfig.stabilityRatio) {
-        _feeRatio = uint256(int256(_feeRatio) + _ratio.extraFeeRatio);
-      }
-    }
-
-    // take fee to platform
-    if (_feeRatio > 0) {
-      uint256 _fee = (_amount * _feeRatio) / PRECISION;
-      IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, platform, _fee);
-      _amount = _amount - _fee;
-    }
-
-    IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amount);
-    (_fOut, ) = _treasury.mint(_amount, _recipient, ITreasury.MintOption.FToken);
+    IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amountWithoutFee);
+    (_fOut, ) = _treasury.mint(_amountWithoutFee, _recipient, ITreasury.MintOption.FToken);
     require(_fOut >= _minFOut, "insufficient fToken output");
 
-    require(_treasury.collateralRatio() >= _marketConfig.stabilityRatio, "not normal mode after mint");
-
-    emit Mint(msg.sender, _recipient, _amount, _fOut, 0);
+    emit Mint(msg.sender, _recipient, _amount, _fOut, 0, _amount - _amountWithoutFee);
   }
 
   /// @inheritdoc IMarket
@@ -254,34 +237,15 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     require(_amount > 0, "mint zero amount");
 
     ITreasury _treasury = ITreasury(treasury);
-    uint256 _collateralRatio = _treasury.collateralRatio();
+    uint256 _maxBaseInBeforeSystemStabilityMode = _treasury.tryMintXTokenTo(marketConfig.stabilityRatio);
 
-    MarketConfig memory _marketConfig = marketConfig;
-    require(_collateralRatio >= _marketConfig.stabilityRatio, "Not normal mode");
+    uint256 _amountWithoutFee = _deductMintFee(_amount, xTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
 
-    uint256 _feeRatio;
-    {
-      FeeRatio memory _ratio = xTokenMintFeeRatio;
-      _feeRatio = _ratio.defaultFeeRatio;
-      if (_collateralRatio < _marketConfig.stabilityRatio) {
-        _feeRatio = uint256(int256(_feeRatio) + _ratio.extraFeeRatio);
-      }
-    }
-
-    // take fee to platform
-    if (_feeRatio > 0) {
-      uint256 _fee = (_amount * _feeRatio) / PRECISION;
-      IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, platform, _fee);
-      _amount = _amount - _fee;
-    }
-
-    IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amount);
-    (, _xOut) = _treasury.mint(_amount, _recipient, ITreasury.MintOption.XToken);
+    IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amountWithoutFee);
+    (, _xOut) = _treasury.mint(_amountWithoutFee, _recipient, ITreasury.MintOption.XToken);
     require(_xOut >= _minXOut, "insufficient xToken output");
 
-    require(_treasury.collateralRatio() >= _marketConfig.stabilityRatio, "not normal mode after mint");
-
-    emit Mint(msg.sender, _recipient, _amount, 0, _xOut);
+    emit Mint(msg.sender, _recipient, _amount, 0, _xOut, _amount - _amountWithoutFee);
   }
 
   /// @inheritdoc IMarket
@@ -332,10 +296,16 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     require(_fAmt == 0 || _xAmt == 0, "only redeem single side");
 
     ITreasury _treasury = ITreasury(treasury);
-    uint256 _collateralRatio = _treasury.collateralRatio();
-
     MarketConfig memory _marketConfig = marketConfig;
-    require(_collateralRatio >= _marketConfig.stabilityRatio, "Not normal mode");
+
+    uint256 _feeRatio;
+    if (_fAmt > 0) {
+      uint256 _maxFTokenInBeforeSystemStabilityMode = _treasury.tryRedeemFTokenTo(_marketConfig.stabilityRatio);
+      _feeRatio = _computeRedeemFeeRatio(_fAmt, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
+    } else {
+      uint256 _maxXTokenInBeforeSystemStabilityMode = _treasury.tryRedeemXTokenTo(_marketConfig.stabilityRatio);
+      _feeRatio = _computeRedeemFeeRatio(_xAmt, xTokenRedeemFeeRatio, _maxXTokenInBeforeSystemStabilityMode);
+    }
 
     _baseOut = _treasury.redeem(_fAmt, _xAmt, msg.sender);
     uint256 _balance = IERC20Upgradeable(baseToken).balanceOf(address(this));
@@ -344,12 +314,8 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
       _baseOut = _balance;
     }
 
-    // take fee to platform
-    uint256 _feeRatio;
-    if (_fAmt == 0) _feeRatio = xTokenRedeemFeeRatio.defaultFeeRatio;
-    else _feeRatio = fTokenRedeemFeeRatio.defaultFeeRatio;
-    if (_feeRatio > 0) {
-      uint256 _fee = (_baseOut * _feeRatio) / PRECISION;
+    uint256 _fee = (_baseOut * _feeRatio) / PRECISION;
+    if (_fee > 0) {
       IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, platform, _fee);
       _baseOut = _baseOut - _fee;
     }
@@ -357,7 +323,7 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
 
     IERC20Upgradeable(baseToken).safeTransfer(_recipient, _baseOut);
 
-    emit Redeem(msg.sender, _recipient, _fAmt, _xAmt, _baseOut);
+    emit Redeem(msg.sender, _recipient, _fAmt, _xAmt, _baseOut, _fee);
   }
 
   /// @inheritdoc IMarket
@@ -537,5 +503,58 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     } else {
       _unpause();
     }
+  }
+
+  /**********************
+   * Internal Functions *
+   **********************/
+
+  /// @dev Internal function to deduct mint fee for base token.
+  /// @param _baseIn The amount of base token.
+  /// @param _ratio The mint fee ratio.
+  /// @param _maxBaseInBeforeSystemStabilityMode The maximum amount of base token can be deposit before entering system stability mode.
+  /// @return _baseInWithoutFee The amount of base token without fee.
+  function _deductMintFee(
+    uint256 _baseIn,
+    FeeRatio memory _ratio,
+    uint256 _maxBaseInBeforeSystemStabilityMode
+  ) internal returns (uint256 _baseInWithoutFee) {
+    uint256 _maxBaseIn = _maxBaseInBeforeSystemStabilityMode.mul(PRECISION).div(PRECISION - _ratio.defaultFeeRatio);
+    // compute fee
+    uint256 _fee;
+    if (_baseIn <= _maxBaseIn) {
+      _fee = _baseIn.mul(_ratio.defaultFeeRatio).div(PRECISION);
+    } else {
+      _fee = _maxBaseIn.mul(_ratio.defaultFeeRatio).div(PRECISION);
+      _fee = _fee.add(
+        (_baseIn - _maxBaseIn).mul(uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio)).div(PRECISION)
+      );
+    }
+
+    _baseInWithoutFee = _baseIn.sub(_fee);
+    // take fee to platform
+    if (_fee > 0) {
+      IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, platform, _fee);
+    }
+  }
+
+  /// @dev Internal function to deduct mint fee for base token.
+  /// @param _amountIn The amount of fToken or xToken.
+  /// @param _ratio The redeem fee ratio.
+  /// @param _maxInBeforeSystemStabilityMode The maximum amount of fToken/xToken can be redeemed before entering system stability mode.
+  /// @return _feeRatio The computed fee ratio for base token redeemed.
+  function _computeRedeemFeeRatio(
+    uint256 _amountIn,
+    FeeRatio memory _ratio,
+    uint256 _maxInBeforeSystemStabilityMode
+  ) internal pure returns (uint256 _feeRatio) {
+    if (_amountIn <= _maxInBeforeSystemStabilityMode) {
+      return _ratio.defaultFeeRatio;
+    }
+    uint256 _fee = _maxInBeforeSystemStabilityMode.mul(_ratio.defaultFeeRatio);
+    _fee = _fee.add(
+      (_amountIn - _maxInBeforeSystemStabilityMode).mul(uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio))
+    );
+    return _fee.div(_amountIn);
   }
 }

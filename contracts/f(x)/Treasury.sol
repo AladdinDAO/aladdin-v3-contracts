@@ -127,7 +127,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
    * Public View Functions *
    *************************/
 
-  /// @notice Return the current collateral ratio.
+  /// @inheritdoc ITreasury
   function collateralRatio() external view override returns (uint256) {
     uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
     (uint256 _fNav, ) = _computeNav(_newPrice);
@@ -139,6 +139,80 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     if (_fVal == 0) return PRECISION * PRECISION;
 
     return _totalVal.mul(PRECISION).div(_fVal);
+  }
+
+  /// @inheritdoc ITreasury
+  /// @dev If the current collateral ratio <= new collateral ratio, we should return 0.
+  function tryMintFTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
+    require(_newCollateralRatio > PRECISION, "collateral ratio too small");
+    // (n + dn) * nav = (n_f + df) * nav_f + n_x * nav_x
+    // (n + dn) * nav / ((n_f + df) * nav_f) = ncr
+    // => dn = ncr * n_x * nav_x / (nav * (ncr - 1)) - n
+
+    uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (, uint256 _xNav) = _computeNav(_newPrice);
+    uint256 _xVal = IERC20Upgradeable(xToken).totalSupply().mul(_xNav);
+    uint256 _totalUnderlying = totalUnderlying;
+    uint256 _dn = _newCollateralRatio.mul(_xVal).div(_newPrice.mul(_newCollateralRatio - PRECISION));
+
+    if (_dn >= _totalUnderlying) return _dn - _totalUnderlying;
+    else return 0;
+  }
+
+  /// @inheritdoc ITreasury
+  /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
+  function tryMintXTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
+    require(_newCollateralRatio > PRECISION, "collateral ratio too small");
+    // (n + dn) * nav = n_f * nav_f + (n_x + dx) * nav_x
+    // (n + dn) * nav / (n_f * nav_f) = ncr
+    // => dn = ncr * n_f * nav_f / nav - n
+
+    uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (uint256 _fNav, ) = _computeNav(_newPrice);
+    uint256 _fVal = IERC20Upgradeable(fToken).totalSupply().mul(_fNav);
+    uint256 _totalUnderlying = totalUnderlying;
+    uint256 _dn = _newCollateralRatio.mul(_fVal).div(_newPrice * PRECISION);
+
+    if (_dn >= _totalUnderlying) return _dn - _totalUnderlying;
+    else return 0;
+  }
+
+  /// @inheritdoc ITreasury
+  /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
+  function tryRedeemFTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
+    require(_newCollateralRatio > PRECISION, "collateral ratio too small");
+    // (n - dn) * nav = (n_f - df) * nav_f + n_x * nav_x
+    // (n - dn) * nav / ((n_f - df) * nav_f) = ncr
+    // => df = n_f - n_x * nav_x / ((ncr - 1) * nav_f)
+
+    uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (uint256 _fNav, uint256 _xNav) = _computeNav(_newPrice);
+    uint256 _xVal = IERC20Upgradeable(xToken).totalSupply().mul(_xNav);
+    uint256 _fSupply = IERC20Upgradeable(fToken).totalSupply();
+
+    uint256 _df = _xVal.mul(PRECISION).div(_fNav.mul(_newCollateralRatio - PRECISION));
+
+    if (_fSupply >= _df) return _fSupply - _df;
+    else return 0;
+  }
+
+  /// @inheritdoc ITreasury
+  /// @dev If the current collateral ratio <= new collateral ratio, we should return 0.
+  function tryRedeemXTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
+    require(_newCollateralRatio > PRECISION, "collateral ratio too small");
+    // (n - dn) * nav = n_f * nav_f + (n_x - dx) * nav_x
+    // (n - dn) * nav / (n_f * nav_f) = ncr
+    // => df = n_x - (ncr - 1) * n_f * nav_f / nav_x
+
+    uint256 _newPrice = IPriceOracle(priceOracle).price(baseToken);
+    (uint256 _fNav, uint256 _xNav) = _computeNav(_newPrice);
+    uint256 _fVal = IERC20Upgradeable(fToken).totalSupply().mul(_fNav);
+    uint256 _xSupply = IERC20Upgradeable(xToken).totalSupply();
+
+    uint256 _dx = (_newCollateralRatio - PRECISION).mul(_fVal).div(_xNav.mul(PRECISION));
+
+    if (_xSupply >= _dx) return _xSupply - _dx;
+    else return 0;
   }
 
   /****************************
@@ -273,8 +347,9 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
     IElasticToken(fToken).burn(_owner, _fAmt);
 
-    // @note be careful that the nav is updated.
+    // @note be careful that the nav and price is updated.
     IElasticToken(fToken).setNav(_fNav.sub(_fDeltaNav));
+    lastPrice = _newPrice;
 
     if (_baseOut > 0) {
       _transferBaseToken(_baseOut, _recipient);
