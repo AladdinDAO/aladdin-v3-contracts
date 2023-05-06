@@ -7,11 +7,17 @@ interface ITreasury {
    * Events *
    **********/
 
-  /// @notice Emitted when net asset value is changed.
+  /// @notice Emitted when the intermediate net asset value is updated.
   /// @param price The new price of base token.
   /// @param fNav The new net asset value of fToken.
   /// @param xNav The new net asset value of xToken.
-  event Settle(uint256 price, uint256 fNav, uint256 xNav);
+  event MarketSettle(uint256 price, uint256 fNav, uint256 xNav);
+
+  /// @notice Emitted when the net asset value is updated.
+  /// @param price The new price of base token.
+  /// @param fNav The new net asset value of fToken.
+  /// @param xNav The new net asset value of xToken.
+  event ProtocolSettle(uint256 price, uint256 fNav, uint256 xNav);
 
   /*********
    * Enums *
@@ -118,8 +124,11 @@ interface ITreasury {
     address recipient
   ) external returns (uint256 baseOut);
 
-  /// @notice Settle the nav of base token.
-  function settle() external;
+  /// @notice Settle the intermediate nav of base token, fToken and xToken.
+  function marketSettle() external;
+
+  /// @notice Settle the nav of base token, fToken and xToken.
+  function protocolSettle() external;
 
   /// @notice Transfer some base token to strategy contract.
   /// @param amount The amount of token to transfer.

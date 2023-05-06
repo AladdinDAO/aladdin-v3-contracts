@@ -2,17 +2,16 @@
 
 pragma solidity ^0.7.6;
 
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import { IMarket } from "./interfaces/IMarket.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
-contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable, IMarket {
+contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
 
@@ -71,9 +70,20 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
   /// @param platform The address of new platform.
   event UpdatePlatform(address platform);
 
+  /// @notice Pause or unpause mint.
+  /// @param status The new status for mint.
+  event PauseMint(bool status);
+
+  /// @notice Pause or unpause redeem.
+  /// @param status The new status for redeem.
+  event PauseRedeem(bool status);
+
   /*************
    * Constants *
    *************/
+
+  /// @notice The role for emergency dao.
+  bytes32 public constant EMERGENCY_DAO_ROLE = keccak256("EMERGENCY_DAO_ROLE");
 
   /// @dev The precision used to compute nav.
   uint256 private constant PRECISION = 1e18;
@@ -152,11 +162,39 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
   /// @notice Whether the sender is allowed to do permissioned liquidation.
   mapping(address => bool) public liquidationWhitelist;
 
+  /// @notice Whether the mint is paused.
+  bool public mintPaused;
+
+  /// @notice Whether the redeem is paused.
+  bool public redeemPaused;
+
+  /************
+   * Modifier *
+   ************/
+
+  modifier onlyAdmin() {
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "only Admin");
+    _;
+  }
+
+  modifier onlyEmergencyDAO() {
+    require(hasRole(EMERGENCY_DAO_ROLE, msg.sender), "only Emergency DAO");
+    _;
+  }
+
+  modifier marketSettle() {
+    ITreasury(treasury).marketSettle();
+    _;
+  }
+
   /***************
    * Constructor *
    ***************/
 
   function initialize(address _treasury, address _platform) external initializer {
+    AccessControlUpgradeable.__AccessControl_init();
+    ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
+
     treasury = _treasury;
     platform = _platform;
 
@@ -175,7 +213,7 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     address _recipient,
     uint256 _minFOut,
     uint256 _minXOut
-  ) external override nonReentrant whenNotPaused returns (uint256 _fOut, uint256 _xOut) {
+  ) external override nonReentrant returns (uint256 _fOut, uint256 _xOut) {
     address _baseToken = baseToken;
     if (_amount == uint256(-1)) {
       _amount = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
@@ -183,12 +221,12 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     require(_amount > 0, "mint zero amount");
 
     ITreasury _treasury = ITreasury(treasury);
+    require(_treasury.totalUnderlying() == 0, "only initialize once");
+
     uint256 _collateralRatio = _treasury.collateralRatio();
 
     MarketConfig memory _marketConfig = marketConfig;
     require(_collateralRatio >= _marketConfig.stabilityRatio, "Not normal mode");
-
-    // @todo determine fee ratio
 
     IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amount);
     (_fOut, _xOut) = _treasury.mint(_amount, _recipient, ITreasury.MintOption.Both);
@@ -205,7 +243,9 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint256 _amount,
     address _recipient,
     uint256 _minFOut
-  ) external override nonReentrant whenNotPaused returns (uint256 _fOut) {
+  ) external override nonReentrant marketSettle returns (uint256 _fOut) {
+    require(!mintPaused, "mint is paused");
+
     address _baseToken = baseToken;
     if (_amount == uint256(-1)) {
       _amount = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
@@ -229,7 +269,9 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint256 _amount,
     address _recipient,
     uint256 _minXOut
-  ) external override nonReentrant whenNotPaused returns (uint256 _xOut) {
+  ) external override nonReentrant marketSettle returns (uint256 _xOut) {
+    require(!mintPaused, "mint is paused");
+
     address _baseToken = baseToken;
     if (_amount == uint256(-1)) {
       _amount = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
@@ -253,7 +295,9 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint256 _amount,
     address _recipient,
     uint256 _minXOut
-  ) external override nonReentrant whenNotPaused returns (uint256 _xOut) {
+  ) external override nonReentrant marketSettle returns (uint256 _xOut) {
+    require(!mintPaused, "mint is paused");
+
     ITreasury _treasury = ITreasury(treasury);
     uint256 _collateralRatio = _treasury.collateralRatio();
 
@@ -285,7 +329,9 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint256 _xAmt,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant whenNotPaused returns (uint256 _baseOut) {
+  ) external override nonReentrant marketSettle returns (uint256 _baseOut) {
+    require(!redeemPaused, "redeem is paused");
+
     if (_fAmt == uint256(-1)) {
       _fAmt = IERC20Upgradeable(fToken).balanceOf(msg.sender);
     }
@@ -331,7 +377,9 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint256 _fAmt,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant whenNotPaused returns (uint256 _baseOut) {
+  ) external override nonReentrant marketSettle returns (uint256 _baseOut) {
+    require(!redeemPaused, "redeem is paused");
+
     ITreasury _treasury = ITreasury(treasury);
     uint256 _collateralRatio = _treasury.collateralRatio();
 
@@ -352,7 +400,8 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint256 _fAmt,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant whenNotPaused returns (uint256 _baseOut) {
+  ) external override nonReentrant marketSettle returns (uint256 _baseOut) {
+    require(!redeemPaused, "redeem is paused");
     require(liquidationWhitelist[msg.sender], "not liquidation whitelist");
 
     ITreasury _treasury = ITreasury(treasury);
@@ -387,7 +436,7 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint128 _defaultFeeRatio,
     int128 _extraFeeRatio,
     bool _isFToken
-  ) external onlyOwner {
+  ) external onlyAdmin {
     require(_defaultFeeRatio <= PRECISION, "default fee ratio too large");
     if (_extraFeeRatio < 0) {
       require(uint128(-_extraFeeRatio) <= _defaultFeeRatio, "delta fee too small");
@@ -412,7 +461,7 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint128 _defaultFeeRatio,
     int128 _extraFeeRatio,
     bool _isFToken
-  ) external onlyOwner {
+  ) external onlyAdmin {
     require(_defaultFeeRatio <= PRECISION, "default fee ratio too large");
     if (_extraFeeRatio < 0) {
       require(uint128(-_extraFeeRatio) <= _defaultFeeRatio, "delta fee too small");
@@ -439,7 +488,7 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint64 _liquidationRatio,
     uint64 _permissionedLiquidationRatio,
     uint64 _recapRatio
-  ) external onlyOwner {
+  ) external onlyAdmin {
     require(
       _stabilityRatio > _liquidationRatio &&
         _liquidationRatio > _permissionedLiquidationRatio &&
@@ -460,7 +509,7 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
     uint64 _stabilityIncentiveRatio,
     uint64 _liquidationIncentiveRatio,
     uint64 _permissionedLiquidationIncentiveRatio
-  ) external onlyOwner {
+  ) external onlyAdmin {
     require(_stabilityIncentiveRatio > 0, "incentive too small");
     require(_permissionedLiquidationIncentiveRatio > 0, "incentive too small");
     require(_liquidationIncentiveRatio > _permissionedLiquidationIncentiveRatio, "invalid incentive config");
@@ -480,7 +529,7 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
 
   /// @notice Change address of platform contract.
   /// @param _platform The new address of platform contract.
-  function updatePlatform(address _platform) external onlyOwner {
+  function updatePlatform(address _platform) external onlyAdmin {
     platform = _platform;
 
     emit UpdatePlatform(_platform);
@@ -489,20 +538,26 @@ contract Market is OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgra
   /// @notice Update the whitelist status for protocol liquidation account.
   /// @param _account The address of account to update.
   /// @param _status The status of the account to update.
-  function updateLiquidationWhitelist(address _account, bool _status) external onlyOwner {
+  function updateLiquidationWhitelist(address _account, bool _status) external onlyAdmin {
     liquidationWhitelist[_account] = _status;
 
     emit UpdateLiquidationWhitelist(_account, _status);
   }
 
-  /// @notice Pause or unpause the contract.
+  /// @notice Pause mint in this contract
   /// @param _status The pause status.
-  function pause(bool _status) external onlyOwner {
-    if (_status) {
-      _pause();
-    } else {
-      _unpause();
-    }
+  function pauseMint(bool _status) external onlyEmergencyDAO {
+    mintPaused = _status;
+
+    emit PauseMint(_status);
+  }
+
+  /// @notice Pause redeem in this contract
+  /// @param _status The pause status.
+  function pauseRedeem(bool _status) external onlyEmergencyDAO {
+    redeemPaused = _status;
+
+    emit PauseRedeem(_status);
   }
 
   /**********************
