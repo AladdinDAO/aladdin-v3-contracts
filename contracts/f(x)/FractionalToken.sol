@@ -5,9 +5,9 @@ pragma solidity ^0.7.6;
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-import { IElasticToken } from "./interfaces/IElasticToken.sol";
+import { IFractionalToken } from "./interfaces/IFractionalToken.sol";
 
-contract ElasticToken is ERC20Upgradeable, IElasticToken {
+contract FractionalToken is ERC20Upgradeable, IFractionalToken {
   using SafeMathUpgradeable for uint256;
 
   /**********
@@ -33,7 +33,7 @@ contract ElasticToken is ERC20Upgradeable, IElasticToken {
   /// @notice The address of Treasury contract.
   address public treasury;
 
-  /// @inheritdoc IElasticToken
+  /// @inheritdoc IFractionalToken
   uint256 public override nav;
 
   /*************
@@ -64,7 +64,7 @@ contract ElasticToken is ERC20Upgradeable, IElasticToken {
    * Public View Functions *
    *************************/
 
-  /// @inheritdoc IElasticToken
+  /// @inheritdoc IFractionalToken
   /// @dev Normally `multiple/1e18` should be in the range `(-1, 1e18)`.
   function getNav(int256 multiple) public view override returns (uint256) {
     if (multiple < 0) {
@@ -82,7 +82,7 @@ contract ElasticToken is ERC20Upgradeable, IElasticToken {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc IElasticToken
+  /// @inheritdoc IFractionalToken
   /// @dev Normally `multiple/1e18` should be in the range `(-1, 1e18)`.
   function updateNav(int256 multiple) external override onlyTreasury returns (uint256) {
     uint256 _oldNav = nav;
@@ -94,7 +94,7 @@ contract ElasticToken is ERC20Upgradeable, IElasticToken {
     return _newNav;
   }
 
-  /// @inheritdoc IElasticToken
+  /// @inheritdoc IFractionalToken
   function setNav(uint256 _newNav) external override onlyTreasury {
     uint256 _oldNav = nav;
     nav = _newNav;
@@ -102,12 +102,12 @@ contract ElasticToken is ERC20Upgradeable, IElasticToken {
     emit UpdateNav(_oldNav, _newNav);
   }
 
-  /// @inheritdoc IElasticToken
+  /// @inheritdoc IFractionalToken
   function mint(address _to, uint256 _amount) external override onlyTreasury {
     _mint(_to, _amount);
   }
 
-  /// @inheritdoc IElasticToken
+  /// @inheritdoc IFractionalToken
   function burn(address _from, uint256 _amount) external override onlyTreasury {
     _burn(_from, _amount);
   }

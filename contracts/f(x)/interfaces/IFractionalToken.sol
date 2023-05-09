@@ -2,17 +2,13 @@
 
 pragma solidity ^0.7.6;
 
-interface IElasticToken {
+interface IFractionalToken {
   /*************************
    * Public View Functions *
    *************************/
 
   /// @notice Return the net asset value for the token.
   function nav() external view returns (uint256);
-
-  /*************************
-   * Public View Functions *
-   *************************/
 
   /// @notice Compute the new nav with multiple.
   /// @param multiple The multiplier used to update the nav, multiplied by 1e18.

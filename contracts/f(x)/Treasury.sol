@@ -10,7 +10,8 @@ import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/
 
 import { ITwapOracle } from "../price-oracle/interfaces/ITwapOracle.sol";
 import { IAssetStrategy } from "./interfaces/IAssetStrategy.sol";
-import { IElasticToken } from "./interfaces/IElasticToken.sol";
+import { IFractionalToken } from "./interfaces/IFractionalToken.sol";
+import { ILeveragedToken } from "./interfaces/ILeveragedToken.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
 // solhint-disable no-empty-blocks
@@ -51,6 +52,15 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @dev The initial mint ratio for fToken.
   uint256 private immutable initialMintRatio;
 
+  /***********
+   * Structs *
+   ***********/
+
+  struct TwapCache {
+    uint128 price;
+    uint128 timestamp;
+  }
+
   /*************
    * Variables *
    *************/
@@ -73,17 +83,8 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @notice The volitality multiple of fToken compare to base token.
   uint256 public beta;
 
-  /// @notice The last updated permissioned base token price.
-  uint256 public lastPermissionedPrice;
-
-  /// @notice The last intermediate base token price.
-  uint256 public lastIntermediatePrice;
-
-  /// @notice The last intermediate nav of fToken.
-  uint256 public lastIntermediateFTokenNav;
-
-  /// @notice The last intermediate nav of xToken.
-  uint256 public lastIntermediateXTokenNav;
+  /// @inheritdoc ITreasury
+  uint256 public override lastPermissionedPrice;
 
   /// @inheritdoc ITreasury
   uint256 public override totalUnderlying;
@@ -93,6 +94,8 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @inheritdoc ITreasury
   uint256 public override strategyUnderlying;
+
+  TwapCache public twapCache;
 
   /// @notice Whether the sender is allowed to do settlement.
   mapping(address => bool) public settleWhitelist;
@@ -144,48 +147,62 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @inheritdoc ITreasury
   function collateralRatio() external view override returns (uint256) {
-    uint256 _newPrice = ITwapOracle(priceOracle).getTwap(block.timestamp);
+    uint256 _newPrice = _fetchTwapPrice();
 
-    uint256 _fVal = IERC20Upgradeable(fToken).totalSupply().mul(lastIntermediateFTokenNav);
-    uint256 _totalVal = totalUnderlying.mul(_newPrice);
+    address _fToken = fToken;
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
+    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
 
-    if (_totalVal == 0) return PRECISION;
-    if (_fVal == 0) return PRECISION * PRECISION;
+    uint256 _baseSupply = totalUnderlying;
 
-    return _totalVal.mul(PRECISION).div(_fVal);
+    if (_baseSupply == 0) return PRECISION;
+    if (_fSupply == 0 || _fNav == 0) return PRECISION * PRECISION;
+
+    return _baseSupply.mul(_newPrice).mul(PRECISION).div(_fSupply.mul(_fNav));
   }
 
   /// @inheritdoc ITreasury
   /// @dev If the current collateral ratio <= new collateral ratio, we should return 0.
   function tryMintFTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
-    // (n + dn) * nav = (n_f + df) * nav_f + n_x * nav_x
-    // (n + dn) * nav / ((n_f + df) * nav_f) = ncr
-    // => dn = ncr * n_x * nav_x / (nav * (ncr - 1)) - n
+    // n * v = n_f * v_f + n_x * v_x
+    // (n + dn) * v = (n_f + df) * v_f + n_x * v_x
+    // (n + dn) * v / ((n_f + df) * v_f) = ncr
+    // => n * v - ncr * n_f * v_f = (ncr - 1) * dn * v
+    // => dn = (n * v - ncr * n_f * v_f) / ((ncr - 1) * v)
 
-    uint256 _newPrice = ITwapOracle(priceOracle).getTwap(block.timestamp);
-    uint256 _xVal = IERC20Upgradeable(xToken).totalSupply().mul(lastIntermediateXTokenNav);
-    uint256 _totalUnderlying = totalUnderlying;
-    uint256 _dn = _newCollateralRatio.mul(_xVal).div(_newPrice.mul(_newCollateralRatio - PRECISION));
+    uint256 _newPrice = _fetchTwapPrice();
+    address _fToken = fToken;
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
+    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
 
-    if (_dn >= _totalUnderlying) return _dn - _totalUnderlying;
-    else return 0;
+    uint256 _baseVal = totalUnderlying.mul(_newPrice).mul(PRECISION);
+    uint256 _fVal = _newCollateralRatio.mul(_fSupply).mul(_fNav);
+
+    if (_baseVal <= _fVal) return 0;
+    else {
+      return (_baseVal - _fVal).div(_newPrice.mul(_newCollateralRatio - PRECISION));
+    }
   }
 
   /// @inheritdoc ITreasury
   /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
   function tryMintXTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
-    // (n + dn) * nav = n_f * nav_f + (n_x + dx) * nav_x
-    // (n + dn) * nav / (n_f * nav_f) = ncr
-    // => dn = ncr * n_f * nav_f / nav - n
+    // n * v = n_f * v_f + n_x * v_x
+    // (n + dn) * v = n_f * v_f + (n_x + dx) * v_x
+    // (n + dn) * v / (n_f * v_f) = ncr
+    // => dn = ncr * n_f * v_f / v - n
 
-    uint256 _newPrice = ITwapOracle(priceOracle).getTwap(block.timestamp);
-    uint256 _fVal = IERC20Upgradeable(fToken).totalSupply().mul(lastIntermediateFTokenNav);
-    uint256 _totalUnderlying = totalUnderlying;
-    uint256 _dn = _newCollateralRatio.mul(_fVal).div(_newPrice * PRECISION);
+    uint256 _newPrice = _fetchTwapPrice();
+    address _fToken = fToken;
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
+    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
 
-    if (_dn >= _totalUnderlying) return _dn - _totalUnderlying;
+    uint256 _baseSupply = totalUnderlying;
+    uint256 _dn = _newCollateralRatio.mul(_fSupply).mul(_fNav).div(_newPrice * PRECISION);
+
+    if (_dn >= _baseSupply) return _dn - _baseSupply;
     else return 0;
   }
 
@@ -193,34 +210,47 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
   function tryRedeemFTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
-    // (n - dn) * nav = (n_f - df) * nav_f + n_x * nav_x
-    // (n - dn) * nav / ((n_f - df) * nav_f) = ncr
-    // => df = n_f - n_x * nav_x / ((ncr - 1) * nav_f)
+    // n * v = n_f * v_f + n_x * v_x
+    // (n - dn) * v = (n_f - df) * v_f + n_x * v_x
+    // (n - dn) * v / ((n_f - df) * v_f) = ncr
+    // => df = (ncr * n_f * v_f - n * v) / ((ncr - 1) * v_f)
 
-    uint256 _xVal = IERC20Upgradeable(xToken).totalSupply().mul(lastIntermediateXTokenNav);
-    uint256 _fSupply = IERC20Upgradeable(fToken).totalSupply();
+    uint256 _newPrice = _fetchTwapPrice();
+    address _fToken = fToken;
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
+    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
 
-    uint256 _df = _xVal.mul(PRECISION).div(lastIntermediateFTokenNav.mul(_newCollateralRatio - PRECISION));
+    uint256 _baseVal = totalUnderlying.mul(_newPrice).mul(PRECISION);
+    uint256 _fVal = _newCollateralRatio.mul(_fSupply).mul(_fNav);
 
-    if (_fSupply >= _df) return _fSupply - _df;
-    else return 0;
+    if (_fVal <= _baseVal) return 0;
+    else {
+      return (_fVal - _baseVal).div((_newCollateralRatio - PRECISION).mul(_fNav));
+    }
   }
 
   /// @inheritdoc ITreasury
   /// @dev If the current collateral ratio <= new collateral ratio, we should return 0.
   function tryRedeemXTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
-    // (n - dn) * nav = n_f * nav_f + (n_x - dx) * nav_x
-    // (n - dn) * nav / (n_f * nav_f) = ncr
-    // => df = n_x - (ncr - 1) * n_f * nav_f / nav_x
+    // n * v = n_f * v_f + n_x * v_x
+    // (n - dn) * v = n_f * v_f + (n_x - dx) * v_x
+    // (n - dn) * v / (n_f * v_f) = ncr
+    // => dx = n_x * (n * v - ncr * n_f * v_f) / (n * v - n_f * v_f)
 
-    uint256 _fVal = IERC20Upgradeable(fToken).totalSupply().mul(lastIntermediateFTokenNav);
+    uint256 _newPrice = _fetchTwapPrice();
+    address _fToken = fToken;
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
+    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
     uint256 _xSupply = IERC20Upgradeable(xToken).totalSupply();
 
-    uint256 _dx = (_newCollateralRatio - PRECISION).mul(_fVal).div(lastIntermediateXTokenNav.mul(PRECISION));
+    uint256 _baseVal = totalUnderlying.mul(_newPrice).mul(PRECISION);
+    uint256 _fVal = _newCollateralRatio.mul(_fSupply).mul(_fNav);
 
-    if (_xSupply >= _dx) return _xSupply - _dx;
-    else return 0;
+    if (_baseVal <= _fVal) return 0;
+    else {
+      return _xSupply.mul((_baseVal - _fVal).div(PRECISION)).div(_baseVal.div(PRECISION).sub(_fSupply.mul(_fNav)));
+    }
   }
 
   /****************************
@@ -233,44 +263,46 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     address _recipient,
     MintOption _option
   ) external override onlyMarket returns (uint256 _fOut, uint256 _xOut) {
-    uint256 _totalUnderlying = totalUnderlying;
+    uint256 _baseSupply = totalUnderlying;
 
-    uint256 _newPrice = ITwapOracle(priceOracle).getTwap(block.timestamp);
-    uint256 _fNav = lastIntermediateFTokenNav;
-    uint256 _xNav = lastIntermediateXTokenNav;
-    uint256 _fVal = IERC20Upgradeable(fToken).totalSupply().mul(_fNav);
-    uint256 _xVal = IERC20Upgradeable(xToken).totalSupply().mul(_xNav);
+    uint256 _newPrice = _fetchTwapPrice();
+    address _fToken = fToken;
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
+    uint256 _fSupply = IERC20Upgradeable(fToken).totalSupply();
+    uint256 _xSupply = IERC20Upgradeable(xToken).totalSupply();
 
     if (_option == MintOption.FToken) {
-      // (n + dn) * nav = (n_f + df) * nav_f + n_x * nav_x
-      _fOut = _totalUnderlying.add(_amount).mul(_newPrice);
-      _fOut = _fOut.sub(_fVal).sub(_xVal).div(_fNav);
+      // n * v = n_f * v_f + n_x * v_x
+      // (n + dn) * v = (n_f + df) * v_f + n_x * v_x
+      // => df = dn * v / v_f
+      _fOut = _amount.mul(_newPrice).div(_fNav);
     } else if (_option == MintOption.XToken) {
-      // (n + dn) * nav = n_f * nav_f + (n_x + dx) * nav_x
-      _xOut = _totalUnderlying.add(_amount).mul(_newPrice);
-      _xOut = _xOut.sub(_fVal).sub(_xVal).div(_xNav);
+      // n * v = n_f * v_f + n_x * v_x
+      // (n + dn) * v = n_f * v_f + (n_x + dx) * v_x
+      // => dx = (dn * v * n_x) / (n * v - n_f * v_f)
+      _xOut = _amount.mul(_newPrice).mul(_xSupply);
+      _xOut = _xOut.div(_baseSupply.mul(_newPrice).sub(_fSupply.mul(_fNav)));
     } else {
-      uint256 _totalDeltaVal;
-      if (_totalUnderlying == 0) {
-        _totalDeltaVal = _amount.mul(lastIntermediatePrice);
+      if (_baseSupply == 0) {
+        uint256 _totalDeltaVal = _amount.mul(_newPrice);
         _fOut = _totalDeltaVal.mul(initialMintRatio).div(PRECISION);
         _xOut = _totalDeltaVal.sub(_fOut);
       } else {
-        _totalDeltaVal = _amount.mul(_newPrice);
-        // (n + dn) * nav = (n_f + df) * nav_f + (n_x + dx) * nav_x
-        uint256 _totalVal = _totalUnderlying.mul(_newPrice);
-        _fOut = _fVal.mul(_totalDeltaVal).div(_totalVal).div(_fNav);
-        _xOut = _xVal.mul(_totalDeltaVal).div(_totalVal).div(_xNav);
+        // n * v = n_f * v_f + n_x * v_x
+        // (n + dn) * v = (n_f + df) * v_f + (n_x + dx) * v_x
+        // => df = n_f * dn / n, dx = n_x * dn / n
+        _fOut = _fSupply.mul(_amount).div(_baseSupply);
+        _xOut = _xSupply.mul(_amount).div(_baseSupply);
       }
     }
 
-    totalUnderlying = _totalUnderlying + _amount;
+    totalUnderlying = _baseSupply + _amount;
 
     if (_fOut > 0) {
-      IElasticToken(fToken).mint(_recipient, _fOut);
+      IFractionalToken(fToken).mint(_recipient, _fOut);
     }
     if (_xOut > 0) {
-      IElasticToken(xToken).mint(_recipient, _xOut);
+      ILeveragedToken(xToken).mint(_recipient, _xOut);
     }
   }
 
@@ -283,25 +315,33 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     address _fToken = fToken;
     address _xToken = xToken;
 
+    uint256 _newPrice = _fetchTwapPrice();
+    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
+    uint256 _xSupply = IERC20Upgradeable(_xToken).totalSupply();
+    uint256 _baseSupply = totalUnderlying;
+    uint256 _xVal = totalUnderlying.mul(_newPrice).sub(_fSupply.mul(_fNav));
+
     if (_fAmt > 0) {
-      IElasticToken(_fToken).burn(_owner, _fAmt);
+      IFractionalToken(_fToken).burn(_owner, _fAmt);
     }
     if (_xAmt > 0) {
-      IElasticToken(xToken).burn(_owner, _xAmt);
+      ILeveragedToken(xToken).burn(_owner, _xAmt);
     }
 
-    uint256 _newPrice = ITwapOracle(priceOracle).getTwap(block.timestamp);
-    uint256 _fNav = lastIntermediateFTokenNav;
-    uint256 _xNav = lastIntermediateXTokenNav;
+    // n * v = n_f * v_f + n_x * v_x
+    // (n - dn) * v = (n_f - df) * v_f + (n_x - dx) * v_x
+    // => dn = (df * v_f + dx * (n * v - n_f * v_f) / n_x) / v
 
-    // (n - dn) * nav = (n_f - df) * nav_f + (n_x - dx) * nav_x
-    uint256 _fVal = IERC20Upgradeable(_fToken).totalSupply().mul(_fNav);
-    uint256 _xVal = IERC20Upgradeable(_xToken).totalSupply().mul(_xNav);
+    if (_xSupply == 0) {
+      _baseOut = _fAmt.mul(_fNav).div(_newPrice);
+    } else {
+      _baseOut = _fAmt.mul(_fNav);
+      _baseOut = _baseOut.add(_xAmt.mul(_xVal).div(_xSupply));
+      _baseOut = _baseOut.div(_newPrice);
+    }
 
-    uint256 _totalUnderlying = totalUnderlying;
-    _baseOut = _totalUnderlying.sub(_fVal.add(_xVal).div(_newPrice));
-
-    totalUnderlying = _totalUnderlying - _baseOut;
+    totalUnderlying = _baseSupply - _baseOut;
 
     _transferBaseToken(_baseOut, msg.sender);
   }
@@ -312,23 +352,46 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     uint256 _incentiveRatio,
     address _recipient
   ) external override onlyMarket returns (uint256 _xOut) {
-    // 1. n * nav = n_f * nav_f + n_x * nav_x
-    // 2. (n + dn) * nav = n_f * (nav_f - d_nav_f) + (n_x + dx) * nav_x
+    // 1. n * v = n_f * v_f + n_x * v_x
+    // 2. (n + dn) * v = n_f * (v_f - d_v_f) + (n_x + dx) * v_x
     // =>
-    //  dn * nav = dx * nav_x - n_f * d_nav_f
-    //  n_f * d_nav_f = lambda * dn * nav
+    //  dn * v = dx * v_x - n_f * d_v_f
+    //  n_f * d_v_f = lambda * dn * v
     // =>
-    //  dx * nav_x = (1 + lambda) * dn * nav
+    //  dx * v_x = (1 + lambda) * dn * v
+    //  d_v_f = lambda * dn * v / n_f
 
-    uint256 _newPrice = ITwapOracle(priceOracle).getTwap(block.timestamp);
-    uint256 _xNav = lastIntermediateXTokenNav;
+    address _fToken = fToken;
+    address _xToken = xToken;
 
-    _xOut = _amount.mul(_newPrice).mul(PRECISION + _incentiveRatio).div(PRECISION).div(_xNav);
+    uint256 _newPrice = _fetchTwapPrice();
+    uint256 _baseSupply = totalUnderlying;
+    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
+    int256 _fMultiple = _computeMultiple(_newPrice);
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_fMultiple);
 
-    totalUnderlying = totalUnderlying + _amount;
+    uint256 _xNav;
+    {
+      uint256 _xSupply = IERC20Upgradeable(_xToken).totalSupply();
+      _xNav = _baseSupply.mul(_newPrice).sub(_fSupply.mul(_fNav)).div(_xSupply);
+    }
+
+    _xOut = _amount.mul(_newPrice);
+    _xOut = _xOut.mul(PRECISION + _incentiveRatio);
+    _xOut = _xOut.div(PRECISION);
+    _xOut = _xOut.div(_xNav);
+
+    uint256 _fDeltaNav = _incentiveRatio.mul(_amount);
+    _fDeltaNav = _fDeltaNav.mul(_newPrice);
+    _fDeltaNav = _fDeltaNav.div(_fSupply);
+    _fDeltaNav = _fDeltaNav.div(PRECISION);
+
+    totalUnderlying = _baseSupply + _amount;
+
+    IFractionalToken(_fToken).setNav(_fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_fMultiple))));
 
     if (_xOut > 0) {
-      IElasticToken(xToken).mint(_recipient, _xOut);
+      ILeveragedToken(_xToken).mint(_recipient, _xOut);
     }
   }
 
@@ -339,27 +402,35 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     address _owner,
     address _recipient
   ) external override onlyMarket returns (uint256 _baseOut) {
-    // 1. n * nav = n_f * nav_f + n_x * nav_x
-    // 2. (n - dn) * nav = (n_f - df) * (nav_f - d_nav_f) + n_x * nav_x
+    // 1. n * v = n_f * v_f + n_x * v_x
+    // 2. (n - dn) * v = (n_f - df) * (v_f - d_v_f) + n_x * v_x
     // =>
-    //  dn * nav = n_f * d_nav_f + df * (nav_f - d_nav_f)
-    //  dn * nav = df * nav_f * (1 + lambda)
+    //  dn * v = n_f * d_v_f + df * (v_f - d_v_f)
+    //  dn * v = df * v_f * (1 + lambda)
     // =>
-    //  dn = df * nav_f * (1 + lambda) / nav
-    //  d_nav_f = lambda * (df * nav_f) / (n_f - df)
+    //  dn = df * v_f * (1 + lambda) / v
+    //  d_v_f = lambda * (df * v_f) / (n_f - df)
 
-    uint256 _fSupply = IERC20Upgradeable(fToken).totalSupply();
-    uint256 _newPrice = ITwapOracle(priceOracle).getTwap(block.timestamp);
-    uint256 _fNav = lastIntermediateFTokenNav;
+    address _fToken = fToken;
+    uint256 _newPrice = _fetchTwapPrice();
+    uint256 _baseSupply = totalUnderlying;
+    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
+    int256 _fMultiple = _computeMultiple(_newPrice);
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_fMultiple);
 
-    _baseOut = _fAmt.mul(_fNav).mul(PRECISION + _incentiveRatio).div(PRECISION).div(_newPrice);
-    uint256 _fDeltaNav = _incentiveRatio.mul(_fAmt).mul(_fNav).div(_fSupply.sub(_fAmt));
+    _baseOut = _fAmt.mul(_fNav);
+    _baseOut = _baseOut.mul(PRECISION + _incentiveRatio);
+    _baseOut = _baseOut.div(PRECISION);
+    _baseOut = _baseOut.div(_newPrice);
 
-    IElasticToken(fToken).burn(_owner, _fAmt);
+    uint256 _fDeltaNav = _incentiveRatio.mul(_fAmt);
+    _fDeltaNav = _fDeltaNav.mul(_fNav);
+    _fDeltaNav = _fDeltaNav.div(_fSupply.sub(_fAmt));
 
-    // @note be careful that the nav and price is updated.
-    IElasticToken(fToken).setNav(_fNav.sub(_fDeltaNav));
-    lastIntermediatePrice = _newPrice;
+    IFractionalToken(_fToken).burn(_owner, _fAmt);
+    totalUnderlying = _baseSupply.sub(_baseOut);
+
+    IFractionalToken(_fToken).setNav(_fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_fMultiple))));
 
     if (_baseOut > 0) {
       _transferBaseToken(_baseOut, _recipient);
@@ -367,20 +438,14 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   }
 
   /// @inheritdoc ITreasury
-  function marketSettle() public override onlyMarket {
-    uint256 _newPrice = ITwapOracle(priceOracle).getTwap(block.timestamp);
-    require(_newPrice > 0, "zero price");
+  function cacheTwap() external override {
+    TwapCache memory _cache = twapCache;
+    if (_cache.timestamp != block.timestamp) {
+      _cache.price = uint128(ITwapOracle(priceOracle).getTwap(block.timestamp));
+      _cache.timestamp = uint128(block.timestamp);
 
-    (int256 _fMultiple, int256 _xMultiple) = _computeMultiple(_newPrice);
-
-    uint256 _fNav = IElasticToken(fToken).getNav(_fMultiple);
-    uint256 _xNav = IElasticToken(xToken).getNav(_xMultiple);
-
-    emit MarketSettle(_newPrice, _fNav, _xNav);
-
-    lastIntermediateFTokenNav = _fNav;
-    lastIntermediateXTokenNav = _xNav;
-    lastIntermediatePrice = _newPrice;
+      twapCache = _cache;
+    }
   }
 
   /// @inheritdoc ITreasury
@@ -388,17 +453,12 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     require(settleWhitelist[msg.sender], "only settle whitelist");
     if (totalUnderlying == 0) return;
 
-    uint256 _newPrice = ITwapOracle(priceOracle).getTwap(block.timestamp);
-    (int256 _fMultiple, int256 _xMultiple) = _computeMultiple(_newPrice);
+    uint256 _newPrice = _fetchTwapPrice();
+    int256 _fMultiple = _computeMultiple(_newPrice);
+    uint256 _fNav = IFractionalToken(fToken).updateNav(_fMultiple);
 
-    uint256 _fNav = IElasticToken(fToken).updateNav(_fMultiple);
-    uint256 _xNav = IElasticToken(xToken).updateNav(_xMultiple);
+    emit ProtocolSettle(_newPrice, _fNav);
 
-    emit ProtocolSettle(_newPrice, _fNav, _xNav);
-
-    lastIntermediateFTokenNav = _fNav;
-    lastIntermediateXTokenNav = _xNav;
-    lastIntermediatePrice = _newPrice;
     lastPermissionedPrice = _newPrice;
   }
 
@@ -418,15 +478,11 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   function initializePrice() external onlyOwner {
     require(lastPermissionedPrice == 0, "only initialize price once");
-    uint256 _price = ITwapOracle(priceOracle).getTwap(block.timestamp);
+    uint256 _price = _fetchTwapPrice();
 
     lastPermissionedPrice = _price;
-    lastIntermediatePrice = _price;
 
-    lastIntermediateFTokenNav = PRECISION;
-    lastIntermediateXTokenNav = PRECISION;
-
-    emit ProtocolSettle(_price, PRECISION, PRECISION);
+    emit ProtocolSettle(_price, PRECISION);
   }
 
   /// @notice Change address of strategy contract.
@@ -487,48 +543,28 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// ratio = --------------------- - 1
   ///         lastPermissionedPrice
   ///
-  ///         lastIntermediateFTokenNav * fSupply
-  /// rho = ---------------------------------------
-  ///       lastIntermediatePrice * totalUnderlying
-  ///
   /// lastIntermediateFTokenNav = (1 + beta * ratio) * lastFTokenNav
-  ///
-  ///                              /    1 - rho * beta           1 + ratio     lastPermissionedPrice      \
-  /// lastIntermediateXTokenNav = | 1 + -------------- * ratio + --------- * ( --------------------- - 1 ) | * lastXTokenNav
-  ///                              \       1 - rho                1 - rho      lastIntermediatePrice      /
   ///
   /// @param _newPrice The current price of base token.
   /// @return _fMultiple The multiple for fToken.
-  /// @return _xMultiple The multiple for xToken.
-  function _computeMultiple(uint256 _newPrice) internal view returns (int256 _fMultiple, int256 _xMultiple) {
-    uint256 _lastPermissionedPrice = lastPermissionedPrice;
-    uint256 _lastIntermediatePrice = lastIntermediatePrice;
+  function _computeMultiple(uint256 _newPrice) internal view returns (int256 _fMultiple) {
+    int256 _lastPermissionedPrice = int256(lastPermissionedPrice);
 
-    int256 rho;
-    {
-      // solhint-disable-next-line var-name-mixedcase
-      uint256 rho_d = IERC20Upgradeable(fToken).totalSupply().mul(lastIntermediateFTokenNav);
-      // solhint-disable-next-line var-name-mixedcase
-      uint256 rho_n = totalUnderlying.mul(_lastIntermediatePrice);
-      rho = int256(rho_d.mul(PRECISION).div(rho_n));
+    int256 _ratio = int256(_newPrice).sub(_lastPermissionedPrice).mul(PRECISION_I256).div(_lastPermissionedPrice);
+
+    _fMultiple = _ratio.mul(int256(beta)).div(PRECISION_I256);
+  }
+
+  /// @dev Internal function to fetch twap price.
+  /// @return _price The twap price of the base token.
+  function _fetchTwapPrice() internal view returns (uint256 _price) {
+    TwapCache memory _cache = twapCache;
+    if (_cache.timestamp != block.timestamp) {
+      _price = ITwapOracle(priceOracle).getTwap(block.timestamp);
+    } else {
+      _price = _cache.price;
     }
 
-    int256 ratio = int256(_newPrice).sub(int256(_lastPermissionedPrice)).mul(PRECISION_I256).div(
-      int256(_lastPermissionedPrice)
-    );
-    int256 _beta = int256(beta);
-
-    _fMultiple = ratio.mul(_beta).div(PRECISION_I256);
-
-    _xMultiple = (PRECISION_I256 * PRECISION_I256).sub(rho * _beta).div(PRECISION_I256.sub(rho)).mul(ratio).div(
-      PRECISION_I256
-    );
-    _xMultiple = _xMultiple.add(
-      (PRECISION_I256 + ratio)
-        .mul(int256(_lastPermissionedPrice) - int256(_lastIntermediatePrice))
-        .mul(PRECISION_I256)
-        .div(PRECISION_I256 - rho)
-        .div(int256(_lastIntermediatePrice))
-    );
+    require(_price > 0, "invalid twap price");
   }
 }

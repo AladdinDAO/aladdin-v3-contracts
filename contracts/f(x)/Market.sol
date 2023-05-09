@@ -182,8 +182,8 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     _;
   }
 
-  modifier marketSettle() {
-    ITreasury(treasury).marketSettle();
+  modifier cachePrice() {
+    ITreasury(treasury).cacheTwap();
     _;
   }
 
@@ -243,7 +243,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _amount,
     address _recipient,
     uint256 _minFOut
-  ) external override nonReentrant marketSettle returns (uint256 _fOut) {
+  ) external override nonReentrant cachePrice returns (uint256 _fOut) {
     require(!mintPaused, "mint is paused");
 
     address _baseToken = baseToken;
@@ -269,7 +269,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _amount,
     address _recipient,
     uint256 _minXOut
-  ) external override nonReentrant marketSettle returns (uint256 _xOut) {
+  ) external override nonReentrant cachePrice returns (uint256 _xOut) {
     require(!mintPaused, "mint is paused");
 
     address _baseToken = baseToken;
@@ -295,7 +295,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _amount,
     address _recipient,
     uint256 _minXOut
-  ) external override nonReentrant marketSettle returns (uint256 _xOut) {
+  ) external override nonReentrant cachePrice returns (uint256 _xOut) {
     require(!mintPaused, "mint is paused");
 
     ITreasury _treasury = ITreasury(treasury);
@@ -329,7 +329,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _xAmt,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant marketSettle returns (uint256 _baseOut) {
+  ) external override nonReentrant cachePrice returns (uint256 _baseOut) {
     require(!redeemPaused, "redeem is paused");
 
     if (_fAmt == uint256(-1)) {
@@ -377,7 +377,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _fAmt,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant marketSettle returns (uint256 _baseOut) {
+  ) external override nonReentrant cachePrice returns (uint256 _baseOut) {
     require(!redeemPaused, "redeem is paused");
 
     ITreasury _treasury = ITreasury(treasury);
@@ -400,7 +400,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _fAmt,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant marketSettle returns (uint256 _baseOut) {
+  ) external override nonReentrant cachePrice returns (uint256 _baseOut) {
     require(!redeemPaused, "redeem is paused");
     require(liquidationWhitelist[msg.sender], "not liquidation whitelist");
 
