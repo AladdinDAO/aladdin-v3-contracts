@@ -11,6 +11,8 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 import { IMarket } from "./interfaces/IMarket.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
+// solhint-disable max-states-count
+
 contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
@@ -42,23 +44,23 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   /// @notice Emitted when the market config is updated.
   /// @param stabilityRatio The new start collateral ratio to enter system stability mode, multiplied by 1e18.
   /// @param liquidationRatio The new start collateral ratio to enter incentivized user liquidation mode, multiplied by 1e18.
-  /// @param permissionedLiquidationRatio The new start collateral ratio to enter protocol liquidation mode, multiplied by 1e18.
+  /// @param selfLiquidationRatio The new start collateral ratio to enter self liquidation mode, multiplied by 1e18.
   /// @param recapRatio The new start collateral ratio to enter recap mode, multiplied by 1e18.
   event UpdateMarketConfig(
     uint64 stabilityRatio,
     uint64 liquidationRatio,
-    uint64 permissionedLiquidationRatio,
+    uint64 selfLiquidationRatio,
     uint64 recapRatio
   );
 
   /// @notice Emitted when the incentive config is updated.
   /// @param stabilityIncentiveRatio The new incentive ratio for system stability mode, multiplied by 1e18.
   /// @param liquidationIncentiveRatio The new incentive ratio for incentivized user liquidation mode, multiplied by 1e18.
-  /// @param permissionedLiquidationIncentiveRatio The new incentive ratio for protocol liquidation mode, multiplied by 1e18.
+  /// @param selfLiquidationIncentiveRatio The new incentive ratio for self liquidation mode, multiplied by 1e18.
   event UpdateIncentiveConfig(
     uint64 stabilityIncentiveRatio,
     uint64 liquidationIncentiveRatio,
-    uint64 permissionedLiquidationIncentiveRatio
+    uint64 selfLiquidationIncentiveRatio
   );
 
   /// @notice Emitted when the whitelist status for settle is changed.
@@ -77,6 +79,14 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   /// @notice Pause or unpause redeem.
   /// @param status The new status for redeem.
   event PauseRedeem(bool status);
+
+  /// @notice Pause or unpause fToken mint in system stability mode.
+  /// @param status The new status for mint.
+  event PauseFTokenMintInSystemStabilityMode(bool status);
+
+  /// @notice Pause or unpause xToken redeem in system stability mode.
+  /// @param status The new status for redeem.
+  event PauseXTokenRedeemInSystemStabilityMode(bool status);
 
   /*************
    * Constants *
@@ -106,8 +116,8 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint64 stabilityRatio;
     // The start collateral ratio to enter incentivized user liquidation mode, multiplied by 1e18.
     uint64 liquidationRatio;
-    // The start collateral ratio to enter protocol liquidation mode, multiplied by 1e18.
-    uint64 permissionedLiquidationRatio;
+    // The start collateral ratio to enter self liquidation mode, multiplied by 1e18.
+    uint64 selfLiquidationRatio;
     // The start collateral ratio to enter recap mode, multiplied by 1e18.
     uint64 recapRatio;
   }
@@ -118,8 +128,8 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint64 stabilityIncentiveRatio;
     // The incentive ratio for incentivized user liquidation mode, multiplied by 1e18.
     uint64 liquidationIncentiveRatio;
-    // The incentive ratio for protocol liquidation mode, multiplied by 1e18.
-    uint64 permissionedLiquidationIncentiveRatio;
+    // The incentive ratio for self liquidation mode, multiplied by 1e18.
+    uint64 selfLiquidationIncentiveRatio;
   }
 
   /*************
@@ -159,7 +169,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   /// @notice The redeem fee ratio for xToken.
   FeeRatio public xTokenRedeemFeeRatio;
 
-  /// @notice Whether the sender is allowed to do permissioned liquidation.
+  /// @notice Whether the sender is allowed to do self liquidation.
   mapping(address => bool) public liquidationWhitelist;
 
   /// @notice Whether the mint is paused.
@@ -167,6 +177,12 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
 
   /// @notice Whether the redeem is paused.
   bool public redeemPaused;
+
+  /// @notice Whether to pause fToken mint in system stability mode
+  bool public fTokenMintInSystemStabilityModePaused;
+
+  /// @notice Whether to pause xToken redeem in system stability mode
+  bool public xTokenRedeemInSystemStabilityModePaused;
 
   /************
    * Modifier *
@@ -253,6 +269,12 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     require(_amount > 0, "mint zero amount");
 
     ITreasury _treasury = ITreasury(treasury);
+
+    if (fTokenMintInSystemStabilityModePaused) {
+      uint256 _collateralRatio = _treasury.collateralRatio();
+      require(_collateralRatio > marketConfig.stabilityRatio, "fToken mint paused");
+    }
+
     uint256 _maxBaseInBeforeSystemStabilityMode = _treasury.tryMintFTokenTo(marketConfig.stabilityRatio);
 
     uint256 _amountWithoutFee = _deductMintFee(_amount, fTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
@@ -303,7 +325,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
 
     MarketConfig memory _marketConfig = marketConfig;
     require(
-      _marketConfig.liquidationRatio <= _collateralRatio && _collateralRatio < _marketConfig.stabilityRatio,
+      _marketConfig.recapRatio <= _collateralRatio && _collateralRatio < _marketConfig.stabilityRatio,
       "Not system stability mode"
     );
 
@@ -349,6 +371,11 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
       uint256 _maxFTokenInBeforeSystemStabilityMode = _treasury.tryRedeemFTokenTo(_marketConfig.stabilityRatio);
       _feeRatio = _computeRedeemFeeRatio(_fAmt, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
     } else {
+      if (xTokenRedeemInSystemStabilityModePaused) {
+        uint256 _collateralRatio = _treasury.collateralRatio();
+        require(_collateralRatio > _marketConfig.stabilityRatio, "xToken redeem paused");
+      }
+
       uint256 _maxXTokenInBeforeSystemStabilityMode = _treasury.tryRedeemXTokenTo(_marketConfig.stabilityRatio);
       _feeRatio = _computeRedeemFeeRatio(_xAmt, xTokenRedeemFeeRatio, _maxXTokenInBeforeSystemStabilityMode);
     }
@@ -396,11 +423,11 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   }
 
   /// @inheritdoc IMarket
-  function permissionedLiquidate(
-    uint256 _fAmt,
-    address _recipient,
-    uint256 _minBaseOut
-  ) external override nonReentrant cachePrice returns (uint256 _baseOut) {
+  function selfLiquidate(
+    uint256 _baseAmt,
+    uint256 _minFToken,
+    bytes calldata _data
+  ) external override nonReentrant cachePrice returns (uint256 _baseOut, uint256 _fAmt) {
     require(!redeemPaused, "redeem is paused");
     require(liquidationWhitelist[msg.sender], "not liquidation whitelist");
 
@@ -409,19 +436,37 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
 
     MarketConfig memory _marketConfig = marketConfig;
     require(
-      _marketConfig.recapRatio <= _collateralRatio && _collateralRatio < _marketConfig.permissionedLiquidationRatio,
-      "Not protocol liquidation mode"
+      _marketConfig.recapRatio <= _collateralRatio && _collateralRatio < _marketConfig.selfLiquidationRatio,
+      "Not self liquidation mode"
     );
 
-    _baseOut = _treasury.liquidate(
-      _fAmt,
-      incentiveConfig.permissionedLiquidationIncentiveRatio,
-      msg.sender,
-      _recipient
+    (_baseOut, _fAmt) = _treasury.selfLiquidate(
+      _baseAmt,
+      incentiveConfig.selfLiquidationIncentiveRatio,
+      platform,
+      _data
     );
-    require(_baseOut >= _minBaseOut, "insufficient base output");
+    require(_fAmt >= _minFToken, "insufficient fToken liquidated");
 
-    emit ProtocolLiquidate(msg.sender, _recipient, _fAmt, _baseOut);
+    emit SelfLiquidate(msg.sender, _baseAmt, _baseOut, _fAmt);
+  }
+
+  /// @inheritdoc IMarket
+  function onSelfLiquidate(uint256 _baseAmt, bytes calldata _data) external override returns (uint256 _fAmt) {
+    require(msg.sender == treasury, "only called by treasury");
+    (address _target, bytes memory _calldata) = abi.decode(_data, (address, bytes));
+
+    address _baseToken = baseToken;
+    IERC20Upgradeable(_baseToken).safeApprove(_target, 0);
+    IERC20Upgradeable(_baseToken).safeApprove(_target, _baseAmt);
+
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool _success, ) = _target.call(_calldata);
+    require(_success, "call failed");
+
+    address _fToken = fToken;
+    _fAmt = IERC20Upgradeable(_fToken).balanceOf(address(this));
+    IERC20Upgradeable(_fToken).safeTransfer(msg.sender, _fAmt);
   }
 
   /*******************************
@@ -481,50 +526,46 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   /// @notice Update the market config.
   /// @param _stabilityRatio The start collateral ratio to enter system stability mode to update, multiplied by 1e18.
   /// @param _liquidationRatio The start collateral ratio to enter incentivized user liquidation mode to update, multiplied by 1e18.
-  /// @param _permissionedLiquidationRatio The start collateral ratio to enter protocol liquidation mode to update, multiplied by 1e18.
+  /// @param _selfLiquidationRatio The start collateral ratio to enter self liquidation mode to update, multiplied by 1e18.
   /// @param _recapRatio The start collateral ratio to enter recap mode to update, multiplied by 1e18.
   function updateMarketConfig(
     uint64 _stabilityRatio,
     uint64 _liquidationRatio,
-    uint64 _permissionedLiquidationRatio,
+    uint64 _selfLiquidationRatio,
     uint64 _recapRatio
   ) external onlyAdmin {
     require(
       _stabilityRatio > _liquidationRatio &&
-        _liquidationRatio > _permissionedLiquidationRatio &&
-        _permissionedLiquidationRatio > _recapRatio,
+        _liquidationRatio > _selfLiquidationRatio &&
+        _selfLiquidationRatio > _recapRatio,
       "invalid market config"
     );
 
-    marketConfig = MarketConfig(_stabilityRatio, _liquidationRatio, _permissionedLiquidationRatio, _recapRatio);
+    marketConfig = MarketConfig(_stabilityRatio, _liquidationRatio, _selfLiquidationRatio, _recapRatio);
 
-    emit UpdateMarketConfig(_stabilityRatio, _liquidationRatio, _permissionedLiquidationRatio, _recapRatio);
+    emit UpdateMarketConfig(_stabilityRatio, _liquidationRatio, _selfLiquidationRatio, _recapRatio);
   }
 
   /// @notice Update the incentive config.
   /// @param _stabilityIncentiveRatio The incentive ratio for system stability mode to update, multiplied by 1e18.
   /// @param _liquidationIncentiveRatio The incentive ratio for incentivized user liquidation mode to update, multiplied by 1e18.
-  /// @param _permissionedLiquidationIncentiveRatio The incentive ratio for protocol liquidation mode to update, multiplied by 1e18.
+  /// @param _selfLiquidationIncentiveRatio The incentive ratio for self liquidation mode to update, multiplied by 1e18.
   function updateIncentiveConfig(
     uint64 _stabilityIncentiveRatio,
     uint64 _liquidationIncentiveRatio,
-    uint64 _permissionedLiquidationIncentiveRatio
+    uint64 _selfLiquidationIncentiveRatio
   ) external onlyAdmin {
     require(_stabilityIncentiveRatio > 0, "incentive too small");
-    require(_permissionedLiquidationIncentiveRatio > 0, "incentive too small");
-    require(_liquidationIncentiveRatio > _permissionedLiquidationIncentiveRatio, "invalid incentive config");
+    require(_selfLiquidationIncentiveRatio > 0, "incentive too small");
+    require(_liquidationIncentiveRatio > _selfLiquidationIncentiveRatio, "invalid incentive config");
 
     incentiveConfig = IncentiveConfig(
       _stabilityIncentiveRatio,
       _liquidationIncentiveRatio,
-      _permissionedLiquidationIncentiveRatio
+      _selfLiquidationIncentiveRatio
     );
 
-    emit UpdateIncentiveConfig(
-      _stabilityIncentiveRatio,
-      _liquidationIncentiveRatio,
-      _permissionedLiquidationIncentiveRatio
-    );
+    emit UpdateIncentiveConfig(_stabilityIncentiveRatio, _liquidationIncentiveRatio, _selfLiquidationIncentiveRatio);
   }
 
   /// @notice Change address of platform contract.
@@ -535,7 +576,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     emit UpdatePlatform(_platform);
   }
 
-  /// @notice Update the whitelist status for protocol liquidation account.
+  /// @notice Update the whitelist status for self liquidation account.
   /// @param _account The address of account to update.
   /// @param _status The status of the account to update.
   function updateLiquidationWhitelist(address _account, bool _status) external onlyAdmin {
@@ -558,6 +599,22 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     redeemPaused = _status;
 
     emit PauseRedeem(_status);
+  }
+
+  /// @notice Pause fToken mint in system stability mode.
+  /// @param _status The pause status.
+  function pauseFTokenMintInSystemStabilityMode(bool _status) external onlyEmergencyDAO {
+    fTokenMintInSystemStabilityModePaused = _status;
+
+    emit PauseFTokenMintInSystemStabilityMode(_status);
+  }
+
+  /// @notice Pause xToken redeem in system stability mode
+  /// @param _status The pause status.
+  function pauseXTokenRedeemInSystemStabilityMode(bool _status) external onlyEmergencyDAO {
+    xTokenRedeemInSystemStabilityModePaused = _status;
+
+    emit PauseXTokenRedeemInSystemStabilityMode(_status);
   }
 
   /**********************

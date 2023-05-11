@@ -53,12 +53,12 @@ interface IMarket {
   /// @param baseTokenOut The amount of base token redeemed.
   event UserLiquidate(address indexed owner, address indexed recipient, uint256 fTokenIn, uint256 baseTokenOut);
 
-  /// @notice Emitted when protocol liquidate with fToken.
-  /// @param owner The address of fToken and xToken owner.
-  /// @param recipient The address of receiver for base token.
-  /// @param fTokenIn The amount of fToken burned.
+  /// @notice Emitted when self liquidate with fToken.
+  /// @param caller The address of caller.
+  /// @param baseTokenAmt The amount of base token used to swap.
   /// @param baseTokenOut The amount of base token redeemed.
-  event ProtocolLiquidate(address indexed owner, address indexed recipient, uint256 fTokenIn, uint256 baseTokenOut);
+  /// @param fTokenAmt The amount of fToken liquidated.
+  event SelfLiquidate(address indexed caller, uint256 baseTokenAmt, uint256 baseTokenOut, uint256 fTokenAmt);
 
   /****************************
    * Public Mutated Functions *
@@ -135,14 +135,21 @@ interface IMarket {
     uint256 minBaseOut
   ) external returns (uint256 baseOut);
 
-  /// @notice Permissioned liquidate some fToken to increase the collateral ratio.
-  /// @param fAmt the amount of fToken to supply.
-  /// @param recipient The address of receiver for base token.
-  /// @param minBaseOut The minimum amount of base token should be received.
+  /// @notice Self liquidate some fToken to increase the collateral ratio.
+  /// @param baseAmt The amount of base token to swap.
+  /// @param minFToken The minimum amount of fToken should be liquidated.
+  /// @param data The data used to swap base token to fToken.
   /// @return baseOut The amount of base token should be received.
-  function permissionedLiquidate(
-    uint256 fAmt,
-    address recipient,
-    uint256 minBaseOut
-  ) external returns (uint256 baseOut);
+  /// @return fAmt the amount of fToken liquidated.
+  function selfLiquidate(
+    uint256 baseAmt,
+    uint256 minFToken,
+    bytes calldata data
+  ) external returns (uint256 baseOut, uint256 fAmt);
+
+  /// @notice Callback to swap base token to fToken
+  /// @param baseAmt The amount of base token to swap.
+  /// @param data The data passed to market contract.
+  /// @return fAmt The amount of fToken received.
+  function onSelfLiquidate(uint256 baseAmt, bytes calldata data) external returns (uint256 fAmt);
 }

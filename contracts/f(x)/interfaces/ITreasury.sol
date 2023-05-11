@@ -112,6 +112,7 @@ interface ITreasury {
   /// @param fAmt The amount of fToken to liquidate.
   /// @param incentiveRatio The incentive ratio.
   /// @param owner The owner of the fToken.
+  /// @param recipient The address of receiver of base token.
   /// @param baseOut The amount of base token liquidated.
   function liquidate(
     uint256 fAmt,
@@ -119,6 +120,20 @@ interface ITreasury {
     address owner,
     address recipient
   ) external returns (uint256 baseOut);
+
+  /// @notice Self liquidate fToken to base token with incentive.
+  /// @param baseAmt The amount of base token used to buy fToken.
+  /// @param incentiveRatio The incentive ratio.
+  /// @param recipient The address of receiver of profited base token.
+  /// @param data The calldata passed to market contract.
+  /// @return baseOut The expected base token received.
+  /// @return fAmt The amount of fToken liquidated.
+  function selfLiquidate(
+    uint256 baseAmt,
+    uint256 incentiveRatio,
+    address recipient,
+    bytes calldata data
+  ) external returns (uint256 baseOut, uint256 fAmt);
 
   /// @notice Cache the twap price.
   function cacheTwap() external;

@@ -12,6 +12,7 @@ import { ITwapOracle } from "../price-oracle/interfaces/ITwapOracle.sol";
 import { IAssetStrategy } from "./interfaces/IAssetStrategy.sol";
 import { IFractionalToken } from "./interfaces/IFractionalToken.sol";
 import { ILeveragedToken } from "./interfaces/ILeveragedToken.sol";
+import { IMarket } from "./interfaces/IMarket.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
 // solhint-disable no-empty-blocks
@@ -434,6 +435,45 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
     if (_baseOut > 0) {
       _transferBaseToken(_baseOut, _recipient);
+    }
+  }
+
+  /// @inheritdoc ITreasury
+  function selfLiquidate(
+    uint256 _baseAmt,
+    uint256 _incentiveRatio,
+    address _recipient,
+    bytes calldata _data
+  ) external override onlyMarket returns (uint256 _baseOut, uint256 _fAmt) {
+    uint256 _baseSupply = totalUnderlying;
+
+    IERC20Upgradeable(baseToken).safeTransfer(msg.sender, _baseAmt);
+    _fAmt = IMarket(msg.sender).onSelfLiquidate(_baseAmt, _data);
+
+    address _fToken = fToken;
+    uint256 _newPrice = _fetchTwapPrice();
+    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
+    int256 _fMultiple = _computeMultiple(_newPrice);
+    uint256 _fNav = IFractionalToken(_fToken).getNav(_fMultiple);
+
+    _baseOut = _fAmt.mul(_fNav);
+    _baseOut = _baseOut.mul(PRECISION + _incentiveRatio);
+    _baseOut = _baseOut.div(PRECISION);
+    _baseOut = _baseOut.div(_newPrice);
+
+    require(_baseOut >= _baseAmt, "self liquidate with loss");
+
+    uint256 _fDeltaNav = _incentiveRatio.mul(_fAmt);
+    _fDeltaNav = _fDeltaNav.mul(_fNav);
+    _fDeltaNav = _fDeltaNav.div(_fSupply.sub(_fAmt));
+
+    IFractionalToken(_fToken).burn(address(this), _fAmt);
+    totalUnderlying = _baseSupply.sub(_baseOut);
+
+    IFractionalToken(_fToken).setNav(_fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_fMultiple))));
+
+    if (_baseOut > _baseAmt) {
+      _transferBaseToken(_baseOut - _baseAmt, _recipient);
     }
   }
 
