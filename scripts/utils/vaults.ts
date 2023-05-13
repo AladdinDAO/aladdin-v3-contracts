@@ -3570,6 +3570,165 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
+  "rETH/frxETH": {
+    token: "CURVE_rETH/frxETH",
+    composition: "rETH+frxETH",
+    convexCurveID: 164,
+    rewarder: "0x84754821b5484A69DB3164eF4eDC5A5657318039",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      rETH: [
+        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+      ],
+      frxETH: [
+        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+      WETH: [
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+    },
+    withdraw: {
+      rETH: [
+        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+      ],
+      frxETH: [
+        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+      ],
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
+  "stETH/frxETH": {
+    token: "CURVE_stETH/frxETH",
+    composition: "stETH+frxETH",
+    convexCurveID: 161,
+    rewarder: "0xC3D0B8170E105d6476fE407934492930CAc3BDAC",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      stETH: [
+        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
+      ],
+      frxETH: [
+        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+      ],
+      WETH: [
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+      ],
+    },
+    withdraw: {
+      stETH: [
+        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+      ],
+      frxETH: [
+        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+      ],
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
+  "cbETH/frxETH": {
+    token: "CURVE_cbETH/frxETH",
+    composition: "cbETH+frxETH",
+    convexCurveID: 163,
+    rewarder: "0x0080d49D4a4921dF0F3853c5e4533462A51fbb29",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      cbETH: [
+        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+      ],
+      frxETH: [
+        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+      WETH: [
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+    },
+    withdraw: {
+      cbETH: [
+        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+      ],
+      frxETH: [
+        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+      ],
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
+  "sETH/frxETH": {
+    token: "CURVE_sETH/frxETH",
+    composition: "sETH+frxETH",
+    convexCurveID: 167,
+    rewarder: "0x55cdF6c7E6d04b83835E4702ed395D0263237DA2",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      sETH: [encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity)],
+      frxETH: [
+        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+      ],
+      WETH: [
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+      ],
+    },
+    withdraw: {
+      sETH: [
+        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+      ],
+      frxETH: [
+        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+      ],
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
+  "FRAX/USDP": {
+    token: "CURVE_FRAX/USDP",
+    composition: "FRAX+USDP",
+    convexCurveID: 169,
+    rewarder: "0x6991C1CD588c4e6f6f1de3A0bac5B8BbAb7aAF6d",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      FRAX: [
+        encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
+      ],
+      USDP: [
+        encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+    },
+    withdraw: {
+      FRAX: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_FRAX/USDP_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          0,
+          0,
+          Action.RemoveLiquidity
+        ),
+      ],
+      USDP: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_FRAX/USDP_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          1,
+          1,
+          Action.RemoveLiquidity
+        ),
+      ],
+    },
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -3654,6 +3813,11 @@ export const DEPLOYED_VAULTS: {
     { name: "USDP/3CRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 49
     { name: "CRV/cvxCRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 50
     { name: "eCFX/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 51
+    { name: "rETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 52
+    { name: "stETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 53
+    { name: "cbETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 54
+    { name: "sETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 55
+    { name: "FRAX/USDP", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 56
   ],
   aFXS: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 0
@@ -3669,6 +3833,11 @@ export const DEPLOYED_VAULTS: {
     { name: "clevusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 10
     { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 11
     { name: "FPIS/cvxFPIS", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 12
+    { name: "rETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 13
+    { name: "stETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 14
+    { name: "cbETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 15
+    { name: "sETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 16
+    { name: "FRAX/USDP", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 17
   ],
   afrxETH: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 0
