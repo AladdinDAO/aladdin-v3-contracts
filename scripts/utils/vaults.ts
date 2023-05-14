@@ -3729,6 +3729,117 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
+  "UZD/FRAXBP": {
+    token: "CURVE_UZD/FRAXBP",
+    composition: "UZD+FRAXBP",
+    convexCurveID: 158,
+    rewarder: "0x820Fad75512c8C3E57Ad021d016846CEEB5F7105",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.UZD],
+    deposit: {
+      UZD: [
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
+      ],
+      crvFRAX: [
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+      FRAX: [
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+      USDC: [
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+      // WETH ==(UniV3)==> USDC
+      WETH: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+      ],
+    },
+    withdraw: {
+      UZD: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
+          PoolType.CurveFactoryMetaPool,
+          2,
+          0,
+          0,
+          Action.RemoveLiquidity
+        ),
+      ],
+      crvFRAX: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
+          PoolType.CurveFactoryMetaPool,
+          2,
+          1,
+          1,
+          Action.RemoveLiquidity
+        ),
+      ],
+      FRAX: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
+          PoolType.CurveFactoryMetaPool,
+          2,
+          1,
+          1,
+          Action.RemoveLiquidity
+        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+      ],
+      USDC: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
+          PoolType.CurveFactoryMetaPool,
+          2,
+          1,
+          1,
+          Action.RemoveLiquidity
+        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+      ],
+      // USDC ==(UniV3)==> WETH
+      WETH: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
+          PoolType.CurveFactoryMetaPool,
+          2,
+          1,
+          1,
+          Action.RemoveLiquidity
+        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      ],
+    },
+  },
+  "ETH/wbETH": {
+    token: "CURVE_ETH/wbETH",
+    composition: "ETH+wbETH",
+    convexCurveID: 175,
+    rewarder: "0x6cD1a734F3d49Cc5b381c2b53CF17f12bfFA2bdD",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wbETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity)],
+      wbETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wbETH_POOL"], PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity)],
+      USDC: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/wbETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+      ],
+    },
+    withdraw: {
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wbETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity)],
+      wbETH: [
+        encodePoolHintV2(ADDRESS["CURVE_ETH/wbETH_POOL"], PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity),
+      ],
+      USDC: [
+        encodePoolHintV2(ADDRESS["CURVE_ETH/wbETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -3743,126 +3854,128 @@ export const DEPLOYED_VAULTS: {
   }[];
 } = {
   LegacyACRV: [
-    { name: "steth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 0
-    { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 1
-    { name: "tricrypto2", strategy: "ConvexCurve", fees: { withdraw: 0.1e7, harvest: 1e7, platform: 10e7 } }, // 2
-    { name: "cvxcrv", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 3
-    { name: "crveth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 4
-    { name: "cvxeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 5
-    { name: "cvxfxs", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 6
-    { name: "3pool", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 7
-    { name: "ust-wormhole", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 8
+    { name: "steth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 0
+    { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 1
+    { name: "tricrypto2", strategy: "ConvexCurve", fees: { withdraw: 0.1e7, harvest: 2e7, platform: 10e7 } }, // 2
+    { name: "cvxcrv", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 3
+    { name: "crveth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 4
+    { name: "cvxeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 5
+    { name: "cvxfxs", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 6
+    { name: "3pool", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 7
+    { name: "ust-wormhole", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 8
     { name: "rocket-pool-eth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 10e7, platform: 10e7 } }, // 9
-    { name: "ren", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 10
-    { name: "pusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 11
-    { name: "susd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 12
-    { name: "sbtc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 13
-    { name: "seth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 14
-    { name: "fraxusdc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 15
+    { name: "ren", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 10
+    { name: "pusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 11
+    { name: "susd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 12
+    { name: "sbtc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 13
+    { name: "seth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 14
+    { name: "fraxusdc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 15
   ],
   aCRV: [
-    { name: "steth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 0
-    { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 1
-    { name: "tricrypto2", strategy: "ConvexCurve", fees: { withdraw: 0.1e7, harvest: 1e7, platform: 10e7 } }, // 2
-    { name: "cvxcrv", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 3
-    { name: "crveth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 4
-    { name: "cvxeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 5
-    { name: "cvxfxs", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 6
-    { name: "3pool", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 7
-    { name: "ironbank", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 8
-    { name: "mim", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 9
-    { name: "ren", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 10
-    { name: "pusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 11
-    { name: "susd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 12
-    { name: "sbtc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 13
-    { name: "seth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 14
-    { name: "fraxusdc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 15
-    { name: "fpifrax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 16
-    { name: "alusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 17
-    { name: "compound", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 18
-    { name: "dola", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 19
-    { name: "busdv2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 20
-    { name: "aleth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 21
-    { name: "3eur", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 22
-    { name: "lusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 23
-    { name: "silofrax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 24
-    { name: "tusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 25
-    { name: "susdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 26
-    { name: "busdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 27
-    { name: "alusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 28
-    { name: "tusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 29
-    { name: "lusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 30
-    { name: "peth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 31
-    { name: "cbeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 32
-    { name: "frxeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 33
-    { name: "blusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 34
-    { name: "sbtc2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 35
-    { name: "multibtc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 36
-    { name: "clevcvx", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 37
-    { name: "clevusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 38
-    { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 39
-    { name: "ETH/rETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 40
-    { name: "GEAR/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 41
-    { name: "WETH/stETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 42
-    { name: "STG/USDC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 43
-    { name: "ETH/LDO", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 44
-    { name: "ETH/MATIC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 45
-    { name: "ETH/CNC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 46
-    { name: "tBTC/crvWSBTC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 47
-    { name: "ETH/CTR", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 48
-    { name: "USDP/3CRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 49
-    { name: "CRV/cvxCRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 50
-    { name: "eCFX/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 51
-    { name: "rETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 52
-    { name: "stETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 53
-    { name: "cbETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 54
-    { name: "sETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 55
-    { name: "FRAX/USDP", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 56
+    { name: "steth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 0
+    { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 1
+    { name: "tricrypto2", strategy: "ConvexCurve", fees: { withdraw: 0.1e7, harvest: 2e7, platform: 10e7 } }, // 2
+    { name: "cvxcrv", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 3
+    { name: "crveth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 4
+    { name: "cvxeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 5
+    { name: "cvxfxs", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 6
+    { name: "3pool", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 7
+    { name: "ironbank", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 8
+    { name: "mim", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 9
+    { name: "ren", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 10
+    { name: "pusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 11
+    { name: "susd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 12
+    { name: "sbtc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 13
+    { name: "seth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 14
+    { name: "fraxusdc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 15
+    { name: "fpifrax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 16
+    { name: "alusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 17
+    { name: "compound", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 18
+    { name: "dola", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 19
+    { name: "busdv2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 20
+    { name: "aleth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 21
+    { name: "3eur", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 22
+    { name: "lusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 23
+    { name: "silofrax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 24
+    { name: "tusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 25
+    { name: "susdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 26
+    { name: "busdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 27
+    { name: "alusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 28
+    { name: "tusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 29
+    { name: "lusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 30
+    { name: "peth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 31
+    { name: "cbeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 32
+    { name: "frxeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 33
+    { name: "blusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 34
+    { name: "sbtc2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 35
+    { name: "multibtc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 36
+    { name: "clevcvx", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 37
+    { name: "clevusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 38
+    { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 39
+    { name: "ETH/rETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 40
+    { name: "GEAR/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 41
+    { name: "WETH/stETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 42
+    { name: "STG/USDC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 43
+    { name: "ETH/LDO", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 44
+    { name: "ETH/MATIC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 45
+    { name: "ETH/CNC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 46
+    { name: "tBTC/crvWSBTC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 47
+    { name: "ETH/CTR", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 48
+    { name: "USDP/3CRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 49
+    { name: "CRV/cvxCRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 50
+    { name: "eCFX/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 51
+    { name: "rETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 52
+    { name: "stETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 53
+    { name: "cbETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 54
+    { name: "sETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 55
+    { name: "FRAX/USDP", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 56
+    { name: "UZD/FRAXBP", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 57
+    { name: "ETH/wbETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 58
   ],
   aFXS: [
-    { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 0
-    { name: "cvxfxs", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 1
-    { name: "fraxusdc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 2
-    { name: "susdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 3
-    { name: "tusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 4
-    { name: "busdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 5
-    { name: "alusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 6
-    { name: "silofrax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 7
-    { name: "tusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 8
-    { name: "frxeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 9
-    { name: "clevusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 10
-    { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 11
-    { name: "FPIS/cvxFPIS", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 12
-    { name: "rETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 13
-    { name: "stETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 14
-    { name: "cbETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 15
-    { name: "sETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 16
-    { name: "FRAX/USDP", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 17
+    { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 0
+    { name: "cvxfxs", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 1
+    { name: "fraxusdc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 2
+    { name: "susdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 3
+    { name: "tusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 4
+    { name: "busdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 5
+    { name: "alusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 6
+    { name: "silofrax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 7
+    { name: "tusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 8
+    { name: "frxeth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 9
+    { name: "clevusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 10
+    { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 11
+    { name: "FPIS/cvxFPIS", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 12
+    { name: "rETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 13
+    { name: "stETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 14
+    { name: "cbETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 15
+    { name: "sETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 16
+    { name: "FRAX/USDP", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 17
   ],
   afrxETH: [
-    { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 0
-    { name: "tricrypto2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 1
-    { name: "fraxusdc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 2
-    { name: "mim", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 3
-    { name: "fpifrax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 4
-    { name: "3eur", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 5
-    { name: "lusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 6
-    { name: "tusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 7
-    { name: "busdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 8
-    { name: "alusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 9
-    { name: "tusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 10
-    { name: "lusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 11
-    { name: "blusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 12
-    { name: "sbtc2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 13
-    { name: "multibtc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 14
-    { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 15
-    { name: "GEAR/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 16
-    { name: "STG/USDC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 17
-    { name: "ETH/LDO", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 18
-    { name: "ETH/MATIC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 19
-    { name: "ETH/CNC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 20
-    { name: "tBTC/crvWSBTC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 21
-    { name: "CRV/sdCRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 22
-    { name: "USDP/3CRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 1e7, platform: 10e7 } }, // 23
+    { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 0
+    { name: "tricrypto2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 1
+    { name: "fraxusdc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 2
+    { name: "mim", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 3
+    { name: "fpifrax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 4
+    { name: "3eur", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 5
+    { name: "lusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 6
+    { name: "tusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 7
+    { name: "busdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 8
+    { name: "alusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 9
+    { name: "tusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 10
+    { name: "lusdfraxbp", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 11
+    { name: "blusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 12
+    { name: "sbtc2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 13
+    { name: "multibtc", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 14
+    { name: "ETH/CLEV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 15
+    { name: "GEAR/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 16
+    { name: "STG/USDC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 17
+    { name: "ETH/LDO", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 18
+    { name: "ETH/MATIC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 19
+    { name: "ETH/CNC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 20
+    { name: "tBTC/crvWSBTC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 21
+    { name: "CRV/sdCRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 22
+    { name: "USDP/3CRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 23
   ],
 };
