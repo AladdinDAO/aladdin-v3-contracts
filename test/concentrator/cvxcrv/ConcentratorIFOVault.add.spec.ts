@@ -290,6 +290,22 @@ const POOL_FORK_CONFIG: {
     amount: "10000",
     harvest: true,
   },
+  "UZD/FRAXBP": {
+    height: 17252690,
+    pid: 57,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xF9605D8c4c987d7Cb32D0d11FbCb8EeeB1B22D5d",
+    amount: "100",
+    harvest: true,
+  },
+  "ETH/wbETH": {
+    height: 17252690,
+    pid: 57,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xE6DA683076b7eD6ce7eC972f21Eb8F91e9137a17",
+    amount: "0.1",
+    harvest: false,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";

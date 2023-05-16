@@ -464,4 +464,11 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
     // eCFX ==(CurveV2)==> WETH
     WETH: [encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap)],
   },
+  UZD: {
+    WETH: [
+      encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+    ],
+  },
 };
