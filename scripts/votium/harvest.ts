@@ -80,7 +80,7 @@ async function main(round: number, manualStr: string) {
         const [from] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[1]) as [string];
         const [to] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[2]) as [string];
         const [value] = ethers.utils.defaultAbiCoder.decode(["uint256"], log.data) as [BigNumber];
-        if (from === cvxLocker.address && to === DEPLOYED_CONTRACTS.CLever.Treasury) treasuryCVX = value;
+        if (from === cvxLocker.address && to === DEPLOYED_CONTRACTS.CLever.PlatformFeeDistributor) treasuryCVX = value;
         if (from === cvxLocker.address && to === furnance.address) furnaceCVX = value;
       }
     }
