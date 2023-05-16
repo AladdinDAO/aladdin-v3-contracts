@@ -298,7 +298,7 @@ const POOL_FORK_CONFIG: {
     amount: "100",
     harvest: true,
   },
-  "ETH/wbETH": {
+  "ETH/wBETH": {
     height: 17252690,
     pid: 57,
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
