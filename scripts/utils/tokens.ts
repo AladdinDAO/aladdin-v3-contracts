@@ -96,5 +96,5 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   cvxFPIS: { decimals: 18, address: "0xa2847348b58ced0ca58d23c7e9106a49f1427df6" },
   eCFX: { decimals: 18, address: "0xa1f82e14bc09a1b42710df1a8a999b62f294e592" },
   UZD: { decimals: 18, address: "0xb40b6608b2743e691c9b54ddbdee7bf03cd79f1c" },
-  wbETH: { decimals: 18, address: "0xa2e3356610840701bdf5611a53974510ae27e2e1" },
+  wBETH: { decimals: 18, address: "0xa2e3356610840701bdf5611a53974510ae27e2e1" },
 };
