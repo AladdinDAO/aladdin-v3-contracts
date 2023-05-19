@@ -210,6 +210,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   function initialize(address _treasury, address _platform) external initializer {
     AccessControlUpgradeable.__AccessControl_init();
     ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
+    _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
     treasury = _treasury;
     platform = _platform;
@@ -225,48 +226,42 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
 
   /// @inheritdoc IMarket
   function mint(
-    uint256 _amount,
+    uint256 _baseIn,
     address _recipient,
-    uint256 _minFOut,
-    uint256 _minXOut
-  ) external override nonReentrant returns (uint256 _fOut, uint256 _xOut) {
+    uint256 _minFTokenMinted,
+    uint256 _minXTokenMinted
+  ) external override nonReentrant cachePrice returns (uint256 _fTokenMinted, uint256 _xTokenMinted) {
     address _baseToken = baseToken;
-    if (_amount == uint256(-1)) {
-      _amount = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
+    if (_baseIn == uint256(-1)) {
+      _baseIn = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
     }
-    require(_amount > 0, "mint zero amount");
+    require(_baseIn > 0, "mint zero amount");
 
     ITreasury _treasury = ITreasury(treasury);
-    require(_treasury.totalUnderlying() == 0, "only initialize once");
+    require(_treasury.totalBaseToken() == 0, "only initialize once");
 
-    uint256 _collateralRatio = _treasury.collateralRatio();
+    IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _baseIn);
+    (_fTokenMinted, _xTokenMinted) = _treasury.mint(_baseIn, _recipient, ITreasury.MintOption.Both);
 
-    MarketConfig memory _marketConfig = marketConfig;
-    require(_collateralRatio >= _marketConfig.stabilityRatio, "Not normal mode");
+    require(_fTokenMinted >= _minFTokenMinted, "insufficient fToken output");
+    require(_xTokenMinted >= _minXTokenMinted, "insufficient xToken output");
 
-    IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amount);
-    (_fOut, _xOut) = _treasury.mint(_amount, _recipient, ITreasury.MintOption.Both);
-    require(_fOut >= _minFOut, "insufficient fToken output");
-    require(_xOut >= _minXOut, "insufficient xToken output");
-
-    require(_treasury.collateralRatio() >= _marketConfig.stabilityRatio, "not normal mode after mint");
-
-    emit Mint(msg.sender, _recipient, _amount, _fOut, _xOut, 0);
+    emit Mint(msg.sender, _recipient, _baseIn, _fTokenMinted, _xTokenMinted, 0);
   }
 
   /// @inheritdoc IMarket
   function mintFToken(
-    uint256 _amount,
+    uint256 _baseIn,
     address _recipient,
-    uint256 _minFOut
-  ) external override nonReentrant cachePrice returns (uint256 _fOut) {
+    uint256 _minFTokenMinted
+  ) external override nonReentrant cachePrice returns (uint256 _fTokenMinted) {
     require(!mintPaused, "mint is paused");
 
     address _baseToken = baseToken;
-    if (_amount == uint256(-1)) {
-      _amount = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
+    if (_baseIn == uint256(-1)) {
+      _baseIn = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
     }
-    require(_amount > 0, "mint zero amount");
+    require(_baseIn > 0, "mint zero amount");
 
     ITreasury _treasury = ITreasury(treasury);
 
@@ -275,49 +270,49 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
       require(_collateralRatio > marketConfig.stabilityRatio, "fToken mint paused");
     }
 
-    uint256 _maxBaseInBeforeSystemStabilityMode = _treasury.tryMintFTokenTo(marketConfig.stabilityRatio);
+    (uint256 _maxBaseInBeforeSystemStabilityMode, ) = _treasury.maxMintableFToken(marketConfig.stabilityRatio);
 
-    uint256 _amountWithoutFee = _deductMintFee(_amount, fTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
+    uint256 _amountWithoutFee = _deductMintFee(_baseIn, fTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
 
     IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amountWithoutFee);
-    (_fOut, ) = _treasury.mint(_amountWithoutFee, _recipient, ITreasury.MintOption.FToken);
-    require(_fOut >= _minFOut, "insufficient fToken output");
+    (_fTokenMinted, ) = _treasury.mint(_amountWithoutFee, _recipient, ITreasury.MintOption.FToken);
+    require(_fTokenMinted >= _minFTokenMinted, "insufficient fToken output");
 
-    emit Mint(msg.sender, _recipient, _amount, _fOut, 0, _amount - _amountWithoutFee);
+    emit Mint(msg.sender, _recipient, _baseIn, _fTokenMinted, 0, _baseIn - _amountWithoutFee);
   }
 
   /// @inheritdoc IMarket
   function mintXToken(
-    uint256 _amount,
+    uint256 _baseIn,
     address _recipient,
-    uint256 _minXOut
-  ) external override nonReentrant cachePrice returns (uint256 _xOut) {
+    uint256 _minXTokenMinted
+  ) external override nonReentrant cachePrice returns (uint256 _xTokenMinted) {
     require(!mintPaused, "mint is paused");
 
     address _baseToken = baseToken;
-    if (_amount == uint256(-1)) {
-      _amount = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
+    if (_baseIn == uint256(-1)) {
+      _baseIn = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
     }
-    require(_amount > 0, "mint zero amount");
+    require(_baseIn > 0, "mint zero amount");
 
     ITreasury _treasury = ITreasury(treasury);
-    uint256 _maxBaseInBeforeSystemStabilityMode = _treasury.tryMintXTokenTo(marketConfig.stabilityRatio);
+    (uint256 _maxBaseInBeforeSystemStabilityMode, ) = _treasury.maxMintableXToken(marketConfig.stabilityRatio);
 
-    uint256 _amountWithoutFee = _deductMintFee(_amount, xTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
+    uint256 _amountWithoutFee = _deductMintFee(_baseIn, xTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
 
     IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amountWithoutFee);
-    (, _xOut) = _treasury.mint(_amountWithoutFee, _recipient, ITreasury.MintOption.XToken);
-    require(_xOut >= _minXOut, "insufficient xToken output");
+    (, _xTokenMinted) = _treasury.mint(_amountWithoutFee, _recipient, ITreasury.MintOption.XToken);
+    require(_xTokenMinted >= _minXTokenMinted, "insufficient xToken output");
 
-    emit Mint(msg.sender, _recipient, _amount, 0, _xOut, _amount - _amountWithoutFee);
+    emit Mint(msg.sender, _recipient, _baseIn, 0, _xTokenMinted, _baseIn - _amountWithoutFee);
   }
 
   /// @inheritdoc IMarket
   function addBaseToken(
-    uint256 _amount,
+    uint256 _baseIn,
     address _recipient,
-    uint256 _minXOut
-  ) external override nonReentrant cachePrice returns (uint256 _xOut) {
+    uint256 _minXTokenMinted
+  ) external override nonReentrant cachePrice returns (uint256 _xTokenMinted) {
     require(!mintPaused, "mint is paused");
 
     ITreasury _treasury = ITreasury(treasury);
@@ -329,58 +324,68 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
       "Not system stability mode"
     );
 
-    // take fee to platform
+    (uint256 _maxBaseInBeforeSystemStabilityMode, ) = _treasury.maxMintableXTokenWithIncentive(
+      _marketConfig.stabilityRatio,
+      incentiveConfig.stabilityIncentiveRatio
+    );
+
+    // bound the amount of base token
     FeeRatio memory _ratio = xTokenMintFeeRatio;
     uint256 _feeRatio = uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio);
-    if (_feeRatio > 0) {
-      uint256 _fee = (_amount * _feeRatio) / PRECISION;
-      IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, platform, _fee);
-      _amount = _amount - _fee;
+    if (_baseIn * (PRECISION - _feeRatio) > _maxBaseInBeforeSystemStabilityMode * PRECISION) {
+      _baseIn = (_maxBaseInBeforeSystemStabilityMode * PRECISION) / (PRECISION - _feeRatio);
     }
 
-    IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, address(_treasury), _amount);
-    _xOut = _treasury.addBaseToken(_amount, incentiveConfig.stabilityIncentiveRatio, _recipient);
-    require(_xOut >= _minXOut, "insufficient xToken output");
+    // take fee to platform
+    if (_feeRatio > 0) {
+      uint256 _fee = (_baseIn * _feeRatio) / PRECISION;
+      IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, platform, _fee);
+      _baseIn = _baseIn - _fee;
+    }
 
-    emit AddCollateral(msg.sender, _recipient, _amount, _xOut);
+    IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, address(_treasury), _baseIn);
+    _xTokenMinted = _treasury.addBaseToken(_baseIn, incentiveConfig.stabilityIncentiveRatio, _recipient);
+    require(_xTokenMinted >= _minXTokenMinted, "insufficient xToken output");
+
+    emit AddCollateral(msg.sender, _recipient, _baseIn, _xTokenMinted);
   }
 
   /// @inheritdoc IMarket
   function redeem(
-    uint256 _fAmt,
-    uint256 _xAmt,
+    uint256 _fTokenIn,
+    uint256 _xTokenIn,
     address _recipient,
     uint256 _minBaseOut
   ) external override nonReentrant cachePrice returns (uint256 _baseOut) {
     require(!redeemPaused, "redeem is paused");
 
-    if (_fAmt == uint256(-1)) {
-      _fAmt = IERC20Upgradeable(fToken).balanceOf(msg.sender);
+    if (_fTokenIn == uint256(-1)) {
+      _fTokenIn = IERC20Upgradeable(fToken).balanceOf(msg.sender);
     }
-    if (_xAmt == uint256(-1)) {
-      _xAmt = IERC20Upgradeable(xToken).balanceOf(msg.sender);
+    if (_xTokenIn == uint256(-1)) {
+      _xTokenIn = IERC20Upgradeable(xToken).balanceOf(msg.sender);
     }
-    require(_fAmt > 0 || _xAmt > 0, "redeem zero amount");
-    require(_fAmt == 0 || _xAmt == 0, "only redeem single side");
+    require(_fTokenIn > 0 || _xTokenIn > 0, "redeem zero amount");
+    require(_fTokenIn == 0 || _xTokenIn == 0, "only redeem single side");
 
     ITreasury _treasury = ITreasury(treasury);
     MarketConfig memory _marketConfig = marketConfig;
 
     uint256 _feeRatio;
-    if (_fAmt > 0) {
-      uint256 _maxFTokenInBeforeSystemStabilityMode = _treasury.tryRedeemFTokenTo(_marketConfig.stabilityRatio);
-      _feeRatio = _computeRedeemFeeRatio(_fAmt, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
+    if (_fTokenIn > 0) {
+      (, uint256 _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
+      _feeRatio = _computeRedeemFeeRatio(_fTokenIn, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
     } else {
       if (xTokenRedeemInSystemStabilityModePaused) {
         uint256 _collateralRatio = _treasury.collateralRatio();
         require(_collateralRatio > _marketConfig.stabilityRatio, "xToken redeem paused");
       }
 
-      uint256 _maxXTokenInBeforeSystemStabilityMode = _treasury.tryRedeemXTokenTo(_marketConfig.stabilityRatio);
-      _feeRatio = _computeRedeemFeeRatio(_xAmt, xTokenRedeemFeeRatio, _maxXTokenInBeforeSystemStabilityMode);
+      (, uint256 _maxXTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
+      _feeRatio = _computeRedeemFeeRatio(_xTokenIn, xTokenRedeemFeeRatio, _maxXTokenInBeforeSystemStabilityMode);
     }
 
-    _baseOut = _treasury.redeem(_fAmt, _xAmt, msg.sender);
+    _baseOut = _treasury.redeem(_fTokenIn, _xTokenIn, msg.sender);
     uint256 _balance = IERC20Upgradeable(baseToken).balanceOf(address(this));
     // consider possible slippage
     if (_balance < _baseOut) {
@@ -396,12 +401,12 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
 
     IERC20Upgradeable(baseToken).safeTransfer(_recipient, _baseOut);
 
-    emit Redeem(msg.sender, _recipient, _fAmt, _xAmt, _baseOut, _fee);
+    emit Redeem(msg.sender, _recipient, _fTokenIn, _xTokenIn, _baseOut, _fee);
   }
 
   /// @inheritdoc IMarket
   function liquidate(
-    uint256 _fAmt,
+    uint256 _fTokenIn,
     address _recipient,
     uint256 _minBaseOut
   ) external override nonReentrant cachePrice returns (uint256 _baseOut) {
@@ -416,18 +421,39 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
       "Not liquidation mode"
     );
 
-    _baseOut = _treasury.liquidate(_fAmt, incentiveConfig.liquidationIncentiveRatio, msg.sender, _recipient);
+    // bound the amount of fToken
+    (, uint256 _maxFTokenLiquidatable) = _treasury.maxLiquidatable(
+      _marketConfig.liquidationRatio,
+      incentiveConfig.liquidationIncentiveRatio
+    );
+    if (_fTokenIn > _maxFTokenLiquidatable) {
+      _fTokenIn = _maxFTokenLiquidatable;
+    }
+
+    _baseOut = _treasury.liquidate(_fTokenIn, incentiveConfig.liquidationIncentiveRatio, msg.sender);
+
+    // take platform fee
+    uint256 _feeRatio;
+    {
+      FeeRatio memory _ratio = fTokenRedeemFeeRatio;
+      _feeRatio = uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio);
+    }
+    uint256 _fee = (_baseOut * _feeRatio) / PRECISION;
+    if (_fee > 0) {
+      IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, platform, _fee);
+      _baseOut = _baseOut - _fee;
+    }
     require(_baseOut >= _minBaseOut, "insufficient base output");
 
-    emit UserLiquidate(msg.sender, _recipient, _fAmt, _baseOut);
+    emit UserLiquidate(msg.sender, _recipient, _fTokenIn, _baseOut);
   }
 
   /// @inheritdoc IMarket
   function selfLiquidate(
-    uint256 _baseAmt,
-    uint256 _minFToken,
+    uint256 _baseSwapAmt,
+    uint256 _minFTokenLiquidated,
     bytes calldata _data
-  ) external override nonReentrant cachePrice returns (uint256 _baseOut, uint256 _fAmt) {
+  ) external override nonReentrant cachePrice returns (uint256 _baseOut, uint256 _fTokenLiquidated) {
     require(!redeemPaused, "redeem is paused");
     require(liquidationWhitelist[msg.sender], "not liquidation whitelist");
 
@@ -440,33 +466,43 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
       "Not self liquidation mode"
     );
 
-    (_baseOut, _fAmt) = _treasury.selfLiquidate(
-      _baseAmt,
+    // bound the amount of base token
+    (uint256 _maxBaseOut, ) = _treasury.maxLiquidatable(
+      _marketConfig.selfLiquidationRatio,
+      incentiveConfig.selfLiquidationIncentiveRatio
+    );
+    if (_baseSwapAmt > _maxBaseOut) {
+      _baseSwapAmt = _maxBaseOut;
+    }
+
+    (_baseOut, _fTokenLiquidated) = _treasury.selfLiquidate(
+      _baseSwapAmt,
       incentiveConfig.selfLiquidationIncentiveRatio,
       platform,
       _data
     );
-    require(_fAmt >= _minFToken, "insufficient fToken liquidated");
+    require(_fTokenLiquidated >= _minFTokenLiquidated, "insufficient fToken liquidated");
 
-    emit SelfLiquidate(msg.sender, _baseAmt, _baseOut, _fAmt);
+    emit SelfLiquidate(msg.sender, _baseSwapAmt, _baseOut, _fTokenLiquidated);
   }
 
   /// @inheritdoc IMarket
-  function onSelfLiquidate(uint256 _baseAmt, bytes calldata _data) external override returns (uint256 _fAmt) {
+  function onSelfLiquidate(uint256 _baseSwapAmt, bytes calldata _data) external override returns (uint256 _fTokenAmt) {
     require(msg.sender == treasury, "only called by treasury");
     (address _target, bytes memory _calldata) = abi.decode(_data, (address, bytes));
+    require(_target != treasury, "invalid target contract");
 
     address _baseToken = baseToken;
     IERC20Upgradeable(_baseToken).safeApprove(_target, 0);
-    IERC20Upgradeable(_baseToken).safeApprove(_target, _baseAmt);
+    IERC20Upgradeable(_baseToken).safeApprove(_target, _baseSwapAmt);
 
     // solhint-disable-next-line avoid-low-level-calls
     (bool _success, ) = _target.call(_calldata);
     require(_success, "call failed");
 
     address _fToken = fToken;
-    _fAmt = IERC20Upgradeable(_fToken).balanceOf(address(this));
-    IERC20Upgradeable(_fToken).safeTransfer(msg.sender, _fAmt);
+    _fTokenAmt = IERC20Upgradeable(_fToken).balanceOf(address(this));
+    IERC20Upgradeable(_fToken).safeTransfer(msg.sender, _fTokenAmt);
   }
 
   /*******************************
@@ -537,7 +573,8 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     require(
       _stabilityRatio > _liquidationRatio &&
         _liquidationRatio > _selfLiquidationRatio &&
-        _selfLiquidationRatio > _recapRatio,
+        _selfLiquidationRatio > _recapRatio &&
+        _recapRatio >= PRECISION,
       "invalid market config"
     );
 

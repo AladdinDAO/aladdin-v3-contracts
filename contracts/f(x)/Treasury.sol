@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
@@ -15,6 +16,8 @@ import { ILeveragedToken } from "./interfaces/ILeveragedToken.sol";
 import { IMarket } from "./interfaces/IMarket.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
+import { StableCoinMath } from "./StableCoinMath.sol";
+
 // solhint-disable no-empty-blocks
 // solhint-disable not-rely-on-time
 
@@ -22,23 +25,28 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
   using SignedSafeMathUpgradeable for int256;
+  using StableCoinMath for StableCoinMath.SwapState;
 
   /**********
    * Events *
    **********/
 
-  /// @notice Emitted when the whitelist status for settle is changed.
+  /// @notice Emitted when the whitelist status for settle is updated.
   /// @param account The address of account to change.
   /// @param status The new whitelist status.
   event UpdateSettleWhitelist(address account, bool status);
 
-  /// @notice Emitted when the price oracle contract is changed.
+  /// @notice Emitted when the price oracle contract is updated.
   /// @param priceOracle The address of new price oracle.
   event UpdatePriceOracle(address priceOracle);
 
-  /// @notice Emitted when the strategy contract is changed.
+  /// @notice Emitted when the strategy contract is updated.
   /// @param strategy The address of new strategy.
   event UpdateStrategy(address strategy);
+
+  /// @notice Emitted when the beta for fToken is updated.
+  /// @param beta The new value of beta.
+  event UpdateBeta(uint256 beta);
 
   /*************
    * Constants *
@@ -88,7 +96,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   uint256 public override lastPermissionedPrice;
 
   /// @inheritdoc ITreasury
-  uint256 public override totalUnderlying;
+  uint256 public override totalBaseToken;
 
   /// @inheritdoc ITreasury
   address public override strategy;
@@ -148,110 +156,114 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @inheritdoc ITreasury
   function collateralRatio() external view override returns (uint256) {
-    uint256 _newPrice = _fetchTwapPrice();
+    StableCoinMath.SwapState memory _state = _loadSwapState();
 
-    address _fToken = fToken;
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
+    if (_state.baseSupply == 0) return PRECISION;
+    if (_state.fSupply == 0 || _state.fNav == 0) return PRECISION * PRECISION;
 
-    uint256 _baseSupply = totalUnderlying;
+    return _state.baseSupply.mul(_state.baseNav).mul(PRECISION).div(_state.fSupply.mul(_state.fNav));
+  }
 
-    if (_baseSupply == 0) return PRECISION;
-    if (_fSupply == 0 || _fNav == 0) return PRECISION * PRECISION;
+  /// @inheritdoc ITreasury
+  function getCurrentNav()
+    external
+    view
+    override
+    returns (
+      uint256 _baseNav,
+      uint256 _fNav,
+      uint256 _xNav
+    )
+  {
+    StableCoinMath.SwapState memory _state = _loadSwapState();
 
-    return _baseSupply.mul(_newPrice).mul(PRECISION).div(_fSupply.mul(_fNav));
+    _baseNav = _state.baseNav;
+    _fNav = _state.fNav;
+    _xNav = _state.xNav;
   }
 
   /// @inheritdoc ITreasury
   /// @dev If the current collateral ratio <= new collateral ratio, we should return 0.
-  function tryMintFTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
+  function maxMintableFToken(uint256 _newCollateralRatio)
+    external
+    view
+    override
+    returns (uint256 _maxBaseIn, uint256 _maxFTokenMintable)
+  {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
-    // n * v = n_f * v_f + n_x * v_x
-    // (n + dn) * v = (n_f + df) * v_f + n_x * v_x
-    // (n + dn) * v / ((n_f + df) * v_f) = ncr
-    // => n * v - ncr * n_f * v_f = (ncr - 1) * dn * v
-    // => dn = (n * v - ncr * n_f * v_f) / ((ncr - 1) * v)
 
-    uint256 _newPrice = _fetchTwapPrice();
-    address _fToken = fToken;
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
-
-    uint256 _baseVal = totalUnderlying.mul(_newPrice).mul(PRECISION);
-    uint256 _fVal = _newCollateralRatio.mul(_fSupply).mul(_fNav);
-
-    if (_baseVal <= _fVal) return 0;
-    else {
-      return (_baseVal - _fVal).div(_newPrice.mul(_newCollateralRatio - PRECISION));
-    }
+    StableCoinMath.SwapState memory _state = _loadSwapState();
+    (_maxBaseIn, _maxFTokenMintable) = _state.maxMintableFToken(_newCollateralRatio);
   }
 
   /// @inheritdoc ITreasury
   /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
-  function tryMintXTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
+  function maxMintableXToken(uint256 _newCollateralRatio)
+    external
+    view
+    override
+    returns (uint256 _maxBaseIn, uint256 _maxXTokenMintable)
+  {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
-    // n * v = n_f * v_f + n_x * v_x
-    // (n + dn) * v = n_f * v_f + (n_x + dx) * v_x
-    // (n + dn) * v / (n_f * v_f) = ncr
-    // => dn = ncr * n_f * v_f / v - n
 
-    uint256 _newPrice = _fetchTwapPrice();
-    address _fToken = fToken;
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
-
-    uint256 _baseSupply = totalUnderlying;
-    uint256 _dn = _newCollateralRatio.mul(_fSupply).mul(_fNav).div(_newPrice * PRECISION);
-
-    if (_dn >= _baseSupply) return _dn - _baseSupply;
-    else return 0;
+    StableCoinMath.SwapState memory _state = _loadSwapState();
+    (_maxBaseIn, _maxXTokenMintable) = _state.maxMintableXToken(_newCollateralRatio);
   }
 
   /// @inheritdoc ITreasury
   /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
-  function tryRedeemFTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
+  function maxMintableXTokenWithIncentive(uint256 _newCollateralRatio, uint256 _incentiveRatio)
+    external
+    view
+    override
+    returns (uint256 _maxBaseIn, uint256 _maxXTokenMintable)
+  {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
-    // n * v = n_f * v_f + n_x * v_x
-    // (n - dn) * v = (n_f - df) * v_f + n_x * v_x
-    // (n - dn) * v / ((n_f - df) * v_f) = ncr
-    // => df = (ncr * n_f * v_f - n * v) / ((ncr - 1) * v_f)
 
-    uint256 _newPrice = _fetchTwapPrice();
-    address _fToken = fToken;
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
+    StableCoinMath.SwapState memory _state = _loadSwapState();
+    (_maxBaseIn, _maxXTokenMintable) = _state.maxMintableXTokenWithIncentive(_newCollateralRatio, _incentiveRatio);
+  }
 
-    uint256 _baseVal = totalUnderlying.mul(_newPrice).mul(PRECISION);
-    uint256 _fVal = _newCollateralRatio.mul(_fSupply).mul(_fNav);
+  /// @inheritdoc ITreasury
+  /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
+  function maxRedeemableFToken(uint256 _newCollateralRatio)
+    external
+    view
+    override
+    returns (uint256 _maxBaseOut, uint256 _maxFTokenRedeemable)
+  {
+    require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    if (_fVal <= _baseVal) return 0;
-    else {
-      return (_fVal - _baseVal).div((_newCollateralRatio - PRECISION).mul(_fNav));
-    }
+    StableCoinMath.SwapState memory _state = _loadSwapState();
+    (_maxBaseOut, _maxFTokenRedeemable) = _state.maxRedeemableFToken(_newCollateralRatio);
   }
 
   /// @inheritdoc ITreasury
   /// @dev If the current collateral ratio <= new collateral ratio, we should return 0.
-  function tryRedeemXTokenTo(uint256 _newCollateralRatio) external view override returns (uint256) {
+  function maxRedeemableXToken(uint256 _newCollateralRatio)
+    external
+    view
+    override
+    returns (uint256 _maxBaseOut, uint256 _maxXTokenRedeemable)
+  {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
-    // n * v = n_f * v_f + n_x * v_x
-    // (n - dn) * v = n_f * v_f + (n_x - dx) * v_x
-    // (n - dn) * v / (n_f * v_f) = ncr
-    // => dx = n_x * (n * v - ncr * n_f * v_f) / (n * v - n_f * v_f)
 
-    uint256 _newPrice = _fetchTwapPrice();
-    address _fToken = fToken;
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
-    uint256 _xSupply = IERC20Upgradeable(xToken).totalSupply();
+    StableCoinMath.SwapState memory _state = _loadSwapState();
+    (_maxBaseOut, _maxXTokenRedeemable) = _state.maxRedeemableXToken(_newCollateralRatio);
+  }
 
-    uint256 _baseVal = totalUnderlying.mul(_newPrice).mul(PRECISION);
-    uint256 _fVal = _newCollateralRatio.mul(_fSupply).mul(_fNav);
+  /// @inheritdoc ITreasury
+  /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
+  function maxLiquidatable(uint256 _newCollateralRatio, uint256 _incentiveRatio)
+    external
+    view
+    override
+    returns (uint256 _maxBaseOut, uint256 _maxFTokenLiquidatable)
+  {
+    require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    if (_baseVal <= _fVal) return 0;
-    else {
-      return _xSupply.mul((_baseVal - _fVal).div(PRECISION)).div(_baseVal.div(PRECISION).sub(_fSupply.mul(_fNav)));
-    }
+    StableCoinMath.SwapState memory _state = _loadSwapState();
+    (_maxBaseOut, _maxFTokenLiquidatable) = _state.maxLiquidatable(_newCollateralRatio, _incentiveRatio);
   }
 
   /****************************
@@ -260,181 +272,101 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @inheritdoc ITreasury
   function mint(
-    uint256 _amount,
+    uint256 _baseIn,
     address _recipient,
     MintOption _option
-  ) external override onlyMarket returns (uint256 _fOut, uint256 _xOut) {
-    uint256 _baseSupply = totalUnderlying;
-
-    uint256 _newPrice = _fetchTwapPrice();
-    address _fToken = fToken;
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
-    uint256 _fSupply = IERC20Upgradeable(fToken).totalSupply();
-    uint256 _xSupply = IERC20Upgradeable(xToken).totalSupply();
+  ) external override onlyMarket returns (uint256 _fTokenOut, uint256 _xTokenOut) {
+    StableCoinMath.SwapState memory _state = _loadSwapState();
 
     if (_option == MintOption.FToken) {
-      // n * v = n_f * v_f + n_x * v_x
-      // (n + dn) * v = (n_f + df) * v_f + n_x * v_x
-      // => df = dn * v / v_f
-      _fOut = _amount.mul(_newPrice).div(_fNav);
+      _fTokenOut = _state.mintFToken(_baseIn);
     } else if (_option == MintOption.XToken) {
-      // n * v = n_f * v_f + n_x * v_x
-      // (n + dn) * v = n_f * v_f + (n_x + dx) * v_x
-      // => dx = (dn * v * n_x) / (n * v - n_f * v_f)
-      _xOut = _amount.mul(_newPrice).mul(_xSupply);
-      _xOut = _xOut.div(_baseSupply.mul(_newPrice).sub(_fSupply.mul(_fNav)));
+      _xTokenOut = _state.mintXToken(_baseIn);
     } else {
-      if (_baseSupply == 0) {
-        uint256 _totalDeltaVal = _amount.mul(_newPrice);
-        _fOut = _totalDeltaVal.mul(initialMintRatio).div(PRECISION);
-        _xOut = _totalDeltaVal.sub(_fOut);
+      if (_state.baseSupply == 0) {
+        uint256 _totalVal = _baseIn.mul(_state.baseNav);
+        _fTokenOut = _totalVal.mul(initialMintRatio).div(PRECISION).div(PRECISION);
+        _xTokenOut = _totalVal.div(PRECISION).sub(_fTokenOut);
       } else {
-        // n * v = n_f * v_f + n_x * v_x
-        // (n + dn) * v = (n_f + df) * v_f + (n_x + dx) * v_x
-        // => df = n_f * dn / n, dx = n_x * dn / n
-        _fOut = _fSupply.mul(_amount).div(_baseSupply);
-        _xOut = _xSupply.mul(_amount).div(_baseSupply);
+        (_fTokenOut, _xTokenOut) = _state.mint(_baseIn);
       }
     }
 
-    totalUnderlying = _baseSupply + _amount;
+    totalBaseToken = _state.baseSupply + _baseIn;
 
-    if (_fOut > 0) {
-      IFractionalToken(fToken).mint(_recipient, _fOut);
+    if (_fTokenOut > 0) {
+      IFractionalToken(fToken).mint(_recipient, _fTokenOut);
     }
-    if (_xOut > 0) {
-      ILeveragedToken(xToken).mint(_recipient, _xOut);
+    if (_xTokenOut > 0) {
+      ILeveragedToken(xToken).mint(_recipient, _xTokenOut);
     }
   }
 
   /// @inheritdoc ITreasury
   function redeem(
-    uint256 _fAmt,
-    uint256 _xAmt,
+    uint256 _fTokenIn,
+    uint256 _xTokenIn,
     address _owner
   ) external override onlyMarket returns (uint256 _baseOut) {
-    address _fToken = fToken;
-    address _xToken = xToken;
+    StableCoinMath.SwapState memory _state = _loadSwapState();
 
-    uint256 _newPrice = _fetchTwapPrice();
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_computeMultiple(_newPrice));
-    uint256 _xSupply = IERC20Upgradeable(_xToken).totalSupply();
-    uint256 _baseSupply = totalUnderlying;
-    uint256 _xVal = totalUnderlying.mul(_newPrice).sub(_fSupply.mul(_fNav));
+    _baseOut = _state.redeem(_fTokenIn, _xTokenIn);
 
-    if (_fAmt > 0) {
-      IFractionalToken(_fToken).burn(_owner, _fAmt);
-    }
-    if (_xAmt > 0) {
-      ILeveragedToken(xToken).burn(_owner, _xAmt);
+    if (_fTokenIn > 0) {
+      IFractionalToken(fToken).burn(_owner, _fTokenIn);
     }
 
-    // n * v = n_f * v_f + n_x * v_x
-    // (n - dn) * v = (n_f - df) * v_f + (n_x - dx) * v_x
-    // => dn = (df * v_f + dx * (n * v - n_f * v_f) / n_x) / v
-
-    if (_xSupply == 0) {
-      _baseOut = _fAmt.mul(_fNav).div(_newPrice);
-    } else {
-      _baseOut = _fAmt.mul(_fNav);
-      _baseOut = _baseOut.add(_xAmt.mul(_xVal).div(_xSupply));
-      _baseOut = _baseOut.div(_newPrice);
+    if (_xTokenIn > 0) {
+      ILeveragedToken(xToken).burn(_owner, _xTokenIn);
     }
 
-    totalUnderlying = _baseSupply - _baseOut;
+    totalBaseToken = _state.baseSupply.sub(_baseOut);
 
     _transferBaseToken(_baseOut, msg.sender);
   }
 
   /// @inheritdoc ITreasury
   function addBaseToken(
-    uint256 _amount,
+    uint256 _baseIn,
     uint256 _incentiveRatio,
     address _recipient
-  ) external override onlyMarket returns (uint256 _xOut) {
-    // 1. n * v = n_f * v_f + n_x * v_x
-    // 2. (n + dn) * v = n_f * (v_f - d_v_f) + (n_x + dx) * v_x
-    // =>
-    //  dn * v = dx * v_x - n_f * d_v_f
-    //  n_f * d_v_f = lambda * dn * v
-    // =>
-    //  dx * v_x = (1 + lambda) * dn * v
-    //  d_v_f = lambda * dn * v / n_f
+  ) external override onlyMarket returns (uint256 _xTokenOut) {
+    StableCoinMath.SwapState memory _state = _loadSwapState();
 
-    address _fToken = fToken;
-    address _xToken = xToken;
+    uint256 _fDeltaNav;
+    (_xTokenOut, _fDeltaNav) = _state.mintXToken(_baseIn, _incentiveRatio);
 
-    uint256 _newPrice = _fetchTwapPrice();
-    uint256 _baseSupply = totalUnderlying;
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
-    int256 _fMultiple = _computeMultiple(_newPrice);
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_fMultiple);
+    totalBaseToken = _state.baseSupply + _baseIn;
+    IFractionalToken(fToken).setNav(
+      _state.fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_state.fMultiple)))
+    );
 
-    uint256 _xNav;
-    {
-      uint256 _xSupply = IERC20Upgradeable(_xToken).totalSupply();
-      _xNav = _baseSupply.mul(_newPrice).sub(_fSupply.mul(_fNav)).div(_xSupply);
-    }
-
-    _xOut = _amount.mul(_newPrice);
-    _xOut = _xOut.mul(PRECISION + _incentiveRatio);
-    _xOut = _xOut.div(PRECISION);
-    _xOut = _xOut.div(_xNav);
-
-    uint256 _fDeltaNav = _incentiveRatio.mul(_amount);
-    _fDeltaNav = _fDeltaNav.mul(_newPrice);
-    _fDeltaNav = _fDeltaNav.div(_fSupply);
-    _fDeltaNav = _fDeltaNav.div(PRECISION);
-
-    totalUnderlying = _baseSupply + _amount;
-
-    IFractionalToken(_fToken).setNav(_fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_fMultiple))));
-
-    if (_xOut > 0) {
-      ILeveragedToken(_xToken).mint(_recipient, _xOut);
+    if (_xTokenOut > 0) {
+      ILeveragedToken(xToken).mint(_recipient, _xTokenOut);
     }
   }
 
   /// @inheritdoc ITreasury
   function liquidate(
-    uint256 _fAmt,
+    uint256 _fTokenIn,
     uint256 _incentiveRatio,
-    address _owner,
-    address _recipient
+    address _owner
   ) external override onlyMarket returns (uint256 _baseOut) {
-    // 1. n * v = n_f * v_f + n_x * v_x
-    // 2. (n - dn) * v = (n_f - df) * (v_f - d_v_f) + n_x * v_x
-    // =>
-    //  dn * v = n_f * d_v_f + df * (v_f - d_v_f)
-    //  dn * v = df * v_f * (1 + lambda)
-    // =>
-    //  dn = df * v_f * (1 + lambda) / v
-    //  d_v_f = lambda * (df * v_f) / (n_f - df)
+    StableCoinMath.SwapState memory _state = _loadSwapState();
+
+    uint256 _fDeltaNav;
+    (_baseOut, _fDeltaNav) = _state.liquidateWithIncentive(_fTokenIn, _incentiveRatio);
+
+    totalBaseToken = _state.baseSupply.sub(_baseOut);
 
     address _fToken = fToken;
-    uint256 _newPrice = _fetchTwapPrice();
-    uint256 _baseSupply = totalUnderlying;
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
-    int256 _fMultiple = _computeMultiple(_newPrice);
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_fMultiple);
-
-    _baseOut = _fAmt.mul(_fNav);
-    _baseOut = _baseOut.mul(PRECISION + _incentiveRatio);
-    _baseOut = _baseOut.div(PRECISION);
-    _baseOut = _baseOut.div(_newPrice);
-
-    uint256 _fDeltaNav = _incentiveRatio.mul(_fAmt);
-    _fDeltaNav = _fDeltaNav.mul(_fNav);
-    _fDeltaNav = _fDeltaNav.div(_fSupply.sub(_fAmt));
-
-    IFractionalToken(_fToken).burn(_owner, _fAmt);
-    totalUnderlying = _baseSupply.sub(_baseOut);
-
-    IFractionalToken(_fToken).setNav(_fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_fMultiple))));
+    IFractionalToken(_fToken).burn(_owner, _fTokenIn);
+    IFractionalToken(_fToken).setNav(
+      _state.fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_state.fMultiple)))
+    );
 
     if (_baseOut > 0) {
-      _transferBaseToken(_baseOut, _recipient);
+      _transferBaseToken(_baseOut, msg.sender);
     }
   }
 
@@ -445,32 +377,23 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     address _recipient,
     bytes calldata _data
   ) external override onlyMarket returns (uint256 _baseOut, uint256 _fAmt) {
-    uint256 _baseSupply = totalUnderlying;
+    // The supply are locked, so it is safe to use this memory variable.
+    StableCoinMath.SwapState memory _state = _loadSwapState();
 
-    IERC20Upgradeable(baseToken).safeTransfer(msg.sender, _baseAmt);
+    _transferBaseToken(_baseAmt, msg.sender);
     _fAmt = IMarket(msg.sender).onSelfLiquidate(_baseAmt, _data);
 
-    address _fToken = fToken;
-    uint256 _newPrice = _fetchTwapPrice();
-    uint256 _fSupply = IERC20Upgradeable(_fToken).totalSupply();
-    int256 _fMultiple = _computeMultiple(_newPrice);
-    uint256 _fNav = IFractionalToken(_fToken).getNav(_fMultiple);
-
-    _baseOut = _fAmt.mul(_fNav);
-    _baseOut = _baseOut.mul(PRECISION + _incentiveRatio);
-    _baseOut = _baseOut.div(PRECISION);
-    _baseOut = _baseOut.div(_newPrice);
-
+    uint256 _fDeltaNav;
+    (_baseOut, _fDeltaNav) = _state.liquidateWithIncentive(_fAmt, _incentiveRatio);
     require(_baseOut >= _baseAmt, "self liquidate with loss");
 
-    uint256 _fDeltaNav = _incentiveRatio.mul(_fAmt);
-    _fDeltaNav = _fDeltaNav.mul(_fNav);
-    _fDeltaNav = _fDeltaNav.div(_fSupply.sub(_fAmt));
-
+    address _fToken = fToken;
     IFractionalToken(_fToken).burn(address(this), _fAmt);
-    totalUnderlying = _baseSupply.sub(_baseOut);
+    totalBaseToken = _state.baseSupply.sub(_baseOut);
 
-    IFractionalToken(_fToken).setNav(_fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_fMultiple))));
+    IFractionalToken(_fToken).setNav(
+      _state.fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_state.fMultiple)))
+    );
 
     if (_baseOut > _baseAmt) {
       _transferBaseToken(_baseOut - _baseAmt, _recipient);
@@ -491,7 +414,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @inheritdoc ITreasury
   function protocolSettle() external override {
     require(settleWhitelist[msg.sender], "only settle whitelist");
-    if (totalUnderlying == 0) return;
+    if (totalBaseToken == 0) return;
 
     uint256 _newPrice = _fetchTwapPrice();
     int256 _fMultiple = _computeMultiple(_newPrice);
@@ -522,6 +445,8 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
     lastPermissionedPrice = _price;
 
+    IFractionalToken(fToken).setNav(PRECISION);
+
     emit ProtocolSettle(_price, PRECISION);
   }
 
@@ -529,18 +454,24 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @param _strategy The new address of strategy contract.
   function updateStrategy(address _strategy) external onlyOwner {
     strategy = _strategy;
+
+    emit UpdateStrategy(_strategy);
   }
 
   /// @notice Change the value of fToken beta.
   /// @param _beta The new value of beta.
   function updateBeta(uint256 _beta) external onlyOwner {
     beta = _beta;
+
+    emit UpdateBeta(_beta);
   }
 
   /// @notice Change address of price oracle contract.
   /// @param _priceOracle The new address of price oracle contract.
   function updatePriceOracle(address _priceOracle) external onlyOwner {
     priceOracle = _priceOracle;
+
+    emit UpdatePriceOracle(_priceOracle);
   }
 
   /// @notice Update the whitelist status for settle account.
@@ -574,6 +505,30 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     }
 
     IERC20Upgradeable(_baseToken).safeTransfer(_recipient, _amount);
+  }
+
+  /// @dev Internal function to load swap variable to memory
+  function _loadSwapState() internal view returns (StableCoinMath.SwapState memory _state) {
+    _state.baseSupply = totalBaseToken;
+    _state.baseNav = _fetchTwapPrice();
+
+    if (_state.baseSupply == 0) {
+      _state.fNav = PRECISION;
+      _state.xNav = PRECISION;
+    } else {
+      _state.fMultiple = _computeMultiple(_state.baseNav);
+      address _fToken = fToken;
+      _state.fSupply = IERC20Upgradeable(_fToken).totalSupply();
+      _state.fNav = IFractionalToken(_fToken).getNav(_state.fMultiple);
+
+      _state.xSupply = IERC20Upgradeable(xToken).totalSupply();
+      if (_state.xSupply == 0) {
+        // no xToken, treat the nav of xToken as 1.0
+        _state.xNav = PRECISION;
+      } else {
+        _state.xNav = _state.baseSupply.mul(_state.baseNav).sub(_state.fSupply.mul(_state.fNav)).div(_state.xSupply);
+      }
+    }
   }
 
   /// @dev Internal function to compute latest nav multiple based on current price.

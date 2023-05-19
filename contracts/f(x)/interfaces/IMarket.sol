@@ -26,15 +26,15 @@ interface IMarket {
   /// @notice Emitted when someone redeem base token with fToken or xToken.
   /// @param owner The address of fToken and xToken owner.
   /// @param recipient The address of receiver for base token.
-  /// @param fTokenIn The amount of fToken burned.
-  /// @param xTokenIn The amount of xToken burned.
+  /// @param fTokenBurned The amount of fToken burned.
+  /// @param xTokenBurned The amount of xToken burned.
   /// @param baseTokenOut The amount of base token redeemed.
   /// @param redeemFee The amount of redeem fee charged.
   event Redeem(
     address indexed owner,
     address indexed recipient,
-    uint256 fTokenIn,
-    uint256 xTokenIn,
+    uint256 fTokenBurned,
+    uint256 xTokenBurned,
     uint256 baseTokenOut,
     uint256 redeemFee
   );
@@ -43,113 +43,113 @@ interface IMarket {
   /// @param owner The address of base token owner.
   /// @param recipient The address of receiver for fToken or xToken.
   /// @param baseTokenIn The amount of base token deposited.
-  /// @param xTokenOut The amount of xToken minted.
-  event AddCollateral(address indexed owner, address indexed recipient, uint256 baseTokenIn, uint256 xTokenOut);
+  /// @param xTokenMinted The amount of xToken minted.
+  event AddCollateral(address indexed owner, address indexed recipient, uint256 baseTokenIn, uint256 xTokenMinted);
 
   /// @notice Emitted when someone liquidate with fToken.
   /// @param owner The address of fToken and xToken owner.
   /// @param recipient The address of receiver for base token.
-  /// @param fTokenIn The amount of fToken burned.
+  /// @param fTokenBurned The amount of fToken burned.
   /// @param baseTokenOut The amount of base token redeemed.
-  event UserLiquidate(address indexed owner, address indexed recipient, uint256 fTokenIn, uint256 baseTokenOut);
+  event UserLiquidate(address indexed owner, address indexed recipient, uint256 fTokenBurned, uint256 baseTokenOut);
 
   /// @notice Emitted when self liquidate with fToken.
   /// @param caller The address of caller.
-  /// @param baseTokenAmt The amount of base token used to swap.
+  /// @param baseSwapAmt The amount of base token used to swap.
   /// @param baseTokenOut The amount of base token redeemed.
-  /// @param fTokenAmt The amount of fToken liquidated.
-  event SelfLiquidate(address indexed caller, uint256 baseTokenAmt, uint256 baseTokenOut, uint256 fTokenAmt);
+  /// @param fTokenBurned The amount of fToken liquidated.
+  event SelfLiquidate(address indexed caller, uint256 baseSwapAmt, uint256 baseTokenOut, uint256 fTokenBurned);
 
   /****************************
    * Public Mutated Functions *
    ****************************/
 
   /// @notice Mint both fToken and xToken with some base token.
-  /// @param amount The amount of base token supplied.
+  /// @param baseIn The amount of base token supplied.
   /// @param recipient The address of receiver for fToken and xToken.
-  /// @param minFOut The minimum amount of fToken should be received.
-  /// @param minXOut The minimum amount of xToken should be received.
-  /// @return fOut The amount of fToken should be received.
-  /// @return xOut The amount of xToken should be received.
+  /// @param minFTokenMinted The minimum amount of fToken should be received.
+  /// @param minXTokenMinted The minimum amount of xToken should be received.
+  /// @return fTokenMinted The amount of fToken should be received.
+  /// @return xTokenMinted The amount of xToken should be received.
   function mint(
-    uint256 amount,
+    uint256 baseIn,
     address recipient,
-    uint256 minFOut,
-    uint256 minXOut
-  ) external returns (uint256 fOut, uint256 xOut);
+    uint256 minFTokenMinted,
+    uint256 minXTokenMinted
+  ) external returns (uint256 fTokenMinted, uint256 xTokenMinted);
 
   /// @notice Mint some fToken with some base token.
-  /// @param amount The amount of base token supplied.
+  /// @param baseIn The amount of base token supplied, use `uint256(-1)` to supply all base token.
   /// @param recipient The address of receiver for fToken.
-  /// @param minFOut The minimum amount of fToken should be received.
-  /// @return fOut The amount of fToken should be received.
+  /// @param minFTokenMinted The minimum amount of fToken should be received.
+  /// @return fTokenMinted The amount of fToken should be received.
   function mintFToken(
-    uint256 amount,
+    uint256 baseIn,
     address recipient,
-    uint256 minFOut
-  ) external returns (uint256 fOut);
+    uint256 minFTokenMinted
+  ) external returns (uint256 fTokenMinted);
 
   /// @notice Mint some xToken with some base token.
-  /// @param amount The amount of base token supplied.
+  /// @param baseIn The amount of base token supplied, use `uint256(-1)` to supply all base token.
   /// @param recipient The address of receiver for xToken.
-  /// @param minXOut The minimum amount of xToken should be received.
-  /// @return xOut The amount of xToken should be received.
+  /// @param minXTokenMinted The minimum amount of xToken should be received.
+  /// @return xTokenMinted The amount of xToken should be received.
   function mintXToken(
-    uint256 amount,
+    uint256 baseIn,
     address recipient,
-    uint256 minXOut
-  ) external returns (uint256 xOut);
+    uint256 minXTokenMinted
+  ) external returns (uint256 xTokenMinted);
 
   /// @notice Mint some xToken by add some base token as collateral.
-  /// @param amount The amount of base token supplied.
+  /// @param baseIn The amount of base token supplied, use `uint256(-1)` to supply all base token.
   /// @param recipient The address of receiver for xToken.
-  /// @param minXOut The minimum amount of xToken should be received.
-  /// @return xOut The amount of xToken should be received.
+  /// @param minXTokenMinted The minimum amount of xToken should be received.
+  /// @return xTokenMinted The amount of xToken should be received.
   function addBaseToken(
-    uint256 amount,
+    uint256 baseIn,
     address recipient,
-    uint256 minXOut
-  ) external returns (uint256 xOut);
+    uint256 minXTokenMinted
+  ) external returns (uint256 xTokenMinted);
 
   /// @notice Redeem base token with fToken and xToken.
-  /// @param fAmt the amount of fToken to redeem.
-  /// @param xAmt the amount of xToken to redeem.
+  /// @param fTokenIn the amount of fToken to redeem, use `uint256(-1)` to redeem all fToken.
+  /// @param xTokenIn the amount of xToken to redeem, use `uint256(-1)` to redeem all xToken.
   /// @param recipient The address of receiver for base token.
   /// @param minBaseOut The minimum amount of base token should be received.
   /// @return baseOut The amount of base token should be received.
   function redeem(
-    uint256 fAmt,
-    uint256 xAmt,
+    uint256 fTokenIn,
+    uint256 xTokenIn,
     address recipient,
     uint256 minBaseOut
   ) external returns (uint256 baseOut);
 
   /// @notice Permissionless liquidate some fToken to increase the collateral ratio.
-  /// @param fAmt the amount of fToken to supply.
+  /// @param fTokenIn the amount of fToken to supply, use `uint256(-1)` to liquidate all fToken.
   /// @param recipient The address of receiver for base token.
   /// @param minBaseOut The minimum amount of base token should be received.
   /// @return baseOut The amount of base token should be received.
   function liquidate(
-    uint256 fAmt,
+    uint256 fTokenIn,
     address recipient,
     uint256 minBaseOut
   ) external returns (uint256 baseOut);
 
   /// @notice Self liquidate some fToken to increase the collateral ratio.
-  /// @param baseAmt The amount of base token to swap.
-  /// @param minFToken The minimum amount of fToken should be liquidated.
+  /// @param baseSwapAmt The amount of base token to swap.
+  /// @param minFTokenLiquidated The minimum amount of fToken should be liquidated.
   /// @param data The data used to swap base token to fToken.
   /// @return baseOut The amount of base token should be received.
-  /// @return fAmt the amount of fToken liquidated.
+  /// @return fTokenLiquidated the amount of fToken liquidated.
   function selfLiquidate(
-    uint256 baseAmt,
-    uint256 minFToken,
+    uint256 baseSwapAmt,
+    uint256 minFTokenLiquidated,
     bytes calldata data
-  ) external returns (uint256 baseOut, uint256 fAmt);
+  ) external returns (uint256 baseOut, uint256 fTokenLiquidated);
 
   /// @notice Callback to swap base token to fToken
-  /// @param baseAmt The amount of base token to swap.
+  /// @param baseSwapAmt The amount of base token to swap.
   /// @param data The data passed to market contract.
-  /// @return fAmt The amount of fToken received.
-  function onSelfLiquidate(uint256 baseAmt, bytes calldata data) external returns (uint256 fAmt);
+  /// @return fTokenAmt The amount of fToken received.
+  function onSelfLiquidate(uint256 baseSwapAmt, bytes calldata data) external returns (uint256 fTokenAmt);
 }

@@ -127,7 +127,7 @@ contract ChainlinkTwapOracleV3 is ITwapOracle, Ownable {
   /// @param timestamp End timestamp of the epoch to be updated
   /// @return TWAP of the epoch calculated from Chainlink, or zero if there's no sufficient data
   function _getTwapFromChainlink(uint256 timestamp) private view returns (uint256) {
-    require(block.timestamp > timestamp, "Too soon");
+    require(block.timestamp >= timestamp, "Too soon");
     (uint80 roundID, int256 answer, uint256 updatedAt) = findLastRoundBefore(timestamp);
     if (answer == 0) {
       return 0;

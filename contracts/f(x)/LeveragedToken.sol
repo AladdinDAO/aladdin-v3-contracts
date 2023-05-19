@@ -68,7 +68,7 @@ contract LeveragedToken is ERC20Upgradeable, ILeveragedToken {
 
     uint256 _totalFToken = ERC20Upgradeable(_fToken).totalSupply();
     uint256 _navFToken = IFractionalToken(_fToken).nav();
-    uint256 _totalBaseToken = _treasury.totalUnderlying();
+    uint256 _totalBaseToken = _treasury.totalBaseToken();
     uint256 _price = _treasury.lastPermissionedPrice();
 
     return _totalBaseToken.mul(_price).sub(_totalFToken.mul(_navFToken)).div(_totalXToken);
