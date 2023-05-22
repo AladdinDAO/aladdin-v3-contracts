@@ -264,13 +264,17 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     require(_baseIn > 0, "mint zero amount");
 
     ITreasury _treasury = ITreasury(treasury);
+    (uint256 _maxBaseInBeforeSystemStabilityMode, ) = _treasury.maxMintableFToken(marketConfig.stabilityRatio);
 
     if (fTokenMintInSystemStabilityModePaused) {
       uint256 _collateralRatio = _treasury.collateralRatio();
       require(_collateralRatio > marketConfig.stabilityRatio, "fToken mint paused");
-    }
 
-    (uint256 _maxBaseInBeforeSystemStabilityMode, ) = _treasury.maxMintableFToken(marketConfig.stabilityRatio);
+      // bound maximum amount of base token to mint fToken.
+      if (_baseIn > _maxBaseInBeforeSystemStabilityMode) {
+        _baseIn = _maxBaseInBeforeSystemStabilityMode;
+      }
+    }
 
     uint256 _amountWithoutFee = _deductMintFee(_baseIn, fTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
 
@@ -376,12 +380,18 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
       (, uint256 _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
       _feeRatio = _computeRedeemFeeRatio(_fTokenIn, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
     } else {
+      (, uint256 _maxXTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
+
       if (xTokenRedeemInSystemStabilityModePaused) {
         uint256 _collateralRatio = _treasury.collateralRatio();
         require(_collateralRatio > _marketConfig.stabilityRatio, "xToken redeem paused");
+
+        // bound maximum amount of xToken to redeem.
+        if (_xTokenIn > _maxXTokenInBeforeSystemStabilityMode) {
+          _xTokenIn = _maxXTokenInBeforeSystemStabilityMode;
+        }
       }
 
-      (, uint256 _maxXTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
       _feeRatio = _computeRedeemFeeRatio(_xTokenIn, xTokenRedeemFeeRatio, _maxXTokenInBeforeSystemStabilityMode);
     }
 
@@ -394,7 +404,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
 
     uint256 _fee = (_baseOut * _feeRatio) / PRECISION;
     if (_fee > 0) {
-      IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, platform, _fee);
+      IERC20Upgradeable(baseToken).safeTransfer(platform, _fee);
       _baseOut = _baseOut - _fee;
     }
     require(_baseOut >= _minBaseOut, "insufficient base output");
@@ -440,10 +450,12 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     }
     uint256 _fee = (_baseOut * _feeRatio) / PRECISION;
     if (_fee > 0) {
-      IERC20Upgradeable(baseToken).safeTransferFrom(msg.sender, platform, _fee);
+      IERC20Upgradeable(baseToken).safeTransfer(platform, _fee);
       _baseOut = _baseOut - _fee;
     }
     require(_baseOut >= _minBaseOut, "insufficient base output");
+
+    IERC20Upgradeable(baseToken).safeTransfer(_recipient, _baseOut);
 
     emit UserLiquidate(msg.sender, _recipient, _fTokenIn, _baseOut);
   }

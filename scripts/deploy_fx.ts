@@ -2,7 +2,15 @@
 /* eslint-disable node/no-missing-import */
 import { BigNumber, constants, Contract } from "ethers";
 import { ethers } from "hardhat";
-import { ChainlinkTwapOracleV3, ETHGateway, FractionalToken, LeveragedToken, Market, Treasury } from "../typechain";
+import {
+  ChainlinkTwapOracleV3,
+  ETHGateway,
+  FractionalToken,
+  LeveragedToken,
+  Market,
+  ProxyAdmin,
+  Treasury,
+} from "../typechain";
 import { TOKENS } from "./utils";
 
 const config: {
@@ -57,7 +65,7 @@ const config: {
     LeveragedToken: "0x9176e7145d3820CC658cD2C61c17A1BBa7F2B2BA",
     FractionalToken: "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
     Treasury: "0x789E729713ddC80cf2db4e59ca064D3770f1A034",
-    Market: "0xf954200fD969443b8f853B4083B71cd073C05D5b",
+    Market: "0x719c287932B0ea6037862b4cec4A786939DEb1d8",
   },
   ChainlinkTwapOracleV3: "0x32366846354DB5C08e92b4Ab0D2a510b2a2380C8",
   FractionalToken: "0x85F560f5b00205bDee15D7998E731F60ef1d1Fc3",
@@ -82,12 +90,13 @@ async function main() {
     return;
   }
 
+  let proxyAdmin: ProxyAdmin;
   if (config.ProxyAdmin) {
-    const proxyAdmin = await ethers.getContractAt("ProxyAdmin", config.ProxyAdmin, deployer);
+    proxyAdmin = await ethers.getContractAt("ProxyAdmin", config.ProxyAdmin, deployer);
     console.log("Found ProxyAdmin at:", proxyAdmin.address);
   } else {
     const ProxyAdmin = await ethers.getContractFactory("ProxyAdmin", deployer);
-    const proxyAdmin = await ProxyAdmin.deploy(overrides);
+    proxyAdmin = await ProxyAdmin.deploy(overrides);
 
     console.log(`Deploying ProxyAdmin hash:`, proxyAdmin.deployTransaction.hash);
     await proxyAdmin.deployed();
@@ -202,6 +211,13 @@ async function main() {
 
     market = await ethers.getContractAt("Market", proxy.address, deployer);
     config.Market = market.address;
+  }
+
+  if ((await proxyAdmin.getProxyImplementation(market.address)) !== config.impls.Market) {
+    const tx = await proxyAdmin.upgrade(market.address, config.impls.Market);
+    console.log("ProxyAdmin.upgrade, Market, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
   let gateway: ETHGateway;
