@@ -380,7 +380,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
       (, uint256 _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
       _feeRatio = _computeRedeemFeeRatio(_fTokenIn, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
     } else {
-      (, uint256 _maxXTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
+      (, uint256 _maxXTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableXToken(_marketConfig.stabilityRatio);
 
       if (xTokenRedeemInSystemStabilityModePaused) {
         uint256 _collateralRatio = _treasury.collateralRatio();
