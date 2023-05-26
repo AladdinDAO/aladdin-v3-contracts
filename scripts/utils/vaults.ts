@@ -3978,4 +3978,5 @@ export const DEPLOYED_VAULTS: {
     { name: "CRV/sdCRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 22
     { name: "USDP/3CRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 23
   ],
+  asdCRV: [],
 };
