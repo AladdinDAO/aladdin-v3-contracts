@@ -58,6 +58,8 @@ contract ETHGateway {
     IWETH(weth).deposit{ value: msg.value }();
 
     _fTokenMinted = IMarket(market).mintFToken(msg.value, msg.sender, _minFTokenMinted);
+
+    _refund(msg.sender);
   }
 
   /// @notice Mint some xToken with some ETH.
@@ -67,6 +69,8 @@ contract ETHGateway {
     IWETH(weth).deposit{ value: msg.value }();
 
     _xTokenMinted = IMarket(market).mintXToken(msg.value, msg.sender, _minXTokenMinted);
+
+    _refund(msg.sender);
   }
 
   /// @notice Mint some xToken by add some ETH as collateral.
@@ -76,6 +80,8 @@ contract ETHGateway {
     IWETH(weth).deposit{ value: msg.value }();
 
     _xTokenMinted = IMarket(market).addBaseToken(msg.value, msg.sender, _minXTokenMinted);
+
+    _refund(msg.sender);
   }
 
   /// @notice Redeem ETH with fToken and xToken.
@@ -126,6 +132,16 @@ contract ETHGateway {
     }
 
     return _amount;
+  }
+
+  /// @dev Internal function to refund extra WETH.
+  /// @param _recipient The address of the ETH receiver.
+  function _refund(address _recipient) internal {
+    uint256 _balance = IERC20(weth).balanceOf(address(this));
+
+    if (_balance > 0) {
+      _transferETH(_balance, _recipient);
+    }
   }
 
   /// @dev Internal function to withdraw WETH and transfer ETH.

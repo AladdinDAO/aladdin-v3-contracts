@@ -9,9 +9,10 @@ import {
   LeveragedToken,
   Market,
   ProxyAdmin,
+  TokenSale,
   Treasury,
 } from "../typechain";
-import { TOKENS } from "./utils";
+import { DEPLOYED_CONTRACTS, TOKENS } from "./utils";
 
 const config: {
   initialMintRatio: BigNumber;
@@ -25,6 +26,7 @@ const config: {
 
   ProxyAdmin: string;
   Sale: {
+    cap: BigNumber;
     time: { WhitelistStartTime: number; PublicStartTime: number; SaleDuration: number };
     price: {
       InitialPrice: BigNumber;
@@ -53,19 +55,20 @@ const config: {
 
   ProxyAdmin: "0x588b85AA6074CcABE631D739eD42aa355012a534",
   Sale: {
-    time: { WhitelistStartTime: 0, PublicStartTime: 0, SaleDuration: 0 },
+    cap: ethers.utils.parseEther("100000"),
+    time: { WhitelistStartTime: 1685595648, PublicStartTime: 1685595648, SaleDuration: 604800 },
     price: {
-      InitialPrice: constants.Zero,
+      InitialPrice: ethers.utils.parseEther("0.01"),
       UpRatio: constants.Zero,
-      Variation: constants.Zero,
+      Variation: ethers.utils.parseEther("1"),
     },
-    address: constants.AddressZero,
+    address: "0x3eB6Da2d3f39BA184AEA23876026E0747Fb0E17f",
   },
   impls: {
     LeveragedToken: "0x9176e7145d3820CC658cD2C61c17A1BBa7F2B2BA",
     FractionalToken: "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
     Treasury: "0x789E729713ddC80cf2db4e59ca064D3770f1A034",
-    Market: "0x719c287932B0ea6037862b4cec4A786939DEb1d8",
+    Market: "0x92d0cb7E56806Bf977e7F5296EA2Fe84B475Fe83",
   },
   ChainlinkTwapOracleV3: "0x32366846354DB5C08e92b4Ab0D2a510b2a2380C8",
   FractionalToken: "0x85F560f5b00205bDee15D7998E731F60ef1d1Fc3",
@@ -122,6 +125,25 @@ async function main() {
     } else {
       console.log(`Found ${name} Impl at:`, config.impls[name]);
     }
+  }
+
+  let sale: TokenSale;
+  if (config.Sale.address !== "") {
+    sale = await ethers.getContractAt("TokenSale", config.Sale.address, deployer);
+    console.log(`Found TokenSale at:`, sale.address);
+  } else {
+    const TokenSale = await ethers.getContractFactory("TokenSale", deployer);
+    sale = await TokenSale.deploy(
+      TOKENS.WETH.address,
+      TOKENS.WETH.address,
+      DEPLOYED_CONTRACTS.AladdinZap,
+      config.Sale.cap
+    );
+    console.log(`Deploying TokenSale hash:`, sale.deployTransaction.hash);
+    await sale.deployed();
+    const receipt = await sale.deployTransaction.wait();
+    console.log(`✅ Deploy TokenSale at:`, sale.address, "gas used:", receipt.gasUsed.toString());
+    config.Sale.address = sale.address;
   }
 
   let oracle: ChainlinkTwapOracleV3;
@@ -270,12 +292,14 @@ async function main() {
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
+  /*
   if ((await treasury.priceOracle()) !== oracle.address) {
     const tx = await treasury.updatePriceOracle(oracle.address);
     console.log("Treasury.updatePriceOracle, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
+  */
 
   if ((await treasury.lastPermissionedPrice()).eq(constants.Zero)) {
     const tx = await treasury.initializePrice();
@@ -311,6 +335,28 @@ async function main() {
 
     const tx = await market.mint(ethers.utils.parseEther("0.01"), deployer.address, 0, 0);
     await tx.wait();
+  }
+
+  if (!(await sale.priceData()).initialPrice.eq(config.Sale.price.InitialPrice)) {
+    const tx = await sale.updatePrice(
+      config.Sale.price.InitialPrice,
+      config.Sale.price.UpRatio,
+      config.Sale.price.Variation
+    );
+    console.log("TokenSale.updatePrice, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if ((await sale.saleTimeData()).whitelistSaleTime.eq(constants.Zero)) {
+    const tx = await sale.updateSaleTime(
+      config.Sale.time.WhitelistStartTime,
+      config.Sale.time.PublicStartTime,
+      config.Sale.time.SaleDuration
+    );
+    console.log("TokenSale.updateSaleTime, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 }
 
