@@ -47,6 +47,10 @@ contract ETHGateway {
     IERC20(_xToken).safeApprove(_market, uint256(-1));
   }
 
+  receive() external payable {
+    require(msg.sender == weth, "only WETH");
+  }
+
   /****************************
    * Public Mutated Functions *
    ****************************/

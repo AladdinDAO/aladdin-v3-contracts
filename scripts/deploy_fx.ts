@@ -55,27 +55,27 @@ const config: {
 
   ProxyAdmin: "0x588b85AA6074CcABE631D739eD42aa355012a534",
   Sale: {
-    cap: ethers.utils.parseEther("100000"),
-    time: { WhitelistStartTime: 1685595648, PublicStartTime: 1685595648, SaleDuration: 604800 },
+    cap: ethers.utils.parseEther("20000"),
+    time: { WhitelistStartTime: 1685577600, PublicStartTime: 1685581200, SaleDuration: 86400 * 6 },
     price: {
-      InitialPrice: ethers.utils.parseEther("0.01"),
+      InitialPrice: ethers.utils.parseEther("0.005"),
       UpRatio: constants.Zero,
       Variation: ethers.utils.parseEther("1"),
     },
-    address: "0x3eB6Da2d3f39BA184AEA23876026E0747Fb0E17f",
+    address: "0x548d04f8204973c357851533E4dA4fC300A336F6",
   },
   impls: {
     LeveragedToken: "0x9176e7145d3820CC658cD2C61c17A1BBa7F2B2BA",
     FractionalToken: "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
-    Treasury: "0x789E729713ddC80cf2db4e59ca064D3770f1A034",
-    Market: "0x92d0cb7E56806Bf977e7F5296EA2Fe84B475Fe83",
+    Treasury: "0xb7fBd9c445A575cc6D77264d92706165A9924abf",
+    Market: "0xCD8216FFa7EcF5e33354840F38417DcA44Bf3339",
   },
   ChainlinkTwapOracleV3: "0x32366846354DB5C08e92b4Ab0D2a510b2a2380C8",
-  FractionalToken: "0x85F560f5b00205bDee15D7998E731F60ef1d1Fc3",
-  LeveragedToken: "0x01949D63B4d42278a4A7F1D184b78c85d8c53001",
-  Treasury: "0x12eD4197A9121E67EBe876C20aB65247c1830f2b",
-  Market: "0x81242a5A4ba8F8734fE518CBf45942F09932157c",
-  ETHGateway: "0x07eD30C1bcd4D8DC2D8d45c2215362917Cc24B60",
+  FractionalToken: "0xcAD8810BfBbdd189686062A3A399Fc3eCAbB5164",
+  LeveragedToken: "0xBB8828DDb2774a141EBE3BB449d1cc5BF6212885",
+  Treasury: "0x58EE0A16FB24ea34169e237bb10900A6a90288FB",
+  Market: "0xDd2cf944633484e4B415d540397C7DD34093ECBc",
+  ETHGateway: "0x45810aF4C3AE9Fb922EFc1E9797017e3a5b057E9",
 };
 
 const maxFeePerGas = 30e9;
@@ -219,6 +219,13 @@ async function main() {
 
     treasury = await ethers.getContractAt("Treasury", proxy.address, deployer);
     config.Treasury = treasury.address;
+  }
+
+  if ((await proxyAdmin.getProxyImplementation(treasury.address)) !== config.impls.Treasury) {
+    const tx = await proxyAdmin.upgrade(treasury.address, config.impls.Treasury);
+    console.log("ProxyAdmin.upgrade, Treasury, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
   let market: Market;
