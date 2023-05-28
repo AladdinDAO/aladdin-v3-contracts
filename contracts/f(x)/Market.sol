@@ -276,7 +276,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
       }
     }
 
-    uint256 _amountWithoutFee = _deductMintFee(_baseIn, fTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
+    uint256 _amountWithoutFee = _deductFTokenMintFee(_baseIn, fTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
 
     IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amountWithoutFee);
     (_fTokenMinted, ) = _treasury.mint(_amountWithoutFee, _recipient, ITreasury.MintOption.FToken);
@@ -302,7 +302,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     ITreasury _treasury = ITreasury(treasury);
     (uint256 _maxBaseInBeforeSystemStabilityMode, ) = _treasury.maxMintableXToken(marketConfig.stabilityRatio);
 
-    uint256 _amountWithoutFee = _deductMintFee(_baseIn, xTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
+    uint256 _amountWithoutFee = _deductXTokenMintFee(_baseIn, xTokenMintFeeRatio, _maxBaseInBeforeSystemStabilityMode);
 
     IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _amountWithoutFee);
     (, _xTokenMinted) = _treasury.mint(_amountWithoutFee, _recipient, ITreasury.MintOption.XToken);
@@ -606,7 +606,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   ) external onlyAdmin {
     require(_stabilityIncentiveRatio > 0, "incentive too small");
     require(_selfLiquidationIncentiveRatio > 0, "incentive too small");
-    require(_liquidationIncentiveRatio > _selfLiquidationIncentiveRatio, "invalid incentive config");
+    require(_liquidationIncentiveRatio >= _selfLiquidationIncentiveRatio, "invalid incentive config");
 
     incentiveConfig = IncentiveConfig(
       _stabilityIncentiveRatio,
@@ -670,26 +670,59 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
    * Internal Functions *
    **********************/
 
-  /// @dev Internal function to deduct mint fee for base token.
+  /// @dev Internal function to deduct fToken mint fee for base token.
   /// @param _baseIn The amount of base token.
   /// @param _ratio The mint fee ratio.
   /// @param _maxBaseInBeforeSystemStabilityMode The maximum amount of base token can be deposit before entering system stability mode.
   /// @return _baseInWithoutFee The amount of base token without fee.
-  function _deductMintFee(
+  function _deductFTokenMintFee(
     uint256 _baseIn,
     FeeRatio memory _ratio,
     uint256 _maxBaseInBeforeSystemStabilityMode
   ) internal returns (uint256 _baseInWithoutFee) {
-    uint256 _maxBaseIn = _maxBaseInBeforeSystemStabilityMode.mul(PRECISION).div(PRECISION - _ratio.defaultFeeRatio);
+    // [0, _maxBaseInBeforeSystemStabilityMode) => default = fee_ratio_0
+    // [_maxBaseInBeforeSystemStabilityMode, infinity) => default + extra = fee_ratio_1
+
+    uint256 _feeRatio0 = _ratio.defaultFeeRatio;
+    uint256 _feeRatio1 = uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio);
+
+    _baseInWithoutFee = _defuctMintFee(_baseIn, _feeRatio0, _feeRatio1, _maxBaseInBeforeSystemStabilityMode);
+  }
+
+  /// @dev Internal function to deduct fToken mint fee for base token.
+  /// @param _baseIn The amount of base token.
+  /// @param _ratio The mint fee ratio.
+  /// @param _maxBaseInBeforeSystemStabilityMode The maximum amount of base token can be deposit before entering system stability mode.
+  /// @return _baseInWithoutFee The amount of base token without fee.
+  function _deductXTokenMintFee(
+    uint256 _baseIn,
+    FeeRatio memory _ratio,
+    uint256 _maxBaseInBeforeSystemStabilityMode
+  ) internal returns (uint256 _baseInWithoutFee) {
+    // [0, _maxBaseInBeforeSystemStabilityMode) => default + extra = fee_ratio_0
+    // [_maxBaseInBeforeSystemStabilityMode, infinity) => default = fee_ratio_1
+
+    uint256 _feeRatio0 = uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio);
+    uint256 _feeRatio1 = _ratio.defaultFeeRatio;
+
+    _baseInWithoutFee = _defuctMintFee(_baseIn, _feeRatio0, _feeRatio1, _maxBaseInBeforeSystemStabilityMode);
+  }
+
+  function _defuctMintFee(
+    uint256 _baseIn,
+    uint256 _feeRatio0,
+    uint256 _feeRatio1,
+    uint256 _maxBaseInBeforeSystemStabilityMode
+  ) internal returns (uint256 _baseInWithoutFee) {
+    uint256 _maxBaseIn = _maxBaseInBeforeSystemStabilityMode.mul(PRECISION).div(PRECISION - _feeRatio0);
+
     // compute fee
     uint256 _fee;
     if (_baseIn <= _maxBaseIn) {
-      _fee = _baseIn.mul(_ratio.defaultFeeRatio).div(PRECISION);
+      _fee = _baseIn.mul(_feeRatio0).div(PRECISION);
     } else {
-      _fee = _maxBaseIn.mul(_ratio.defaultFeeRatio).div(PRECISION);
-      _fee = _fee.add(
-        (_baseIn - _maxBaseIn).mul(uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio)).div(PRECISION)
-      );
+      _fee = _maxBaseIn.mul(_feeRatio0).div(PRECISION);
+      _fee = _fee.add((_baseIn - _maxBaseIn).mul(_feeRatio1).div(PRECISION));
     }
 
     _baseInWithoutFee = _baseIn.sub(_fee);

@@ -264,10 +264,10 @@ library StableCoinMath {
     pure
     returns (uint256 _fTokenOut, uint256 _xTokenOut)
   {
-    // n * v = nf * vf + nx * vx
-    // (n + dn) * v = (nf + df) * vf + (nx + dx) * vx
-    // ((nf + df) * vf) / ((n + dn) * v) = (nf * vf) / (n * v)
-    // ((nx + dx) * vx) / ((n + dn) * v) = (nx * vx) / (n * v)
+    //  n * v = nf * vf + nx * vx
+    //  (n + dn) * v = (nf + df) * vf + (nx + dx) * vx
+    //  ((nf + df) * vf) / ((n + dn) * v) = (nf * vf) / (n * v)
+    //  ((nx + dx) * vx) / ((n + dn) * v) = (nx * vx) / (n * v)
     // =>
     //   df = nf * dn / n
     //   dx = nx * dn / n
@@ -311,8 +311,8 @@ library StableCoinMath {
     uint256 _baseIn,
     uint256 _incentiveRatio
   ) internal pure returns (uint256 _xTokenOut, uint256 _fDeltaNav) {
-    // 1. n * v = nf * vf + nx * vx
-    // 2. (n + dn) * v = nf * (vf - dvf) + (nx + dx) * vx
+    //  n * v = nf * vf + nx * vx
+    //  (n + dn) * v = nf * (vf - dvf) + (nx + dx) * vx
     // =>
     //  dn * v = dx * vx - nf * dvf
     //  nf * dvf = lambda * dn * v
@@ -320,15 +320,13 @@ library StableCoinMath {
     //  dx * vx = (1 + lambda) * dn * v
     //  dvf = lambda * dn * v / nf
 
-    _xTokenOut = _baseIn.mul(state.baseNav);
-    _xTokenOut = _xTokenOut.mul(PRECISION + _incentiveRatio);
-    _xTokenOut = _xTokenOut.div(PRECISION);
+    uint256 _deltaVal = _baseIn.mul(state.baseNav);
+
+    _xTokenOut = _deltaVal.mul(PRECISION + _incentiveRatio).div(PRECISION);
     _xTokenOut = _xTokenOut.div(state.xNav);
 
-    _fDeltaNav = _incentiveRatio.mul(_baseIn);
-    _fDeltaNav = _fDeltaNav.mul(state.baseNav);
+    _fDeltaNav = _deltaVal.mul(_incentiveRatio).div(PRECISION);
     _fDeltaNav = _fDeltaNav.div(state.fSupply);
-    _fDeltaNav = _fDeltaNav.div(PRECISION);
   }
 
   /// @notice Redeem base token with fToken and xToken.
@@ -343,9 +341,10 @@ library StableCoinMath {
   ) internal pure returns (uint256 _baseOut) {
     uint256 _xVal = state.baseSupply.mul(state.baseNav).sub(state.fSupply.mul(state.fNav));
 
-    // n * v = nf * vf + nx * vx
-    // (n - dn) * v = (nf - df) * vf + (nx - dx) * vx
-    // => dn = (df * vf + dx * (n * v - nf * vf) / nx) / v
+    //  n * v = nf * vf + nx * vx
+    //  (n - dn) * v = (nf - df) * vf + (nx - dx) * vx
+    // =>
+    //  dn = (df * vf + dx * (n * v - nf * vf) / nx) / v
 
     if (state.xSupply == 0) {
       _baseOut = _fTokenIn.mul(state.fNav).div(state.baseNav);
@@ -367,8 +366,8 @@ library StableCoinMath {
     uint256 _fTokenIn,
     uint256 _incentiveRatio
   ) internal pure returns (uint256 _baseOut, uint256 _fDeltaNav) {
-    // 1. n * v = nf * vf + nx * vx
-    // 2. (n - dn) * v = (nf - df) * (vf - dvf) + nx * vx
+    //  n * v = nf * vf + nx * vx
+    //  (n - dn) * v = (nf - df) * (vf - dvf) + nx * vx
     // =>
     //  dn * v = nf * dvf + df * (vf - dvf)
     //  dn * v = df * vf * (1 + lambda)
@@ -376,13 +375,12 @@ library StableCoinMath {
     //  dn = df * vf * (1 + lambda) / v
     //  dvf = lambda * (df * vf) / (nf - df)
 
-    _baseOut = _fTokenIn.mul(state.fNav);
-    _baseOut = _baseOut.mul(PRECISION + _incentiveRatio);
-    _baseOut = _baseOut.div(PRECISION);
+    uint256 _fDeltaVal = _fTokenIn.mul(state.fNav);
+
+    _baseOut = _fDeltaVal.mul(PRECISION + _incentiveRatio).div(PRECISION);
     _baseOut = _baseOut.div(state.baseNav);
 
-    _fDeltaNav = _incentiveRatio.mul(_fTokenIn);
-    _fDeltaNav = _fDeltaNav.mul(state.fNav);
+    _fDeltaNav = _fDeltaVal.mul(_incentiveRatio).div(PRECISION);
     _fDeltaNav = _fDeltaNav.div(state.fSupply.sub(_fTokenIn));
   }
 }
