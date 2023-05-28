@@ -63,7 +63,7 @@ contract ETHGateway {
 
     _fTokenMinted = IMarket(market).mintFToken(msg.value, msg.sender, _minFTokenMinted);
 
-    _refund(msg.sender);
+    _refund(weth, msg.sender);
   }
 
   /// @notice Mint some xToken with some ETH.
@@ -74,7 +74,7 @@ contract ETHGateway {
 
     _xTokenMinted = IMarket(market).mintXToken(msg.value, msg.sender, _minXTokenMinted);
 
-    _refund(msg.sender);
+    _refund(weth, msg.sender);
   }
 
   /// @notice Mint some xToken by add some ETH as collateral.
@@ -85,7 +85,7 @@ contract ETHGateway {
 
     _xTokenMinted = IMarket(market).addBaseToken(msg.value, msg.sender, _minXTokenMinted);
 
-    _refund(msg.sender);
+    _refund(weth, msg.sender);
   }
 
   /// @notice Redeem ETH with fToken and xToken.
@@ -103,6 +103,8 @@ contract ETHGateway {
 
     _baseOut = IMarket(market).redeem(_fTokenIn, _xTokenIn, address(this), _minBaseOut);
 
+    _refund(fToken, msg.sender);
+    _refund(xToken, msg.sender);
     _transferETH(_baseOut, msg.sender);
   }
 
@@ -115,6 +117,7 @@ contract ETHGateway {
 
     _baseOut = IMarket(market).liquidate(_fTokenIn, address(this), _minBaseOut);
 
+    _refund(fToken, msg.sender);
     _transferETH(_baseOut, msg.sender);
   }
 
@@ -138,13 +141,18 @@ contract ETHGateway {
     return _amount;
   }
 
-  /// @dev Internal function to refund extra WETH.
-  /// @param _recipient The address of the ETH receiver.
-  function _refund(address _recipient) internal {
-    uint256 _balance = IERC20(weth).balanceOf(address(this));
+  /// @dev Internal function to refund extra token.
+  /// @param _token The address of token to refund.
+  /// @param _recipient The address of the token receiver.
+  function _refund(address _token, address _recipient) internal {
+    uint256 _balance = IERC20(_token).balanceOf(address(this));
 
     if (_balance > 0) {
-      _transferETH(_balance, _recipient);
+      if (_token == weth) {
+        _transferETH(_balance, _recipient);
+      } else {
+        IERC20(_token).safeTransfer(_recipient, _balance);
+      }
     }
   }
 
