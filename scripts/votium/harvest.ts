@@ -1,4 +1,5 @@
 /* eslint-disable node/no-missing-import */
+import axios from "axios";
 import { Command } from "commander";
 import { BigNumber, constants } from "ethers";
 import * as hre from "hardhat";
@@ -12,7 +13,43 @@ program.version("1.0.0");
 
 const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
 
+interface ICoinGeckoResponse {
+  [symbol: string]: {
+    [currency: string]: number;
+  };
+}
+
+const symbol2ids: { [symbol: string]: string } = {
+  ALCX: "alchemix",
+  CLEV: "clever",
+  CNC: "conic",
+  CRV: "curve-dao-token",
+  CVX: "convex-finance",
+  FXS: "frax-share",
+  GNO: "gnosis",
+  INV: "inverse-finance",
+  MET: "metronome",
+  OGV: "origin-dollar-governance",
+  SPELL: "spell-token",
+  STG: "stargate-finance",
+  TUSD: "true-usd",
+  USDC: "usd-coin",
+  eCFX: "conflux",
+  wBETH: "wrapped-beacon-eth",
+};
+
 async function main(round: number, manualStr: string) {
+  // fetch price
+  const response = await axios.get<ICoinGeckoResponse>(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${Object.values(symbol2ids).join("%2C")}&vs_currencies=usd`
+  );
+  const prices: { [symbol: string]: number } = {};
+  for (const [symbol, id] of Object.entries(symbol2ids)) {
+    if (response.data[id]) {
+      prices[symbol] = response.data[id].usd;
+    }
+  }
+
   const [deployer] = await ethers.getSigners();
   const furnance = await ethers.getContractAt("Furnace", DEPLOYED_CONTRACTS.CLever.CLeverCVX.FurnaceForCVX, deployer);
   const cvxLocker = await ethers.getContractAt(
@@ -38,12 +75,18 @@ async function main(round: number, manualStr: string) {
         data: cvxLocker.interface.encodeFunctionData("harvestVotium", [[item], [routeToETH, routeToCVX], 0]),
       })
     );
-    console.log(
-      `  token[${symbol}], address[${item.token}], amount[${ethers.utils.formatUnits(
-        item.amount,
-        TOKENS[symbol].decimals
-      )}] CVX[${ethers.utils.formatEther(estimate.toString())}]`
-    );
+    const tokenAmountStr = ethers.utils.formatUnits(item.amount, TOKENS[symbol].decimals);
+    const cvxAmountStr = ethers.utils.formatEther(estimate.toString());
+    if (prices[symbol]) {
+      console.log(
+        `  token[${symbol}]`,
+        `address[${item.token}]`,
+        `amount[${tokenAmountStr}]/USD[${(parseFloat(tokenAmountStr) * prices[symbol]).toFixed(2)}]`,
+        `CVX[${cvxAmountStr}]/USD[${(parseFloat(cvxAmountStr) * prices.CVX).toFixed(2)}]`
+      );
+    } else {
+      console.log(`  token[${symbol}]`, `address[${item.token}]`, `amount[${tokenAmountStr}]`, `CVX[${cvxAmountStr}]`);
+    }
     routes.push(routeToETH);
   }
   routes.push(ZAP_ROUTES.WETH.CVX);
