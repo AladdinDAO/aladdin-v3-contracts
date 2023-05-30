@@ -1,4 +1,5 @@
 import * as dotenv from "dotenv";
+import { ProxyAgent, setGlobalDispatcher } from "undici";
 
 import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
@@ -9,6 +10,11 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 
 dotenv.config();
+
+if (process.env.PROXY) {
+  const proxyAgent = new ProxyAgent("socks5://127.0.0.1:7890");
+  setGlobalDispatcher(proxyAgent);
+}
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html

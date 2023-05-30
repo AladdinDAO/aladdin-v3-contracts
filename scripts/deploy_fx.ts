@@ -28,6 +28,7 @@ const config: {
   Sale: {
     cap: BigNumber;
     time: { WhitelistStartTime: number; PublicStartTime: number; SaleDuration: number };
+    tokens: string[];
     price: {
       InitialPrice: BigNumber;
       UpRatio: BigNumber;
@@ -56,19 +57,20 @@ const config: {
   ProxyAdmin: "0x588b85AA6074CcABE631D739eD42aa355012a534",
   Sale: {
     cap: ethers.utils.parseEther("20000"),
-    time: { WhitelistStartTime: 1685577600, PublicStartTime: 1685581200, SaleDuration: 86400 * 6 },
+    time: { WhitelistStartTime: 1685620800, PublicStartTime: 1685624400, SaleDuration: 86400 * 6 },
+    tokens: [constants.AddressZero],
     price: {
       InitialPrice: ethers.utils.parseEther("0.005"),
       UpRatio: constants.Zero,
       Variation: ethers.utils.parseEther("1"),
     },
-    address: "0x548d04f8204973c357851533E4dA4fC300A336F6",
+    address: "0x3eB6Da2d3f39BA184AEA23876026E0747Fb0E17f",
   },
   impls: {
     LeveragedToken: "0x9176e7145d3820CC658cD2C61c17A1BBa7F2B2BA",
     FractionalToken: "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
     Treasury: "0xb7fBd9c445A575cc6D77264d92706165A9924abf",
-    Market: "0xCD8216FFa7EcF5e33354840F38417DcA44Bf3339",
+    Market: "0xe73b475aCCf3a4Ad3d718069c338BbeCF95c5C70",
   },
   ChainlinkTwapOracleV3: "0x32366846354DB5C08e92b4Ab0D2a510b2a2380C8",
   FractionalToken: "0xcAD8810BfBbdd189686062A3A399Fc3eCAbB5164",
@@ -137,7 +139,8 @@ async function main() {
       TOKENS.WETH.address,
       TOKENS.WETH.address,
       DEPLOYED_CONTRACTS.AladdinZap,
-      config.Sale.cap
+      config.Sale.cap,
+      overrides
     );
     console.log(`Deploying TokenSale hash:`, sale.deployTransaction.hash);
     await sale.deployed();
@@ -355,7 +358,12 @@ async function main() {
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
-  if ((await sale.saleTimeData()).whitelistSaleTime.eq(constants.Zero)) {
+  const saleTime = await sale.saleTimeData();
+  if (
+    !saleTime.whitelistSaleTime.eq(config.Sale.time.WhitelistStartTime) ||
+    !saleTime.publicSaleTime.eq(config.Sale.time.PublicStartTime) ||
+    !saleTime.saleDuration.eq(config.Sale.time.SaleDuration)
+  ) {
     const tx = await sale.updateSaleTime(
       config.Sale.time.WhitelistStartTime,
       config.Sale.time.PublicStartTime,

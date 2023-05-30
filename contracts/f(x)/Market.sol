@@ -378,7 +378,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _feeRatio;
     if (_fTokenIn > 0) {
       (, uint256 _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
-      _feeRatio = _computeRedeemFeeRatio(_fTokenIn, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
+      _feeRatio = _computeFTokenRedeemFeeRatio(_fTokenIn, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
     } else {
       (, uint256 _maxXTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableXToken(_marketConfig.stabilityRatio);
 
@@ -392,7 +392,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
         }
       }
 
-      _feeRatio = _computeRedeemFeeRatio(_xTokenIn, xTokenRedeemFeeRatio, _maxXTokenInBeforeSystemStabilityMode);
+      _feeRatio = _computeXTokenRedeemFeeRatio(_xTokenIn, xTokenRedeemFeeRatio, _maxXTokenInBeforeSystemStabilityMode);
     }
 
     _baseOut = _treasury.redeem(_fTokenIn, _xTokenIn, msg.sender);
@@ -733,22 +733,60 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   }
 
   /// @dev Internal function to deduct mint fee for base token.
-  /// @param _amountIn The amount of fToken or xToken.
+  /// @param _amountIn The amount of fToken.
   /// @param _ratio The redeem fee ratio.
-  /// @param _maxInBeforeSystemStabilityMode The maximum amount of fToken/xToken can be redeemed before entering system stability mode.
+  /// @param _maxInBeforeSystemStabilityMode The maximum amount of fToken can be redeemed before leaving system stability mode.
   /// @return _feeRatio The computed fee ratio for base token redeemed.
-  function _computeRedeemFeeRatio(
+  function _computeFTokenRedeemFeeRatio(
     uint256 _amountIn,
     FeeRatio memory _ratio,
     uint256 _maxInBeforeSystemStabilityMode
   ) internal pure returns (uint256 _feeRatio) {
+    // [0, _maxBaseInBeforeSystemStabilityMode) => default + extra = fee_ratio_0
+    // [_maxBaseInBeforeSystemStabilityMode, infinity) => default = fee_ratio_1
+
+    uint256 _feeRatio0 = uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio);
+    uint256 _feeRatio1 = _ratio.defaultFeeRatio;
+
+    _feeRatio = _computeRedeemFeeRatio(_amountIn, _feeRatio0, _feeRatio1, _maxInBeforeSystemStabilityMode);
+  }
+
+  /// @dev Internal function to deduct mint fee for base token.
+  /// @param _amountIn The amount of xToken.
+  /// @param _ratio The redeem fee ratio.
+  /// @param _maxInBeforeSystemStabilityMode The maximum amount of xToken can be redeemed before entering system stability mode.
+  /// @return _feeRatio The computed fee ratio for base token redeemed.
+  function _computeXTokenRedeemFeeRatio(
+    uint256 _amountIn,
+    FeeRatio memory _ratio,
+    uint256 _maxInBeforeSystemStabilityMode
+  ) internal pure returns (uint256 _feeRatio) {
+    // [0, _maxBaseInBeforeSystemStabilityMode) => default = fee_ratio_0
+    // [_maxBaseInBeforeSystemStabilityMode, infinity) => default + extra = fee_ratio_1
+
+    uint256 _feeRatio0 = _ratio.defaultFeeRatio;
+    uint256 _feeRatio1 = uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio);
+
+    _feeRatio = _computeRedeemFeeRatio(_amountIn, _feeRatio0, _feeRatio1, _maxInBeforeSystemStabilityMode);
+  }
+
+  /// @dev Internal function to deduct mint fee for base token.
+  /// @param _amountIn The amount of fToken or xToken.
+  /// @param _feeRatio0 The default fee ratio.
+  /// @param _feeRatio1 The second fee ratio.
+  /// @param _maxInBeforeSystemStabilityMode The maximum amount of fToken/xToken can be redeemed before entering/leaving system stability mode.
+  /// @return _feeRatio The computed fee ratio for base token redeemed.
+  function _computeRedeemFeeRatio(
+    uint256 _amountIn,
+    uint256 _feeRatio0,
+    uint256 _feeRatio1,
+    uint256 _maxInBeforeSystemStabilityMode
+  ) internal pure returns (uint256 _feeRatio) {
     if (_amountIn <= _maxInBeforeSystemStabilityMode) {
-      return _ratio.defaultFeeRatio;
+      return _feeRatio0;
     }
-    uint256 _fee = _maxInBeforeSystemStabilityMode.mul(_ratio.defaultFeeRatio);
-    _fee = _fee.add(
-      (_amountIn - _maxInBeforeSystemStabilityMode).mul(uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio))
-    );
+    uint256 _fee = _maxInBeforeSystemStabilityMode.mul(_feeRatio0);
+    _fee = _fee.add((_amountIn - _maxInBeforeSystemStabilityMode).mul(_feeRatio1));
     return _fee.div(_amountIn);
   }
 }
