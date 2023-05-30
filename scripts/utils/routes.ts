@@ -475,4 +475,12 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
     // wBETH ==(Curve)==> WETH
     WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 1, 0, Action.Swap)],
   },
+  MET: {
+    // MET ==(UniV3)==> WETH
+    WETH: [encodePoolHintV2(ADDRESS.MET_WETH_UNIV3_10000, PoolType.UniswapV3, 2, 0, 1, Action.Swap)],
+  },
+  OGV: {
+    // OGV ==(CurveV2)==> WETH
+    WETH: [encodePoolHintV2(ADDRESS["CURVE_OGV/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap)],
+  },
 };
