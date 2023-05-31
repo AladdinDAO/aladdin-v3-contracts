@@ -28,20 +28,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x0A760466E1B4621579a82a39CB56Dda2F4E70f03",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.LDO],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity)],
-      stETH: [encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add)],
+      stETH: [encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Add)],
       // USDC ==(UniV3)==> WETH
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity)],
-      stETH: [encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove)],
+      stETH: [encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -53,62 +53,26 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xB900EF131301B307dB5eFcbed9DBb50A3e209B2e",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.FXS],
     deposit: {
-      FRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_FRAX3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_FRAX3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_FRAX3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          3,
-          3,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS.CURVE_FRAX3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
     },
     withdraw: {
-      FRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       DAI: [
         encodePoolHintV2(
           ADDRESS.CURVE_FRAX3CRV_POOL,
@@ -116,7 +80,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -126,7 +90,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -136,7 +100,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -147,7 +111,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -160,28 +124,22 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x9D5C5E364D81DaB193b72db9E9BE9D8ee669B652",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      USDT: [encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.AddLiquidity)],
-      WBTC: [encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 1, Action.AddLiquidity)],
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.AddLiquidity)],
+      USDT: [encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.Add)],
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 1, Action.Add)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.Add)],
       // USDC ==(UniV3)==> USDT
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_USDT_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      USDT: [
-        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.RemoveLiquidity),
-      ],
-      WBTC: [
-        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 1, Action.RemoveLiquidity),
-      ],
-      WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.RemoveLiquidity),
-      ],
+      USDT: [encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.Remove)],
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 1, Action.Remove)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.Remove)],
       // USDT ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_USDT_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -193,37 +151,31 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x03923210e76F42C2F94FBb0c6853052487db521F0",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      CRV: [encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity)],
-      cvxCRV: [
-        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      CRV: [encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      cvxCRV: [encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add)],
       // WETH ==(CurveV2)==> CRV
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
       ],
       // USDC ==(UniV3)==> WETH ==(CurveV2)==> CRV
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      CRV: [
-        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      cvxCRV: [
-        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      CRV: [encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove)],
+      cvxCRV: [encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove)],
       // CRV ==(CurveV2)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
       ],
       // CRV ==(CurveV2)==> WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
@@ -236,20 +188,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x085A2054c51eA5c91dbF7f90d65e728c0f2A270f",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      CRV: [encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      CRV: [encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       // USDC ==(UniV3)==> WETH
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity)],
-      CRV: [encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      CRV: [encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -261,20 +213,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xb1Fb0BA0676A1fFA83882c7F4805408bA232C1fA",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      CVX: [encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      CVX: [encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       // USDC ==(UniV3)==> WETH
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity)],
-      CVX: [encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      CVX: [encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -286,35 +238,35 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xf27AFAD0142393e4b3E5510aBc5fe3743Ad669Cb",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.FXS],
     deposit: {
-      FXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      cvxFXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      FXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      cvxFXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       // WETH ==(UniV3)==> USDC ==(UniV3)==> FRAX ==(UniV2)==> FXS
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
       // USDC ==(UniV3)==> FRAX ==(UniV2)==> FXS
       USDC: [
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      FXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity)],
-      cvxFXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity)],
+      FXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      cvxFXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       // FXS ==(UniV2)==> FRAX ==(UniV3)==> USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
       // FXS ==(UniV2)==> FRAX ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -327,22 +279,22 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x689440f2Ff927E1f24c72F1087E1FAF471eCe1c8",
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
-      DAI: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.AddLiquidity)],
-      USDC: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.AddLiquidity)],
-      USDT: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.AddLiquidity)],
+      DAI: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.Add)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Add)],
+      USDT: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.Add)],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      DAI: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity)],
-      USDC: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity)],
-      USDT: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 2, 2, 2, Action.RemoveLiquidity)],
+      DAI: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove)],
+      USDT: [encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 2, 2, 2, Action.Remove)],
       // USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
@@ -355,11 +307,9 @@ export const AVAILABLE_VAULTS: {
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
       UST_WORMHOLE: [
-        encodePoolHintV2(ADDRESS.CURVE_UST_WORMHOLE_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_UST_WORMHOLE_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add),
       ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_UST_WORMHOLE_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_UST_WORMHOLE_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
         encodePoolHintV2(
           ADDRESS.CURVE_UST_WORMHOLE_POOL,
@@ -367,7 +317,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       USDC: [
@@ -377,7 +327,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       USDT: [
@@ -387,7 +337,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       // WETH ==(UniV3)==> USDC
@@ -399,7 +349,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       // UST_TERRA ==(UniV3)==> USDC
@@ -411,30 +361,16 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
     },
     withdraw: {
       UST_WORMHOLE: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_UST_WORMHOLE_POOL,
-          PoolType.CurveFactoryMetaPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_UST_WORMHOLE_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove),
       ],
       TRICRV: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_UST_WORMHOLE_POOL,
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_UST_WORMHOLE_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
       ],
       DAI: [
         encodePoolHintV2(
@@ -443,7 +379,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -453,7 +389,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -463,7 +399,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
     },
@@ -475,42 +411,34 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x5c463069b99AfC9333F4dC2203a9f0c6C7658cCc",
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
-      rETH: [
-        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      wstETH: [
-        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      rETH: [encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      wstETH: [encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add)],
       // stETH ==(LidoWrap)==> wstETH
       stETH: [
-        encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
       ],
       // WETH ==(LidoStake)==> stETH ==(LidoWrap)==> wstETH
       WETH: [
-        encodePoolHintV2(ADDRESS.stETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.stETH, PoolType.LidoStake, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
       ],
       // USDC ==(UniV3)==> WETH ==(LidoStake)==> stETH ==(LidoWrap)==> wstETH
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.stETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.stETH, PoolType.LidoStake, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      rETH: [
-        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      wstETH: [
-        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      rETH: [encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove)],
+      wstETH: [encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove)],
       // wstETH ==(LidoUnwrap)==> stETH
       stETH: [
-        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.RemoveLiquidity),
-        encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_ROCKETETH_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.wstETH, PoolType.LidoWrap, 2, 0, 0, Action.Remove),
       ],
     },
   },
@@ -521,31 +449,31 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x8E299C62EeD737a5d5a53539dF37b5356a27b07D",
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
-      renBTC: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity)],
-      WBTC: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity)],
+      renBTC: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add)],
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add)],
       // WETH ==(UniV3)==> WBTC
       WETH: [
         encodePoolHintV2(ADDRESS.WBTC_WETH_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
       ],
       // USDC ==(Curve)==> USDT ==(Curve)==> WBTC
       USDC: [
         encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 2, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      renBTC: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity)],
-      WBTC: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity)],
+      renBTC: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove)],
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove)],
       // WBTC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.WBTC_WETH_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
       // WBTC ==(Curve)==> USDT ==(Curve)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 1, Action.Swap),
       ],
@@ -558,62 +486,26 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x83a3CE160915675F5bC7cC3CfDA5f4CeBC7B7a5a",
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
-      PUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      PUSD: [encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_PUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_PUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_PUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          3,
-          3,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS.CURVE_PUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
     },
     withdraw: {
-      PUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      PUSD: [encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_PUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       DAI: [
         encodePoolHintV2(
           ADDRESS.CURVE_PUSD3CRV_POOL,
@@ -621,7 +513,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -631,7 +523,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -641,7 +533,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -652,7 +544,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -665,32 +557,24 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x22eE18aca7F3Ee920D01F25dA85840D12d98E8Ca",
     rewards: [ADDRESS.CVX, ADDRESS.CRV, ADDRESS.SNX],
     deposit: {
-      DAI: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 0, 0, Action.AddLiquidity)],
-      USDC: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 1, Action.AddLiquidity)],
-      USDT: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 2, 2, Action.AddLiquidity)],
-      sUSD: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 3, 3, Action.AddLiquidity)],
+      DAI: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 0, 0, Action.Add)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 1, Action.Add)],
+      USDT: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 2, 2, Action.Add)],
+      sUSD: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 3, 3, Action.Add)],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 0, Action.Add),
       ],
     },
     withdraw: {
-      DAI: [
-        encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 0, 0, Action.RemoveLiquidity),
-      ],
-      USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 1, Action.RemoveLiquidity),
-      ],
-      USDT: [
-        encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 2, 2, Action.RemoveLiquidity),
-      ],
-      sUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 3, 3, Action.RemoveLiquidity),
-      ],
+      DAI: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 0, 0, Action.Remove)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 1, Action.Remove)],
+      USDT: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 2, 2, Action.Remove)],
+      sUSD: [encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 3, 3, Action.Remove)],
       // USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sUSD_DEPOSIT, PoolType.CurveYPoolUnderlying, 4, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
@@ -702,33 +586,33 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xd727A5A6D1C7b31Ff9Db4Db4d24045B7dF0CFF93",
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
-      renBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.AddLiquidity)],
-      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.AddLiquidity)],
-      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.AddLiquidity)],
+      renBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.Add)],
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Add)],
+      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.Add)],
       // WETH ==(CurveV2)==> WBTC
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Add),
       ],
       // USDC ==(UniV3)==> WETH ==(CurveV2)==> WBTC
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      renBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.RemoveLiquidity)],
-      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.RemoveLiquidity)],
-      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.RemoveLiquidity)],
+      renBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.Remove)],
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Remove)],
+      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.Remove)],
       // WBTC ==(CurveV2)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
       ],
       // WBTC ==(CurveV2)==> WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
@@ -741,20 +625,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x192469CadE297D6B21F418cFA8c366b63FFC9f9b",
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
-      sETH: [encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity)],
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity)],
+      sETH: [encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Add)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add)],
       // USDC ==(UniV3)==> WETH
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      sETH: [encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity)],
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity)],
+      sETH: [encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Remove)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -767,20 +651,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x7e880867363A7e321f5d260Cade2B0Bb2F717B02",
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
-      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity)],
-      USDC: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity)],
+      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add)],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 0, Action.Add),
       ],
     },
     withdraw: {
-      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity)],
-      USDC: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity)],
+      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove)],
       // USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
@@ -792,60 +676,26 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xFd5AbF66b003881b88567EB9Ed9c651F14Dc4771",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.SPELL],
     deposit: {
-      MIM: [encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity)],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      MIM: [encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_MIM3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_MIM3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_MIM3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          3,
-          3,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS.CURVE_MIM3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
     },
     withdraw: {
-      MIM: [
-        encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      MIM: [encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_MIM3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       DAI: [
         encodePoolHintV2(
           ADDRESS.CURVE_MIM3CRV_POOL,
@@ -853,7 +703,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -863,7 +713,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -873,7 +723,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -884,7 +734,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -897,38 +747,28 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x3E03fFF82F77073cc590b656D42FceB12E4910A8",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      cyDAI: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 0, 0, Action.AddLiquidity)],
-      cyUSDC: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 1, 1, Action.AddLiquidity)],
-      cyUSDT: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 2, 2, Action.AddLiquidity)],
-      DAI: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 0, 0, Action.AddLiquidity)],
-      USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 1, 1, Action.AddLiquidity),
-      ],
-      USDT: [
-        encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 2, 2, Action.AddLiquidity),
-      ],
+      cyDAI: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 0, 0, Action.Add)],
+      cyUSDC: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 1, 1, Action.Add)],
+      cyUSDT: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 2, 2, Action.Add)],
+      DAI: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 0, 0, Action.Add)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 1, 1, Action.Add)],
+      USDT: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 2, 2, Action.Add)],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 1, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 1, 0, Action.Add),
       ],
     },
     withdraw: {
-      cyDAI: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 0, 0, Action.RemoveLiquidity)],
-      cyUSDC: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 1, 1, Action.RemoveLiquidity)],
-      cyUSDT: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 2, 2, Action.RemoveLiquidity)],
-      DAI: [
-        encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 0, 0, Action.RemoveLiquidity),
-      ],
-      USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 1, 1, Action.RemoveLiquidity),
-      ],
-      USDT: [
-        encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 2, 2, Action.RemoveLiquidity),
-      ],
+      cyDAI: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 0, 0, Action.Remove)],
+      cyUSDC: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 1, 1, Action.Remove)],
+      cyUSDT: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPool, 3, 2, 2, Action.Remove)],
+      DAI: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 0, 0, Action.Remove)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 1, 1, Action.Remove)],
+      USDT: [encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 2, 2, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_IRONBANK_POOL, PoolType.CurveAPoolUnderlying, 3, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
@@ -941,32 +781,32 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x1A8D59cCbbC81ecD556B86969680faD2F238F18f",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      FPI: [encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      FPI: [encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       // WETH ==(UniV3)==> USDC ==(UniV3)==> FRAX
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
       // USDC ==(UniV3)==> FRAX
       USDC: [
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity)],
-      FPI: [encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity)],
+      FRAX: [encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      FPI: [encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       // FRAX ==(UniV3)==> USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
       // FRAX ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_FPIFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
@@ -978,62 +818,26 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x02E2151D4F351881017ABdF2DD2b51150841d5B3",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.ALCX],
     deposit: {
-      alUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      alUSD: [encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_alUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_alUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_alUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          3,
-          3,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS.CURVE_alUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
     },
     withdraw: {
-      alUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      alUSD: [encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_alUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       DAI: [
         encodePoolHintV2(
           ADDRESS.CURVE_alUSD3CRV_POOL,
@@ -1041,7 +845,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -1051,7 +855,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -1061,7 +865,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -1072,7 +876,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1085,49 +889,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xf34DFF761145FF0B05e917811d488B441F33a968",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      DAI: [
-        encodePoolHintV2(ADDRESS.CURVE_COMPOUND_DEPOSIT, PoolType.CurveYPoolUnderlying, 2, 0, 0, Action.AddLiquidity),
-      ],
-      USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_COMPOUND_DEPOSIT, PoolType.CurveYPoolUnderlying, 2, 1, 1, Action.AddLiquidity),
-      ],
+      DAI: [encodePoolHintV2(ADDRESS.CURVE_COMPOUND_DEPOSIT, PoolType.CurveYPoolUnderlying, 2, 0, 0, Action.Add)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_COMPOUND_DEPOSIT, PoolType.CurveYPoolUnderlying, 2, 1, 1, Action.Add)],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_COMPOUND_DEPOSIT, PoolType.CurveYPoolUnderlying, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_COMPOUND_DEPOSIT, PoolType.CurveYPoolUnderlying, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_COMPOUND_DEPOSIT,
-          PoolType.CurveYPoolUnderlying,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
-      ],
-      USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_COMPOUND_DEPOSIT,
-          PoolType.CurveYPoolUnderlying,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-      ],
+      DAI: [encodePoolHintV2(ADDRESS.CURVE_COMPOUND_DEPOSIT, PoolType.CurveYPoolUnderlying, 2, 0, 0, Action.Remove)],
+      USDC: [encodePoolHintV2(ADDRESS.CURVE_COMPOUND_DEPOSIT, PoolType.CurveYPoolUnderlying, 2, 1, 1, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       WETH: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_COMPOUND_DEPOSIT,
-          PoolType.CurveYPoolUnderlying,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_COMPOUND_DEPOSIT, PoolType.CurveYPoolUnderlying, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
@@ -1139,62 +914,26 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x835f69e58087E5B6bffEf182fe2bf959Fe253c3c",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      DOLA: [
-        encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      DOLA: [encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_DOLA3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_DOLA3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_DOLA3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          3,
-          3,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS.CURVE_DOLA3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
     },
     withdraw: {
-      DOLA: [
-        encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      DOLA: [encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_DOLA3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       DAI: [
         encodePoolHintV2(
           ADDRESS.CURVE_DOLA3CRV_POOL,
@@ -1202,7 +941,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -1212,7 +951,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -1222,7 +961,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -1233,7 +972,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1246,62 +985,26 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xbD223812d360C9587921292D0644D18aDb6a2ad0",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      BUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      BUSD: [encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_BUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_BUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_BUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          3,
-          3,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS.CURVE_BUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
     },
     withdraw: {
-      BUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      BUSD: [encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_BUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       DAI: [
         encodePoolHintV2(
           ADDRESS.CURVE_BUSD3CRV_POOL,
@@ -1309,7 +1012,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -1319,7 +1022,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -1329,7 +1032,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -1340,7 +1043,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1353,20 +1056,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x48Bc302d8295FeA1f8c3e7F57D4dDC9981FEE410",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity)],
-      alETH: [encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add)],
+      alETH: [encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Add)],
       // USDC ==(UniV3)==> WETH
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity)],
-      alETH: [encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove)],
+      alETH: [encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_alETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -1378,39 +1081,33 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x4a9b7eDD67f58654a2c33B587f98c5709AC7d482",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.ANGLE],
     deposit: {
-      agEUR: [encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.AddLiquidity)],
-      EURT: [encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 1, 1, Action.AddLiquidity)],
-      EURS: [encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 2, 2, Action.AddLiquidity)],
+      agEUR: [encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.Add)],
+      EURT: [encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 1, 1, Action.Add)],
+      EURS: [encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 2, 2, Action.Add)],
       // USDC ==(UniV3)==> agEUR
       USDC: [
         encodePoolHintV2(ADDRESS.agEUR_USDC_UNIV3_100, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC ==(UniV3)==> agEUR
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.agEUR_USDC_UNIV3_100, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      agEUR: [
-        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.RemoveLiquidity),
-      ],
-      EURT: [
-        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 1, 1, Action.RemoveLiquidity),
-      ],
-      EURS: [
-        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 2, 2, Action.RemoveLiquidity),
-      ],
+      agEUR: [encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.Remove)],
+      EURT: [encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 1, 1, Action.Remove)],
+      EURS: [encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 2, 2, Action.Remove)],
       // agEUR ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.agEUR_USDC_UNIV3_100, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
       // agEUR ==(UniV3)==> USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_3EUR_POOL, PoolType.CurveFactoryPlainPool, 3, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.agEUR_USDC_UNIV3_100, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1423,62 +1120,26 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x2ad92A7aE036a038ff02B96c88de868ddf3f8190",
     rewards: [ADDRESS.CRV, ADDRESS.CVX], // ignore for now ADDRESS.LQTY
     deposit: {
-      LUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      LUSD: [encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_LUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_LUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_LUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          3,
-          3,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
       ],
       // USDC ==(UniV3)==> WETH
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS.CURVE_LUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
     },
     withdraw: {
-      LUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      LUSD: [encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       DAI: [
         encodePoolHintV2(
           ADDRESS.CURVE_LUSD3CRV_POOL,
@@ -1486,7 +1147,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -1496,7 +1157,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -1506,7 +1167,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -1517,7 +1178,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1530,31 +1191,31 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xE259d085f55825624bBA8571eD20984c125Ba720",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      SILO: [encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      FRAX: [encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      SILO: [encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      FRAX: [encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       // USDC ==(UniV3)==> FRAX
       USDC: [
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC ==(UniV3)==> FRAX
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      SILO: [encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity)],
-      FRAX: [encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity)],
+      SILO: [encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      FRAX: [encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       // FRAX ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
       // FRAX  ==(UniV3)==> USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_SILOFRAX_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.FRAX_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1567,62 +1228,26 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x308b48F037AAa75406426dACFACA864ebd88eDbA",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      TUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      TUSD: [encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_TUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_TUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_TUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          3,
-          3,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS.CURVE_TUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ],
     },
     withdraw: {
-      TUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      TUSD: [encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      TRICRV: [encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       DAI: [
         encodePoolHintV2(
           ADDRESS.CURVE_TUSD3CRV_POOL,
@@ -1630,7 +1255,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -1640,7 +1265,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -1650,7 +1275,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -1661,7 +1286,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1674,12 +1299,8 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x3fABBDfe05487De1720a9420fE2e16d2c3e79A9D",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      sUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_sUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_sUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      sUSD: [encodePoolHintV2(ADDRESS.CURVE_sUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      crvFRAX: [encodePoolHintV2(ADDRESS.CURVE_sUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_sUSDFRAXBP_POOL,
@@ -1687,7 +1308,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       USDC: [
@@ -1697,7 +1318,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       // WETH ==(UniV3)==> USDC
@@ -1709,17 +1330,13 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
     },
     withdraw: {
-      sUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_sUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_sUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      sUSD: [encodePoolHintV2(ADDRESS.CURVE_sUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      crvFRAX: [encodePoolHintV2(ADDRESS.CURVE_sUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_sUSDFRAXBP_POOL,
@@ -1727,7 +1344,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -1737,7 +1354,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -1748,7 +1365,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1761,12 +1378,8 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x9e6Daf019767D5cEAdE416ce77E8d187b5B254F3",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      BUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_BUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_BUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      BUSD: [encodePoolHintV2(ADDRESS.CURVE_BUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      crvFRAX: [encodePoolHintV2(ADDRESS.CURVE_BUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_BUSDFRAXBP_POOL,
@@ -1774,7 +1387,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       USDC: [
@@ -1784,7 +1397,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       // WETH ==(UniV3)==> USDC
@@ -1796,17 +1409,13 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
     },
     withdraw: {
-      BUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_BUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_BUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      BUSD: [encodePoolHintV2(ADDRESS.CURVE_BUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      crvFRAX: [encodePoolHintV2(ADDRESS.CURVE_BUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_BUSDFRAXBP_POOL,
@@ -1814,7 +1423,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -1824,7 +1433,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -1835,7 +1444,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1848,12 +1457,8 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x26598e3E511ADFadefD70ab2C3475Ff741741104",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      alUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_alUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_alUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      alUSD: [encodePoolHintV2(ADDRESS.CURVE_alUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      crvFRAX: [encodePoolHintV2(ADDRESS.CURVE_alUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_alUSDFRAXBP_POOL,
@@ -1861,7 +1466,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       USDC: [
@@ -1871,7 +1476,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       // WETH ==(UniV3)==> USDC
@@ -1883,30 +1488,14 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
     },
     withdraw: {
-      alUSD: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_alUSDFRAXBP_POOL,
-          PoolType.CurveFactoryMetaPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
-      ],
+      alUSD: [encodePoolHintV2(ADDRESS.CURVE_alUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
       crvFRAX: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_alUSDFRAXBP_POOL,
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_alUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
       ],
       FRAX: [
         encodePoolHintV2(
@@ -1915,7 +1504,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -1925,7 +1514,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -1936,7 +1525,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -1949,12 +1538,8 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x4a744870fD705971c8c00aC510eAc2206C93d5bb",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      TUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_TUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_TUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      TUSD: [encodePoolHintV2(ADDRESS.CURVE_TUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      crvFRAX: [encodePoolHintV2(ADDRESS.CURVE_TUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_TUSDFRAXBP_POOL,
@@ -1962,7 +1547,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       USDC: [
@@ -1972,7 +1557,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       // WETH ==(UniV3)==> USDC
@@ -1984,17 +1569,13 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
     },
     withdraw: {
-      TUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_TUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_TUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      TUSD: [encodePoolHintV2(ADDRESS.CURVE_TUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      crvFRAX: [encodePoolHintV2(ADDRESS.CURVE_TUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_TUSDFRAXBP_POOL,
@@ -2002,7 +1583,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -2012,7 +1593,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -2023,7 +1604,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -2036,12 +1617,8 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x053e1dad223A206e6BCa24C77786bb69a10e427d",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      LUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      LUSD: [encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      crvFRAX: [encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_LUSDFRAXBP_POOL,
@@ -2049,7 +1626,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       USDC: [
@@ -2059,7 +1636,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       // WETH ==(UniV3)==> USDC
@@ -2071,17 +1648,13 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
     },
     withdraw: {
-      LUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      LUSD: [encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
+      crvFRAX: [encodePoolHintV2(ADDRESS.CURVE_LUSDFRAXBP_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove)],
       FRAX: [
         encodePoolHintV2(
           ADDRESS.CURVE_LUSDFRAXBP_POOL,
@@ -2089,7 +1662,7 @@ export const AVAILABLE_VAULTS: {
           3,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -2099,7 +1672,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -2110,7 +1683,7 @@ export const AVAILABLE_VAULTS: {
           3,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -2123,20 +1696,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xb235205E1096E0Ad221Fb7621a2E2cbaB875bE75",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.JPEG],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity)],
-      pETH: [encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add)],
+      pETH: [encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Add)],
       // USDC ==(UniV3)==> WETH
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity)],
-      pETH: [encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove)],
+      pETH: [encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_pETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -2148,20 +1721,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x5d02EcD9B83f1187e92aD5be3d1bd2915CA03699",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      cbETH: [encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      cbETH: [encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       // USDC ==(UniV3)==> WETH
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity)],
-      cbETH: [encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      cbETH: [encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_cbETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -2174,20 +1747,20 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xbD5445402B0a287cbC77cb67B2a52e2FC635dce4",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity)],
-      frxETH: [encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add)],
+      frxETH: [encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Add)],
       // USDC ==(UniV3)==> WETH
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity)],
-      frxETH: [encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove)],
+      frxETH: [encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Remove)],
       // WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -2199,181 +1772,95 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xe5ba5E48114ecF21dF6d0Ba958372ce878592705",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.LUSD],
     deposit: {
-      bLUSD: [
-        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
-      ],
+      bLUSD: [encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
       "LUSD3CRV-f": [
-        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
       LUSD: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
       TRICRV: [
-        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_LUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
-        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_LUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
-        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS.CURVE_LUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          3,
-          3,
-          Action.AddLiquidity
-        ),
-        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
       // USDC ==(UniV3)==> WETH
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS.CURVE_LUSD3CRV_POOL,
-          PoolType.CurveFactoryUSDMetaPoolUnderlying,
-          4,
-          2,
-          2,
-          Action.AddLiquidity
-        ),
-        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
       bLUSD: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"],
-          PoolType.CurveCryptoPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
       ],
       "LUSD3CRV-f": [
-        encodePoolHintV2(
-          ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"],
-          PoolType.CurveCryptoPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
       ],
       LUSD: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"],
-          PoolType.CurveCryptoPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove),
       ],
       TRICRV: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"],
-          PoolType.CurveCryptoPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_LUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
       ],
       DAI: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"],
-          PoolType.CurveCryptoPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(
           ADDRESS.CURVE_LUSD3CRV_POOL,
           PoolType.CurveFactoryUSDMetaPoolUnderlying,
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"],
-          PoolType.CurveCryptoPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(
           ADDRESS.CURVE_LUSD3CRV_POOL,
           PoolType.CurveFactoryUSDMetaPoolUnderlying,
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"],
-          PoolType.CurveCryptoPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(
           ADDRESS.CURVE_LUSD3CRV_POOL,
           PoolType.CurveFactoryUSDMetaPoolUnderlying,
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"],
-          PoolType.CurveCryptoPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_bLUSDLUSD3CRV-f_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(
           ADDRESS.CURVE_LUSD3CRV_POOL,
           PoolType.CurveFactoryUSDMetaPoolUnderlying,
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -2386,31 +1873,31 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x2a7b6a16Cf7Be51968b69768c3feCaA7E27524A5",
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
-      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity)],
-      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity)],
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add)],
+      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add)],
       // WETH ==(CurveV2)==> WBTC
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
       ],
       // USDC ==(UniV3)==> WETH ==(CurveV2)==> WBTC
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity)],
-      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity)],
+      WBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove)],
+      sBTC: [encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove)],
       // WBTC ==(CurveV2)==> WETH
       WETH: [
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
       ],
       // WBTC ==(CurveV2)==> WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
@@ -2424,75 +1911,33 @@ export const AVAILABLE_VAULTS: {
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
       multiBTC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add),
       ],
       crvWSBTC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // WBTC ==(Curve)==> crvWSBTC
       WBTC: [
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // sBTC ==(Curve)==> crvWSBTC
       sBTC: [
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // WETH ==(CurveV2)==> WBTC ==(Curve)==> crvWSBTC
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // USDC ==(UniV3)==> WETH ==(CurveV2)==> WBTC ==(Curve)==> crvWSBTC
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_multiBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
@@ -2503,7 +1948,7 @@ export const AVAILABLE_VAULTS: {
           2,
           0,
           0,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       crvWSBTC: [
@@ -2513,7 +1958,7 @@ export const AVAILABLE_VAULTS: {
           2,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // crvWSBTC ==(Curve)==> WBTC
@@ -2524,9 +1969,9 @@ export const AVAILABLE_VAULTS: {
           2,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
       ],
       // crvWSBTC ==(Curve)==> sBTC
       sBTC: [
@@ -2536,9 +1981,9 @@ export const AVAILABLE_VAULTS: {
           2,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
       ],
       // crvWSBTC ==(Curve)==> WBTC ==(CurveV2)==> WETH
       WETH: [
@@ -2548,9 +1993,9 @@ export const AVAILABLE_VAULTS: {
           2,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
       ],
       // crvWSBTC ==(Curve)==> WBTC ==(CurveV2)==> WETH ==(UniV3)==> USDC
@@ -2561,9 +2006,9 @@ export const AVAILABLE_VAULTS: {
           2,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
@@ -2576,47 +2021,17 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x706f34D0aB8f4f9838F15b0D155C8Ef42229294B",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      CVX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CVX/clevCVX_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
-      ],
+      CVX: [encodePoolHintV2(ADDRESS["CURVE_CVX/clevCVX_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
       clevCVX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CVX/clevCVX_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CVX/clevCVX_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
       CVX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CVX/clevCVX_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CVX/clevCVX_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
       ],
       clevCVX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CVX/clevCVX_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CVX/clevCVX_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
       ],
     },
   },
@@ -2628,115 +2043,45 @@ export const AVAILABLE_VAULTS: {
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
       clevUSD: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add),
       ],
       crvFRAX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       FRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
       clevUSD: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove),
       ],
       crvFRAX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
       ],
       FRAX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
       ],
       // USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_clevUSD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_clevUSD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
@@ -2748,22 +2093,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x6be96D00B50375AF852D63DB7d55656B306f398e",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      CLEV: [encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      CLEV: [encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      CLEV: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      CLEV: [encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CLEV_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -2775,22 +2116,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x65C8aa24db76e870DEDfC35701eff84de405D1ba",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      rETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      rETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      rETH: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      rETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/rETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -2802,22 +2139,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x502Cc0d946e79CeA4DaafCf21F374C6bce763067",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.GEAR],
     deposit: {
-      GEAR: [encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      GEAR: [encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      GEAR: [
-        encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      GEAR: [encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_GEAR/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -2829,68 +2162,22 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xA61b57C452dadAF252D2f101f5Ba20aA86152992",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_WETH/stETH_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
-      ],
-      stETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_WETH/stETH_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
-      ],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_WETH/stETH_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      stETH: [encodePoolHintV2(ADDRESS["CURVE_WETH/stETH_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS["CURVE_WETH/stETH_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_WETH/stETH_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
       WETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_WETH/stETH_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_WETH/stETH_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
       ],
       stETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_WETH/stETH_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_WETH/stETH_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_WETH/stETH_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_WETH/stETH_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -2902,22 +2189,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x17E3Bc273cFcB972167059E55104DBCC8f8431bE",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      STG: [encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      USDC: [encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      STG: [encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      USDC: [encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      STG: [
-        encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      STG: [encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      USDC: [encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_STG/USDC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
@@ -2929,20 +2212,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x8CA990E954611E5E3d2cc51C013fCC372c8c1D38",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.LDO],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      LDO: [encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      LDO: [encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      LDO: [encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      LDO: [encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/LDO_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -2954,24 +2235,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x77C43369E50D68B7B3288EEFa7D7ab1F0F6D66b3",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      MATIC: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      MATIC: [encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      MATIC: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      MATIC: [encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/MATIC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -2983,20 +2258,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x1A3c8B2F89B1C2593fa46C30ADA0b4E3D0133fF8",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.CNC],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      CNC: [encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      CNC: [encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      CNC: [encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      CNC: [encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -3008,147 +2281,61 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xcD491E40849a0E3c2fF84093bbbaAa25C1eF8dE6",
     rewards: [ADDRESS.CVX, ADDRESS.CRV],
     deposit: {
-      tBTC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
-      ],
+      tBTC: [encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
       crvWSBTC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // WBTC ==(Curve)==> crvWSBTC
       WBTC: [
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // sBTC ==(Curve)==> crvWSBTC
       sBTC: [
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // WETH ==(CurveV2)==> WBTC ==(Curve)==> crvWSBTC
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // USDC ==(UniV3)==> WETH ==(CurveV2)==> WBTC ==(Curve)==> crvWSBTC
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
       tBTC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove),
       ],
       crvWSBTC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
       ],
       // crvWSBTC ==(Curve)==> WBTC
       WBTC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
       ],
       // crvWSBTC ==(Curve)==> sBTC
       sBTC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
       ],
       // crvWSBTC ==(Curve)==> WBTC ==(CurveV2)==> WETH
       WETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
       ],
       // crvWSBTC ==(Curve)==> WBTC ==(CurveV2)==> WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_tBTC/crvWSBTC_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_tBTC/crvWSBTC_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_sBTC2_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 2, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
@@ -3161,20 +2348,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xE1d8E3625c5C54b9dcbb52c2c8E4264c3A01450c",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      CTR: [encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      CTR: [encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      CTR: [encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      CTR: [encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/CTR_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -3186,63 +2371,29 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xA7FC7e90c45C2657A9069CA99011894a76eaB82D",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      CRV: [
-        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      sdCRV: [
-        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      CRV: [encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      sdCRV: [encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add)],
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
       ],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      CRV: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/sdCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
-      ],
+      CRV: [encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove)],
       sdCRV: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/sdCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
       ],
       WETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/sdCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/sdCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
@@ -3255,12 +2406,8 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x500E169c15961DE8798Edb52e0f88a8662d30EC5",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      USDP: [
-        encodePoolHintV2(ADDRESS["CURVE_USDP/3CRV_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      TRICRV: [
-        encodePoolHintV2(ADDRESS["CURVE_USDP/3CRV_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      USDP: [encodePoolHintV2(ADDRESS["CURVE_USDP/3CRV_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      TRICRV: [encodePoolHintV2(ADDRESS["CURVE_USDP/3CRV_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       DAI: [
         encodePoolHintV2(
           ADDRESS["CURVE_USDP/3CRV_POOL"],
@@ -3268,7 +2415,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       USDC: [
@@ -3278,7 +2425,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       USDT: [
@@ -3288,7 +2435,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
       // WETH ==(UniV3)==> USDC
@@ -3300,30 +2447,14 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.AddLiquidity
+          Action.Add
         ),
       ],
     },
     withdraw: {
-      USDP: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_USDP/3CRV_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
-      ],
+      USDP: [encodePoolHintV2(ADDRESS["CURVE_USDP/3CRV_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
       TRICRV: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_USDP/3CRV_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_USDP/3CRV_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
       ],
       DAI: [
         encodePoolHintV2(
@@ -3332,7 +2463,7 @@ export const AVAILABLE_VAULTS: {
           4,
           1,
           1,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDC: [
@@ -3342,7 +2473,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       USDT: [
@@ -3352,7 +2483,7 @@ export const AVAILABLE_VAULTS: {
           4,
           3,
           3,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
       ],
       // USDC ==(UniV3)==> WETH
@@ -3363,7 +2494,7 @@ export const AVAILABLE_VAULTS: {
           4,
           2,
           2,
-          Action.RemoveLiquidity
+          Action.Remove
         ),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
@@ -3376,119 +2507,43 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x39D78f11b246ea4A1f68573c3A5B64E83Cff2cAe",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      CRV: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
-      ],
-      cvxCRV: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
-      ],
+      CRV: [encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      cvxCRV: [encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add)],
       "cvxcrv-f": [
-        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.RemoveLiquidity),
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
       ],
       // WETH ==(CurveV2)==> CRV
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
       ],
       // USDC ==(UniV3)==> WETH ==(CurveV2)==> CRV
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      CRV: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
-      ],
+      CRV: [encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove)],
       cvxCRV: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
       ],
       // CRV ==(CurveV2)==> WETH
       WETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
       ],
       // CRV ==(CurveV2)==> WETH ==(UniV3)==> USDC
       USDC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
       "cvxcrv-f": [
-        encodePoolHintV2(
-          ADDRESS["CURVE_CRV/cvxCRV_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
       ],
     },
   },
@@ -3499,47 +2554,17 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x929c7Ac52ef6D2bB03b9d6c2131BE94E2a1cf5e3",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      FPIS: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_FPIS/cvxFPIS_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.AddLiquidity
-        ),
-      ],
+      FPIS: [encodePoolHintV2(ADDRESS["CURVE_FPIS/cvxFPIS_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
       cvxFPIS: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_FPIS/cvxFPIS_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.AddLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_FPIS/cvxFPIS_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
       FPIS: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_FPIS/cvxFPIS_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_FPIS/cvxFPIS_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
       ],
       cvxFPIS: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_FPIS/cvxFPIS_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_FPIS/cvxFPIS_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
       ],
     },
   },
@@ -3550,22 +2575,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x4F9a0f637B33B0D35135cda5782797617afef00e",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      eCFX: [encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity)],
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity)],
+      eCFX: [encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      eCFX: [
-        encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      eCFX: [encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_eCFX/ETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
       ],
     },
@@ -3577,26 +2598,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x84754821b5484A69DB3164eF4eDC5A5657318039",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      rETH: [
-        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      frxETH: [
-        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      rETH: [encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      frxETH: [encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      rETH: [
-        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      frxETH: [
-        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      rETH: [encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      frxETH: [encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_rETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
       ],
     },
@@ -3608,26 +2621,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0xC3D0B8170E105d6476fE407934492930CAc3BDAC",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      stETH: [
-        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      frxETH: [
-        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      stETH: [encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.Add)],
+      frxETH: [encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Add)],
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      stETH: [
-        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      frxETH: [
-        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      stETH: [encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.Remove)],
+      frxETH: [encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Remove)],
       WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_stETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
       ],
     },
@@ -3639,26 +2644,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x0080d49D4a4921dF0F3853c5e4533462A51fbb29",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      cbETH: [
-        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      frxETH: [
-        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      cbETH: [encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      frxETH: [encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      cbETH: [
-        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      frxETH: [
-        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      cbETH: [encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      frxETH: [encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
       WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_cbETH/frxETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
       ],
     },
@@ -3670,24 +2667,18 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x55cdF6c7E6d04b83835E4702ed395D0263237DA2",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      sETH: [encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity)],
-      frxETH: [
-        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      sETH: [encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.Add)],
+      frxETH: [encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Add)],
       WETH: [
         encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      sETH: [
-        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
-      ],
-      frxETH: [
-        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      sETH: [encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.Remove)],
+      frxETH: [encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Remove)],
       WETH: [
-        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_sETH/frxETH_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.CURVE_frxETH_POOL, PoolType.CurveETHPool, 2, 1, 0, Action.Swap),
       ],
     },
@@ -3699,34 +2690,12 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x6991C1CD588c4e6f6f1de3A0bac5B8BbAb7aAF6d",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      FRAX: [
-        encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      USDP: [
-        encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      FRAX: [encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.Add)],
+      USDP: [encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Add)],
     },
     withdraw: {
-      FRAX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_FRAX/USDP_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
-      ],
-      USDP: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_FRAX/USDP_POOL"],
-          PoolType.CurveFactoryPlainPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-      ],
+      FRAX: [encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveBasePool, 2, 0, 0, Action.Remove)],
+      USDP: [encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveBasePool, 2, 1, 1, Action.Remove)],
     },
   },
   "UZD/FRAXBP": {
@@ -3736,81 +2705,40 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x820Fad75512c8C3E57Ad021d016846CEEB5F7105",
     rewards: [ADDRESS.CRV, ADDRESS.CVX, ADDRESS.UZD],
     deposit: {
-      UZD: [
-        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
-      ],
-      crvFRAX: [
-        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
-      ],
+      UZD: [encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add)],
+      crvFRAX: [encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add)],
       FRAX: [
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       USDC: [
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
       // WETH ==(UniV3)==> USDC
       WETH: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
-        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ],
     },
     withdraw: {
-      UZD: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          0,
-          0,
-          Action.RemoveLiquidity
-        ),
-      ],
+      UZD: [encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove)],
       crvFRAX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
       ],
       FRAX: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
       ],
       USDC: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
       ],
       // USDC ==(UniV3)==> WETH
       WETH: [
-        encodePoolHintV2(
-          ADDRESS["CURVE_UZD/FRAXBP_POOL"],
-          PoolType.CurveFactoryMetaPool,
-          2,
-          1,
-          1,
-          Action.RemoveLiquidity
-        ),
-        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_UZD/FRAXBP_POOL"], PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
@@ -3822,21 +2750,151 @@ export const AVAILABLE_VAULTS: {
     rewarder: "0x6cD1a734F3d49Cc5b381c2b53CF17f12bfFA2bdD",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
     deposit: {
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity)],
-      wBETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity)],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.Add)],
+      wBETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 1, 1, Action.Add)],
       USDC: [
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-        encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ],
     },
     withdraw: {
-      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity)],
-      wBETH: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity),
-      ],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.Remove)],
+      wBETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 1, 1, Action.Remove)],
       USDC: [
-        encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/wBETH_POOL"], PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
         encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
+  "USDT/crvUSD": {
+    token: "CURVE_USDT/crvUSD",
+    composition: "USDT+crvUSD",
+    convexCurveID: 179,
+    rewarder: "0xD1DdB0a0815fD28932fBb194C84003683AF8a824",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      USDT: [encodePoolHintV2(ADDRESS["CURVE_USDT/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_USDT/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
+      ],
+      // WETH ==(CurveV2)==> USDT
+      WETH: [
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_USDT/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
+      ],
+    },
+    withdraw: {
+      USDT: [
+        encodePoolHintV2(ADDRESS["CURVE_USDT/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+      ],
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_USDT/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
+      ],
+      // WETH ==(CurveV2)==> USDT
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_USDT/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 2, Action.Swap),
+      ],
+    },
+  },
+  "USDP/crvUSD": {
+    token: "CURVE_USDP/crvUSD",
+    composition: "USDP+crvUSD",
+    convexCurveID: 180,
+    rewarder: "0x80c64E468b774F7F96D4DFCe39caE2dd4C2B7f93",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      USDP: [encodePoolHintV2(ADDRESS["CURVE_USDP/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_USDP/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
+      ],
+      // WETH ==(UniV3)==> USDC ==(Curve)==> FRAX ==(Curve)==> USDP
+      WETH: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveBasePool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_USDP/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
+      ],
+    },
+    withdraw: {
+      USDP: [
+        encodePoolHintV2(ADDRESS["CURVE_USDP/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+      ],
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_USDP/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
+      ],
+      // WETH ==(UniV3)==> USDC ==(Curve)==> FRAX ==(Curve)==> USDP
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_USDP/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+        encodePoolHintV2(ADDRESS["CURVE_FRAX/USDP_POOL"], PoolType.CurveBasePool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      ],
+    },
+  },
+  "TUSD/crvUSD": {
+    token: "CURVE_TUSD/crvUSD",
+    composition: "TUSD+crvUSD",
+    convexCurveID: 181,
+    rewarder: "0x4e2637D6697ed953241D44E29Fba55748F651861",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      TUSD: [encodePoolHintV2(ADDRESS["CURVE_TUSD/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_TUSD/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
+      ],
+      // WETH ==(CurveV2)==> USDT ==(Curve)==> 3CRV ==(Curve)==> TUSD
+      WETH: [
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.Add),
+        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_TUSD/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
+      ],
+    },
+    withdraw: {
+      TUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_TUSD/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+      ],
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_TUSD/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
+      ],
+      // WETH ==(CurveV2)==> USDT ==(Curve)==> 3CRV ==(Curve)==> TUSD
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_TUSD/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_TUSD3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.Remove),
+        encodePoolHintV2(ADDRESS.CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 2, Action.Swap),
+      ],
+    },
+  },
+  "USDC/crvUSD": {
+    token: "CURVE_USDC/crvUSD",
+    composition: "USDC+crvUSD",
+    convexCurveID: 182,
+    rewarder: "0x44D8FaB7CD8b7877D5F79974c2F501aF6E65AbBA",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      USDC: [encodePoolHintV2(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add),
+      ],
+      // WETH ==(UniV3)==> USDC
+      WETH: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
+      ],
+    },
+    withdraw: {
+      USDC: [
+        encodePoolHintV2(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+      ],
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
+      ],
+      // WETH ==(UniV3)==> USDC
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       ],
     },
   },
@@ -3931,6 +2989,10 @@ export const DEPLOYED_VAULTS: {
     { name: "FRAX/USDP", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 56
     { name: "UZD/FRAXBP", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 57
     { name: "ETH/wBETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 58
+    { name: "USDT/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 59
+    { name: "USDP/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 60
+    { name: "TUSD/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 61
+    { name: "USDC/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 62
   ],
   aFXS: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 0
@@ -3977,5 +3039,9 @@ export const DEPLOYED_VAULTS: {
     { name: "tBTC/crvWSBTC", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 21
     { name: "CRV/sdCRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 22
     { name: "USDP/3CRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 23
+    { name: "USDT/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 24
+    { name: "USDP/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 25
+    { name: "TUSD/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 26
+    { name: "USDC/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 27
   ],
 };

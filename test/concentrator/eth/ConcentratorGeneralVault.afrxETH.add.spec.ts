@@ -62,6 +62,38 @@ const POOL_FORK_CONFIG: {
     amount: "10000",
     harvest: true,
   },
+  "USDT/crvUSD": {
+    height: 17377350,
+    pid: 24,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
+    amount: "10000",
+    harvest: false,
+  },
+  "USDP/crvUSD": {
+    height: 17377350,
+    pid: 24,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
+    amount: "10000",
+    harvest: false,
+  },
+  "TUSD/crvUSD": {
+    height: 17377350,
+    pid: 24,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
+    amount: "10000",
+    harvest: false,
+  },
+  "USDC/crvUSD": {
+    height: 17377350,
+    pid: 24,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
+    amount: "10000",
+    harvest: false,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";

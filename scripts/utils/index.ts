@@ -29,8 +29,8 @@ export enum PoolType {
 
 export enum Action {
   Swap,
-  AddLiquidity,
-  RemoveLiquidity,
+  Add,
+  Remove,
 }
 
 export function encodePoolHint(poolAddress: string, poolType: number, indexIn: number, indexOut: number) {
