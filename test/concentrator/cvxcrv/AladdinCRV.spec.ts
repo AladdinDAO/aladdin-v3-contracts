@@ -46,7 +46,7 @@ describe("AladdinCRV.spec", async () => {
 
     // 3CRV => USDT => WETH
     await zap.updateRoute(CURVE_TRICRV_TOKEN, WETH, [
-      encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.RemoveLiquidity),
+      encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.Remove),
       encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 2, Action.Swap),
     ]);
     // CVX => WETH

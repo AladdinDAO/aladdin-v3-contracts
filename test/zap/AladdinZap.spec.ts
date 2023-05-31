@@ -391,7 +391,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
       await zap.updateRoute(WETH, CURVE_stETH_TOKEN, [
-        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       const output = await zap.callStatic.zap(WETH, amountIn, CURVE_stETH_TOKEN, amountOut, {
@@ -418,7 +418,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
       await zap.updateRoute(WETH, CURVE_stETH_TOKEN, [
-        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       await weth.transfer(zap.address, amountIn);
@@ -442,7 +442,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
       await zap.updateRoute(STETH, CURVE_stETH_TOKEN, [
-        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Add),
       ]);
       await zap.deployed();
       await steth.transfer(zap.address, amountIn);
@@ -465,7 +465,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
       await zap.updateRoute(CURVE_stETH_TOKEN, WETH, [
-        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
       ]);
       await zap.deployed();
       await stecrv.transfer(zap.address, amountIn);
@@ -492,7 +492,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
       await zap.updateRoute(CURVE_stETH_TOKEN, WETH, [
-        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
       ]);
       await zap.deployed();
       await stecrv.transfer(zap.address, amountIn);
@@ -518,7 +518,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_stETH_POOL], [CURVE_stETH_TOKEN]);
       await zap.updateRoute(CURVE_stETH_TOKEN, STETH, [
-        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_stETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Remove),
       ]);
       await zap.deployed();
       await stecrv.transfer(zap.address, amountIn);
@@ -649,7 +649,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_ALETH_TOKEN], [CURVE_ALETH_TOKEN]);
       await zap.updateRoute(WETH, CURVE_ALETH_TOKEN, [
-        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       const output = await zap.callStatic.zap(WETH, amountIn, CURVE_ALETH_TOKEN, amountOut, {
@@ -678,7 +678,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_ALETH_POOL], [CURVE_ALETH_TOKEN]);
       await zap.updateRoute(WETH, CURVE_ALETH_TOKEN, [
-        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       await weth.transfer(zap.address, amountIn);
@@ -704,7 +704,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_ALETH_POOL], [CURVE_ALETH_TOKEN]);
       await zap.updateRoute(ALETH, CURVE_ALETH_TOKEN, [
-        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Add),
       ]);
       await zap.deployed();
       await aleth.transfer(zap.address, amountIn);
@@ -729,7 +729,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_ALETH_POOL], [CURVE_ALETH_TOKEN]);
       await zap.updateRoute(CURVE_ALETH_TOKEN, WETH, [
-        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
       ]);
       await zap.deployed();
       await alethcrv.transfer(zap.address, amountIn);
@@ -756,7 +756,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_ALETH_POOL], [CURVE_ALETH_TOKEN]);
       await zap.updateRoute(CURVE_ALETH_TOKEN, WETH, [
-        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 0, 0, Action.Remove),
       ]);
       await zap.deployed();
       await alethcrv.transfer(zap.address, amountIn);
@@ -782,7 +782,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_ALETH_POOL], [CURVE_ALETH_TOKEN]);
       await zap.updateRoute(CURVE_ALETH_TOKEN, ALETH, [
-        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_ALETH_POOL, PoolType.CurveETHPool, 2, 1, 1, Action.Remove),
       ]);
       await zap.deployed();
       await alethcrv.transfer(zap.address, amountIn);
@@ -913,7 +913,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_CVXETH_POOL], [CURVE_CVXETH_TOKEN]);
       await zap.updateRoute(WETH, CURVE_CVXETH_TOKEN, [
-        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       const output = await zap.callStatic.zap(WETH, amountIn, CURVE_CVXETH_TOKEN, amountOut, {
@@ -942,7 +942,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_CVXETH_POOL], [CURVE_CVXETH_TOKEN]);
       await zap.updateRoute(WETH, CURVE_CVXETH_TOKEN, [
-        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       await weth.transfer(zap.address, amountIn);
@@ -968,7 +968,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_CVXETH_POOL], [CURVE_CVXETH_TOKEN]);
       await zap.updateRoute(CVX, CURVE_CVXETH_TOKEN, [
-        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ]);
       await zap.deployed();
       await aleth.transfer(zap.address, amountIn);
@@ -993,7 +993,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_CVXETH_POOL], [CURVE_CVXETH_TOKEN]);
       await zap.updateRoute(CURVE_CVXETH_TOKEN, WETH, [
-        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
       ]);
       await zap.deployed();
       await cvxethcrv.transfer(zap.address, amountIn);
@@ -1020,7 +1020,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_CVXETH_POOL], [CURVE_CVXETH_TOKEN]);
       await zap.updateRoute(CURVE_CVXETH_TOKEN, WETH, [
-        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
       ]);
       await zap.deployed();
       await cvxethcrv.transfer(zap.address, amountIn);
@@ -1046,7 +1046,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_CVXETH_POOL], [CURVE_CVXETH_TOKEN]);
       await zap.updateRoute(CURVE_CVXETH_TOKEN, CVX, [
-        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
       ]);
       await zap.deployed();
       await cvxethcrv.transfer(zap.address, amountIn);
@@ -1183,7 +1183,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_cvxFXS_POOL], [CURVE_cvxFXS_TOKEN]);
       await zap.updateRoute(FXS, CURVE_cvxFXS_TOKEN, [
-        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       await fxs.transfer(zap.address, amountIn);
@@ -1209,7 +1209,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_cvxFXS_POOL], [CURVE_cvxFXS_TOKEN]);
       await zap.updateRoute(CVXFXS, CURVE_cvxFXS_TOKEN, [
-        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Add),
       ]);
       await zap.deployed();
       await cvxfxs.transfer(zap.address, amountIn);
@@ -1235,7 +1235,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_cvxFXS_POOL], [CURVE_cvxFXS_TOKEN]);
       await zap.updateRoute(CURVE_cvxFXS_TOKEN, FXS, [
-        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
       ]);
       await zap.deployed();
       await cvxfxscrv.transfer(zap.address, amountIn);
@@ -1261,7 +1261,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_cvxFXS_POOL], [CURVE_cvxFXS_TOKEN]);
       await zap.updateRoute(CURVE_cvxFXS_TOKEN, CVXFXS, [
-        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.RemoveLiquidity),
+        encodePoolHintV2(CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove),
       ]);
       await zap.deployed();
       await cvxfxscrv.transfer(zap.address, amountIn);
@@ -1349,7 +1349,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_TRICRYPTO_POOL], [CURVE_TRICRYPTO_TOKEN]);
       await zap.updateRoute(USDT, CURVE_TRICRYPTO_TOKEN, [
-        encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       await usdt.transfer(zap.address, amountIn);
@@ -1375,7 +1375,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_TRICRYPTO_POOL], [CURVE_TRICRYPTO_TOKEN]);
       await zap.updateRoute(WBTC, CURVE_TRICRYPTO_TOKEN, [
-        encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 1, Action.Add),
       ]);
       await zap.deployed();
       await wbtc.transfer(zap.address, amountIn);
@@ -1401,7 +1401,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_TRICRYPTO_POOL], [CURVE_TRICRYPTO_TOKEN]);
       await zap.updateRoute(WETH, CURVE_TRICRYPTO_TOKEN, [
-        encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.Add),
       ]);
       await zap.deployed();
       await weth.transfer(zap.address, amountIn);
@@ -1425,7 +1425,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_TRICRYPTO_POOL], [CURVE_TRICRYPTO_TOKEN]);
       await zap.updateRoute(WETH, CURVE_TRICRYPTO_TOKEN, [
-        encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.Add),
       ]);
       await zap.deployed();
       const output = await zap.callStatic.zap(constants.AddressZero, amountIn, CURVE_TRICRYPTO_TOKEN, amountOut, {
@@ -1470,7 +1470,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("9855.436716", 6);
         const usdt = await ethers.getContractAt("IERC20", USDT, signer);
         await zap.updateRoute(CURVE_TRICRYPTO_TOKEN, USDT, [
-          encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 0, 0, Action.Remove),
         ]);
         await tricrypto.transfer(zap.address, amountIn);
         const output = await zap.callStatic.zap(CURVE_TRICRYPTO_TOKEN, amountIn, USDT, amountOut);
@@ -1486,7 +1486,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("0.99261587", 8);
         const wbtc = await ethers.getContractAt("IERC20", WBTC, signer);
         await zap.updateRoute(CURVE_TRICRYPTO_TOKEN, WBTC, [
-          encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 1, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 1, 1, Action.Remove),
         ]);
         await tricrypto.transfer(zap.address, amountIn);
         const output = await zap.callStatic.zap(CURVE_TRICRYPTO_TOKEN, amountIn, WBTC, amountOut);
@@ -1502,7 +1502,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("9.613835315023316648", 18);
         const weth = await ethers.getContractAt("IERC20", WETH, signer);
         await zap.updateRoute(CURVE_TRICRYPTO_TOKEN, WETH, [
-          encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.Remove),
         ]);
         await tricrypto.transfer(zap.address, amountIn);
         const output = await zap.callStatic.zap(CURVE_TRICRYPTO_TOKEN, amountIn, WETH, amountOut);
@@ -1517,7 +1517,7 @@ describe("AladdinZap.spec", async () => {
         const amountIn = ethers.utils.parseUnits("18", 18);
         const amountOut = ethers.utils.parseUnits("9.613835315023316648", 18);
         await zap.updateRoute(CURVE_TRICRYPTO_TOKEN, WETH, [
-          encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_TRICRYPTO_POOL, PoolType.CurveTriCryptoPool, 3, 2, 2, Action.Remove),
         ]);
         await tricrypto.transfer(zap.address, amountIn);
         const output = await zap.callStatic.zap(CURVE_TRICRYPTO_TOKEN, amountIn, constants.AddressZero, amountOut);
@@ -1792,7 +1792,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_REN_POOL], [CURVE_REN_TOKEN]);
       await zap.updateRoute(RENBTC, CURVE_REN_TOKEN, [
-        encodePoolHintV2(CURVE_REN_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_REN_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       await renbtc.transfer(zap.address, amountIn);
@@ -1818,7 +1818,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_REN_POOL], [CURVE_REN_TOKEN]);
       await zap.updateRoute(WBTC, CURVE_REN_TOKEN, [
-        encodePoolHintV2(CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
       ]);
       await zap.deployed();
       await wbtc.transfer(zap.address, amountIn);
@@ -1858,7 +1858,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10.18326083", 8);
         const renbtc = await ethers.getContractAt("IERC20", RENBTC, signer);
         await zap.updateRoute(CURVE_REN_TOKEN, RENBTC, [
-          encodePoolHintV2(CURVE_REN_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_REN_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Remove),
         ]);
         const output = await zap.callStatic.zap(CURVE_REN_TOKEN, amountIn, RENBTC, amountOut);
         const before = await renbtc.balanceOf(deployer.address);
@@ -1872,7 +1872,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10.17990247", 8);
         const wbtc = await ethers.getContractAt("IERC20", WBTC, signer);
         await zap.updateRoute(CURVE_REN_TOKEN, WBTC, [
-          encodePoolHintV2(CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_REN_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Remove),
         ]);
         const output = await zap.callStatic.zap(CURVE_REN_TOKEN, amountIn, WBTC, amountOut);
         const before = await wbtc.balanceOf(deployer.address);
@@ -1991,7 +1991,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_TRICRV_POOL], [CURVE_TRICRV_TOKEN]);
       await zap.updateRoute(DAI, CURVE_TRICRV_TOKEN, [
-        encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       await dai.transfer(zap.address, amountIn);
@@ -2017,7 +2017,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_TRICRV_POOL], [CURVE_TRICRV_TOKEN]);
       await zap.updateRoute(USDC, CURVE_TRICRV_TOKEN, [
-        encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Add),
       ]);
       await zap.deployed();
       await usdc.transfer(zap.address, amountIn);
@@ -2043,7 +2043,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_TRICRV_POOL], [CURVE_TRICRV_TOKEN]);
       await zap.updateRoute(USDT, CURVE_TRICRV_TOKEN, [
-        encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.Add),
       ]);
       await zap.deployed();
       await usdt.transfer(zap.address, amountIn);
@@ -2083,7 +2083,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10203.429992452974185452", 18);
         const dai = await ethers.getContractAt("IERC20", DAI, signer);
         await zap.updateRoute(CURVE_TRICRV_TOKEN, DAI, [
-          encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 0, 0, Action.Remove),
         ]);
         await tricrv.transfer(zap.address, amountIn);
         const output = await zap.callStatic.zap(CURVE_TRICRV_TOKEN, amountIn, DAI, amountOut);
@@ -2098,7 +2098,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10203.168611", 6);
         const usdc = await ethers.getContractAt("IERC20", USDC, signer);
         await zap.updateRoute(CURVE_TRICRV_TOKEN, USDC, [
-          encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 1, 1, Action.Remove),
         ]);
         await tricrv.transfer(zap.address, amountIn);
         const output = await zap.callStatic.zap(CURVE_TRICRV_TOKEN, amountIn, USDC, amountOut);
@@ -2113,7 +2113,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10198.236907", 6);
         const usdt = await ethers.getContractAt("IERC20", USDT, signer);
         await zap.updateRoute(CURVE_TRICRV_TOKEN, USDT, [
-          encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_TRICRV_POOL, PoolType.CurveBasePool, 3, 2, 2, Action.Remove),
         ]);
         const output = await zap.callStatic.zap(CURVE_TRICRV_TOKEN, amountIn, USDT, amountOut);
         const before = await usdt.balanceOf(deployer.address);
@@ -2314,7 +2314,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_FRAX3CRV_POOL], [CURVE_FRAX3CRV_TOKEN]);
       await zap.updateRoute(FRAX, CURVE_FRAX3CRV_TOKEN, [
-        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       await frax.transfer(zap.address, amountIn);
@@ -2340,7 +2340,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_FRAX3CRV_POOL], [CURVE_FRAX3CRV_TOKEN]);
       await zap.updateRoute(TRICRV, CURVE_FRAX3CRV_TOKEN, [
-        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Add),
       ]);
       await zap.deployed();
       await tricrv.transfer(zap.address, amountIn);
@@ -2383,7 +2383,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10073.161115823482038258", 18);
         const frax = await ethers.getContractAt("IERC20", FRAX, signer);
         await zap.updateRoute(CURVE_FRAX3CRV_TOKEN, FRAX, [
-          encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 0, 0, Action.Remove),
         ]);
         await frax3crv.transfer(zap.address, amountIn);
         const output = await zap.callStatic.zap(CURVE_FRAX3CRV_TOKEN, amountIn, FRAX, amountOut);
@@ -2398,7 +2398,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("9868.487528376312253157", 18);
         const tricrv = await ethers.getContractAt("IERC20", TRICRV, signer);
         await zap.updateRoute(CURVE_FRAX3CRV_TOKEN, TRICRV, [
-          encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.RemoveLiquidity),
+          encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryMetaPool, 2, 1, 1, Action.Remove),
         ]);
         await frax3crv.transfer(zap.address, amountIn);
         const output = await zap.callStatic.zap(CURVE_FRAX3CRV_TOKEN, amountIn, TRICRV, amountOut);
@@ -2521,7 +2521,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_FRAX3CRV_POOL], [CURVE_FRAX3CRV_TOKEN]);
       await zap.updateRoute(FRAX, CURVE_FRAX3CRV_TOKEN, [
-        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 0, 0, Action.Add),
       ]);
       await zap.deployed();
       await frax.transfer(zap.address, amountIn);
@@ -2547,7 +2547,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_FRAX3CRV_POOL], [CURVE_FRAX3CRV_TOKEN]);
       await zap.updateRoute(DAI, CURVE_FRAX3CRV_TOKEN, [
-        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Add),
       ]);
       await zap.deployed();
       await dai.transfer(zap.address, amountIn);
@@ -2573,7 +2573,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_FRAX3CRV_POOL], [CURVE_FRAX3CRV_TOKEN]);
       await zap.updateRoute(USDC, CURVE_FRAX3CRV_TOKEN, [
-        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Add),
       ]);
       await zap.deployed();
       await usdc.transfer(zap.address, amountIn);
@@ -2599,7 +2599,7 @@ describe("AladdinZap.spec", async () => {
       await zap.initialize();
       await zap.updatePoolTokens([CURVE_FRAX3CRV_POOL], [CURVE_FRAX3CRV_TOKEN]);
       await zap.updateRoute(USDT, CURVE_FRAX3CRV_TOKEN, [
-        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.AddLiquidity),
+        encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Add),
       ]);
       await zap.deployed();
       await usdt.transfer(zap.address, amountIn);
@@ -2639,14 +2639,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10073.161115823482038258", 18);
         const frax = await ethers.getContractAt("IERC20", FRAX, signer);
         await zap.updateRoute(CURVE_FRAX3CRV_TOKEN, FRAX, [
-          encodePoolHintV2(
-            CURVE_FRAX3CRV_POOL,
-            PoolType.CurveFactoryUSDMetaPoolUnderlying,
-            4,
-            0,
-            0,
-            Action.RemoveLiquidity
-          ),
+          encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 0, 0, Action.Remove),
         ]);
         const output = await zap.callStatic.zap(CURVE_FRAX3CRV_TOKEN, amountIn, FRAX, amountOut);
         const before = await frax.balanceOf(deployer.address);
@@ -2660,14 +2653,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10070.601201457344715035", 18);
         const dai = await ethers.getContractAt("IERC20", DAI, signer);
         await zap.updateRoute(CURVE_FRAX3CRV_TOKEN, DAI, [
-          encodePoolHintV2(
-            CURVE_FRAX3CRV_POOL,
-            PoolType.CurveFactoryUSDMetaPoolUnderlying,
-            4,
-            1,
-            1,
-            Action.RemoveLiquidity
-          ),
+          encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 1, 1, Action.Remove),
         ]);
         const output = await zap.callStatic.zap(CURVE_FRAX3CRV_TOKEN, amountIn, DAI, amountOut);
         const before = await dai.balanceOf(deployer.address);
@@ -2681,14 +2667,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10070.993109", 6);
         const usdc = await ethers.getContractAt("IERC20", USDC, signer);
         await zap.updateRoute(CURVE_FRAX3CRV_TOKEN, USDC, [
-          encodePoolHintV2(
-            CURVE_FRAX3CRV_POOL,
-            PoolType.CurveFactoryUSDMetaPoolUnderlying,
-            4,
-            2,
-            2,
-            Action.RemoveLiquidity
-          ),
+          encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 2, 2, Action.Remove),
         ]);
         const output = await zap.callStatic.zap(CURVE_FRAX3CRV_TOKEN, amountIn, USDC, amountOut);
         const before = await usdc.balanceOf(deployer.address);
@@ -2702,14 +2681,7 @@ describe("AladdinZap.spec", async () => {
         const amountOut = ethers.utils.parseUnits("10064.970262", 6);
         const usdt = await ethers.getContractAt("IERC20", USDT, signer);
         await zap.updateRoute(CURVE_FRAX3CRV_TOKEN, USDT, [
-          encodePoolHintV2(
-            CURVE_FRAX3CRV_POOL,
-            PoolType.CurveFactoryUSDMetaPoolUnderlying,
-            4,
-            3,
-            3,
-            Action.RemoveLiquidity
-          ),
+          encodePoolHintV2(CURVE_FRAX3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 3, 3, Action.Remove),
         ]);
         const output = await zap.callStatic.zap(CURVE_FRAX3CRV_TOKEN, amountIn, USDT, amountOut);
         const before = await usdt.balanceOf(deployer.address);
@@ -3021,7 +2993,7 @@ describe("AladdinZap.spec", async () => {
         await zap.initialize();
         await zap.updatePoolTokens([CURVE_CVXCRV_POOL], [CURVE_CVXCRV_TOKEN]);
         await zap.updateRoute(CRV, CURVE_CVXCRV_TOKEN, [
-          encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.AddLiquidity),
+          encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveBasePool, 2, 0, 0, Action.Add),
         ]);
         await zap.deployed();
         await crv.transfer(zap.address, amountIn);
@@ -3048,7 +3020,7 @@ describe("AladdinZap.spec", async () => {
         await zap.initialize();
         await zap.updatePoolTokens([CURVE_CVXCRV_POOL], [CURVE_CVXCRV_TOKEN]);
         await zap.updateRoute(CVXCRV, CURVE_CVXCRV_TOKEN, [
-          encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.AddLiquidity),
+          encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveBasePool, 2, 1, 1, Action.Add),
         ]);
         await zap.deployed();
         await cvxcrv.transfer(zap.address, amountIn);
@@ -3088,7 +3060,7 @@ describe("AladdinZap.spec", async () => {
           const amountOut = ethers.utils.parseUnits("9.795542488642659763", 18);
           const crv = await ethers.getContractAt("IERC20", CRV, signer);
           await zap.updateRoute(CURVE_CVXCRV_TOKEN, CRV, [
-            encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.RemoveLiquidity),
+            encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
           ]);
           const output = await zap.callStatic.zap(CURVE_CVXCRV_TOKEN, amountIn, CRV, amountOut);
           const before = await crv.balanceOf(deployer.address);
@@ -3102,7 +3074,7 @@ describe("AladdinZap.spec", async () => {
           const amountOut = ethers.utils.parseUnits("10.226111342280135792", 18);
           const cvxcrv = await ethers.getContractAt("IERC20", CVXCRV, signer);
           await zap.updateRoute(CURVE_CVXCRV_TOKEN, CVXCRV, [
-            encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.RemoveLiquidity),
+            encodePoolHintV2(CURVE_CVXCRV_POOL, PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
           ]);
           const output = await zap.callStatic.zap(CURVE_CVXCRV_TOKEN, amountIn, CVXCRV, amountOut);
           const before = await cvxcrv.balanceOf(deployer.address);
@@ -3222,7 +3194,7 @@ describe("AladdinZap.spec", async () => {
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updateRoute(WETH, STETH, [encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity)]);
+      await zap.updateRoute(WETH, STETH, [encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.Add)]);
       await zap.deployed();
       const output = await zap.callStatic.zap(constants.AddressZero, amountIn, STETH, amountOut, {
         value: amountIn,
@@ -3248,7 +3220,7 @@ describe("AladdinZap.spec", async () => {
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updateRoute(WETH, STETH, [encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity)]);
+      await zap.updateRoute(WETH, STETH, [encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.Add)]);
       await zap.deployed();
       await weth.transfer(zap.address, amountIn);
       const output = await zap.callStatic.zap(WETH, amountIn, STETH, amountOut);
@@ -3278,7 +3250,7 @@ describe("AladdinZap.spec", async () => {
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updateRoute(STETH, WSTETH, [encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity)]);
+      await zap.updateRoute(STETH, WSTETH, [encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.Add)]);
       await zap.deployed();
       await steth.transfer(zap.address, amountIn);
       const output = await zap.callStatic.zap(STETH, amountIn, WSTETH, amountOut);
@@ -3302,9 +3274,7 @@ describe("AladdinZap.spec", async () => {
       const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
       const zap = await AladdinZap.deploy();
       await zap.initialize();
-      await zap.updateRoute(WSTETH, STETH, [
-        encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.RemoveLiquidity),
-      ]);
+      await zap.updateRoute(WSTETH, STETH, [encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.Remove)]);
       await zap.deployed();
       await wsteth.transfer(zap.address, amountIn);
       const output = await zap.callStatic.zap(WSTETH, amountIn, STETH, amountOut);
