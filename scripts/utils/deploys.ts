@@ -135,6 +135,10 @@ export const DEPLOYED_CONTRACTS = {
       },
     },
   },
+  Fx: {
+    ProxyAdmin: "0x9B54B7703551D9d0ced177A78367560a8B2eDDA4",
+    Treasury: "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+  },
 };
 
 export function selectDeployments(network: string, name: string): editJsonFile.JsonEditor {
