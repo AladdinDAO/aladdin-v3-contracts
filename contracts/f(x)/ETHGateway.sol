@@ -98,13 +98,21 @@ contract ETHGateway {
     uint256 _xTokenIn,
     uint256 _minBaseOut
   ) external returns (uint256 _baseOut) {
-    _fTokenIn = _transferTokenIn(fToken, _fTokenIn);
-    _xTokenIn = _transferTokenIn(xToken, _xTokenIn);
+    if (_fTokenIn > 0) {
+      _fTokenIn = _transferTokenIn(fToken, _fTokenIn);
+      _xTokenIn = 0;
+    } else {
+      _xTokenIn = _transferTokenIn(xToken, _xTokenIn);
+    }
 
     _baseOut = IMarket(market).redeem(_fTokenIn, _xTokenIn, address(this), _minBaseOut);
 
-    _refund(fToken, msg.sender);
-    _refund(xToken, msg.sender);
+    if (_fTokenIn > 0) {
+      _refund(fToken, msg.sender);
+    }
+    if (_xTokenIn > 0) {
+      _refund(xToken, msg.sender);
+    }
     _transferETH(_baseOut, msg.sender);
   }
 

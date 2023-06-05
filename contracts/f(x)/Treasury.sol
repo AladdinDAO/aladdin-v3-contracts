@@ -498,9 +498,10 @@ contract Treasury is OwnableUpgradeable, ITreasury {
       IAssetStrategy(strategy).withdrawToTreasury(_diff);
       strategyUnderlying = strategyUnderlying.sub(_diff);
 
+      // consider possible slippage here.
       _balance = IERC20Upgradeable(_baseToken).balanceOf(address(this));
       if (_amount > _balance) {
-        _balance = _balance;
+        _amount = _balance;
       }
     }
 

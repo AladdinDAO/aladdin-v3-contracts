@@ -58,18 +58,19 @@ const config: HardhatUserConfig = {
     compilers: [{ version: "0.3.1" }, { version: "0.2.7" }],
   },
   networks: {
-    ropsten: {
-      url: process.env.ROPSTEN_URL || "",
-      accounts,
-    },
     mainnet: {
       url: process.env.MAINNET_URL || "https://rpc.ankr.com/eth",
       chainId: 1,
       accounts,
     },
-    kovan: {
-      url: "https://kovan.infura.io/v3/5516520a57c34a3095cb9cf859bf2cd7",
-      chainId: 42,
+    goerli: {
+      url: process.env.GOERLI_URL || "https://rpc.ankr.com/eth_goerli",
+      chainId: 5,
+      accounts,
+    },
+    sepolia: {
+      url: process.env.SEPOLIA_URL || "https://rpc.sepolia.org",
+      chainId: 11155111,
       accounts,
     },
     mainnet_fork_10540: {
