@@ -3,7 +3,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { constants } from "ethers";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import {
   ADDRESS,
   DEPLOYED_CONTRACTS,
@@ -31,6 +31,7 @@ const strategies: {
     AutoCompoundingConvexFraxStrategy: "0x6Cc546cE582b0dD106c231181f7782C79Ef401da",
     AutoCompoundingConvexCurveStrategy: constants.AddressZero,
     ManualCompoundingConvexCurveStrategy: "0xE25f0E29060AeC19a0559A2EF8366a5AF086222e",
+    ManualCompoundingCurveGaugeStrategy: "0x188bd82BF11cC321F7872acdCa4B1a3Bf9a802dE",
     CLeverGaugeStrategy: constants.AddressZero,
     AMOConvexCurveStrategy: "0x2be5B652836C630E15c3530bf642b544ae901239",
   },
@@ -94,6 +95,22 @@ const POOL_FORK_CONFIG: {
     amount: "10000",
     harvest: false,
   },
+  "USDC/WBTC/ETH": {
+    height: 17447590,
+    pid: 28,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
+    amount: "0.01",
+    harvest: true,
+  },
+  "USDT/WBTC/ETH": {
+    height: 17447590,
+    pid: 28,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
+    amount: "0.01",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
@@ -120,6 +137,7 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
       console.log(
         `add pool[${name}]:`,
         `convexCurveID[${config.convexCurveID}]`,
+        `gauge[${config.gauge}]`,
         `rewards[${config.rewards}]`,
         `withdrawFee[${fees.withdraw}]`,
         `platformFee[${fees.platform}]`,
@@ -204,7 +222,6 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
 
         // setup withdraw zap
         await zap.updatePoolTokens([ADDRESS[`${config.token}_POOL`]], [lpToken.address]);
-        await zap.updatePoolTokens([ADDRESS.CURVE_LUSD3CRV_POOL], [ADDRESS.CURVE_LUSD3CRV_TOKEN]);
         if (ADDRESS[`${config.token}_DEPOSIT`]) {
           await zap.updatePoolTokens([ADDRESS[`${config.token}_DEPOSIT`]], [lpToken.address]);
         }
@@ -231,8 +248,13 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
           DEPLOYED_CONTRACTS.Concentrator.frxETH.ConcentratorGeneralVault,
           owner
         );
-        await strategyContract.initialize(vault.address, underlying, config.rewarder!, config.rewards);
+        if (strategy === "ConvexCurve") {
+          await strategyContract.initialize(vault.address, underlying, config.rewarder!, config.rewards);
+        } else if (strategy === "CurveGauge") {
+          await strategyContract.initialize(vault.address, underlying, config.gauge!, config.rewards);
+        }
         await vault.addPool(underlying, strategyAddress, fees.withdraw, fees.platform, fees.harvest);
+        await vault.updateHarvester(constants.AddressZero);
       });
 
       context("deposit", async () => {
@@ -334,8 +356,18 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
           });
 
           it("should succeed", async () => {
-            await booster.earmarkRewards(config.convexCurveID!);
-            const token = await ethers.getContractAt("IERC20", DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV, deployer);
+            if (config.convexCurveID) {
+              await booster.earmarkRewards(config.convexCurveID);
+            }
+            const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+            await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
+            await network.provider.send("evm_mine");
+
+            const token = await ethers.getContractAt(
+              "IERC20",
+              DEPLOYED_CONTRACTS.Concentrator.frxETH.afrxETH,
+              deployer
+            );
             const amount = await vault.callStatic.harvest(fork.pid, deployer.address, 0);
             const before = await token.balanceOf(vault.address);
             await vault.harvest(fork.pid, deployer.address, 0);
