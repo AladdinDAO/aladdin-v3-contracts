@@ -100,4 +100,5 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   MET: { decimals: 18, address: "0x2ebd53d035150f328bd754d6dc66b99b0edb89aa" },
   OGV: { decimals: 18, address: "0x9c354503C38481a7A7a51629142963F98eCC12D0" },
   crvUSD: { decimals: 18, address: "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E" },
+  sdFXS: { decimals: 18, address: "0x402f878bdd1f5c66fdaf0fababcf74741b68ac36" },
 };

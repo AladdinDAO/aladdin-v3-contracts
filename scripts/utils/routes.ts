@@ -479,4 +479,11 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
     // OGV ==(CurveV2)==> WETH
     WETH: [encodePoolHintV2(ADDRESS["CURVE_OGV/ETH_POOL"], PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap)],
   },
+  sdFXS: {
+    // sdFXS ==(Curve)==> FXS ==(UniV3)==> WETH
+    WETH: [
+      encodePoolHintV2(ADDRESS["CURVE_FXS/sdFXS_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.FXS_WETH_UNIV3_10000, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+    ],
+  },
 };
