@@ -25,6 +25,8 @@ import {
   AladdinSdCRV__factory,
   Diamond,
   IDiamond,
+  ManualCompoundingConvexCurveStrategy,
+  ManualCompoundingCurveGaugeStrategy,
 } from "../typechain";
 import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "./utils";
 
@@ -137,6 +139,7 @@ const config: {
       AutoCompoundingConvexFraxStrategy: "0x6Cc546cE582b0dD106c231181f7782C79Ef401da",
       AutoCompoundingConvexCurveStrategy: constants.AddressZero,
       ManualCompoundingConvexCurveStrategy: "0xE25f0E29060AeC19a0559A2EF8366a5AF086222e",
+      ManualCompoundingCurveGaugeStrategy: "0x188bd82BF11cC321F7872acdCa4B1a3Bf9a802dE",
       CLeverGaugeStrategy: constants.AddressZero,
       AMOConvexCurveStrategy: "0x2be5B652836C630E15c3530bf642b544ae901239",
     },
@@ -407,11 +410,35 @@ async function addVaults(
       strategy = await ethers.getContractAt(strategyName, address, deployer);
     }
     if (strategyName === "ManualCompoundingConvexCurveStrategy") {
-      const tx = await strategy.initialize(vault.address, underlying, vaultConfig.rewarder!, vaultConfig.rewards, {
-        gasLimit: 1000000,
-        maxFeePerGas,
-        maxPriorityFeePerGas,
-      });
+      const tx = await (strategy as ManualCompoundingConvexCurveStrategy).initialize(
+        vault.address,
+        underlying,
+        vaultConfig.rewarder!,
+        vaultConfig.rewards,
+        {
+          gasLimit: 1000000,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+        }
+      );
+      console.log(
+        `Initializing ${strategyName} for pool ${pool.name} with Compounder[${compounderName}], hash:`,
+        tx.hash
+      );
+      const receipt = await tx.wait();
+      console.log("✅ Done, gas used:", receipt.gasUsed.toString());
+    } else if (strategyName === "ManualCompoundingCurveGaugeStrategy") {
+      const tx = await (strategy as ManualCompoundingCurveGaugeStrategy).initialize(
+        vault.address,
+        underlying,
+        vaultConfig.gauge!,
+        vaultConfig.rewards,
+        {
+          gasLimit: 1000000,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+        }
+      );
       console.log(
         `Initializing ${strategyName} for pool ${pool.name} with Compounder[${compounderName}], hash:`,
         tx.hash
@@ -1528,6 +1555,7 @@ async function main() {
     "AutoCompoundingConvexFraxStrategy",
     "AutoCompoundingConvexCurveStrategy",
     "ManualCompoundingConvexCurveStrategy",
+    "ManualCompoundingCurveGaugeStrategy",
   ]) {
     if (config.Strategy.impls[name] === "") {
       const Contract = await ethers.getContractFactory(name, deployer);
