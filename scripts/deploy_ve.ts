@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
-import { BigNumber } from "ethers";
+import { BigNumber, constants } from "ethers";
 import { ethers } from "hardhat";
 import {
   GaugeController,
@@ -12,6 +12,7 @@ import {
   VotingEscrow,
   VotingEscrow__factory,
 } from "../typechain";
+import { DEPLOYED_CONTRACTS } from "./utils";
 
 const config: {
   impls: { [name: string]: string };
@@ -29,6 +30,9 @@ const config: {
       ve: string;
       controller: string;
       minter: string;
+      distributor: {
+        [symbol: string]: string;
+      };
     };
   };
 } = {
@@ -38,13 +42,13 @@ const config: {
     VotingEscrow: "0x3158c23ef1C8c6A672fcFd05E1845dD02B99A46B",
     GaugeController: "0x0E29A90D7797E92C4b76346dF06cb7c0bA0e2df6",
     LiquidityGaugeV3: "0x4745E0F6Ffb2cFE40F9E0088F9F66a245C70395d",
-    FeeDistributor: "0x9F64b9d6aE4f4D933CC009D89929Ad8E89fde49d",
+    FeeDistributor: "",
   },
   protocols: {
     fx: {
-      ProxyAdmin: "0x588b85AA6074CcABE631D739eD42aa355012a534",
+      ProxyAdmin: DEPLOYED_CONTRACTS.Fx.ProxyAdmin,
       token: {
-        name: "f(x)",
+        name: "f(x) Token",
         symbol: "FX",
         initSupply: ethers.utils.parseEther("1000000"),
         initRate: ethers.utils.parseEther("100000").div(86400 * 365), // 10% first year
@@ -54,6 +58,46 @@ const config: {
       ve: "0x8d6D41b883eAD56b5a8854946dD6a446624CD5b6",
       controller: "0x517FF73C1E18941cb64954Af94109628f35AB5b3",
       minter: "0xf2b854CD6316D03Ba7f5F211841aAE86e81569F4",
+      distributor: {},
+    },
+    concentrator: {
+      ProxyAdmin: DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin,
+      token: {
+        name: "Concentrator Token",
+        symbol: "CTR",
+        initSupply: constants.Zero,
+        initRate: constants.Zero,
+        rateReductionCoefficient: constants.Zero,
+        address: DEPLOYED_CONTRACTS.Concentrator.CTR,
+      },
+      ve: DEPLOYED_CONTRACTS.Concentrator.veCTR,
+      controller: constants.AddressZero,
+      minter: constants.AddressZero,
+      distributor: {
+        aCRV: DEPLOYED_CONTRACTS.Concentrator.FeeDistributor.aCRV,
+        asdCRV: "",
+        CVX: "",
+        afrxETH: "",
+        aFXS: "",
+      },
+    },
+    clever: {
+      ProxyAdmin: DEPLOYED_CONTRACTS.CLever.ProxyAdmin,
+      token: {
+        name: "CLever Token",
+        symbol: "CLEV",
+        initSupply: constants.Zero,
+        initRate: constants.Zero,
+        rateReductionCoefficient: constants.Zero,
+        address: DEPLOYED_CONTRACTS.CLever.CLEV,
+      },
+      ve: DEPLOYED_CONTRACTS.CLever.veCLEV,
+      controller: DEPLOYED_CONTRACTS.CLever.GaugeController,
+      minter: DEPLOYED_CONTRACTS.CLever.CLEVMinter,
+      distributor: {
+        CVX: DEPLOYED_CONTRACTS.CLever.FeeDistributor.CVX,
+        FRAX: DEPLOYED_CONTRACTS.CLever.FeeDistributor.FRAX,
+      },
     },
   },
 };
