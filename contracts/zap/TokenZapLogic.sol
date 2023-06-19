@@ -131,13 +131,14 @@ contract TokenZapLogic {
       _pool = ICurveMetaPoolDeposit(_pool).pool();
     }
     address _token = ICurvePoolRegistry(CURVE_POOL_REGISTRY).get_lp_token(_pool);
-    if (_token != address(0)) {
-      return _token;
-    } else if (uint256(_type) >= 4 && uint256(_type) <= 6) {
-      return ICurveCryptoPool(_pool).token();
-    } else {
-      return _pool;
+    if (_token == address(0)) {
+      try IERC20Upgradeable(_pool).totalSupply() returns (uint256) {
+        _token = _pool;
+      } catch {
+        _token = ICurveCryptoPool(_pool).token();
+      }
     }
+    return _token;
   }
 
   /// @dev encoding for single route

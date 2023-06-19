@@ -1459,11 +1459,11 @@ describe("TokenZapLogic.spec", async () => {
       const steth = await ethers.getContractAt("IERC20", STETH, deployer);
       await deployer.sendTransaction({ to: zap.address, value: amountIn });
       const output = await zap.callStatic.swap(
-        encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.Add),
         amountIn
       );
       const before = await steth.balanceOf(zap.address);
-      await zap.swap(encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity), amountIn);
+      await zap.swap(encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.Add), amountIn);
       const after = await steth.balanceOf(zap.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before)).to.eq(amountOut); // steth has some rounding error
@@ -1479,11 +1479,11 @@ describe("TokenZapLogic.spec", async () => {
       const weth = await ethers.getContractAt("IERC20", WETH, signer);
       await weth.transfer(zap.address, amountIn);
       const output = await zap.callStatic.swap(
-        encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.Add),
         amountIn
       );
       const before = await steth.balanceOf(zap.address);
-      await zap.swap(encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.AddLiquidity), amountIn);
+      await zap.swap(encodePoolHintV2(STETH, PoolType.LidoStake, 2, 0, 0, Action.Add), amountIn);
       const after = await steth.balanceOf(zap.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before)).to.eq(amountOut); // steth has some rounding error
@@ -1516,11 +1516,11 @@ describe("TokenZapLogic.spec", async () => {
       const wsteth = await ethers.getContractAt("IERC20", WSTETH, signer);
       await steth.transfer(zap.address, amountIn);
       const output = await zap.callStatic.swap(
-        encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.Add),
         amountIn
       );
       const before = await wsteth.balanceOf(zap.address);
-      await zap.swap(encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.AddLiquidity), amountIn);
+      await zap.swap(encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.Add), amountIn);
       const after = await wsteth.balanceOf(zap.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before)).to.eq(amountOut);
@@ -1536,11 +1536,11 @@ describe("TokenZapLogic.spec", async () => {
       const wsteth = await ethers.getContractAt("IERC20", WSTETH, signer);
       await wsteth.transfer(zap.address, amountIn);
       const output = await zap.callStatic.swap(
-        encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.Remove),
         amountIn
       );
       const before = await steth.balanceOf(zap.address);
-      await zap.swap(encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.RemoveLiquidity), amountIn);
+      await zap.swap(encodePoolHintV2(WSTETH, PoolType.LidoWrap, 2, 0, 0, Action.Remove), amountIn);
       const after = await steth.balanceOf(zap.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before).add(1)).to.eq(amountOut); // steth has some rounding error
@@ -1573,11 +1573,11 @@ describe("TokenZapLogic.spec", async () => {
       const tokenOut = await ethers.getContractAt("IERC20", aCRV, signer);
       await tokenIn.transfer(zap.address, amountIn);
       const output = await zap.callStatic.swap(
-        encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.AddLiquidity),
+        encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.Add),
         amountIn
       );
       const before = await tokenOut.balanceOf(zap.address);
-      await zap.swap(encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.AddLiquidity), amountIn);
+      await zap.swap(encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.Add), amountIn);
       const after = await tokenOut.balanceOf(zap.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before)).to.eq(amountOut);
@@ -1593,11 +1593,11 @@ describe("TokenZapLogic.spec", async () => {
       const tokenOut = await ethers.getContractAt("IERC20", cvxCRV, signer);
       await tokenIn.transfer(zap.address, amountIn);
       const output = await zap.callStatic.swap(
-        encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.RemoveLiquidity),
+        encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.Remove),
         amountIn
       );
       const before = await tokenOut.balanceOf(zap.address);
-      await zap.swap(encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.RemoveLiquidity), amountIn);
+      await zap.swap(encodePoolHintV2(aCRV, PoolType.AladdinCompounder, 1, 0, 0, Action.Remove), amountIn);
       const after = await tokenOut.balanceOf(zap.address);
       expect(output).to.eq(amountOut);
       expect(after.sub(before)).to.eq(amountOut);
@@ -1655,14 +1655,14 @@ describe("TokenZapLogic.spec", async () => {
 
             it(`should succeed, when remove liquidity to ${symbol}`, async () => {
               const output = await zap.callStatic.swap(
-                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, 0, index, Action.RemoveLiquidity),
+                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, 0, index, Action.Remove),
                 amountIn
               );
               expect(output).gt(constants.Zero);
               console.log("amountIn:", pool.amount, "amountOut:", ethers.utils.formatUnits(output, decimals));
               const beforeBalance = await getBalanceFromZap(address);
               await zap.swap(
-                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, 0, index, Action.RemoveLiquidity),
+                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, 0, index, Action.Remove),
                 amountIn
               );
               const afterBalance = await getBalanceFromZap(address);
@@ -1692,12 +1692,12 @@ describe("TokenZapLogic.spec", async () => {
             it(`should succeed, when add ${symbol} liquidity`, async () => {
               // remove liquidity first
               await zap.swap(
-                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, 0, index, Action.RemoveLiquidity),
+                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, 0, index, Action.Remove),
                 lpAmount
               );
               const amountIn = await getBalanceFromZap(address);
               const output = await zap.callStatic.swap(
-                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, index, 0, Action.AddLiquidity),
+                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, index, 0, Action.Add),
                 amountIn
               );
               expect(output).gt(constants.Zero);
@@ -1709,7 +1709,7 @@ describe("TokenZapLogic.spec", async () => {
               );
               const beforeBalance = await getBalanceFromZap(lpToken.address);
               await zap.swap(
-                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, index, 0, Action.AddLiquidity),
+                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, index, 0, Action.Add),
                 amountIn
               );
               const afterBalance = await getBalanceFromZap(lpToken.address);
@@ -1734,7 +1734,7 @@ describe("TokenZapLogic.spec", async () => {
 
               // remove liquidity first
               await zap.swap(
-                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, 0, indexIn, Action.RemoveLiquidity),
+                encodePoolHintV2(pool.pool, pool.type, pool.tokens.length, 0, indexIn, Action.Remove),
                 lpAmount
               );
               amountIn = await getBalanceFromZap(srcAddress);
@@ -1821,21 +1821,14 @@ describe("TokenZapLogic.spec", async () => {
 
             it(`should succeed, when remove liquidity to ${symbol}`, async () => {
               const output = await zap.callStatic.swap(
-                encodePoolHintV2(
-                  poolAddress,
-                  underlyingType,
-                  underlyingTokens.length,
-                  0,
-                  index,
-                  Action.RemoveLiquidity
-                ),
+                encodePoolHintV2(poolAddress, underlyingType, underlyingTokens.length, 0, index, Action.Remove),
                 amountIn
               );
               expect(output).gt(constants.Zero);
               console.log("amountIn:", pool.amount, "amountOut:", ethers.utils.formatUnits(output, decimals));
               const beforeBalance = await getBalanceFromZap(address);
               await zap.swap(
-                encodePoolHintV2(poolAddress, underlyingType, pool.tokens.length, 0, index, Action.RemoveLiquidity),
+                encodePoolHintV2(poolAddress, underlyingType, pool.tokens.length, 0, index, Action.Remove),
                 amountIn
               );
               const afterBalance = await getBalanceFromZap(address);
@@ -1865,30 +1858,16 @@ describe("TokenZapLogic.spec", async () => {
             it(`should succeed, when add ${symbol} liquidity`, async () => {
               // remove liquidity first
               const amountIn = await zap.callStatic.swap(
-                encodePoolHintV2(
-                  poolAddress,
-                  underlyingType,
-                  underlyingTokens.length,
-                  0,
-                  index,
-                  Action.RemoveLiquidity
-                ),
+                encodePoolHintV2(poolAddress, underlyingType, underlyingTokens.length, 0, index, Action.Remove),
                 lpAmount
               );
               await zap.swap(
-                encodePoolHintV2(
-                  poolAddress,
-                  underlyingType,
-                  underlyingTokens.length,
-                  0,
-                  index,
-                  Action.RemoveLiquidity
-                ),
+                encodePoolHintV2(poolAddress, underlyingType, underlyingTokens.length, 0, index, Action.Remove),
                 lpAmount
               );
 
               const output = await zap.callStatic.swap(
-                encodePoolHintV2(poolAddress, underlyingType, underlyingTokens.length, index, 0, Action.AddLiquidity),
+                encodePoolHintV2(poolAddress, underlyingType, underlyingTokens.length, index, 0, Action.Add),
                 amountIn
               );
               expect(output).gt(constants.Zero);
@@ -1900,7 +1879,7 @@ describe("TokenZapLogic.spec", async () => {
               );
               const beforeBalance = await getBalanceFromZap(lpToken.address);
               await zap.swap(
-                encodePoolHintV2(poolAddress, underlyingType, underlyingTokens.length, index, 0, Action.AddLiquidity),
+                encodePoolHintV2(poolAddress, underlyingType, underlyingTokens.length, index, 0, Action.Add),
                 amountIn
               );
               const afterBalance = await getBalanceFromZap(lpToken.address);
@@ -1925,25 +1904,11 @@ describe("TokenZapLogic.spec", async () => {
 
               // remove liquidity first
               amountIn = await zap.callStatic.swap(
-                encodePoolHintV2(
-                  poolAddress,
-                  underlyingType,
-                  underlyingTokens.length,
-                  0,
-                  indexIn,
-                  Action.RemoveLiquidity
-                ),
+                encodePoolHintV2(poolAddress, underlyingType, underlyingTokens.length, 0, indexIn, Action.Remove),
                 lpAmount
               );
               await zap.swap(
-                encodePoolHintV2(
-                  poolAddress,
-                  underlyingType,
-                  underlyingTokens.length,
-                  0,
-                  indexIn,
-                  Action.RemoveLiquidity
-                ),
+                encodePoolHintV2(poolAddress, underlyingType, underlyingTokens.length, 0, indexIn, Action.Remove),
                 lpAmount
               );
             });

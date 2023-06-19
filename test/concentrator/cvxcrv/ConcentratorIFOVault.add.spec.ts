@@ -306,6 +306,62 @@ const POOL_FORK_CONFIG: {
     amount: "0.1",
     harvest: false,
   },
+  "USDT/crvUSD": {
+    height: 17377350,
+    pid: 59,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
+    amount: "10000",
+    harvest: false,
+  },
+  "USDP/crvUSD": {
+    height: 17377350,
+    pid: 59,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
+    amount: "10000",
+    harvest: false,
+  },
+  "TUSD/crvUSD": {
+    height: 17377350,
+    pid: 59,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
+    amount: "10000",
+    harvest: false,
+  },
+  "USDC/crvUSD": {
+    height: 17377350,
+    pid: 59,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
+    amount: "10000",
+    harvest: false,
+  },
+  "USDC/WBTC/ETH": {
+    height: 17447590,
+    pid: 63,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
+    amount: "0.01",
+    harvest: true,
+  },
+  "USDT/WBTC/ETH": {
+    height: 17447590,
+    pid: 63,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
+    amount: "0.01",
+    harvest: true,
+  },
+  "ETH/stETH-ng": {
+    height: 17497260,
+    pid: 65,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x0FCbf9A4398C15d6609580879681Aa5382FF8542",
+    amount: "10",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
@@ -426,7 +482,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
         gateway = await ethers.getContractAt(
           "ConcentratorGateway",
           DEPLOYED_CONTRACTS.Concentrator.ConcentratorGateway,
-          owner
+          manager
         );
         await gateway.updateLogic(logic.address);
 

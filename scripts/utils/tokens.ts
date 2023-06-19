@@ -97,4 +97,8 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   eCFX: { decimals: 18, address: "0xa1f82e14bc09a1b42710df1a8a999b62f294e592" },
   UZD: { decimals: 18, address: "0xb40b6608b2743e691c9b54ddbdee7bf03cd79f1c" },
   wBETH: { decimals: 18, address: "0xa2e3356610840701bdf5611a53974510ae27e2e1" },
+  MET: { decimals: 18, address: "0x2ebd53d035150f328bd754d6dc66b99b0edb89aa" },
+  OGV: { decimals: 18, address: "0x9c354503C38481a7A7a51629142963F98eCC12D0" },
+  crvUSD: { decimals: 18, address: "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E" },
+  sdFXS: { decimals: 18, address: "0x402f878bdd1f5c66fdaf0fababcf74741b68ac36" },
 };

@@ -71,7 +71,8 @@ contract ManualCompoundingCurveGaugeStrategy is ManualCompoundingStrategyBase {
       _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
     }
     address _gauge = gauge;
-    ICurveTokenMinter(MINTER).mint(_gauge);
+    try ICurveTokenMinter(MINTER).mint(_gauge) {} catch {}
+
     // some gauge has no extra rewards
     try ICurveGauge(_gauge).claim_rewards() {} catch {}
     for (uint256 i = 0; i < rewards.length; i++) {
