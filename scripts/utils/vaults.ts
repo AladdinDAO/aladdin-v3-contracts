@@ -3120,5 +3120,15 @@ export const DEPLOYED_VAULTS: {
     { name: "USDC/WBTC/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 28
     { name: "USDT/WBTC/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 29
   ],
-  asdCRV: [],
+  asdCRV: [
+    { name: "mim", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 0
+    { name: "peth", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 1
+    { name: "clevusd", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 2
+    { name: "CRV/cvxCRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 3
+    { name: "eCFX/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 4
+    { name: "USDT/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 5
+    { name: "USDC/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 6
+    { name: "USDC/WBTC/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 7
+    { name: "USDT/WBTC/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 8
+  ],
 };

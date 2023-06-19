@@ -27,6 +27,8 @@ import {
   IDiamond,
   ManualCompoundingConvexCurveStrategy,
   ManualCompoundingCurveGaugeStrategy,
+  ConcentratorVaultForAsdCRV__factory,
+  ConcentratorVaultForAsdCRV,
 } from "../typechain";
 import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "./utils";
 
@@ -116,6 +118,10 @@ const config: {
         harvest: number;
         withdraw: number;
       };
+    };
+    ConcentratorVaultForAsdCRV: {
+      impl: string;
+      proxy: string;
     };
     SdCRVBribeBurner: string;
   };
@@ -276,8 +282,8 @@ const config: {
       lockDuration: 86400 * 1,
       ratio: {
         platform: 0e7 / 100, // 0%
-        harvest: 1e7 / 100, // 1%
-        boost: 10e7 / 100, // 10%
+        harvest: 2e7 / 100, // 2%
+        boost: 15e7 / 100, // 15%
         withdraw: 0 / 100, // 0%
       },
     },
@@ -286,9 +292,13 @@ const config: {
       proxy: "0x43E54C2E7b3e294De3A155785F52AB49d87B9922",
       ratio: {
         platform: 10e7, // 10%
-        harvest: 1e7, // 1%
-        withdraw: 0.25e7, // 0.25%
+        harvest: 2e7, // 2%
+        withdraw: 0e7, // 0%
       },
+    },
+    ConcentratorVaultForAsdCRV: {
+      impl: "0x0a6E1167c9b8599EE1decCB331AaC176E2aA0b97",
+      proxy: "0x59866EC5650e9BA00c51f6D681762b48b0AdA3de",
     },
     SdCRVBribeBurner: "0xf98Af660d1ff28Cd986b205d6201FB1D5EE231A3",
   },
@@ -1132,6 +1142,46 @@ async function deployConcentratorStakeDAO() {
     deployConfig.AladdinSdCRV.proxy = asdCRV.address;
   }
 
+  if (deployConfig.ConcentratorVaultForAsdCRV.impl === "") {
+    const ConcentratorVaultForAsdCRV = await ethers.getContractFactory("ConcentratorVaultForAsdCRV", deployer);
+    const impl = await ConcentratorVaultForAsdCRV.deploy();
+    console.log("Deploying ConcentratorVaultForAsdCRV Impl, hash:", impl.deployTransaction.hash);
+    const receipt = await impl.deployTransaction.wait();
+    console.log("✅ Deploy ConcentratorVaultForAsdCRV Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
+    deployConfig.ConcentratorVaultForAsdCRV.impl = impl.address;
+  } else {
+    console.log("Found ConcentratorVaultForAsdCRV Impl at:", deployConfig.ConcentratorVaultForAsdCRV.impl);
+  }
+
+  let vault: ConcentratorVaultForAsdCRV;
+  if (deployConfig.ConcentratorVaultForAsdCRV.proxy !== "") {
+    vault = await ethers.getContractAt(
+      "ConcentratorVaultForAsdCRV",
+      deployConfig.ConcentratorVaultForAsdCRV.proxy,
+      deployer
+    );
+    console.log("Found ConcentratorVaultForAsdCRV at:", asdCRV.address);
+  } else {
+    const data = ConcentratorVaultForAsdCRV__factory.createInterface().encodeFunctionData("initialize", [
+      asdCRV.address,
+      DEPLOYED_CONTRACTS.AladdinZap,
+      DEPLOYED_CONTRACTS.Concentrator.PlatformFeeDistributor,
+    ]);
+    const TransparentUpgradeableProxy = await ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
+    const proxy = await TransparentUpgradeableProxy.deploy(
+      deployConfig.ConcentratorVaultForAsdCRV.impl,
+      DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin,
+      data
+    );
+    console.log(`Deploying ConcentratorVaultForAsdCRV, hash:`, proxy.deployTransaction.hash);
+    await proxy.deployed();
+    const receipt = await proxy.deployTransaction.wait();
+    console.log(`✅ Deploy ConcentratorVaultForAsdCRV, at:`, proxy.address, "gas used:", receipt.gasUsed.toString());
+
+    vault = await ethers.getContractAt("ConcentratorVaultForAsdCRV", proxy.address, deployer);
+    deployConfig.ConcentratorVaultForAsdCRV.proxy = vault.address;
+  }
+
   if (deployConfig.SdCRVBribeBurner !== "") {
     const burner = await ethers.getContractAt("SdCRVBribeBurner", deployConfig.SdCRVBribeBurner, deployer);
     console.log("Found SdCRVBribeBurner at:", burner.address);
@@ -1249,6 +1299,8 @@ async function deployConcentratorStakeDAO() {
     const receipt = await tx.wait();
     console.log("✅ Done, gas used:", receipt.gasUsed.toString());
   }
+
+  await addVaults(deployer, "asdCRV", DEPLOYED_VAULTS.asdCRV, vault);
 }
 
 async function deployPriceOracle() {
