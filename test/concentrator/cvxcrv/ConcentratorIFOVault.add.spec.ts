@@ -354,6 +354,14 @@ const POOL_FORK_CONFIG: {
     amount: "0.01",
     harvest: true,
   },
+  "ETH/stETH-ng": {
+    height: 17497260,
+    pid: 65,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x0FCbf9A4398C15d6609580879681Aa5382FF8542",
+    amount: "10",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
@@ -474,7 +482,7 @@ describe("ConcentratorIFOVault.add.spec", async () => {
         gateway = await ethers.getContractAt(
           "ConcentratorGateway",
           DEPLOYED_CONTRACTS.Concentrator.ConcentratorGateway,
-          owner
+          manager
         );
         await gateway.updateLogic(logic.address);
 
