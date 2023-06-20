@@ -132,10 +132,18 @@ contract TokenZapLogic {
     }
     address _token = ICurvePoolRegistry(CURVE_POOL_REGISTRY).get_lp_token(_pool);
     if (_token == address(0)) {
-      try IERC20Upgradeable(_pool).totalSupply() returns (uint256) {
+      // solhint-disable-next-line no-inline-assembly
+      assembly {
+        // keccack("token()")
+        mstore(0x00, 0xfc0c546a00000000000000000000000000000000000000000000000000000000)
+        let success := staticcall(gas(), _pool, 0x00, 0x04, 0x00, 0x20)
+        _token := _pool
+        if success {
+          _token := mload(0x00)
+        }
+      }
+      if (_token == address(0)) {
         _token = _pool;
-      } catch {
-        _token = ICurveCryptoPool(_pool).token();
       }
     }
     return _token;
