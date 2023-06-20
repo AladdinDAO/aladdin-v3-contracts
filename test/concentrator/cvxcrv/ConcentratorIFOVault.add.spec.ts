@@ -484,7 +484,8 @@ describe("ConcentratorIFOVault.add.spec", async () => {
           DEPLOYED_CONTRACTS.Concentrator.ConcentratorGateway,
           manager
         );
-        await gateway.updateLogic(logic.address);
+        const gatewayOwner = await ethers.getSigner(await gateway.owner());
+        await gateway.connect(gatewayOwner).updateLogic(logic.address);
 
         vault = await ethers.getContractAt(
           "ConcentratorIFOVault",
