@@ -53,7 +53,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
    *************/
 
   /// @dev The precision used to compute nav.
-  uint256 private constant PRECISION = 1e18;
+  uint256 internal constant PRECISION = 1e18;
 
   /// @dev The precision used to compute nav.
   int256 private constant PRECISION_I256 = 1e18;
@@ -104,10 +104,14 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @inheritdoc ITreasury
   uint256 public override strategyUnderlying;
 
+  /// @notice Local cache for twap price.
   TwapCache public twapCache;
 
   /// @notice Whether the sender is allowed to do settlement.
   mapping(address => bool) public settleWhitelist;
+
+  /// @dev Slots for future use.
+  uint256[38] private _gap;
 
   /************
    * Modifier *

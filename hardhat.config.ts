@@ -12,7 +12,7 @@ import "solidity-coverage";
 dotenv.config();
 
 if (process.env.PROXY) {
-  const proxyAgent = new ProxyAgent("socks5://127.0.0.1:7890");
+  const proxyAgent = new ProxyAgent(process.env.PROXY);
   setGlobalDispatcher(proxyAgent);
 }
 
