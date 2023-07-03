@@ -181,14 +181,34 @@ const config: {
         proxy: constants.AddressZero,
       },
     },
+    frxeth: {
+      compounder: {
+        ratio: {
+          platform: 10e7, // 10%
+          harvest: 2e7, // 2%
+          withdraw: 0, // 0%
+        },
+        underlying: "frxeth",
+        name: "AladdinETH: ETH/frxETH",
+        symbol: "afrxETH",
+        rewards: ["CVX", "CRV"],
+        strategy: "",
+        proxy: "",
+        impl: "0xd3B15898d10B63Ddc309c287f7B68b768Afb777c",
+      },
+      vault: {
+        proxy: constants.AddressZero,
+        impl: constants.AddressZero,
+      },
+    },
   },
   ConcentratorETHInConvexFrax: {
     frxeth: {
       compounder: {
         ratio: {
           platform: 10e7, // 10%
-          harvest: 1e7, // 1%
-          withdraw: 0.25e7, // 0.25%
+          harvest: 2e7, // 2%
+          withdraw: 0e7, // 0%
         },
         underlying: "frxeth",
         name: "AladdinETH: ETH/frxETH",
