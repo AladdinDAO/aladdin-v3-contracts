@@ -15,8 +15,10 @@ import { IBalancerPool } from "../../interfaces/IBalancerPool.sol";
 import { IBalancerV1Pool } from "../../interfaces/IBalancerV1Pool.sol";
 import { IBalancerVault } from "../../interfaces/IBalancerVault.sol";
 import { ICurveAPool } from "../../interfaces/ICurveAPool.sol";
-import { ICurveBasePool } from "../../interfaces/ICurveBasePool.sol";
-import { ICurveYPoolSwap } from "../../interfaces/ICurveYPool.sol";
+import { ICurvePlainPool } from "../../interfaces/ICurvePlainPool.sol";
+import { ICurveYPoolSwap, ICurveYPoolDeposit } from "../../interfaces/ICurveYPool.sol";
+import { ICurveMetaPoolSwap } from "../../interfaces/ICurveMetaPool.sol";
+import { ICurveCryptoPool } from "../../interfaces/ICurveCryptoPool.sol";
 import { IUniswapV2Pair } from "../../interfaces/IUniswapV2Pair.sol";
 import { IUniswapV3Pool } from "../../interfaces/IUniswapV3Pool.sol";
 import { IUniswapV3Router } from "../../interfaces/IUniswapV3Router.sol";
@@ -51,6 +53,8 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
    * Variables *
    *************/
 
+  /// @notice The mask of supported pool types.
+  /// @dev If the `i`-th bit is `1`, the `i`-th pool type is supported in this contract.
   uint256 public supportedPoolTypes;
 
   /***************
@@ -181,24 +185,24 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       } else if (_poolType == 2) {
         // BalancerV1
         address[] memory _tokens = IBalancerV1Pool(_pool).getCurrentTokens();
-        _tokenIn = _tokens[(_encoding >> 162) & 3];
-        _tokenIn = _tokens[(_encoding >> 164) & 3];
+        _tokenIn = _tokens[(_encoding >> 163) & 7];
+        _tokenIn = _tokens[(_encoding >> 166) & 7];
       } else if (_poolType == 3) {
         // BalancerV2
         bytes32 _poolId = IBalancerPool(_pool).getPoolId();
         (address[] memory _tokens, , ) = IBalancerVault(BALANCER_VAULT).getPoolTokens(_poolId);
-        _tokenIn = _tokens[(_encoding >> 162) & 3];
-        _tokenOut = _tokens[(_encoding >> 164) & 3];
+        _tokenIn = _tokens[(_encoding >> 163) & 7];
+        _tokenOut = _tokens[(_encoding >> 166) & 7];
       } else if (_poolType <= 8) {
         // Curve
-        _tokenIn = _getCurveTokenByIndex(_poolType, (_encoding >> 162) & 3, _encoding);
-        _tokenOut = _getCurveTokenByIndex(_poolType, (_encoding >> 164) & 3, _encoding);
+        _tokenIn = _getCurveTokenByIndex(_pool, _poolType, (_encoding >> 163) & 7, _encoding);
+        _tokenOut = _getCurveTokenByIndex(_pool, _poolType, (_encoding >> 166) & 7, _encoding);
       }
     } else if (_action == 1) {
       _tokenOut = _pool;
       if (4 <= _poolType && _poolType <= 8) {
         _pool = _getTokenMinter(_pool);
-        _tokenIn = _getCurveTokenByIndex(_poolType, (_encoding >> 162) & 3, _encoding);
+        _tokenIn = _getCurveTokenByIndex(_pool, _poolType, (_encoding >> 163) & 7, _encoding);
       } else if (_poolType == 9) {
         _tokenIn = IERC4626(_pool).asset();
       } else {
@@ -208,13 +212,15 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       _tokenIn = _pool;
       if (4 <= _poolType && _poolType <= 8) {
         _pool = _getTokenMinter(_pool);
-        _tokenOut = _getCurveTokenByIndex(_poolType, (_encoding >> 164) & 3, _encoding);
+        _tokenOut = _getCurveTokenByIndex(_pool, _poolType, (_encoding >> 166) & 7, _encoding);
       } else if (_poolType == 9) {
         _tokenOut = IERC4626(_pool).asset();
       } else {
         _tokenIn = address(0);
       }
     }
+    if (_tokenIn == ETH) _tokenIn = WETH;
+    if (_tokenOut == ETH) _tokenOut = WETH;
   }
 
   /// @dev Internal function to return the minter for curve lp token.
@@ -241,19 +247,18 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
   /// @param _encoding The customized encoding of the route.
   /// @return _token The address of the token.
   function _getCurveTokenByIndex(
+    address _pool,
     uint256 _poolType,
     uint256 _index,
     uint256 _encoding
   ) internal view returns (address _token) {
-    address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
-
-    if ((_poolType == 5 || _poolType == 6) && (((_encoding >> 166) & 1) == 1)) {
+    if ((_poolType == 5 || _poolType == 6) && (((_encoding >> 169) & 1) == 1)) {
       _token = ICurveAPool(_pool).underlying_coins(_index);
     } else {
-      try ICurveBasePool(_pool).coins(_index) returns (address result) {
+      try ICurvePlainPool(_pool).coins(_index) returns (address result) {
         _token = result;
       } catch {
-        _token = ICurveBasePool(_pool).coins(int128(_index));
+        _token = ICurvePlainPool(_pool).coins(int128(_index));
       }
     }
   }
@@ -262,12 +267,40 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
    * Internal Functions for Token Swap *
    *************************************/
 
+  /// @dev Query the amount of output token by swapping.
+  /// @param _poolType The pool type.
+  /// @param _encoding The customized encoding of the route.
+  /// @param _amountIn The amount of input token.
+  /// @return _amountOut The amount of output token.
   function _querySwap(
     uint256 _poolType,
     uint256 _encoding,
     uint256 _amountIn
-  ) internal view returns (uint256) {}
+  ) internal view returns (uint256 _amountOut) {
+    address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
+    if (_poolType == 0) {} else if (_poolType == 1) {} else if (_poolType == 2) {} else if (_poolType == 3) {} else if (
+      _poolType <= 8
+    ) {
+      uint256 indexIn = (_encoding >> 163) & 7;
+      uint256 indexOut = (_encoding >> 166) & 7;
+      if (_poolType == 8) {
+        _amountOut = ICurveCryptoPool(_pool).get_dy(indexIn, indexOut, _amountIn);
+      } else if (_poolType == 5 && ((_encoding >> 169) & 1) == 1) {
+        _amountOut = ICurveAPool(_pool).get_dy_underlying(int128(indexIn), int128(indexOut), _amountIn);
+      } else if (_poolType == 6 && ((_encoding >> 169) & 1) == 1) {
+        _amountOut = ICurveYPoolSwap(_pool).get_dy_underlying(int128(indexIn), int128(indexOut), _amountIn);
+      } else {
+        _amountOut = ICurvePlainPool(_pool).get_dy(int128(indexIn), int128(indexOut), _amountIn);
+      }
+    }
+  }
 
+  /// @dev Swap from one token to another token.
+  /// @param _poolType The pool type.
+  /// @param _encoding The customized encoding of the route.
+  /// @param _amountIn The amount of input token.
+  /// @param _recipient The address of output token receiver.
+  /// @return _amountOut The amount of output token.
   function _swap(
     uint256 _poolType,
     uint256 _encoding,
@@ -277,7 +310,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     (address _tokenIn, address _tokenOut) = _getTokenPair(_poolType, 0, _encoding);
     address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
 
-    if ((_poolType == 4 || _poolType == 8) && ((_encoding >> 166) & 1) == 1) {
+    if ((_poolType == 4 || _poolType == 8) && ((_encoding >> 169) & 1) == 1) {
       // tokenIn is (W)ETH and we are going to use ETH.
       _unwrapIfNeeded(_amountIn);
     } else {
@@ -308,7 +341,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       return _amountOut;
     } else if (_poolType == 1) {
       // UniswapV3
-      uint24 _fee = IUniswapV3Pool(_pool).fee();
+      uint24 _fee = uint24((_encoding >> 160) & 16777215);
       _approve(_tokenIn, UNISWAP_V3_ROUTER, _amountIn);
       IUniswapV3Router.ExactInputSingleParams memory _params = IUniswapV3Router.ExactInputSingleParams(
         _tokenIn,
@@ -325,40 +358,81 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     } else if (_poolType == 2) {
       // BalancerV1
       _approve(_tokenIn, _pool, _amountIn);
-      (_amountOut, ) = IBalancerV1Pool(_pool).swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, 0, uint256(-1));
+      IBalancerV1Pool(_pool).swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, 0, uint256(-1));
     } else if (_poolType == 3) {
       bytes32 _poolId = IBalancerPool(_pool).getPoolId();
       _wrapTokenIfNeeded(_tokenIn, _amountIn);
       _approve(_tokenIn, BALANCER_VAULT, _amountIn);
-      _amountOut = IBalancerVault(BALANCER_VAULT).swap(
-        IBalancerVault.SingleSwap({
-          poolId: _poolId,
-          kind: IBalancerVault.SwapKind.GIVEN_IN,
-          assetIn: _tokenIn,
-          assetOut: _tokenOut,
-          amount: _amountIn,
-          userData: new bytes(0)
-        }),
-        IBalancerVault.FundManagement({
-          sender: address(this),
-          fromInternalBalance: false,
-          recipient: payable(_recipient),
-          toInternalBalance: false
-        }),
-        0,
-        // solhint-disable-next-line not-rely-on-time
-        block.timestamp
-      );
+      return
+        IBalancerVault(BALANCER_VAULT).swap(
+          IBalancerVault.SingleSwap({
+            poolId: _poolId,
+            kind: IBalancerVault.SwapKind.GIVEN_IN,
+            assetIn: _tokenIn,
+            assetOut: _tokenOut,
+            amount: _amountIn,
+            userData: new bytes(0)
+          }),
+          IBalancerVault.FundManagement({
+            sender: address(this),
+            fromInternalBalance: false,
+            recipient: payable(_recipient),
+            toInternalBalance: false
+          }),
+          0,
+          // solhint-disable-next-line not-rely-on-time
+          block.timestamp
+        );
     } else if (_poolType <= 8) {
-      uint256 indexIn = (_encoding >> 162) & 3;
-      uint256 indexOut = (_encoding >> 164) & 3;
+      uint256 indexIn = (_encoding >> 163) & 7;
+      uint256 indexOut = (_encoding >> 166) & 7;
       _approve(_tokenIn, _pool, _amountIn);
       if (_poolType == 4) {
-        ICurveBasePool(_pool).exchange(int128(indexIn), int128(indexOut), _amountIn, 0);
-      } else if (_poolType == 5) {}
-      _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+        if (((_encoding >> 169) & 1) == 0) {
+          _approve(_tokenIn, _pool, _amountIn);
+          ICurvePlainPool(_pool).exchange(int128(indexIn), int128(indexOut), _amountIn, 0);
+        } else {
+          ICurvePlainPool(_pool).exchange{ value: _amountIn }(int128(indexIn), int128(indexOut), _amountIn, 0);
+        }
+      } else if (_poolType == 5) {
+        _approve(_tokenIn, _pool, _amountIn);
+        if (((_encoding >> 169) & 1) == 0) {
+          ICurveAPool(_pool).exchange(int128(indexIn), int128(indexOut), _amountIn, 0);
+        } else {
+          ICurveAPool(_pool).exchange_underlying(int128(indexIn), int128(indexOut), _amountIn, 0);
+        }
+      } else if (_poolType == 6) {
+        if (((_encoding >> 169) & 1) == 1) {
+          _pool = ICurveYPoolDeposit(_pool).curve();
+        }
+        _approve(_tokenIn, _pool, _amountIn);
+        if (((_encoding >> 169) & 1) == 0) {
+          ICurveYPoolSwap(_pool).exchange(int128(indexIn), int128(indexOut), _amountIn, 0);
+        } else {
+          ICurveYPoolSwap(_pool).exchange_underlying(int128(indexIn), int128(indexOut), _amountIn, 0);
+        }
+      } else if (_poolType == 7) {
+        _approve(_tokenIn, _pool, _amountIn);
+        ICurveMetaPoolSwap(_pool).exchange(int128(indexIn), int128(indexOut), _amountIn, 0);
+      } else if (_poolType == 8) {
+        if (((_encoding >> 169) & 1) == 0) {
+          _approve(_tokenIn, _pool, _amountIn);
+          ICurveCryptoPool(_pool).exchange(indexIn, indexOut, _amountIn, 0);
+        } else {
+          ICurveCryptoPool(_pool).exchange{ value: _amountIn }(indexIn, indexOut, _amountIn, 0);
+        }
+      }
     } else {
       revert("invalid poolType");
+    }
+
+    if (_tokenOut == WETH) {
+      _wrapTokenIfNeeded(_tokenOut, address(this).balance);
+    }
+
+    _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+    if (_recipient != address(this)) {
+      IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
     }
   }
 
@@ -366,33 +440,204 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
    * Internal Functions for Token Wrapping *
    *****************************************/
 
+  /// @dev Query the amount of output token by wrapping.
+  /// @param _poolType The pool type.
+  /// @param _encoding The customized encoding of the route.
+  /// @param _amountIn The amount of input token.
+  /// @return _amountOut The amount of output token.
   function _queryWrap(
     uint256 _poolType,
     uint256 _encoding,
     uint256 _amountIn
-  ) internal view returns (uint256) {}
+  ) internal view returns (uint256 _amountOut) {
+    address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
+    if (4 <= _poolType && _poolType <= 8) {
+      uint256 _tokens = ((_encoding >> 160) & 7) + 1;
+      uint256 _indexIn = (_encoding >> 166) & 7;
 
+      if (_tokens == 2) {
+        uint256[2] memory _amounts;
+        _amounts[_indexIn] = _amountIn;
+        _amountOut = ICurvePlainPool(_pool).calc_token_amount(_amounts, true);
+      } else if (_tokens == 3) {
+        uint256[3] memory _amounts;
+        _amounts[_indexIn] = _amountIn;
+        _amountOut = ICurvePlainPool(_pool).calc_token_amount(_amounts, true);
+      } else {
+        uint256[4] memory _amounts;
+        _amounts[_indexIn] = _amountIn;
+        _amountOut = ICurvePlainPool(_pool).calc_token_amount(_amounts, true);
+      }
+    } else if (_poolType == 9) {
+      _amountOut = IERC4626(_pool).previewDeposit(_amountIn);
+    }
+  }
+
+  /// @dev Wrap from one token to another token.
+  /// @param _poolType The pool type.
+  /// @param _encoding The customized encoding of the route.
+  /// @param _amountIn The amount of input token.
+  /// @param _recipient The address of output token receiver.
+  /// @return _amountOut The amount of output token.
   function _wrap(
     uint256 _poolType,
     uint256 _encoding,
     uint256 _amountIn,
     address _recipient
-  ) internal returns (uint256) {}
+  ) internal returns (uint256 _amountOut) {
+    (address _tokenIn, address _tokenOut) = _getTokenPair(_poolType, 1, _encoding);
+    address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
+
+    if ((_poolType == 4 || _poolType == 8) && ((_encoding >> 169) & 1) == 1) {
+      // tokenIn is (W)ETH and we are going to use ETH.
+      _unwrapIfNeeded(_amountIn);
+    } else {
+      _wrapTokenIfNeeded(_tokenIn, _amountIn);
+    }
+
+    if (4 <= _poolType && _poolType <= 8) {
+      _pool = _getTokenMinter(_pool);
+      uint256 _tokens = ((_encoding >> 160) & 7) + 1;
+      uint256 _indexIn = (_encoding >> 163) & 7;
+      require(2 <= _tokens && _tokens <= 4, "invalid tokens");
+
+      if (_poolType == 5) {
+        bool _use_underlying = ((_encoding >> 169) & 1) == 1;
+        _approve(_tokenIn, _pool, _amountIn);
+        if (_tokens == 2) {
+          uint256[2] memory _amounts;
+          _amounts[_indexIn] = _amountIn;
+          ICurveAPool(_pool).add_liquidity(_amounts, 0, _use_underlying);
+        } else if (_tokens == 3) {
+          uint256[3] memory _amounts;
+          _amounts[_indexIn] = _amountIn;
+          ICurveAPool(_pool).add_liquidity(_amounts, 0, _use_underlying);
+        } else {
+          uint256[4] memory _amounts;
+          _amounts[_indexIn] = _amountIn;
+          ICurveAPool(_pool).add_liquidity(_amounts, 0, _use_underlying);
+        }
+      } else {
+        bool _use_eth = (_poolType == 4 || _poolType == 8) && (((_encoding >> 169) & 1) == 1);
+        if (!_use_eth) {
+          _approve(_tokenIn, _pool, _amountIn);
+        }
+        if (_tokens == 2) {
+          uint256[2] memory _amounts;
+          _amounts[_indexIn] = _amountIn;
+          if (_use_eth) {
+            ICurvePlainPool(_pool).add_liquidity{ value: _amountIn }(_amounts, 0);
+          } else {
+            ICurvePlainPool(_pool).add_liquidity(_amounts, 0);
+          }
+        } else if (_tokens == 3) {
+          uint256[3] memory _amounts;
+          _amounts[_indexIn] = _amountIn;
+          if (_use_eth) {
+            ICurvePlainPool(_pool).add_liquidity{ value: _amountIn }(_amounts, 0);
+          } else {
+            ICurvePlainPool(_pool).add_liquidity(_amounts, 0);
+          }
+        } else {
+          uint256[4] memory _amounts;
+          _amounts[_indexIn] = _amountIn;
+          if (_use_eth) {
+            ICurvePlainPool(_pool).add_liquidity{ value: _amountIn }(_amounts, 0);
+          } else {
+            ICurvePlainPool(_pool).add_liquidity(_amounts, 0);
+          }
+        }
+      }
+    } else if (_poolType == 9) {
+      _approve(_tokenIn, _pool, _amountIn);
+      _amountOut = IERC4626(_pool).deposit(_amountIn, _recipient);
+      return _amountOut;
+    } else {
+      revert("invalid poolType");
+    }
+
+    _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+    if (_recipient != address(this)) {
+      IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
+    }
+  }
 
   /*******************************************
    * Internal Functions for Token Unwrapping *
    *******************************************/
 
+  /// @dev Query the amount of output token by unwrapping.
+  /// @param _poolType The pool type.
+  /// @param _encoding The customized encoding of the route.
+  /// @param _amountIn The amount of input token.
+  /// @return _amountOut The amount of output token.
   function _queryUnwrap(
     uint256 _poolType,
     uint256 _encoding,
     uint256 _amountIn
-  ) internal view returns (uint256) {}
+  ) internal view returns (uint256 _amountOut) {
+    address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
 
+    if (4 <= _poolType && _poolType <= 8) {
+      _pool = _getTokenMinter(_pool);
+      uint256 _indexOut = (_encoding >> 166) & 7;
+      if (_poolType == 8) {
+        _amountOut = ICurveCryptoPool(_pool).calc_withdraw_one_coin(_amountIn, _indexOut);
+      } else {
+        _amountOut = ICurvePlainPool(_pool).calc_withdraw_one_coin(_amountIn, int128(_indexOut));
+      }
+    } else if (_poolType == 9) {
+      _amountOut = IERC4626(_pool).previewRedeem(_amountIn);
+    }
+  }
+
+  /// @dev Unwrap from one token to another token.
+  /// @param _poolType The pool type.
+  /// @param _encoding The customized encoding of the route.
+  /// @param _amountIn The amount of input token.
+  /// @param _recipient The address of output token receiver.
+  /// @return _amountOut The amount of output token.
   function _unwrap(
     uint256 _poolType,
     uint256 _encoding,
     uint256 _amountIn,
     address _recipient
-  ) internal returns (uint256) {}
+  ) internal returns (uint256 _amountOut) {
+    (, address _tokenOut) = _getTokenPair(_poolType, 2, _encoding);
+    address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
+
+    if (4 <= _poolType && _poolType <= 8) {
+      _pool = _getTokenMinter(_pool);
+      uint256 _tokens = ((_encoding >> 160) & 7) + 1;
+      uint256 _indexOut = (_encoding >> 166) & 7;
+      require(2 <= _tokens && _tokens <= 4, "invalid tokens");
+
+      if (_poolType == 4) {
+        ICurvePlainPool(_pool).remove_liquidity_one_coin(_amountIn, int128(_indexOut), 0);
+      } else if (_poolType == 5) {
+        bool _use_underlying = ((_encoding >> 169) & 1) == 1;
+        ICurveAPool(_pool).remove_liquidity_one_coin(_amountIn, int128(_indexOut), 0, _use_underlying);
+      } else if (_poolType == 6) {
+        ICurveYPoolDeposit(_pool).remove_liquidity_one_coin(_amountIn, int128(_indexOut), 0, true);
+      } else if (_poolType == 7) {
+        ICurveMetaPoolSwap(_pool).remove_liquidity_one_coin(_amountIn, int128(_indexOut), 0);
+      } else {
+        ICurveCryptoPool(_pool).remove_liquidity_one_coin(_amountIn, _indexOut, 0);
+      }
+    } else if (_poolType == 9) {
+      _amountOut = IERC4626(_pool).redeem(_amountIn, _recipient, address(this));
+      return _amountOut;
+    } else {
+      revert("invalid poolType");
+    }
+
+    if (_tokenOut == WETH) {
+      _wrapTokenIfNeeded(_tokenOut, address(this).balance);
+    }
+
+    _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+    if (_recipient != address(this)) {
+      IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
+    }
+  }
 }

@@ -14,6 +14,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   SPELL: { decimals: 18, address: "0x090185f2135308BaD17527004364eBcC2D37e5F6" },
   FRAX: { decimals: 18, address: "0x853d955aCEf822Db058eb8505911ED77F175b99e" },
   TRICRV: { decimals: 18, address: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490" },
+  "3CRV": { decimals: 18, address: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490" },
   DAI: { decimals: 18, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F" },
   USDC: { decimals: 6, address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   USDT: { decimals: 6, address: "0xdAC17F958D2ee523a2206206994597C13D831ec7" },

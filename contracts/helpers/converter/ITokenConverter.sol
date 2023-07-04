@@ -38,34 +38,34 @@ interface ITokenConverter {
   ///
   /// + pool_type = 0: UniswapV2, only action = 0
   ///   customized = |   160 bits   | 24 bits |     1 bit    | 1 bit | ... |
-  ///                | pool address | fee num | zero_for_one | twamm | ... |
+  ///                | pool address | fee_num | zero_for_one | twamm | ... |
   /// + pool_type = 1: UniswapV3, only action = 0
   ///   customized = |   160 bits   | 24 bits |     1 bit    | ... |
-  ///                | pool address | fee num | zero_for_one | ... |
+  ///                | pool address | fee_num | zero_for_one | ... |
   /// + pool_type = 2: BalancerV1, only action = 0
-  ///   customized = |   160 bits   | 2 bits |  2 bits  |   2 bits  | ... |
+  ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  | ... |
   ///                | pool address | tokens | index in | index out | ... |
   /// + pool_type = 3: BalancerV2, only action = 0
-  ///   customized = |   160 bits   | 2 bits |  2 bits  |   2 bits  | ... |
+  ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  | ... |
   ///                | pool address | tokens | index in | index out | ... |
-  /// + pool_type = 4: CurveBasePool or CurveFactoryPlainPool
-  ///   customized = |   160 bits   | 2 bits |  2 bits  |   2 bits  |  1 bit  | ... |
+  /// + pool_type = 4: CurvePlainPool or CurveFactoryPlainPool
+  ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  |  1 bit  | ... |
   ///                | pool address | tokens | index in | index out | use_eth | ... |
   /// + pool_type = 5: CurveAPool
-  ///   customized = |   160 bits   | 2 bits |  2 bits  |   2 bits  |     1 bits     | ... |
+  ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  |     1 bits     | ... |
   ///                | pool address | tokens | index in | index out | use_underlying | ... |
   /// + pool_type = 6: CurveYPool
-  ///   customized = |   160 bits   | 2 bits |  2 bits  |   2 bits  |     1 bits     | ... |
+  ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  |     1 bits     | ... |
   ///                | pool address | tokens | index in | index out | use_underlying | ... |
   /// + pool_type = 7: CurveMetaPool or CurveFactoryMetaPool
-  ///   customized = |   160 bits   | 2 bits |  2 bits  |   2 bits  | ... |
+  ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  | ... |
   ///                | pool address | tokens | index in | index out | ... |
   /// + pool_type = 8: CurveCryptoPool or CurveFactoryCryptoPool
-  ///   customized = |   160 bits   | 2 bits |  2 bits  |   2 bits  |  1 bit  | ... |
+  ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  |  1 bit  | ... |
   ///                | pool address | tokens | index in | index out | use_eth | ... |
   /// + pool_type = 9: ERC4626
-  ///   customized = |   160 bits   |  1 bit  | ... |
-  ///                | pool address | is_wrap | ... |
+  ///   customized = |   160 bits   | ... |
+  ///                | pool address | ... |
   ///
   /// Note: tokens + 1 is the number of tokens of the pool
   ///
