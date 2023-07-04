@@ -7,7 +7,7 @@ import { BigNumber, constants } from "ethers";
 
 const PRECISION = BigNumber.from(10).pow(18);
 
-describe("Treasury.spec", async () => {
+describe("Market.spec", async () => {
   let deployer: SignerWithAddress;
   let signer: SignerWithAddress;
   let platform: SignerWithAddress;

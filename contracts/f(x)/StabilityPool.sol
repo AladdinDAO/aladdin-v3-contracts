@@ -240,6 +240,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     treasury = _treasury;
     market = _market;
 
+    baseToken = ITreasury(_treasury).baseToken();
     asset = ITreasury(_treasury).fToken();
     wrapper = address(this);
     unlockDuration = 14 * DAY;
@@ -329,18 +330,18 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
       _amount = IERC20Upgradeable(_asset).balanceOf(msg.sender);
     }
     require(_amount > 0, "deposit zero amount");
-    IERC20Upgradeable(_amount).safeTransferFrom(msg.sender, address(this), _amount);
+    IERC20Upgradeable(_asset).safeTransferFrom(msg.sender, address(this), _amount);
 
     // distribute pending rewards
-    _distributeRewards();
-
-    // update user gained rewards
-    _updateAccountSnapshot(_recipient);
+    _distributeRewards(_recipient);
 
     // update deposit snapshot
-    // @note the snapshot is updated in _updateAccountSnapshot once, the value of initialDeposit is correct.
-    uint256 _newDeposit = snapshots[_recipient].initialDeposit.add(_amount);
-    snapshots[_recipient].initialDeposit = _newDeposit;
+    // @note the snapshot is updated in _distributeRewards once, the value of initialDeposit is correct.
+    uint256 _compoundedDeposit = snapshots[_recipient].initialDeposit;
+    uint256 _newDeposit = _compoundedDeposit.add(_amount);
+    emit UserDepositChange(_recipient, _newDeposit, 0);
+
+    _updateAccountSnapshot(_recipient, _newDeposit);
 
     totalSupply = totalSupply.add(_amount);
 
@@ -355,17 +356,16 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     require(snapshots[msg.sender].initialDeposit > 0, "user has no deposit");
 
     // distribute pending rewards
-    _distributeRewards();
-
-    // update user gained rewards
-    _updateAccountSnapshot(msg.sender);
+    _distributeRewards(msg.sender);
 
     // update deposit snapshot
-    // @note the snapshot is updated in _updateAccountSnapshot once, the value of initialDeposit is correct.
-    uint256 compoundedDeposit = snapshots[msg.sender].initialDeposit;
-    if (compoundedDeposit > _amount) _amount = compoundedDeposit;
-    uint256 _newDeposit = compoundedDeposit.sub(_amount);
-    snapshots[msg.sender].initialDeposit = _newDeposit;
+    // @note the snapshot is updated in _distributeRewards once, the value of initialDeposit is correct.
+    uint256 _compoundedDeposit = snapshots[msg.sender].initialDeposit;
+    if (_compoundedDeposit > _amount) _amount = _compoundedDeposit;
+    uint256 _newDeposit = _compoundedDeposit.sub(_amount);
+    emit UserDepositChange(msg.sender, _newDeposit, 0);
+
+    _updateAccountSnapshot(msg.sender, _newDeposit);
 
     // add to unlock list
     UserUnlock[] storage _lists = unlocks[msg.sender];
@@ -395,15 +395,12 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   /// @inheritdoc IStabilityPool
   function withdrawUnlocked(bool _doClaim, bool _unwrap) external override {
     // distribute pending rewards
-    _distributeRewards();
+    _distributeRewards(msg.sender);
 
     // withdraw unlocked
     _withdrawUnlocked(msg.sender);
 
     if (_doClaim) {
-      // update user gained rewards
-      _updateAccountSnapshot(msg.sender);
-
       // claim all rewards
       uint256 length = rewards.length;
       for (uint256 i = 0; i < length; i++) {
@@ -415,10 +412,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   /// @inheritdoc IStabilityPool
   function claim(address _token, bool _unwrap) external override {
     // distribute pending rewards
-    _distributeRewards();
-
-    // update user gained rewards
-    _updateAccountSnapshot(msg.sender);
+    _distributeRewards(msg.sender);
 
     // claim single token
     _claim(msg.sender, _token, _unwrap);
@@ -427,10 +421,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   /// @inheritdoc IStabilityPool
   function claim(address[] memory _tokens, bool _unwrap) external override {
     // distribute pending rewards
-    _distributeRewards();
-
-    // update user gained rewards
-    _updateAccountSnapshot(msg.sender);
+    _distributeRewards(msg.sender);
 
     // claim multiple tokens
     for (uint256 i = 0; i < _tokens.length; i++) {
@@ -447,7 +438,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     require(liquidator == msg.sender, "only liquidator");
 
     // distribute pending rewards
-    _distributeRewards();
+    _distributeRewards(address(this));
 
     ITreasury _treasury = ITreasury(treasury);
 
@@ -489,10 +480,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   /// @inheritdoc IStabilityPool
   function updateAccountSnapshot(address _account) external override {
     // distribute pending rewards
-    _distributeRewards();
-
-    // update user gained rewards
-    _updateAccountSnapshot(_account);
+    _distributeRewards(_account);
   }
 
   /// @inheritdoc IStabilityPool
@@ -560,6 +548,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
     rewardManager[_token] = _manager;
     rewardState[_token].periodLength = _periodLength;
+    rewards.push(_token);
 
     emit AddRewardToken(_token, _manager, _periodLength);
   }
@@ -575,6 +564,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   ) external onlyOwner {
     require(_manager != address(0), "zero manager address");
     require(_periodLength > 0, "zero period length");
+    require(rewardManager[_token] != address(0), "no such reward token");
 
     _distributeReward(_token);
 
@@ -589,10 +579,14 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
    **********************/
 
   /// @dev Internal function to distribute pending rewards.
-  function _distributeRewards() internal {
+  function _distributeRewards(address _account) internal {
     uint256 length = rewards.length;
     for (uint256 i = 0; i < length; i++) {
       _distributeReward(rewards[i]);
+    }
+
+    if (_account != address(0)) {
+      _updateAccountRewards(_account);
     }
   }
 
@@ -622,9 +616,9 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     }
   }
 
-  /// @dev Internal function to update account snapshot, including epoch state and reward accumulation.
+  /// @dev Internal function to update account reward accumulation.
   /// @param _account The address of user to update.
-  function _updateAccountSnapshot(address _account) internal {
+  function _updateAccountRewards(address _account) internal {
     uint256 _initialDeposit = snapshots[_account].initialDeposit;
     if (_initialDeposit == 0) return;
 
@@ -638,10 +632,30 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     }
 
     uint256 _compoundedAsset = _getCompoundedStakeFromSnapshots(_initialDeposit, snapshots[_account].epoch);
-    if (_initialDeposit != _compoundedAsset) {
-      snapshots[_account].initialDeposit = _initialDeposit;
-
+    if (_compoundedAsset != _initialDeposit) {
       emit UserDepositChange(_account, _compoundedAsset, _initialDeposit.sub(_compoundedAsset));
+      snapshots[_account].initialDeposit = _compoundedAsset;
+    }
+
+    snapshots[_account].epoch = _currentEpoch;
+  }
+
+  /// @dev Internal function to update account snapshot, including epoch state and reward accumulation.
+  /// @param _account The address of user to update.
+  function _updateAccountSnapshot(address _account, uint256 _newDeposit) internal {
+    snapshots[_account].initialDeposit = _newDeposit;
+
+    if (_newDeposit == 0) {
+      delete snapshots[_account].epoch;
+      return;
+    }
+
+    EpochState memory _currentEpoch = epochState;
+
+    uint256 length = rewards.length;
+    for (uint256 i = 0; i < length; i++) {
+      address _token = rewards[i];
+      snapshots[_account].sum[_token] = epochToScaleToSum[_token][_currentEpoch.epoch][_currentEpoch.scale];
     }
 
     snapshots[_account].epoch = _currentEpoch;
@@ -697,6 +711,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     uint256 _totalSupply = totalSupply;
     uint256 _totalUnlocking = totalUnlocking;
     uint256 _assetLossPerUnitStaked;
+
     if (_loss == _totalSupply + _totalUnlocking) {
       _assetLossPerUnitStaked = PRECISION;
       lastAssetLossError = 0;
@@ -717,7 +732,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
     // The newProductFactor is the factor by which to change all deposits, due to the depletion of Stability Pool LUSD in the liquidation.
     // We make the product factor 0 if there was a pool-emptying. Otherwise, it is (1 - LUSDLossPerUnitStaked)
-    uint256 _newProductFactor = PRECISION.sub(lastAssetLossError);
+    uint256 _newProductFactor = PRECISION.sub(_assetLossPerUnitStaked);
 
     EpochState memory _currentEpoch = epochState;
 

@@ -4,13 +4,16 @@ import { BigNumber, constants, Contract } from "ethers";
 import { ethers } from "hardhat";
 import {
   ChainlinkTwapOracleV3,
-  ETHGateway,
+  StETHGateway,
   FractionalToken,
   LeveragedToken,
   Market,
   ProxyAdmin,
   TokenSale,
-  Treasury,
+  StETHTreasury,
+  StabilityPool,
+  LiquidatorWithBonusToken,
+  WstETHWrapper,
 } from "../typechain";
 import { DEPLOYED_CONTRACTS, TOKENS } from "./utils";
 
@@ -36,14 +39,20 @@ const config: {
     };
     address: string;
   };
+  Ratio: {
+    stabilityPoolRatio: BigNumber;
+    harvestBountyRatio: BigNumber;
+  };
   impls: { [name: string]: string };
-
+  Liquidator: { [name: string]: string };
   LeveragedToken: string;
   FractionalToken: string;
-  Treasury: string;
+  stETHTreasury: string;
+  StabilityPool: string;
   Market: string;
   ChainlinkTwapOracleV3: string;
-  ETHGateway: string;
+  wstETHWrapper: string;
+  stETHGateway: string;
 } = {
   initialMintRatio: ethers.utils.parseUnits("0.5", 18),
   beta: ethers.utils.parseUnits("0.1", 18),
@@ -54,7 +63,7 @@ const config: {
     recapRatio: ethers.utils.parseUnits("1", 18),
   },
 
-  ProxyAdmin: "0x588b85AA6074CcABE631D739eD42aa355012a534",
+  ProxyAdmin: "0xa617206663343b6353acF27566586eE9b53DFb2b",
   Sale: {
     cap: ethers.utils.parseEther("20000"),
     time: { WhitelistStartTime: 1685620800, PublicStartTime: 1685624400, SaleDuration: 86400 * 6 },
@@ -67,17 +76,27 @@ const config: {
     address: "0x3eB6Da2d3f39BA184AEA23876026E0747Fb0E17f",
   },
   impls: {
-    LeveragedToken: "0x9176e7145d3820CC658cD2C61c17A1BBa7F2B2BA",
-    FractionalToken: "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
-    Treasury: "0xb7fBd9c445A575cc6D77264d92706165A9924abf",
-    Market: "0xe73b475aCCf3a4Ad3d718069c338BbeCF95c5C70",
+    LeveragedToken: "0xAF345c813CE17Cc5837BfD14a910D365223F3B95",
+    FractionalToken: "0x9176e7145d3820CC658cD2C61c17A1BBa7F2B2BA",
+    stETHTreasury: "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
+    Market: "0x789E729713ddC80cf2db4e59ca064D3770f1A034",
+    StabilityPool: "0xeD8895F754baA58e37b8c6dfAC202d67bf3e6550",
   },
-  ChainlinkTwapOracleV3: "0x32366846354DB5C08e92b4Ab0D2a510b2a2380C8",
-  FractionalToken: "0xcAD8810BfBbdd189686062A3A399Fc3eCAbB5164",
-  LeveragedToken: "0xBB8828DDb2774a141EBE3BB449d1cc5BF6212885",
-  Treasury: "0x58EE0A16FB24ea34169e237bb10900A6a90288FB",
-  Market: "0xDd2cf944633484e4B415d540397C7DD34093ECBc",
-  ETHGateway: "0x922837838aEd2937742CFF7b0AdFd74157e3B9D7",
+  Ratio: {
+    stabilityPoolRatio: ethers.utils.parseEther("0.5"),
+    harvestBountyRatio: ethers.utils.parseEther("0.01"),
+  },
+  Liquidator: {
+    LiquidatorWithBonusToken: "0x2a906eAB9B088E6753670bC8D3840f9473745748",
+  },
+  ChainlinkTwapOracleV3: "0x719c287932B0ea6037862b4cec4A786939DEb1d8",
+  FractionalToken: "0x674A745ADb09c3333D655cC63e2d77ACbE6De935",
+  LeveragedToken: "0x7b9Bb9CdBb04BF57F2F82e51D54F6C8ee165FF3B",
+  StabilityPool: "0x50d27385A7228ca469594925b2FC9e318dC6C0B0",
+  stETHTreasury: "0xBED3FEBBB237AeDdAc81904aD49a93143d5026C8",
+  Market: "0x3D8faCB2b65B8CEB682ADE00E016c672Ee6262c0",
+  wstETHWrapper: "0x548d04f8204973c357851533E4dA4fC300A336F6",
+  stETHGateway: "0x92d0cb7E56806Bf977e7F5296EA2Fe84B475Fe83",
 };
 
 const maxFeePerGas = 30e9;
@@ -110,11 +129,11 @@ async function main() {
     config.ProxyAdmin = proxyAdmin.address;
   }
 
-  for (const name of ["LeveragedToken", "FractionalToken", "Treasury", "Market"]) {
+  for (const name of ["LeveragedToken", "FractionalToken", "stETHTreasury", "Market", "StabilityPool"]) {
     if (config.impls[name] === "") {
       const Contract = await ethers.getContractFactory(name, deployer);
       let impl: Contract;
-      if (name === "Treasury") {
+      if (name === "stETHTreasury") {
         impl = await Contract.deploy(config.initialMintRatio, overrides);
       } else {
         impl = await Contract.deploy(overrides);
@@ -210,22 +229,27 @@ async function main() {
     config.LeveragedToken = xETH.address;
   }
 
-  let treasury: Treasury;
-  if (config.Treasury !== "") {
-    treasury = await ethers.getContractAt("Treasury", config.Treasury, deployer);
-    console.log(`Found Treasury at:`, treasury.address);
+  let treasury: StETHTreasury;
+  if (config.stETHTreasury !== "") {
+    treasury = (await ethers.getContractAt("stETHTreasury", config.stETHTreasury, deployer)) as StETHTreasury;
+    console.log(`Found stETHTreasury at:`, treasury.address);
   } else {
-    const proxy = await TransparentUpgradeableProxy.deploy(config.impls.Treasury, config.ProxyAdmin, "0x", overrides);
+    const proxy = await TransparentUpgradeableProxy.deploy(
+      config.impls.stETHTreasury,
+      config.ProxyAdmin,
+      "0x",
+      overrides
+    );
     console.log(`Deploying treasury, hash:`, proxy.deployTransaction.hash);
     const receipt = await proxy.deployTransaction.wait();
     console.log(`✅ Deploy treasury, at:`, proxy.address, "gas used:", receipt.gasUsed.toString());
 
-    treasury = await ethers.getContractAt("Treasury", proxy.address, deployer);
-    config.Treasury = treasury.address;
+    treasury = (await ethers.getContractAt("stETHTreasury", proxy.address, deployer)) as StETHTreasury;
+    config.stETHTreasury = treasury.address;
   }
 
-  if ((await proxyAdmin.getProxyImplementation(treasury.address)) !== config.impls.Treasury) {
-    const tx = await proxyAdmin.upgrade(treasury.address, config.impls.Treasury);
+  if ((await proxyAdmin.getProxyImplementation(treasury.address)) !== config.impls.stETHTreasury) {
+    const tx = await proxyAdmin.upgrade(treasury.address, config.impls.stETHTreasury);
     console.log("ProxyAdmin.upgrade, Treasury, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
@@ -245,6 +269,25 @@ async function main() {
     config.Market = market.address;
   }
 
+  let stabilityPool: StabilityPool;
+  if (config.StabilityPool !== "") {
+    stabilityPool = await ethers.getContractAt("StabilityPool", config.StabilityPool, deployer);
+    console.log(`Found StabilityPool at:`, stabilityPool.address);
+  } else {
+    const proxy = await TransparentUpgradeableProxy.deploy(
+      config.impls.StabilityPool,
+      config.ProxyAdmin,
+      "0x",
+      overrides
+    );
+    console.log(`Deploying StabilityPool, hash:`, proxy.deployTransaction.hash);
+    const receipt = await proxy.deployTransaction.wait();
+    console.log(`✅ Deploy StabilityPool, at:`, proxy.address, "gas used:", receipt.gasUsed.toString());
+
+    stabilityPool = await ethers.getContractAt("StabilityPool", proxy.address, deployer);
+    config.StabilityPool = stabilityPool.address;
+  }
+
   if ((await proxyAdmin.getProxyImplementation(market.address)) !== config.impls.Market) {
     const tx = await proxyAdmin.upgrade(market.address, config.impls.Market);
     console.log("ProxyAdmin.upgrade, Market, hash:", tx.hash);
@@ -252,19 +295,60 @@ async function main() {
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
-  let gateway: ETHGateway;
-  if (config.ETHGateway !== "") {
-    gateway = await ethers.getContractAt("ETHGateway", config.ETHGateway, deployer);
-    console.log(`Found ETHGateway at:`, gateway.address);
-  } else {
-    const ETHGateway = await ethers.getContractFactory("ETHGateway", deployer);
-    gateway = await ETHGateway.deploy(market.address, TOKENS.WETH.address, fETH.address, xETH.address);
+  if ((await proxyAdmin.getProxyImplementation(stabilityPool.address)) !== config.impls.StabilityPool) {
+    const tx = await proxyAdmin.upgrade(stabilityPool.address, config.impls.StabilityPool);
+    console.log("ProxyAdmin.upgrade, StabilityPool, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
 
-    console.log(`Deploying ETHGateway hash:`, gateway.deployTransaction.hash);
+  let gateway: StETHGateway;
+  if (config.stETHGateway !== "") {
+    gateway = (await ethers.getContractAt("stETHGateway", config.stETHGateway, deployer)) as StETHGateway;
+    console.log(`Found stETHGateway at:`, gateway.address);
+  } else {
+    const stETHGateway = await ethers.getContractFactory("stETHGateway", deployer);
+    gateway = (await stETHGateway.deploy(market.address, fETH.address, xETH.address)) as StETHGateway;
+
+    console.log(`Deploying stETHGateway hash:`, gateway.deployTransaction.hash);
     await gateway.deployed();
     const receipt = await gateway.deployTransaction.wait();
-    console.log(`✅ Deploy ETHGateway at:`, gateway.address, "gas used:", receipt.gasUsed.toString());
-    config.ETHGateway = gateway.address;
+    console.log(`✅ Deploy stETHGateway at:`, gateway.address, "gas used:", receipt.gasUsed.toString());
+    config.stETHGateway = gateway.address;
+  }
+
+  let wrapper: WstETHWrapper;
+  if (config.wstETHWrapper !== "") {
+    wrapper = (await ethers.getContractAt("wstETHWrapper", config.wstETHWrapper, deployer)) as WstETHWrapper;
+    console.log(`Found wstETHWrapper at:`, wrapper.address);
+  } else {
+    const wstETHWrapper = await ethers.getContractFactory("wstETHWrapper", deployer);
+    wrapper = (await wstETHWrapper.deploy()) as WstETHWrapper;
+
+    console.log(`Deploying wstETHWrapper hash:`, wrapper.deployTransaction.hash);
+    await gateway.deployed();
+    const receipt = await wrapper.deployTransaction.wait();
+    console.log(`✅ Deploy wstETHWrapper at:`, wrapper.address, "gas used:", receipt.gasUsed.toString());
+    config.wstETHWrapper = wrapper.address;
+  }
+
+  let liquidator: LiquidatorWithBonusToken;
+  if (config.Liquidator.LiquidatorWithBonusToken !== "") {
+    liquidator = await ethers.getContractAt(
+      "LiquidatorWithBonusToken",
+      config.Liquidator.LiquidatorWithBonusToken,
+      deployer
+    );
+    console.log(`Found LiquidatorWithBonusToken at:`, liquidator.address);
+  } else {
+    const LiquidatorWithBonusToken = await ethers.getContractFactory("LiquidatorWithBonusToken", deployer);
+    liquidator = await LiquidatorWithBonusToken.deploy(stabilityPool.address, TOKENS.WETH.address);
+
+    console.log(`Deploying LiquidatorWithBonusToken hash:`, gateway.deployTransaction.hash);
+    await liquidator.deployed();
+    const receipt = await liquidator.deployTransaction.wait();
+    console.log(`✅ Deploy LiquidatorWithBonusToken at:`, liquidator.address, "gas used:", receipt.gasUsed.toString());
+    config.Liquidator.LiquidatorWithBonusToken = liquidator.address;
   }
 
   if ((await fETH.treasury()) === constants.AddressZero) {
@@ -284,7 +368,7 @@ async function main() {
   if ((await treasury.market()) === constants.AddressZero) {
     const tx = await treasury.initialize(
       market.address,
-      TOKENS.WETH.address,
+      TOKENS.stETH.address,
       fETH.address,
       xETH.address,
       oracle.address,
@@ -298,6 +382,13 @@ async function main() {
   if ((await market.treasury()) === constants.AddressZero) {
     const tx = await market.initialize(treasury.address, deployer.address);
     console.log("Initialize Market, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if ((await stabilityPool.market()) === constants.AddressZero) {
+    const tx = await stabilityPool.initialize(treasury.address, market.address);
+    console.log("Initialize StabilityPool, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
@@ -319,6 +410,30 @@ async function main() {
     console.log("Price is:", ethers.utils.formatEther(await treasury.lastPermissionedPrice()));
   }
 
+  if ((await treasury.stabilityPool()) !== stabilityPool.address) {
+    const tx = await treasury.updateStabilityPool(stabilityPool.address);
+    console.log("Treasury.updateStabilityPool, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if ((await treasury.platform()) === constants.AddressZero) {
+    const tx = await treasury.updatePlatform(DEPLOYED_CONTRACTS.Fx.Treasury);
+    console.log("Treasury.updatePlatform, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if (
+    !(await treasury.harvestBountyRatio()).eq(config.Ratio.harvestBountyRatio) ||
+    !(await treasury.stabilityPoolRatio()).eq(config.Ratio.stabilityPoolRatio)
+  ) {
+    const tx = await treasury.updateRewardRatio(config.Ratio.stabilityPoolRatio, config.Ratio.harvestBountyRatio);
+    console.log("Treasury.updateRewardRatio, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
   if ((await market.marketConfig()).stabilityRatio.eq(constants.Zero)) {
     const tx = await market.updateMarketConfig(
       config.marketConfig.stabilityRatio,
@@ -332,10 +447,10 @@ async function main() {
   }
 
   if ((await treasury.totalBaseToken()).eq(constants.Zero)) {
-    const token = await ethers.getContractAt("IERC20", TOKENS.WETH.address, deployer);
-    const weth = await ethers.getContractAt("IWETH", TOKENS.WETH.address, deployer);
+    const token = await ethers.getContractAt("IERC20", TOKENS.stETH.address, deployer);
+    const steth = await ethers.getContractAt("ILidoStETH", TOKENS.stETH.address, deployer);
     if ((await token.balanceOf(deployer.address)).eq(constants.Zero)) {
-      const tx = await weth.deposit({ value: ethers.utils.parseEther("0.1") });
+      const tx = await steth.submit(constants.AddressZero, { value: ethers.utils.parseEther("0.1") });
       await tx.wait();
     }
     if ((await token.allowance(deployer.address, market.address)).eq(constants.Zero)) {
@@ -347,6 +462,37 @@ async function main() {
     await tx.wait();
   }
 
+  if ((await stabilityPool.rewardManager(TOKENS.wstETH.address)) === constants.AddressZero) {
+    const tx = await stabilityPool.addReward(TOKENS.wstETH.address, treasury.address, 86400 * 7);
+    console.log("StabilityPool.addReward, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if ((await stabilityPool.liquidator()) === constants.AddressZero) {
+    const tx = await stabilityPool.updateLiquidator(liquidator.address);
+    console.log("StabilityPool.updateLiquidator, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if ((await stabilityPool.wrapper()) === constants.AddressZero) {
+    const tx = await stabilityPool.updateWrapper(wrapper.address);
+    console.log("StabilityPool.updateWrapper, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if (!(await stabilityPool.liquidatableCollateralRatio()).eq(config.marketConfig.stabilityRatio)) {
+    const tx = await stabilityPool.updateLiquidatableCollateralRatio(config.marketConfig.stabilityRatio);
+    console.log("StabilityPool.updateLiquidatableCollateralRatio, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  console.log(await stabilityPool.rewardsLength());
+
+  /*
   if (!(await sale.priceData()).initialPrice.eq(config.Sale.price.InitialPrice)) {
     const tx = await sale.updatePrice(
       config.Sale.price.InitialPrice,
@@ -373,6 +519,7 @@ async function main() {
     const receipt = await tx.wait();
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
+  */
 }
 
 // We recommend this pattern to be able to use async/await everywhere
