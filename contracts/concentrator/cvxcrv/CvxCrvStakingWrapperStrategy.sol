@@ -2,12 +2,15 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import "../../interfaces/ICvxCrvStakingWrapper.sol";
-import "../../interfaces/IZap.sol";
+import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
+import { ICvxCrvStakingWrapper } from "../../interfaces/ICvxCrvStakingWrapper.sol";
+import { IZap } from "../../interfaces/IZap.sol";
 
-import "./ConcentratorStrategyBase.sol";
+import { ConcentratorStrategyBase } from "../strategies/ConcentratorStrategyBase.sol";
 
 contract CvxCrvStakingWrapperStrategy is ConcentratorStrategyBase, Ownable {
   using SafeERC20 for IERC20;
