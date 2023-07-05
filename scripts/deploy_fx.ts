@@ -80,7 +80,7 @@ const config: {
     FractionalToken: "0x9176e7145d3820CC658cD2C61c17A1BBa7F2B2BA",
     stETHTreasury: "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
     Market: "0x789E729713ddC80cf2db4e59ca064D3770f1A034",
-    StabilityPool: "0xeD8895F754baA58e37b8c6dfAC202d67bf3e6550",
+    StabilityPool: "0x581B58ed6c5228548d2055a9d7C4DD558Dca4cF2",
   },
   Ratio: {
     stabilityPoolRatio: ethers.utils.parseEther("0.5"),

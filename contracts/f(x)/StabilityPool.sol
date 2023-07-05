@@ -361,7 +361,9 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     // update deposit snapshot
     // @note the snapshot is updated in _distributeRewards once, the value of initialDeposit is correct.
     uint256 _compoundedDeposit = snapshots[msg.sender].initialDeposit;
-    if (_compoundedDeposit > _amount) _amount = _compoundedDeposit;
+    if (_amount > _compoundedDeposit) {
+      _amount = _compoundedDeposit;
+    }
     uint256 _newDeposit = _compoundedDeposit.sub(_amount);
     emit UserDepositChange(msg.sender, _newDeposit, 0);
 
