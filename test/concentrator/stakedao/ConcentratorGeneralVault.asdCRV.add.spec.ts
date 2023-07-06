@@ -55,6 +55,14 @@ const POOL_FORK_CONFIG: {
     amount: "0.001",
     harvest: true,
   },
+  "sUSD/crvUSD": {
+    height: 17634884,
+    pid: 10,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x3F7aA1a6aF4Bc3Ac327dc2130D4e8F1fF5Aa32c2",
+    amount: "100",
+    harvest: false,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
