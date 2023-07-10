@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
@@ -158,6 +159,11 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     EpochState epoch;
   }
 
+  struct UserUnlockItem {
+    uint256 amount;
+    uint256 unlockAt;
+  }
+
   /*************
    * Variables *
    *************/
@@ -276,7 +282,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
     uint256 length = _lists.length;
     uint256 balance;
-    for (uint256 i = 0; i < length; i++) {
+    for (uint256 i = nextUnlockIndex[account]; i < length; i++) {
       UserUnlock memory _item = _lists[i];
       if (_item.unlockAt <= block.timestamp) {
         balance += _getCompoundedStakeFromSnapshots(_item.initialAmount, _item.epoch);
@@ -292,7 +298,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
     uint256 length = _lists.length;
     uint256 balance;
-    for (uint256 i = 0; i < length; i++) {
+    for (uint256 i = nextUnlockIndex[account]; i < length; i++) {
       UserUnlock memory _item = _lists[i];
       if (_item.unlockAt > block.timestamp) {
         balance += _getCompoundedStakeFromSnapshots(_item.initialAmount, _item.epoch);
@@ -300,6 +306,21 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     }
 
     return balance;
+  }
+
+  /// @notice Return the list of unlocking items.
+  /// @param account The address of account to query.
+  function unlockingList(address account) external view returns (UserUnlockItem[] memory _items) {
+    UserUnlock[] storage _lists = unlocks[account];
+    uint256 _startIndex = nextUnlockIndex[account];
+    uint256 _length = _lists.length;
+
+    _items = new UserUnlockItem[](_length - _startIndex);
+    for (uint256 i = _startIndex; i < _length; i++) {
+      UserUnlock memory _item = _lists[i];
+      uint256 _balance = _getCompoundedStakeFromSnapshots(_item.initialAmount, _item.epoch);
+      _items[i] = UserUnlockItem(_balance, _item.unlockAt);
+    }
   }
 
   /// @inheritdoc IStabilityPool
@@ -389,8 +410,6 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     totalSupply = totalSupply.sub(_amount);
     totalUnlocking = totalUnlocking.add(_amount);
 
-    emit UserDepositChange(msg.sender, _newDeposit, 0);
-
     emit Unlock(msg.sender, _amount, unlockAt);
   }
 
@@ -456,10 +475,13 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     address _market = market;
     address _wrapper = wrapper;
 
+    _liquidated = IERC20Upgradeable(_asset).balanceOf(address(this));
+    if (_amount > _liquidated) {
+      _amount = _liquidated;
+    }
     IERC20Upgradeable(_asset).safeApprove(_market, 0);
     IERC20Upgradeable(_asset).safeApprove(_market, _amount);
 
-    _liquidated = IERC20Upgradeable(_asset).balanceOf(address(this));
     _baseOut = IMarket(_market).redeem(_amount, 0, _wrapper, _minBaseOut);
     _liquidated = _liquidated.sub(IERC20Upgradeable(_asset).balanceOf(address(this)));
 

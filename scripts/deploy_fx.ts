@@ -63,7 +63,7 @@ const config: {
     recapRatio: ethers.utils.parseUnits("1", 18),
   },
 
-  ProxyAdmin: "0xa617206663343b6353acF27566586eE9b53DFb2b",
+  ProxyAdmin: "0xa569a849bb4E47FE90707209305f001BC976CE57",
   Sale: {
     cap: ethers.utils.parseEther("20000"),
     time: { WhitelistStartTime: 1685620800, PublicStartTime: 1685624400, SaleDuration: 86400 * 6 },
@@ -76,27 +76,27 @@ const config: {
     address: "0x3eB6Da2d3f39BA184AEA23876026E0747Fb0E17f",
   },
   impls: {
-    LeveragedToken: "0xAF345c813CE17Cc5837BfD14a910D365223F3B95",
-    FractionalToken: "0x9176e7145d3820CC658cD2C61c17A1BBa7F2B2BA",
-    stETHTreasury: "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
-    Market: "0x789E729713ddC80cf2db4e59ca064D3770f1A034",
-    StabilityPool: "0x581B58ed6c5228548d2055a9d7C4DD558Dca4cF2",
+    LeveragedToken: "0x2651e295bC2B54BB7c60AB71f8fb0b032eBeBf7d",
+    FractionalToken: "0x0e20D8b0EC57cA8157d9bc2BEEc2c28a80Eaae8a",
+    stETHTreasury: "0xA6cdB82DD4288b38E691E68b8ecA9FdDe648D60a",
+    Market: "0x1AC1aD7Ba1D86A90C23B09FcA9b3F969d00DDCC0",
+    StabilityPool: "0xB7AE2782852A629c79F8dc09A79AF80649a056Ac",
   },
   Ratio: {
     stabilityPoolRatio: ethers.utils.parseEther("0.5"),
     harvestBountyRatio: ethers.utils.parseEther("0.01"),
   },
   Liquidator: {
-    LiquidatorWithBonusToken: "0x2a906eAB9B088E6753670bC8D3840f9473745748",
+    LiquidatorWithBonusToken: "0xBED3FEBBB237AeDdAc81904aD49a93143d5026C8",
   },
-  ChainlinkTwapOracleV3: "0x719c287932B0ea6037862b4cec4A786939DEb1d8",
-  FractionalToken: "0x674A745ADb09c3333D655cC63e2d77ACbE6De935",
-  LeveragedToken: "0x7b9Bb9CdBb04BF57F2F82e51D54F6C8ee165FF3B",
-  StabilityPool: "0x50d27385A7228ca469594925b2FC9e318dC6C0B0",
-  stETHTreasury: "0xBED3FEBBB237AeDdAc81904aD49a93143d5026C8",
-  Market: "0x3D8faCB2b65B8CEB682ADE00E016c672Ee6262c0",
-  wstETHWrapper: "0x548d04f8204973c357851533E4dA4fC300A336F6",
-  stETHGateway: "0x92d0cb7E56806Bf977e7F5296EA2Fe84B475Fe83",
+  ChainlinkTwapOracleV3: "0xEbA9A8fdd2539d33e070c66Afc1127478bA78054",
+  FractionalToken: "0xdBB1AAeb04F3B5e2587E4bB849717E9ebD0c8acC",
+  LeveragedToken: "0x4eECa6bFa3C96210260691639827eEF4D80FA8C6",
+  StabilityPool: "0x719c287932B0ea6037862b4cec4A786939DEb1d8",
+  stETHTreasury: "0xe6AAF8fBB56488941f619A9ADB0EB4d89fA9d217",
+  Market: "0x7185E3477Ad54A8186e623768833e8C2686591D3",
+  wstETHWrapper: "0x7b9Bb9CdBb04BF57F2F82e51D54F6C8ee165FF3B",
+  stETHGateway: "0x674A745ADb09c3333D655cC63e2d77ACbE6De935",
 };
 
 const maxFeePerGas = 30e9;
@@ -476,7 +476,7 @@ async function main() {
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
-  if ((await stabilityPool.wrapper()) === constants.AddressZero) {
+  if ((await stabilityPool.wrapper()) !== wrapper.address) {
     const tx = await stabilityPool.updateWrapper(wrapper.address);
     console.log("StabilityPool.updateWrapper, hash:", tx.hash);
     const receipt = await tx.wait();
@@ -490,7 +490,7 @@ async function main() {
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
-  console.log(await stabilityPool.rewardsLength());
+  console.log(await stabilityPool.liquidator());
 
   /*
   if (!(await sale.priceData()).initialPrice.eq(config.Sale.price.InitialPrice)) {
