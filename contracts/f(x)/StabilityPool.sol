@@ -119,7 +119,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     uint32 periodLength;
     uint48 lastUpdate;
     uint48 finishAt;
-    // The number of rewards queued.
+    // The number of extraRewards queued.
     uint256 queued;
   }
 
@@ -137,31 +137,33 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     uint128 prod;
   }
 
-  /// @dev Compiler will pack this into two `uint256`.
+  /// @dev Compiler will pack this into single `uint256`.
+  struct UserUnlock {
+    // The amount of asset unlocking.
+    uint128 amount;
+    // The timestamp in seconds when the assets unlocked.
+    uint128 unlockAt;
+  }
+
+  struct UserRewardSnapsot {
+    // The amount of pending extraRewards.
+    uint256 pending;
+    // The accumulated reward sum.
+    uint256 accRewardsPerStake;
+  }
+
+  /// @dev Compiler will pack this into four `uint256`.
   struct UserSnapshot {
     // The initial amount of asset deposited.
     uint256 initialDeposit;
-    // The epoch state snapshot at depositing.
+    // The unlocked/unlocking state.
+    UserUnlock initialUnlock;
+    // The epoch state snapshot at last interaction.
     EpochState epoch;
-    // The reward state snapshot at depositing.
-    mapping(address => uint256) sum;
-    // Mapping from token address to the amount of pending rewards.
-    mapping(address => uint256) pending;
-  }
-
-  /// @dev Compiler will pack this into two `uint256`.
-  struct UserUnlock {
-    // The initial amount of asset unlocking.
-    uint128 initialAmount;
-    // The timestamp in seconds when the assets unlocked.
-    uint128 unlockAt;
-    // The epoch state snapshot at unlocking.
-    EpochState epoch;
-  }
-
-  struct UserUnlockItem {
-    uint256 amount;
-    uint256 unlockAt;
+    // The reward snapshot of base token at last interaction.
+    UserRewardSnapsot baseReward;
+    // Mapping from token address to extra reward snapshot.
+    mapping(address => UserRewardSnapsot) extraRewards;
   }
 
   /*************
@@ -195,19 +197,22 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   /// @notice The address of token wrapper for liquidated base token;
   address public wrapper;
 
-  /// @notice The address list of reward tokens.
-  address[] public rewards;
+  /// @notice The address list of extra reward tokens.
+  address[] public extraRewards;
 
   /// @notice Mapping from the address of reward token to corresponding reward manager.
   mapping(address => address) public rewardManager;
 
   /// @notice Mapping from the address of token to reward distribution information.
-  mapping(address => RewardState) public rewardState;
+  mapping(address => RewardState) public extraRewardState;
 
-  // Mapping from epoch to scale to accumulated sum.
+  // Mapping from epoch to scale to accumulated sum for base token.
+  mapping(uint256 => mapping(uint256 => uint256)) public epochToScaleToBaseRewardSum;
+
+  // Mapping from epoch to scale to accumulated sum for reward token.
   // - The inner mapping records the sum S at different scales
   // - The outer mapping records the (scale => sum) mappings, for different epochs.
-  mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public epochToScaleToSum;
+  mapping(address => mapping(uint256 => mapping(uint256 => uint256))) public epochToScaleToExtraRewardSum;
 
   /// @notice The state of current epoch for all deposited.
   EpochState public epochState;
@@ -217,12 +222,6 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
   /// @notice The number of seconds needed for unlocking.
   uint256 public unlockDuration;
-
-  /// @dev Mapping from user address to next unlock index in user unlocks.
-  mapping(address => uint256) private nextUnlockIndex;
-
-  /// @dev Mapping from user address to a list of unlocks.
-  mapping(address => UserUnlock[]) private unlocks;
 
   /// @notice Error trackers for the error correction in the loss calculation.
   uint256 public lastAssetLossError;
@@ -259,8 +258,18 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
    *************************/
 
   /// @notice Return the number of reward tokens.
-  function rewardsLength() external view returns (uint256) {
-    return rewards.length;
+  function extraRewardsLength() external view returns (uint256) {
+    return extraRewards.length;
+  }
+
+  /// @notice Return the address of base reward token.
+  function baseRewardToken() public view returns (address) {
+    address _token = baseToken;
+    address _wrapper = wrapper;
+    if (_wrapper != address(this)) {
+      _token = ITokenWrapper(_wrapper).dst();
+    }
+    return _token;
   }
 
   /// @inheritdoc IStabilityPool
@@ -278,65 +287,64 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
   /// @inheritdoc IStabilityPool
   function unlockedBalanceOf(address account) external view override returns (uint256) {
-    UserUnlock[] storage _lists = unlocks[account];
+    UserUnlock memory _unlock = snapshots[account].initialUnlock;
+    if (_unlock.amount == 0) return 0;
 
-    uint256 length = _lists.length;
-    uint256 balance;
-    for (uint256 i = nextUnlockIndex[account]; i < length; i++) {
-      UserUnlock memory _item = _lists[i];
-      if (_item.unlockAt <= block.timestamp) {
-        balance += _getCompoundedStakeFromSnapshots(_item.initialAmount, _item.epoch);
-      }
+    if (_unlock.unlockAt <= block.timestamp) {
+      return _getCompoundedStakeFromSnapshots(_unlock.amount, snapshots[account].epoch);
+    } else {
+      return 0;
     }
-
-    return balance;
   }
 
   /// @inheritdoc IStabilityPool
-  function unlockingBalanceOf(address account) external view override returns (uint256) {
-    UserUnlock[] storage _lists = unlocks[account];
+  function unlockingBalanceOf(address account) external view override returns (uint256 _balance, uint256 _unlockAt) {
+    UserUnlock memory _unlock = snapshots[account].initialUnlock;
 
-    uint256 length = _lists.length;
-    uint256 balance;
-    for (uint256 i = nextUnlockIndex[account]; i < length; i++) {
-      UserUnlock memory _item = _lists[i];
-      if (_item.unlockAt > block.timestamp) {
-        balance += _getCompoundedStakeFromSnapshots(_item.initialAmount, _item.epoch);
-      }
-    }
-
-    return balance;
-  }
-
-  /// @notice Return the list of unlocking items.
-  /// @param account The address of account to query.
-  function unlockingList(address account) external view returns (UserUnlockItem[] memory _items) {
-    UserUnlock[] storage _lists = unlocks[account];
-    uint256 _startIndex = nextUnlockIndex[account];
-    uint256 _length = _lists.length;
-
-    _items = new UserUnlockItem[](_length - _startIndex);
-    for (uint256 i = _startIndex; i < _length; i++) {
-      UserUnlock memory _item = _lists[i];
-      uint256 _balance = _getCompoundedStakeFromSnapshots(_item.initialAmount, _item.epoch);
-      _items[i] = UserUnlockItem(_balance, _item.unlockAt);
+    if (_unlock.unlockAt > block.timestamp && _unlock.amount > 0) {
+      _balance = _getCompoundedStakeFromSnapshots(_unlock.amount, snapshots[account].epoch);
+      _unlockAt = _unlock.unlockAt;
     }
   }
 
   /// @inheritdoc IStabilityPool
   function claimable(address _account, address _token) public view override returns (uint256) {
-    uint256 initialDeposit = snapshots[_account].initialDeposit;
-    if (initialDeposit == 0) return 0;
+    uint256 _initialDeposit = snapshots[_account].initialDeposit;
+    uint256 _initialUnlock = snapshots[_account].initialUnlock.amount;
+    if (_initialDeposit == 0 && _initialUnlock == 0) return 0;
 
-    return
-      snapshots[_account].pending[_token].add(
+    uint256 _amount;
+    EpochState memory _previousEpoch = snapshots[_account].epoch;
+
+    // 1. from base rewards
+    if (_token == baseRewardToken()) {
+      UserRewardSnapsot memory _base = snapshots[_account].baseReward;
+      _amount = _base.pending.add(
         _getGainFromSnapshots(
-          initialDeposit,
-          snapshots[_account].sum[_token],
-          snapshots[_account].epoch,
-          epochToScaleToSum[_token]
+          _initialDeposit.add(_initialUnlock),
+          _base.accRewardsPerStake,
+          _previousEpoch,
+          epochToScaleToBaseRewardSum
         )
       );
+    }
+
+    // 2. from extra rewards
+    if (_initialDeposit > 0) {
+      UserRewardSnapsot memory _extra = snapshots[_account].extraRewards[_token];
+      _amount = _amount.add(
+        _extra.pending.add(
+          _getGainFromSnapshots(
+            _initialDeposit,
+            _extra.accRewardsPerStake,
+            _previousEpoch,
+            epochToScaleToExtraRewardSum[_token]
+          )
+        )
+      );
+    }
+
+    return _amount;
   }
 
   /****************************
@@ -353,16 +361,17 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     require(_amount > 0, "deposit zero amount");
     IERC20Upgradeable(_asset).safeTransferFrom(msg.sender, address(this), _amount);
 
-    // distribute pending rewards
+    // distribute pending extraRewards
     _distributeRewards(_recipient);
 
     // update deposit snapshot
     // @note the snapshot is updated in _distributeRewards once, the value of initialDeposit is correct.
     uint256 _compoundedDeposit = snapshots[_recipient].initialDeposit;
+    uint256 _compoundedUnlock = snapshots[_recipient].initialUnlock.amount;
     uint256 _newDeposit = _compoundedDeposit.add(_amount);
     emit UserDepositChange(_recipient, _newDeposit, 0);
 
-    _updateAccountSnapshot(_recipient, _newDeposit);
+    _takeAccountSnapshot(_recipient, _newDeposit, _compoundedUnlock);
 
     totalSupply = totalSupply.add(_amount);
 
@@ -376,11 +385,11 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     require(_amount > 0, "unlock zero amount");
     require(snapshots[msg.sender].initialDeposit > 0, "user has no deposit");
 
-    // distribute pending rewards
+    // distribute pending extraRewards
     _distributeRewards(msg.sender);
 
     // update deposit snapshot
-    // @note the snapshot is updated in _distributeRewards once, the value of initialDeposit is correct.
+    // @note the snapshot is updated in `_distributeRewards` once, the value of `initialDeposit` is correct.
     uint256 _compoundedDeposit = snapshots[msg.sender].initialDeposit;
     if (_amount > _compoundedDeposit) {
       _amount = _compoundedDeposit;
@@ -388,51 +397,64 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     uint256 _newDeposit = _compoundedDeposit.sub(_amount);
     emit UserDepositChange(msg.sender, _newDeposit, 0);
 
-    _updateAccountSnapshot(msg.sender, _newDeposit);
+    // @note the snapshot is updated in `_distributeRewards` once, the value of `unlock.amount` is correct.
+    UserUnlock memory _unlock = snapshots[msg.sender].initialUnlock;
+    _unlock.amount = uint128(_amount.add(_unlock.amount));
+    emit UserUnlockChange(msg.sender, _unlock.amount, 0);
 
-    // add to unlock list
-    UserUnlock[] storage _lists = unlocks[msg.sender];
-    uint256 length = _lists.length;
-    // roundup to nearest day
-    uint256 unlockAt = ((block.timestamp + unlockDuration + DAY - 1) / DAY) * DAY;
-    if (length == nextUnlockIndex[msg.sender] || _lists[length - 1].unlockAt != unlockAt) {
-      // list is empty or unlock time mismatch
-      _lists.push(UserUnlock({ initialAmount: uint128(_amount), unlockAt: uint128(unlockAt), epoch: epochState }));
-    } else {
-      // merge items with same unlock time
-      UserUnlock memory item = _lists[length - 1];
-      uint256 compoundedUnlock = _getCompoundedStakeFromSnapshots(item.initialAmount, item.epoch);
-      item.initialAmount = uint128(compoundedUnlock.add(_amount));
-      item.epoch = epochState;
-      _lists[length - 1] = item;
+    uint256 _unlockAt = block.timestamp + unlockDuration;
+    if (_unlockAt < _unlock.unlockAt) {
+      _unlockAt = _unlock.unlockAt;
     }
+    snapshots[msg.sender].initialUnlock.unlockAt = uint128(_unlockAt);
+
+    _takeAccountSnapshot(msg.sender, _newDeposit, _unlock.amount);
 
     totalSupply = totalSupply.sub(_amount);
     totalUnlocking = totalUnlocking.add(_amount);
 
-    emit Unlock(msg.sender, _amount, unlockAt);
+    emit Unlock(msg.sender, _amount, _unlockAt);
   }
 
   /// @inheritdoc IStabilityPool
   function withdrawUnlocked(bool _doClaim, bool _unwrap) external override {
-    // distribute pending rewards
+    // distribute pending extraRewards
     _distributeRewards(msg.sender);
 
     // withdraw unlocked
-    _withdrawUnlocked(msg.sender);
+    UserUnlock memory _unlock = snapshots[msg.sender].initialUnlock;
+    require(_unlock.unlockAt <= block.timestamp, "no unlocks");
+
+    // @note the snapshot is updated in `_distributeRewards` once, the value of `unlock.amount` is correct.
+    if (_unlock.amount > 0) {
+      totalUnlocking = totalUnlocking.sub(_unlock.amount);
+      delete snapshots[msg.sender].initialUnlock;
+
+      emit UserUnlockChange(msg.sender, 0, 0);
+
+      IERC20Upgradeable(asset).safeTransfer(msg.sender, _unlock.amount);
+    }
+
+    emit WithdrawUnlocked(msg.sender, _unlock.amount);
 
     if (_doClaim) {
-      // claim all rewards
-      uint256 length = rewards.length;
+      address _baseRewardToken = baseRewardToken();
+      _claim(msg.sender, _baseRewardToken, _unwrap);
+
+      // claim all extraRewards
+      uint256 length = extraRewards.length;
       for (uint256 i = 0; i < length; i++) {
-        _claim(msg.sender, rewards[i], _unwrap);
+        address _extraRewardToken = extraRewards[i];
+        if (_baseRewardToken != _extraRewardToken) {
+          _claim(msg.sender, _extraRewardToken, false);
+        }
       }
     }
   }
 
   /// @inheritdoc IStabilityPool
   function claim(address _token, bool _unwrap) external override {
-    // distribute pending rewards
+    // distribute pending extraRewards
     _distributeRewards(msg.sender);
 
     // claim single token
@@ -441,7 +463,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
   /// @inheritdoc IStabilityPool
   function claim(address[] memory _tokens, bool _unwrap) external override {
-    // distribute pending rewards
+    // distribute pending extraRewards
     _distributeRewards(msg.sender);
 
     // claim multiple tokens
@@ -458,7 +480,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   {
     require(liquidator == msg.sender, "only liquidator");
 
-    // distribute pending rewards
+    // distribute pending extraRewards
     _distributeRewards(address(this));
 
     ITreasury _treasury = ITreasury(treasury);
@@ -477,6 +499,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
     _liquidated = IERC20Upgradeable(_asset).balanceOf(address(this));
     if (_amount > _liquidated) {
+      // cannot liquidate more than assets in this contract.
       _amount = _liquidated;
     }
     IERC20Upgradeable(_asset).safeApprove(_market, 0);
@@ -487,23 +510,18 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
     emit Liquidate(_liquidated, _baseOut);
 
-    // @note If we accumulate rewards after loss notification, the reward accumulation would be incorrect.
-    // If we distribute rewards linearly, the the reward accumulation would also be incorrect.
-    // Thus, we distribute pending base token intermediately and then notify possible loss.
+    // wrap base token if needed
     if (_wrapper != address(this)) {
-      _amount = ITokenWrapper(_wrapper).wrap(_baseOut);
-      _accumulateRewards(ITokenWrapper(_wrapper).dst(), _amount);
-    } else {
-      _accumulateRewards(baseToken, _baseOut);
+      _baseOut = ITokenWrapper(_wrapper).wrap(_baseOut);
     }
 
     // notify liquidation loss
-    _notifyLoss(_liquidated);
+    _notifyLoss(_liquidated, _baseOut);
   }
 
   /// @inheritdoc IStabilityPool
   function updateAccountSnapshot(address _account) external override {
-    // distribute pending rewards
+    // distribute pending extraRewards
     _distributeRewards(_account);
   }
 
@@ -532,11 +550,18 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   }
 
   /// @notice Update the address of reward wrapper.
-  /// @param _wrapper The new address of reward wrapper.
-  function updateWrapper(address _wrapper) external onlyOwner {
-    wrapper = _wrapper;
+  /// @param _newWrapper The new address of reward wrapper.
+  function updateWrapper(address _newWrapper) external onlyOwner {
+    require(ITokenWrapper(_newWrapper).src() == baseToken, "src mismatch");
 
-    emit UpdateWrapper(_wrapper);
+    address _oldWrapper = wrapper;
+    if (_oldWrapper != address(this)) {
+      require(ITokenWrapper(_oldWrapper).dst() == ITokenWrapper(_newWrapper).dst(), "dst mismatch");
+    }
+
+    wrapper = _newWrapper;
+
+    emit UpdateWrapper(_newWrapper);
   }
 
   /// @notice Update the collateral ratio line for liquidation.
@@ -571,8 +596,8 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     require(_periodLength > 0, "zero period length");
 
     rewardManager[_token] = _manager;
-    rewardState[_token].periodLength = _periodLength;
-    rewards.push(_token);
+    extraRewardState[_token].periodLength = _periodLength;
+    extraRewards.push(_token);
 
     emit AddRewardToken(_token, _manager, _periodLength);
   }
@@ -593,7 +618,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     _distributeReward(_token);
 
     rewardManager[_token] = _manager;
-    rewardState[_token].periodLength = _periodLength;
+    extraRewardState[_token].periodLength = _periodLength;
 
     emit UpdateRewardToken(_token, _manager, _periodLength);
   }
@@ -602,11 +627,11 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
    * Internal Functions *
    **********************/
 
-  /// @dev Internal function to distribute pending rewards.
+  /// @dev Internal function to distribute pending extraRewards.
   function _distributeRewards(address _account) internal {
-    uint256 length = rewards.length;
+    uint256 length = extraRewards.length;
     for (uint256 i = 0; i < length; i++) {
-      _distributeReward(rewards[i]);
+      _distributeReward(extraRewards[i]);
     }
 
     if (_account != address(0)) {
@@ -614,10 +639,10 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     }
   }
 
-  /// @dev Internal function to distribute pending rewards for a specific token.
+  /// @dev Internal function to distribute pending extraRewards for a specific token.
   /// @param _token The address of the token.
   function _distributeReward(address _token) internal {
-    RewardState memory _state = rewardState[_token];
+    RewardState memory _state = extraRewardState[_token];
 
     uint256 _currentTime = _state.finishAt;
     if (_currentTime > block.timestamp) {
@@ -632,11 +657,11 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
       if (totalSupply > 0) {
         _accumulateRewards(_token, _pending);
       } else {
-        // queue rewards if no assets deposited or all assets are liquidated.
+        // queue extraRewards if no assets deposited or all assets are liquidated.
         _state.queued = _state.queued.add(_pending);
       }
 
-      rewardState[_token] = _state;
+      extraRewardState[_token] = _state;
     }
   }
 
@@ -644,57 +669,105 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   /// @param _account The address of user to update.
   function _updateAccountRewards(address _account) internal {
     uint256 _initialDeposit = snapshots[_account].initialDeposit;
-    if (_initialDeposit == 0) return;
+    uint256 _initialUnlock = snapshots[_account].initialUnlock.amount;
+    if (_initialDeposit == 0 && _initialUnlock == 0) return;
 
+    EpochState memory _previousEpoch = snapshots[_account].epoch;
     EpochState memory _currentEpoch = epochState;
 
-    uint256 length = rewards.length;
-    for (uint256 i = 0; i < length; i++) {
-      address _token = rewards[i];
-      snapshots[_account].pending[_token] = claimable(_account, _token);
-      snapshots[_account].sum[_token] = epochToScaleToSum[_token][_currentEpoch.epoch][_currentEpoch.scale];
+    // 1. update base token gained by liquidation
+    UserRewardSnapsot memory _base = snapshots[_account].baseReward;
+    _base.pending = _base.pending.add(
+      _getGainFromSnapshots(
+        _initialDeposit.add(_initialUnlock),
+        _base.accRewardsPerStake,
+        _previousEpoch,
+        epochToScaleToBaseRewardSum
+      )
+    );
+    _base.accRewardsPerStake = epochToScaleToBaseRewardSum[_currentEpoch.epoch][_currentEpoch.scale];
+    snapshots[_account].baseReward = _base;
+
+    // 2. update manually deposited reward token
+    if (_initialDeposit > 0) {
+      uint256 length = extraRewards.length;
+      UserRewardSnapsot memory _extra;
+      for (uint256 i = 0; i < length; i++) {
+        address _token = extraRewards[i];
+        _extra = snapshots[_account].extraRewards[_token];
+        _extra.pending = _extra.pending.add(
+          _getGainFromSnapshots(
+            _initialDeposit,
+            _extra.accRewardsPerStake,
+            _previousEpoch,
+            epochToScaleToExtraRewardSum[_token]
+          )
+        );
+        _extra.accRewardsPerStake = epochToScaleToExtraRewardSum[_token][_currentEpoch.epoch][_currentEpoch.scale];
+        snapshots[_account].extraRewards[_token] = _extra;
+      }
     }
 
-    uint256 _compoundedAsset = _getCompoundedStakeFromSnapshots(_initialDeposit, snapshots[_account].epoch);
-    if (_compoundedAsset != _initialDeposit) {
-      emit UserDepositChange(_account, _compoundedAsset, _initialDeposit.sub(_compoundedAsset));
-      snapshots[_account].initialDeposit = _compoundedAsset;
+    // 3. update possible asset loss from the deposited assets
+    uint256 _compoundedDeposit = _getCompoundedStakeFromSnapshots(_initialDeposit, snapshots[_account].epoch);
+    if (_compoundedDeposit != _initialDeposit) {
+      emit UserDepositChange(_account, _compoundedDeposit, _initialDeposit.sub(_compoundedDeposit));
+      snapshots[_account].initialDeposit = _compoundedDeposit;
+    }
+
+    // 4. update possible asset loss from the unlocking assets
+    uint256 _compoundedUnlock = _getCompoundedStakeFromSnapshots(_initialUnlock, snapshots[_account].epoch);
+    if (_compoundedUnlock != _initialUnlock) {
+      emit UserUnlockChange(_account, _compoundedUnlock, _initialUnlock.sub(_compoundedUnlock));
+      snapshots[_account].initialUnlock.amount = uint128(_compoundedUnlock);
     }
 
     snapshots[_account].epoch = _currentEpoch;
   }
 
-  /// @dev Internal function to update account snapshot, including epoch state and reward accumulation.
+  /// @dev Internal function to take account snapshot, including epoch state and reward accumulation.
   /// @param _account The address of user to update.
-  function _updateAccountSnapshot(address _account, uint256 _newDeposit) internal {
+  function _takeAccountSnapshot(
+    address _account,
+    uint256 _newDeposit,
+    uint256 _newUnlock
+  ) internal {
     snapshots[_account].initialDeposit = _newDeposit;
+    snapshots[_account].initialUnlock.amount = uint128(_newUnlock);
 
-    if (_newDeposit == 0) {
+    if (_newDeposit == 0 && _newUnlock == 0) {
       delete snapshots[_account].epoch;
       return;
     }
 
     EpochState memory _currentEpoch = epochState;
 
-    uint256 length = rewards.length;
-    for (uint256 i = 0; i < length; i++) {
-      address _token = rewards[i];
-      snapshots[_account].sum[_token] = epochToScaleToSum[_token][_currentEpoch.epoch][_currentEpoch.scale];
+    if (_newDeposit != 0) {
+      uint256 length = extraRewards.length;
+      for (uint256 i = 0; i < length; i++) {
+        address _token = extraRewards[i];
+        snapshots[_account].extraRewards[_token].accRewardsPerStake = epochToScaleToExtraRewardSum[_token][
+          _currentEpoch.epoch
+        ][_currentEpoch.scale];
+      }
     }
 
+    snapshots[_account].baseReward.accRewardsPerStake = epochToScaleToBaseRewardSum[_currentEpoch.epoch][
+      _currentEpoch.scale
+    ];
     snapshots[_account].epoch = _currentEpoch;
   }
 
-  /// @dev Internal function to deposit pending rewards
+  /// @dev Internal function to deposit pending extraRewards
   /// @param _token The address of token to update.
-  /// @param _amount The amount of pending rewards.
+  /// @param _amount The amount of pending extraRewards.
   function _notifyReward(address _token, uint256 _amount) internal {
-    RewardState memory _state = rewardState[_token];
+    RewardState memory _state = extraRewardState[_token];
 
     emit DepositReward(_token, _amount);
 
     if (totalSupply == 0) {
-      // no asset deposited, queue pending rewards
+      // no asset deposited, queue pending extraRewards
       _state.queued = _state.queued.add(_amount);
     } else {
       _amount = _amount.add(_state.queued);
@@ -713,30 +786,42 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
       _state.finishAt = uint48(block.timestamp + _state.periodLength);
     }
 
-    rewardState[_token] = _state;
+    extraRewardState[_token] = _state;
   }
 
-  /// @dev Internal function to accumulate pending rewards.
+  /// @dev Internal function to accumulate pending extraRewards.
   /// @param _token The address of token.
-  /// @param _pending The amount of pending rewards.
+  /// @param _pending The amount of pending extraRewards.
   function _accumulateRewards(address _token, uint256 _pending) internal {
     uint256 _rewardsPerUnitStaked = _pending.mul(PRECISION).div(totalSupply);
 
     EpochState memory _currentEpoch = epochState;
 
-    uint256 _currentSum = epochToScaleToSum[_token][_currentEpoch.epoch][_currentEpoch.scale];
+    uint256 _currentSum = epochToScaleToExtraRewardSum[_token][_currentEpoch.epoch][_currentEpoch.scale];
     _currentSum = _currentSum.add(_rewardsPerUnitStaked.mul(epochState.prod));
-    epochToScaleToSum[_token][_currentEpoch.epoch][_currentEpoch.scale] = _currentSum;
+    epochToScaleToExtraRewardSum[_token][_currentEpoch.epoch][_currentEpoch.scale] = _currentSum;
   }
 
   /// @dev Internal function to reduce asset loss due to liquidation.
   /// @param _loss The amount of asset used by liquidation.
-  function _notifyLoss(uint256 _loss) internal {
+  /// @param _baseOut The amount of base token received.
+  function _notifyLoss(uint256 _loss, uint256 _baseOut) internal {
     uint256 _totalSupply = totalSupply;
     uint256 _totalUnlocking = totalUnlocking;
     uint256 _assetLossPerUnitStaked;
 
-    if (_loss == _totalSupply + _totalUnlocking) {
+    EpochState memory _currentEpoch = epochState;
+
+    // update base token accumulation
+    {
+      uint256 _rewardsPerUnitStaked = _baseOut.mul(PRECISION).div(_totalSupply.add(_totalUnlocking));
+      uint256 _currentSum = epochToScaleToBaseRewardSum[_currentEpoch.epoch][_currentEpoch.scale];
+      _currentSum = _currentSum.add(_rewardsPerUnitStaked.mul(epochState.prod));
+      epochToScaleToBaseRewardSum[_currentEpoch.epoch][_currentEpoch.scale] = _currentSum;
+    }
+
+    // use >= here, in case someone send extra asset to this contract.
+    if (_loss >= _totalSupply + _totalUnlocking) {
       _assetLossPerUnitStaked = PRECISION;
       lastAssetLossError = 0;
       totalSupply = 0;
@@ -758,8 +843,6 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     // We make the product factor 0 if there was a pool-emptying. Otherwise, it is (1 - LUSDLossPerUnitStaked)
     uint256 _newProductFactor = PRECISION.sub(_assetLossPerUnitStaked);
 
-    EpochState memory _currentEpoch = epochState;
-
     // If the Stability Pool was emptied, increment the epoch, and reset the scale and product P
     if (_newProductFactor == 0) {
       _currentEpoch.epoch += 1;
@@ -777,17 +860,22 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     epochState = _currentEpoch;
   }
 
-  /// @dev Internal function claim pending rewards.
+  /// @dev Internal function claim pending extraRewards.
   /// @param _account The address of account to claim.
   /// @param _token The address of token to claim.
-  /// @param _unwrap Whether the user want to unwrap autocompounding rewards.
+  /// @param _unwrap Whether the user want to unwrap autocompounding extraRewards.
   function _claim(
     address _account,
     address _token,
     bool _unwrap
   ) internal {
-    uint256 _rewards = snapshots[_account].pending[_token];
-    snapshots[_account].pending[_token] = 0;
+    uint256 _rewards = snapshots[_account].extraRewards[_token].pending;
+    snapshots[_account].extraRewards[_token].pending = 0;
+
+    if (_token == baseRewardToken()) {
+      _rewards = _rewards.add(snapshots[_account].baseReward.pending);
+      snapshots[_account].baseReward.pending = 0;
+    }
 
     address _wrapper = wrapper;
     if (_wrapper != address(this) && _unwrap && _token == ITokenWrapper(_wrapper).dst()) {
@@ -799,37 +887,6 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     IERC20Upgradeable(_token).safeTransfer(_account, _rewards);
 
     emit Claim(_account, _token, _rewards);
-  }
-
-  /// @dev Internal function to withdraw unlocked asset.
-  /// @param _account The address of user to withdraw.
-  function _withdrawUnlocked(address _account) internal {
-    UserUnlock[] storage _list = unlocks[_account];
-    uint256 length = _list.length;
-    uint256 startIndex = nextUnlockIndex[_account];
-
-    uint256 amount;
-    uint256 initialAmount;
-    // All unlocks are grouped by unlockAt, which aligned to days.
-    // So it is ok to use a while loop.
-    while (startIndex < length) {
-      UserUnlock memory item = _list[startIndex];
-      if (item.unlockAt > block.timestamp) break;
-
-      initialAmount = initialAmount.add(item.initialAmount);
-      amount = amount.add(_getCompoundedStakeFromSnapshots(item.initialAmount, item.epoch));
-      delete _list[startIndex];
-      startIndex += 1;
-    }
-
-    nextUnlockIndex[_account] = startIndex;
-
-    if (amount > 0) {
-      IERC20Upgradeable(asset).safeTransfer(_account, amount);
-      totalUnlocking = totalUnlocking.sub(amount);
-    }
-
-    emit WithdrawUnlocked(_account, amount, initialAmount.sub(amount));
   }
 
   /// @dev Internal function to compute the amount of asset deposited after several liquidation.
@@ -876,23 +933,23 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     return _compoundedStake;
   }
 
-  /// @dev Internal function to compute pending rewards after several liquidation or reward distribution.
+  /// @dev Internal function to compute pending rewards after several liquidations or reward distributions.
   /// @param _initialStake The amount of asset deposited initially.
-  /// @param _rewardSnapshot The reward sum snapshot at initial depositing.
-  /// @param _epochSnapshot The epoch state snapshot at initial depositing.
-  /// @param _epochToScaleToSum The storage reference of current reward sum state.
+  /// @param _rewardSnapshot The reward sum snapshot at last interaction.
+  /// @param _epochSnapshot The epoch state snapshot at last interaction.
+  /// @param _epochToScaleToRewardSum The storage reference of current reward accumulation state.
   /// @return _gained The amount of reward gained after several liquidation or reward distribution.
   function _getGainFromSnapshots(
     uint256 _initialStake,
     uint256 _rewardSnapshot,
     EpochState memory _epochSnapshot,
-    mapping(uint256 => mapping(uint256 => uint256)) storage _epochToScaleToSum
+    mapping(uint256 => mapping(uint256 => uint256)) storage _epochToScaleToRewardSum
   ) internal view returns (uint256 _gained) {
     // Grab the sum 'S' from the epoch at which the stake was made. The gain may span up to one scale change.
-    // If it does, the second portion of the ETH gain is scaled by 1e9.
+    // If it does, the second portion of the gain is scaled by 1e9.
     // If the gain spans no scale change, the second portion will be 0.
-    uint256 firstPortion = _epochToScaleToSum[_epochSnapshot.epoch][_epochSnapshot.scale].sub(_rewardSnapshot);
-    uint256 secondPortion = _epochToScaleToSum[_epochSnapshot.epoch][_epochSnapshot.scale + 1].div(SCALE_FACTOR);
+    uint256 firstPortion = _epochToScaleToRewardSum[_epochSnapshot.epoch][_epochSnapshot.scale].sub(_rewardSnapshot);
+    uint256 secondPortion = _epochToScaleToRewardSum[_epochSnapshot.epoch][_epochSnapshot.scale + 1].div(SCALE_FACTOR);
 
     _gained = _initialStake.mul(firstPortion.add(secondPortion)).div(_epochSnapshot.prod).div(PRECISION);
   }

@@ -10,6 +10,7 @@ import {
   MockTwapOracle,
   Market,
   StabilityPool,
+  MockTokenWrapper,
 } from "../../typechain";
 import "../utils";
 import { constants } from "ethers";
@@ -27,6 +28,7 @@ describe("StabilityPool.spec", async () => {
   let treasury: Treasury;
   let market: Market;
   let stabilityPool: StabilityPool;
+  let wrapper: MockTokenWrapper;
 
   beforeEach(async () => {
     [deployer, signer, platform, liquidator] = await ethers.getSigners();
@@ -34,6 +36,10 @@ describe("StabilityPool.spec", async () => {
     const WETH9 = await ethers.getContractFactory("WETH9", deployer);
     weth = await WETH9.deploy();
     await weth.deployed();
+
+    const MockTokenWrapper = await ethers.getContractFactory("MockTokenWrapper", deployer);
+    wrapper = await MockTokenWrapper.deploy();
+    await wrapper.deployed();
 
     const MockTwapOracle = await ethers.getContractFactory("MockTwapOracle", deployer);
     oracle = await MockTwapOracle.deploy();
@@ -80,10 +86,8 @@ describe("StabilityPool.spec", async () => {
     );
 
     await stabilityPool.initialize(treasury.address, market.address);
-    await stabilityPool.addReward(weth.address, treasury.address, 86400 * 7);
   });
 
-  /*
   context("auth", async () => {
     it("should revert, when intialize again", async () => {
       await expect(stabilityPool.initialize(treasury.address, market.address)).to.revertedWith(
@@ -122,12 +126,29 @@ describe("StabilityPool.spec", async () => {
         );
       });
 
+      it("should revert, when src mismatch", async () => {
+        await expect(stabilityPool.updateWrapper(wrapper.address)).to.revertedWith("src mismatch");
+      });
+
+      it("should revert, when dst mismatch", async () => {
+        await wrapper.set(weth.address, weth.address);
+        await stabilityPool.updateWrapper(wrapper.address);
+
+        const MockTokenWrapper = await ethers.getContractFactory("MockTokenWrapper", deployer);
+        const newWrapper = await MockTokenWrapper.deploy();
+        await newWrapper.deployed();
+        await newWrapper.set(weth.address, liquidator.address);
+
+        await expect(stabilityPool.updateWrapper(newWrapper.address)).to.revertedWith("dst mismatch");
+      });
+
       it("should succeed", async () => {
+        await wrapper.set(weth.address, weth.address);
         expect(await stabilityPool.wrapper()).to.eq(stabilityPool.address);
-        await expect(stabilityPool.updateWrapper(liquidator.address))
+        await expect(stabilityPool.updateWrapper(wrapper.address))
           .to.emit(stabilityPool, "UpdateWrapper")
-          .withArgs(liquidator.address);
-        expect(await stabilityPool.wrapper()).to.eq(liquidator.address);
+          .withArgs(wrapper.address);
+        expect(await stabilityPool.wrapper()).to.eq(wrapper.address);
       });
     });
 
@@ -195,10 +216,10 @@ describe("StabilityPool.spec", async () => {
         await expect(stabilityPool.addReward(weth.address, deployer.address, 86400))
           .to.emit(stabilityPool, "AddRewardToken")
           .withArgs(weth.address, deployer.address, 86400);
-        expect(await stabilityPool.rewardsLength()).to.eq(1);
-        expect(await stabilityPool.rewards(0)).to.eq(weth.address);
+        expect(await stabilityPool.extraRewardsLength()).to.eq(1);
+        expect(await stabilityPool.extraRewards(0)).to.eq(weth.address);
         expect(await stabilityPool.rewardManager(weth.address)).to.eq(deployer.address);
-        expect((await stabilityPool.rewardState(weth.address)).periodLength).to.eq(86400);
+        expect((await stabilityPool.extraRewardState(weth.address)).periodLength).to.eq(86400);
       });
     });
 
@@ -238,11 +259,10 @@ describe("StabilityPool.spec", async () => {
           .to.emit(stabilityPool, "UpdateRewardToken")
           .withArgs(weth.address, signer.address, 86401);
         expect(await stabilityPool.rewardManager(weth.address)).to.eq(signer.address);
-        expect((await stabilityPool.rewardState(weth.address)).periodLength).to.eq(86401);
+        expect((await stabilityPool.extraRewardState(weth.address)).periodLength).to.eq(86401);
       });
     });
   });
-  */
 
   context("deposit and claim", async () => {
     beforeEach(async () => {

@@ -80,7 +80,7 @@ const config: {
     FractionalToken: "0x0e20D8b0EC57cA8157d9bc2BEEc2c28a80Eaae8a",
     stETHTreasury: "0xA6cdB82DD4288b38E691E68b8ecA9FdDe648D60a",
     Market: "0x1AC1aD7Ba1D86A90C23B09FcA9b3F969d00DDCC0",
-    StabilityPool: "0xB7AE2782852A629c79F8dc09A79AF80649a056Ac",
+    StabilityPool: "0xBB8828DDb2774a141EBE3BB449d1cc5BF6212885",
   },
   Ratio: {
     stabilityPoolRatio: ethers.utils.parseEther("0.5"),
@@ -490,7 +490,7 @@ async function main() {
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
-  console.log(await stabilityPool.liquidator());
+  console.log(await liquidator.callStatic.liquidate(0));
 
   /*
   if (!(await sale.priceData()).initialPrice.eq(config.Sale.price.InitialPrice)) {

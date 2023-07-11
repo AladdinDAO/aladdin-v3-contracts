@@ -19,6 +19,12 @@ interface IStabilityPool {
   /// @param loss The amount of asset used by liquidation.
   event UserDepositChange(address indexed owner, uint256 newDeposit, uint256 loss);
 
+  /// @notice Emitted when the amount of unlocking asset changed due to liquidation or unlock or withdraw.
+  /// @param owner The address of asset owner.
+  /// @param newUnlock The new amount of unlocking asset.
+  /// @param loss The amount of asset used by liquidation.
+  event UserUnlockChange(address indexed owner, uint256 newUnlock, uint256 loss);
+
   /// @notice Emitted when user unlock part of its deposition.
   /// @param amount The amount of token to unlock.
   /// @param unlockAt The timestamp in second when the asset will be unlocked.
@@ -27,8 +33,7 @@ interface IStabilityPool {
   /// @notice Emitted when user withdraw unlocked asset.
   /// @param owner The address of asset owner.
   /// @param amount The amount of token to withdraw.
-  /// @param loss The amount of asset used by liquidation.
-  event WithdrawUnlocked(address indexed owner, uint256 amount, uint256 loss);
+  event WithdrawUnlocked(address indexed owner, uint256 amount);
 
   /// @notice Emitted when new rewards are deposited to this contract.
   /// @param token The address of the token.
@@ -66,7 +71,9 @@ interface IStabilityPool {
 
   /// @notice Return the amount of unlocking asset for some specific user.
   /// @param account The address of user to query.
-  function unlockingBalanceOf(address account) external view returns (uint256);
+  /// @return balance The amount of unlocking asset.
+  /// @return unlockAt The timestamp in second when the asset is unlocked.
+  function unlockingBalanceOf(address account) external view returns (uint256 balance, uint256 unlockAt);
 
   /// @notice Return the amount of reward token can be claimed.
   /// @param account The address of user to query.
