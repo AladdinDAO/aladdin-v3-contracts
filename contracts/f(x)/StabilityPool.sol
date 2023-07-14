@@ -399,6 +399,8 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
     // @note the snapshot is updated in `_distributeRewards` once, the value of `unlock.amount` is correct.
     UserUnlock memory _unlock = snapshots[msg.sender].initialUnlock;
+    require(_unlock.amount == 0 || _unlock.unlockAt > block.timestamp, "nonzero unlocked token");
+
     _unlock.amount = uint128(_amount.add(_unlock.amount));
     emit UserUnlockChange(msg.sender, _unlock.amount, 0);
 

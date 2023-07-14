@@ -1,7 +1,7 @@
 /* eslint-disable node/no-missing-import */
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import {
   LeveragedToken,
   FractionalToken,
@@ -20,6 +20,8 @@ describe("StabilityPool.spec", async () => {
   let signer: SignerWithAddress;
   let platform: SignerWithAddress;
   let liquidator: SignerWithAddress;
+  let userA: SignerWithAddress;
+  let userB: SignerWithAddress;
 
   let weth: WETH9;
   let oracle: MockTwapOracle;
@@ -31,7 +33,7 @@ describe("StabilityPool.spec", async () => {
   let wrapper: MockTokenWrapper;
 
   beforeEach(async () => {
-    [deployer, signer, platform, liquidator] = await ethers.getSigners();
+    [deployer, signer, platform, liquidator, userA, userB] = await ethers.getSigners();
 
     const WETH9 = await ethers.getContractFactory("WETH9", deployer);
     weth = await WETH9.deploy();
@@ -395,5 +397,156 @@ describe("StabilityPool.spec", async () => {
     });
   });
 
-  context("deposit unlock and liquidate and withdraw", async () => {});
+  context("deposit, unlock and liquidate and withdraw", async () => {
+    beforeEach(async () => {
+      await oracle.setPrice(ethers.utils.parseEther("1000"));
+      await treasury.initializePrice();
+      await weth.deposit({ value: ethers.utils.parseEther("100") });
+
+      await weth.approve(market.address, constants.MaxUint256);
+      await market.mint(ethers.utils.parseEther("100"), deployer.address, 0, 0);
+    });
+
+    it("should succeed, when single deposit, unlock half, liquidate partial, withdraw", async () => {
+      await fToken.approve(stabilityPool.address, constants.MaxUint256);
+      const amountIn = ethers.utils.parseEther("10000");
+      const unlockAmount = ethers.utils.parseEther("2000");
+
+      // deposit
+      await stabilityPool.deposit(amountIn, signer.address);
+
+      // unlock
+      await stabilityPool.connect(signer).unlock(unlockAmount);
+      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+      expect(await stabilityPool.balanceOf(signer.address)).to.eq(amountIn.sub(unlockAmount));
+      expect(await stabilityPool.unlockedBalanceOf(signer.address)).to.eq(constants.Zero);
+      expect((await stabilityPool.unlockingBalanceOf(signer.address))._balance).to.eq(unlockAmount);
+      expect((await stabilityPool.unlockingBalanceOf(signer.address))._unlockAt).to.eq(timestamp + 86400 * 14);
+      expect(await stabilityPool.totalSupply()).to.eq(amountIn.sub(unlockAmount));
+      expect(await stabilityPool.totalUnlocking()).to.eq(unlockAmount);
+
+      // 14 days later
+      await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 14]);
+      await network.provider.send("evm_mine", []);
+      expect(await stabilityPool.unlockedBalanceOf(signer.address)).to.eq(unlockAmount);
+      expect((await stabilityPool.unlockingBalanceOf(signer.address))._balance).to.eq(constants.AddressZero);
+
+      // current collateral ratio is 200%, make 300% as liquidatable
+      await stabilityPool.updateLiquidatableCollateralRatio(ethers.utils.parseEther("3"));
+      await stabilityPool.updateLiquidator(liquidator.address);
+
+      // liquidate
+      await expect(stabilityPool.connect(liquidator).liquidate(ethers.utils.parseEther("200"), 0))
+        .to.emit(stabilityPool, "Liquidate")
+        .withArgs(ethers.utils.parseEther("200"), ethers.utils.parseEther("0.2"));
+      expect(await stabilityPool.totalSupply()).to.closeToBn(amountIn.sub(unlockAmount).mul(98).div(100), 1e6);
+      expect(await stabilityPool.totalUnlocking()).to.closeToBn(unlockAmount.mul(98).div(100), 1e6);
+      expect(await stabilityPool.balanceOf(signer.address)).to.closeToBn(
+        amountIn.sub(unlockAmount).mul(98).div(100),
+        1e6
+      );
+      expect(await stabilityPool.unlockedBalanceOf(signer.address)).to.closeToBn(unlockAmount.mul(98).div(100), 1e6);
+      expect((await stabilityPool.epochState()).prod).to.closeToBn(ethers.utils.parseEther("0.98"), 100);
+      expect((await stabilityPool.epochState()).epoch).to.eq(0);
+      expect((await stabilityPool.epochState()).scale).to.eq(0);
+
+      expect(await stabilityPool.claimable(signer.address, weth.address)).to.closeToBn(
+        ethers.utils.parseEther("0.2"),
+        1000000
+      );
+
+      // claim
+      await expect(stabilityPool.connect(signer)["claim(address,bool)"](weth.address, false)).to.emit(
+        stabilityPool,
+        "Claim"
+      );
+      expect(await weth.balanceOf(signer.address)).to.closeToBn(ethers.utils.parseEther("0.2"), 100000);
+      expect(await stabilityPool.claimable(signer.address, weth.address)).to.eq(constants.Zero);
+
+      // withdraw unlocked
+      await expect(stabilityPool.connect(signer).withdrawUnlocked(false, false)).to.emit(
+        stabilityPool,
+        "WithdrawUnlocked"
+      );
+      expect(await fToken.balanceOf(signer.address)).to.closeToBn(unlockAmount.mul(98).div(100), 1e6);
+      expect(await stabilityPool.totalUnlocking()).to.closeToBn(constants.Zero, 1e6);
+      expect(await stabilityPool.unlockedBalanceOf(signer.address)).to.closeToBn(constants.Zero, 1e6);
+    });
+
+    it("should succeed, when multiple deposit, unlock half, liquidate partial", async () => {
+      await fToken.approve(stabilityPool.address, constants.MaxUint256);
+      const amountInA = ethers.utils.parseEther("11000");
+      const unlockAmountA = ethers.utils.parseEther("2000");
+      const amountInB = ethers.utils.parseEther("9000");
+      const unlockAmountB = ethers.utils.parseEther("7000");
+
+      // deposit
+      await stabilityPool.deposit(amountInA, userA.address);
+      await stabilityPool.deposit(amountInB, userB.address);
+
+      // A unlock
+      await stabilityPool.connect(userA).unlock(unlockAmountA);
+      const timestampA = (await ethers.provider.getBlock("latest")).timestamp;
+      expect(await stabilityPool.balanceOf(userA.address)).to.eq(amountInA.sub(unlockAmountA));
+      expect(await stabilityPool.unlockedBalanceOf(userA.address)).to.eq(constants.Zero);
+      expect((await stabilityPool.unlockingBalanceOf(userA.address))._balance).to.eq(unlockAmountA);
+      expect((await stabilityPool.unlockingBalanceOf(userA.address))._unlockAt).to.eq(timestampA + 86400 * 14);
+      expect(await stabilityPool.totalSupply()).to.eq(amountInA.add(amountInB).sub(unlockAmountA));
+      expect(await stabilityPool.totalUnlocking()).to.eq(unlockAmountA);
+
+      // B unlock
+      await stabilityPool.connect(userB).unlock(unlockAmountB);
+      const timestampB = (await ethers.provider.getBlock("latest")).timestamp;
+      expect(await stabilityPool.balanceOf(userB.address)).to.eq(amountInB.sub(unlockAmountB));
+      expect(await stabilityPool.unlockedBalanceOf(userB.address)).to.eq(constants.Zero);
+      expect((await stabilityPool.unlockingBalanceOf(userB.address))._balance).to.eq(unlockAmountB);
+      expect((await stabilityPool.unlockingBalanceOf(userB.address))._unlockAt).to.eq(timestampB + 86400 * 14);
+      expect(await stabilityPool.totalSupply()).to.eq(amountInA.add(amountInB).sub(unlockAmountA).sub(unlockAmountB));
+      expect(await stabilityPool.totalUnlocking()).to.eq(unlockAmountA.add(unlockAmountB));
+
+      // 14 days later
+      await network.provider.send("evm_setNextBlockTimestamp", [timestampB + 86400 * 14]);
+      await network.provider.send("evm_mine", []);
+      expect(await stabilityPool.unlockedBalanceOf(userA.address)).to.eq(unlockAmountA);
+      expect((await stabilityPool.unlockingBalanceOf(userA.address))._balance).to.eq(constants.AddressZero);
+      expect(await stabilityPool.unlockedBalanceOf(userB.address)).to.eq(unlockAmountB);
+      expect((await stabilityPool.unlockingBalanceOf(userB.address))._balance).to.eq(constants.AddressZero);
+
+      // current collateral ratio is 200%, make 300% as liquidatable
+      await stabilityPool.updateLiquidatableCollateralRatio(ethers.utils.parseEther("3"));
+      await stabilityPool.updateLiquidator(liquidator.address);
+
+      // liquidate
+      await expect(stabilityPool.connect(liquidator).liquidate(ethers.utils.parseEther("200"), 0))
+        .to.emit(stabilityPool, "Liquidate")
+        .withArgs(ethers.utils.parseEther("200"), ethers.utils.parseEther("0.2"));
+      expect(await stabilityPool.totalSupply()).to.closeToBn(
+        amountInA.add(amountInB).sub(unlockAmountA).sub(unlockAmountB).mul(99).div(100),
+        1e6
+      );
+      expect(await stabilityPool.totalUnlocking()).to.closeToBn(unlockAmountA.add(unlockAmountB).mul(99).div(100), 1e6);
+      expect(await stabilityPool.balanceOf(userA.address)).to.closeToBn(
+        amountInA.sub(unlockAmountA).mul(99).div(100),
+        1e6
+      );
+      expect(await stabilityPool.balanceOf(userB.address)).to.closeToBn(
+        amountInB.sub(unlockAmountB).mul(99).div(100),
+        1e6
+      );
+      expect(await stabilityPool.unlockedBalanceOf(userA.address)).to.closeToBn(unlockAmountA.mul(99).div(100), 1e6);
+      expect(await stabilityPool.unlockedBalanceOf(userB.address)).to.closeToBn(unlockAmountB.mul(99).div(100), 1e6);
+      expect((await stabilityPool.epochState()).prod).to.closeToBn(ethers.utils.parseEther("0.99"), 100);
+      expect((await stabilityPool.epochState()).epoch).to.eq(0);
+      expect((await stabilityPool.epochState()).scale).to.eq(0);
+
+      expect(await stabilityPool.claimable(userA.address, weth.address)).to.closeToBn(
+        ethers.utils.parseEther("0.2").mul(11).div(20),
+        1000000
+      );
+      expect(await stabilityPool.claimable(userB.address, weth.address)).to.closeToBn(
+        ethers.utils.parseEther("0.2").mul(9).div(20),
+        1000000
+      );
+    });
+  });
 });
