@@ -198,11 +198,6 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     _;
   }
 
-  modifier cachePrice() {
-    ITreasury(treasury).cacheTwap();
-    _;
-  }
-
   /***************
    * Constructor *
    ***************/
@@ -230,7 +225,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     address _recipient,
     uint256 _minFTokenMinted,
     uint256 _minXTokenMinted
-  ) external override nonReentrant cachePrice returns (uint256 _fTokenMinted, uint256 _xTokenMinted) {
+  ) external override nonReentrant returns (uint256 _fTokenMinted, uint256 _xTokenMinted) {
     address _baseToken = baseToken;
     if (_baseIn == uint256(-1)) {
       _baseIn = IERC20Upgradeable(_baseToken).balanceOf(msg.sender);
@@ -254,7 +249,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _baseIn,
     address _recipient,
     uint256 _minFTokenMinted
-  ) external override nonReentrant cachePrice returns (uint256 _fTokenMinted) {
+  ) external override nonReentrant returns (uint256 _fTokenMinted) {
     require(!mintPaused, "mint is paused");
 
     address _baseToken = baseToken;
@@ -290,7 +285,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _baseIn,
     address _recipient,
     uint256 _minXTokenMinted
-  ) external override nonReentrant cachePrice returns (uint256 _xTokenMinted) {
+  ) external override nonReentrant returns (uint256 _xTokenMinted) {
     require(!mintPaused, "mint is paused");
 
     address _baseToken = baseToken;
@@ -316,7 +311,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _baseIn,
     address _recipient,
     uint256 _minXTokenMinted
-  ) external override nonReentrant cachePrice returns (uint256 _xTokenMinted) {
+  ) external override nonReentrant returns (uint256 _xTokenMinted) {
     require(!mintPaused, "mint is paused");
 
     ITreasury _treasury = ITreasury(treasury);
@@ -360,7 +355,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _xTokenIn,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant cachePrice returns (uint256 _baseOut) {
+  ) external override nonReentrant returns (uint256 _baseOut) {
     require(!redeemPaused, "redeem is paused");
 
     if (_fTokenIn == uint256(-1)) {
@@ -419,7 +414,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _fTokenIn,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant cachePrice returns (uint256 _baseOut) {
+  ) external override nonReentrant returns (uint256 _baseOut) {
     require(!redeemPaused, "redeem is paused");
 
     ITreasury _treasury = ITreasury(treasury);
@@ -465,7 +460,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _baseSwapAmt,
     uint256 _minFTokenLiquidated,
     bytes calldata _data
-  ) external override nonReentrant cachePrice returns (uint256 _baseOut, uint256 _fTokenLiquidated) {
+  ) external override nonReentrant returns (uint256 _baseOut, uint256 _fTokenLiquidated) {
     require(!redeemPaused, "redeem is paused");
     require(liquidationWhitelist[msg.sender], "not liquidation whitelist");
 

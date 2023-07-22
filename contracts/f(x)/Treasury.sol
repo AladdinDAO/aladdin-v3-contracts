@@ -104,9 +104,6 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @inheritdoc ITreasury
   uint256 public override strategyUnderlying;
 
-  /// @notice Local cache for twap price.
-  TwapCache public twapCache;
-
   /// @notice Whether the sender is allowed to do settlement.
   mapping(address => bool) public settleWhitelist;
 
@@ -405,17 +402,6 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   }
 
   /// @inheritdoc ITreasury
-  function cacheTwap() external override {
-    TwapCache memory _cache = twapCache;
-    if (_cache.timestamp != block.timestamp) {
-      _cache.price = uint128(ITwapOracle(priceOracle).getTwap(block.timestamp));
-      _cache.timestamp = uint128(block.timestamp);
-
-      twapCache = _cache;
-    }
-  }
-
-  /// @inheritdoc ITreasury
   function protocolSettle() external override {
     require(settleWhitelist[msg.sender], "only settle whitelist");
     if (totalBaseToken == 0) return;
@@ -558,12 +544,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @dev Internal function to fetch twap price.
   /// @return _price The twap price of the base token.
   function _fetchTwapPrice() internal view returns (uint256 _price) {
-    TwapCache memory _cache = twapCache;
-    if (_cache.timestamp != block.timestamp) {
-      _price = ITwapOracle(priceOracle).getTwap(block.timestamp);
-    } else {
-      _price = _cache.price;
-    }
+    _price = ITwapOracle(priceOracle).getTwap(block.timestamp);
 
     require(_price > 0, "invalid twap price");
   }

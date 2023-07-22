@@ -182,9 +182,6 @@ interface ITreasury {
     bytes calldata data
   ) external returns (uint256 baseOut, uint256 fAmt);
 
-  /// @notice Cache the twap price.
-  function cacheTwap() external;
-
   /// @notice Settle the nav of base token, fToken and xToken.
   function protocolSettle() external;
 
