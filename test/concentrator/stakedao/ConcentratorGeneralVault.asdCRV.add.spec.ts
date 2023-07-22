@@ -63,6 +63,14 @@ const POOL_FORK_CONFIG: {
     amount: "100",
     harvest: false,
   },
+  "ETH/ALD": {
+    height: 17713930,
+    pid: 11,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x28c921adAC4c1072658eB01a28DA06b5F651eF62",
+    amount: "1000",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";

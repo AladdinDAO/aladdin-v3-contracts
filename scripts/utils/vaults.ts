@@ -3029,6 +3029,29 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
+  "ETH/ALD": {
+    token: "CURVE_ETH/ALD",
+    composition: "ETH+ALD",
+    convexCurveID: 201,
+    rewarder: "0x26cE86C54f779ea79be855b3B99201fe4dCf0c5b",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/ALD_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add)],
+      ALD: [encodePoolHintV2(ADDRESS["CURVE_ETH/ALD_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Add)],
+      USDC: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/ALD_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Add),
+      ],
+    },
+    withdraw: {
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/ALD_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove)],
+      ALD: [encodePoolHintV2(ADDRESS["CURVE_ETH/ALD_POOL"], PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
+      USDC: [
+        encodePoolHintV2(ADDRESS["CURVE_ETH/ALD_POOL"], PoolType.CurveCryptoPool, 2, 0, 0, Action.Remove),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -3192,5 +3215,6 @@ export const DEPLOYED_VAULTS: {
     { name: "USDT/WBTC/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 8
     { name: "CRV/sdCRV-v2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 9
     { name: "sUSD/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 10
+    { name: "ETH/ALD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 11
   ],
 };
