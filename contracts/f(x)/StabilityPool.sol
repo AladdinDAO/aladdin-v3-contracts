@@ -32,14 +32,14 @@ import { ITreasury } from "./interfaces/ITreasury.sol";
 /// where
 ///   + d[0] is the initial deposited amount of a user
 ///   + L[i] is the amount of liquidated asset at t[i]
-///   + D[i] is the total amount of asset at a[i]
+///   + D[i] is the total amount of asset at t[i]
 /// So we need to maintain the following variables:
 ///   + D[i] = D[i-1] - L[i]
 ///   + P[i] = P[i-1] * (1 - L[i]/D[i-1])
 ///
 /// The amount of reward token gained after n distribution is:
 ///   + gain = d[0] * E[1]/D[0] + d[1] * E[2]/D[1] + ... + d[n-1]*E[n]/D[n-1]
-///   + d[i] = d[i-1]*(1 - L[i]/D[i-1]) = d[0] * P[i-1]
+///   + d[i] = d[i-1]*(1 - L[i]/D[i-1]) = d[0] * P[i]
 ///   + D[i] = D[i-1] - L[i]
 /// So we need to maintain the flowing variables:
 ///   + D[i] = D[i-1] - L[i]
@@ -145,7 +145,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     uint128 unlockAt;
   }
 
-  struct UserRewardSnapsot {
+  struct UserRewardSnapshot {
     // The amount of pending extraRewards.
     uint256 pending;
     // The accumulated reward sum.
@@ -161,9 +161,9 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     // The epoch state snapshot at last interaction.
     EpochState epoch;
     // The reward snapshot of base token at last interaction.
-    UserRewardSnapsot baseReward;
+    UserRewardSnapshot baseReward;
     // Mapping from token address to extra reward snapshot.
-    mapping(address => UserRewardSnapsot) extraRewards;
+    mapping(address => UserRewardSnapshot) extraRewards;
   }
 
   /*************
@@ -318,7 +318,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
     // 1. from base rewards
     if (_token == baseRewardToken()) {
-      UserRewardSnapsot memory _base = snapshots[_account].baseReward;
+      UserRewardSnapshot memory _base = snapshots[_account].baseReward;
       _amount = _base.pending.add(
         _getGainFromSnapshots(
           _initialDeposit.add(_initialUnlock),
@@ -331,7 +331,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
 
     // 2. from extra rewards
     if (_initialDeposit > 0) {
-      UserRewardSnapsot memory _extra = snapshots[_account].extraRewards[_token];
+      UserRewardSnapshot memory _extra = snapshots[_account].extraRewards[_token];
       _amount = _amount.add(
         _extra.pending.add(
           _getGainFromSnapshots(
@@ -483,7 +483,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     require(liquidator == msg.sender, "only liquidator");
 
     // distribute pending extraRewards
-    _distributeRewards(address(this));
+    _distributeRewards(address(0));
 
     ITreasury _treasury = ITreasury(treasury);
 
@@ -604,6 +604,28 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     emit AddRewardToken(_token, _manager, _periodLength);
   }
 
+  /// @notice Remove an existed reward token.
+  /// @param _index The index of the token in `extraRewards` list.
+  function removeReward(uint256 _index) external onlyOwner {
+    uint256 _length = extraRewards.length;
+    require(_index < _length, "no such reward");
+
+    address _token = extraRewards[_length];
+    _distributeReward(_token);
+
+    require(
+      extraRewardState[_token].queued == 0 && extraRewardState[_token].finishAt < block.timestamp,
+      "has undistributed rewards"
+    );
+    if (_index + 1 < _length) {
+      extraRewards[_index] = extraRewards[_length - 1];
+    }
+    extraRewards.pop();
+
+    delete extraRewardState[_token];
+    delete rewardManager[_token];
+  }
+
   /// @notice Update the reward distribution for some reward token.
   /// @param _token The address of the reward token.
   /// @param _manager The address of reward token manager.
@@ -678,7 +700,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     EpochState memory _currentEpoch = epochState;
 
     // 1. update base token gained by liquidation
-    UserRewardSnapsot memory _base = snapshots[_account].baseReward;
+    UserRewardSnapshot memory _base = snapshots[_account].baseReward;
     _base.pending = _base.pending.add(
       _getGainFromSnapshots(
         _initialDeposit.add(_initialUnlock),
@@ -693,7 +715,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     // 2. update manually deposited reward token
     if (_initialDeposit > 0) {
       uint256 length = extraRewards.length;
-      UserRewardSnapsot memory _extra;
+      UserRewardSnapshot memory _extra;
       for (uint256 i = 0; i < length; i++) {
         address _token = extraRewards[i];
         _extra = snapshots[_account].extraRewards[_token];
@@ -711,17 +733,21 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     }
 
     // 3. update possible asset loss from the deposited assets
-    uint256 _compoundedDeposit = _getCompoundedStakeFromSnapshots(_initialDeposit, snapshots[_account].epoch);
-    if (_compoundedDeposit != _initialDeposit) {
-      emit UserDepositChange(_account, _compoundedDeposit, _initialDeposit.sub(_compoundedDeposit));
-      snapshots[_account].initialDeposit = _compoundedDeposit;
+    if (_initialDeposit > 0) {
+      uint256 _compoundedDeposit = _getCompoundedStakeFromSnapshots(_initialDeposit, snapshots[_account].epoch);
+      if (_compoundedDeposit != _initialDeposit) {
+        emit UserDepositChange(_account, _compoundedDeposit, _initialDeposit.sub(_compoundedDeposit));
+        snapshots[_account].initialDeposit = _compoundedDeposit;
+      }
     }
 
     // 4. update possible asset loss from the unlocking assets
-    uint256 _compoundedUnlock = _getCompoundedStakeFromSnapshots(_initialUnlock, snapshots[_account].epoch);
-    if (_compoundedUnlock != _initialUnlock) {
-      emit UserUnlockChange(_account, _compoundedUnlock, _initialUnlock.sub(_compoundedUnlock));
-      snapshots[_account].initialUnlock.amount = uint128(_compoundedUnlock);
+    if (_initialUnlock > 0) {
+      uint256 _compoundedUnlock = _getCompoundedStakeFromSnapshots(_initialUnlock, snapshots[_account].epoch);
+      if (_compoundedUnlock != _initialUnlock) {
+        emit UserUnlockChange(_account, _compoundedUnlock, _initialUnlock.sub(_compoundedUnlock));
+        snapshots[_account].initialUnlock.amount = uint128(_compoundedUnlock);
+      }
     }
 
     snapshots[_account].epoch = _currentEpoch;
@@ -810,33 +836,33 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   function _notifyLoss(uint256 _loss, uint256 _baseOut) internal {
     uint256 _totalSupply = totalSupply;
     uint256 _totalUnlocking = totalUnlocking;
+    uint256 _totalAsset = _totalSupply.add(_totalUnlocking);
     uint256 _assetLossPerUnitStaked;
 
     EpochState memory _currentEpoch = epochState;
 
     // update base token accumulation
     {
-      uint256 _rewardsPerUnitStaked = _baseOut.mul(PRECISION).div(_totalSupply.add(_totalUnlocking));
+      uint256 _rewardsPerUnitStaked = _baseOut.mul(PRECISION).div(_totalAsset);
       uint256 _currentSum = epochToScaleToBaseRewardSum[_currentEpoch.epoch][_currentEpoch.scale];
       _currentSum = _currentSum.add(_rewardsPerUnitStaked.mul(epochState.prod));
       epochToScaleToBaseRewardSum[_currentEpoch.epoch][_currentEpoch.scale] = _currentSum;
     }
 
     // use >= here, in case someone send extra asset to this contract.
-    if (_loss >= _totalSupply + _totalUnlocking) {
+    if (_loss >= _totalAsset) {
       _assetLossPerUnitStaked = PRECISION;
       lastAssetLossError = 0;
       totalSupply = 0;
       totalUnlocking = 0;
     } else {
-      uint256 _lossFromDeposit = _loss.mul(_totalSupply).div(_totalUnlocking + _totalSupply);
-
-      uint256 _lossNumerator = _lossFromDeposit.mul(PRECISION).sub(lastAssetLossError);
+      uint256 _lossNumerator = _loss.mul(PRECISION).sub(lastAssetLossError);
       // Add 1 to make error in quotient positive. We want "slightly too much" LUSD loss,
       // which ensures the error in any given compoundedAssetDeposit favors the Stability Pool.
-      _assetLossPerUnitStaked = (_lossNumerator.div(_totalSupply)).add(1);
-      lastAssetLossError = (_assetLossPerUnitStaked.mul(_totalSupply)).sub(_lossNumerator);
+      _assetLossPerUnitStaked = (_lossNumerator.div(_totalAsset)).add(1);
+      lastAssetLossError = (_assetLossPerUnitStaked.mul(_totalAsset)).sub(_lossNumerator);
 
+      uint256 _lossFromDeposit = _loss.mul(_totalSupply).div(_totalAsset);
       totalSupply = _totalSupply.sub(_lossFromDeposit);
       totalUnlocking = _totalUnlocking.sub(_loss.sub(_lossFromDeposit));
     }
