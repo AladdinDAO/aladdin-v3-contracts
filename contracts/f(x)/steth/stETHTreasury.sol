@@ -6,7 +6,7 @@ import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/Sa
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { IStabilityPool } from "../interfaces/IStabilityPool.sol";
+import { IRebalancePool } from "../interfaces/IRebalancePool.sol";
 import { ILidoWstETH } from "../../interfaces/ILidoWstETH.sol";
 
 import { Treasury } from "../Treasury.sol";
@@ -105,7 +105,7 @@ contract stETHTreasury is Treasury {
       address _stabilityPool = stabilityPool;
       // deposit rewards to stability pool
       _approve(wstETH, _stabilityPool, _stabilityPoolRewards);
-      IStabilityPool(_stabilityPool).depositReward(wstETH, _stabilityPoolRewards);
+      IRebalancePool(_stabilityPool).depositReward(wstETH, _stabilityPoolRewards);
     }
 
     if (_totalRewards > 0) {

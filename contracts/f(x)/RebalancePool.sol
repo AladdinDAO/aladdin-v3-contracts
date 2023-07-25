@@ -9,7 +9,7 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
 import { IMarket } from "./interfaces/IMarket.sol";
-import { IStabilityPool } from "./interfaces/IStabilityPool.sol";
+import { IRebalancePool } from "./interfaces/IRebalancePool.sol";
 import { ITokenWrapper } from "./interfaces/ITokenWrapper.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
@@ -57,7 +57,7 @@ import { ITreasury } from "./interfaces/ITreasury.sol";
 ///
 /// There are possibilities that all assets are liquidated. In such case, we will reset the P[i] to 1, scale[i] = 0,
 /// and increase current epoch by 1.
-contract StabilityPool is OwnableUpgradeable, IStabilityPool {
+contract RebalancePool is OwnableUpgradeable, IRebalancePool {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
 
@@ -179,10 +179,10 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
   /// @notice The address of base token.
   address public baseToken;
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   address public override asset;
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   uint256 public override totalSupply;
 
   /// @notice The total amount of assets unlocked.
@@ -272,7 +272,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     return _token;
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function balanceOf(address _account) public view override returns (uint256) {
     uint256 initialDeposit = snapshots[_account].initialDeposit;
     if (initialDeposit == 0) {
@@ -285,7 +285,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     return compoundedDeposit;
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function unlockedBalanceOf(address account) external view override returns (uint256) {
     UserUnlock memory _unlock = snapshots[account].initialUnlock;
     if (_unlock.amount == 0) return 0;
@@ -297,7 +297,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     }
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function unlockingBalanceOf(address account) external view override returns (uint256 _balance, uint256 _unlockAt) {
     UserUnlock memory _unlock = snapshots[account].initialUnlock;
 
@@ -307,7 +307,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     }
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function claimable(address _account, address _token) public view override returns (uint256) {
     uint256 _initialDeposit = snapshots[_account].initialDeposit;
     uint256 _initialUnlock = snapshots[_account].initialUnlock.amount;
@@ -351,7 +351,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function deposit(uint256 _amount, address _recipient) external override {
     // transfer asset token to this contract
     address _asset = asset;
@@ -380,7 +380,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     emit Deposit(msg.sender, _recipient, _amount);
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function unlock(uint256 _amount) external override {
     require(_amount > 0, "unlock zero amount");
     require(snapshots[msg.sender].initialDeposit > 0, "user has no deposit");
@@ -418,7 +418,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     emit Unlock(msg.sender, _amount, _unlockAt);
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function withdrawUnlocked(bool _doClaim, bool _unwrap) external override {
     // distribute pending extraRewards
     _distributeRewards(msg.sender);
@@ -454,7 +454,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     }
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function claim(address _token, bool _unwrap) external override {
     // distribute pending extraRewards
     _distributeRewards(msg.sender);
@@ -463,7 +463,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     _claim(msg.sender, _token, _unwrap);
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function claim(address[] memory _tokens, bool _unwrap) external override {
     // distribute pending extraRewards
     _distributeRewards(msg.sender);
@@ -474,7 +474,7 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     }
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function liquidate(uint256 _maxAmount, uint256 _minBaseOut)
     external
     override
@@ -521,13 +521,13 @@ contract StabilityPool is OwnableUpgradeable, IStabilityPool {
     _notifyLoss(_liquidated, _baseOut);
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function updateAccountSnapshot(address _account) external override {
     // distribute pending extraRewards
     _distributeRewards(_account);
   }
 
-  /// @inheritdoc IStabilityPool
+  /// @inheritdoc IRebalancePool
   function depositReward(address _token, uint256 _amount) external override onlyRewardManager(_token) {
     uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
     IERC20Upgradeable(_token).safeTransferFrom(msg.sender, address(this), _amount);
