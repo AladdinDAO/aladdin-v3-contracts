@@ -35,7 +35,7 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
   address private constant DEPOSITOR = 0xc1e3Ca8A3921719bE0aE3690A0e036feB4f69191;
 
   /// @dev The address of Curve CRV/sdCRV factory plain pool.
-  address private constant CURVE_POOL = 0xf7b55C3732aD8b2c2dA7c24f30A69f55c54FB717;
+  address private constant CURVE_POOL = 0xCA0253A98D16e9C1e3614caFDA19318EE69772D0;
 
   /// @notice The name of the vault.
   // solhint-disable-next-line const-name-snakecase

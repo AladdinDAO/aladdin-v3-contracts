@@ -276,7 +276,7 @@ const config: {
       start: 1675728000, // Tue Feb 07 2023 00:00:00 GMT+0000
     },
     StakeDAOCRVVault: {
-      impl: "0x7dd09b5309dFb3531e6A35475a647474588AcdA6",
+      impl: "0x0e20D8b0EC57cA8157d9bc2BEEc2c28a80Eaae8a",
       proxy: "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6",
       gauge: "0x7f50786A0b15723D741727882ee99a0BF34e3466",
       lockDuration: 86400 * 1,
