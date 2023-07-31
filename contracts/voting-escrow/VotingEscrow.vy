@@ -1,7 +1,7 @@
 # @version 0.3.1
 """
 @title Voting Escrow
-@author Curve Finance
+@author Aladdin DAO
 @license MIT
 @notice Votes have a weight depending on time, so that users are
         committed to the future of (whatever they are voting for)

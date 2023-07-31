@@ -1,7 +1,7 @@
 # @version 0.3.1
 """
-@title Curve DAO Token
-@author Curve Finance
+@title ERC20CLEV
+@author Aladdin DAO
 @license MIT
 @notice ERC20 with piecewise-linear mining supply.
 @dev Based on the ERC-20 token standard as defined at

@@ -11,33 +11,49 @@ import {
   ProxyAdmin,
   TokenSale,
   StETHTreasury,
-  StabilityPool,
-  LiquidatorWithBonusToken,
+  RebalancePool,
+  RebalanceWithBonusToken,
   WstETHWrapper,
 } from "../typechain";
 import { DEPLOYED_CONTRACTS, TOKENS } from "./utils";
 
+const KEEPER = "0x11e91bb6d1334585aa37d8f4fde3932c7960b938";
+
 const config: {
   initialMintRatio: BigNumber;
   beta: BigNumber;
+  baseTokenCap: BigNumber;
   marketConfig: {
     stabilityRatio: BigNumber;
     liquidationRatio: BigNumber;
     selfLiquidationRatio: BigNumber;
     recapRatio: BigNumber;
   };
+  incentiveConfig: {
+    stabilityIncentiveRatio: BigNumber;
+    liquidationIncentiveRatio: BigNumber;
+    selfLiquidationIncentiveRatio: BigNumber;
+  };
+  feeRatio: {
+    [type: string]: {
+      defaultFeeRatio: BigNumber;
+      extraFeeRatio: BigNumber;
+    };
+  };
 
   ProxyAdmin: string;
   Sale: {
-    cap: BigNumber;
-    time: { WhitelistStartTime: number; PublicStartTime: number; SaleDuration: number };
-    tokens: string[];
-    price: {
-      InitialPrice: BigNumber;
-      UpRatio: BigNumber;
-      Variation: BigNumber;
+    [round: string]: {
+      cap: BigNumber;
+      time: { WhitelistStartTime: number; PublicStartTime: number; SaleDuration: number };
+      tokens: string[];
+      price: {
+        InitialPrice: BigNumber;
+        UpRatio: BigNumber;
+        Variation: BigNumber;
+      };
+      address: string;
     };
-    address: string;
   };
   Ratio: {
     stabilityPoolRatio: BigNumber;
@@ -48,59 +64,98 @@ const config: {
   LeveragedToken: string;
   FractionalToken: string;
   stETHTreasury: string;
-  StabilityPool: string;
+  RebalancePool: string;
   Market: string;
   ChainlinkTwapOracleV3: string;
   wstETHWrapper: string;
   stETHGateway: string;
 } = {
+  ProxyAdmin: DEPLOYED_CONTRACTS.Fx.ProxyAdmin,
+
   initialMintRatio: ethers.utils.parseUnits("0.5", 18),
   beta: ethers.utils.parseUnits("0.1", 18),
+  baseTokenCap: ethers.utils.parseUnits("1000", 18),
+
   marketConfig: {
-    stabilityRatio: ethers.utils.parseUnits("1.3", 18),
-    liquidationRatio: ethers.utils.parseUnits("1.2", 18),
-    selfLiquidationRatio: ethers.utils.parseUnits("1.14", 18),
+    stabilityRatio: ethers.utils.parseUnits("1.3055", 18),
+    liquidationRatio: ethers.utils.parseUnits("1.2067", 18),
+    selfLiquidationRatio: ethers.utils.parseUnits("1.1439", 18),
     recapRatio: ethers.utils.parseUnits("1", 18),
   },
-
-  ProxyAdmin: "0xa569a849bb4E47FE90707209305f001BC976CE57",
-  Sale: {
-    cap: ethers.utils.parseEther("20000"),
-    time: { WhitelistStartTime: 1685620800, PublicStartTime: 1685624400, SaleDuration: 86400 * 6 },
-    tokens: [constants.AddressZero],
-    price: {
-      InitialPrice: ethers.utils.parseEther("0.005"),
-      UpRatio: constants.Zero,
-      Variation: ethers.utils.parseEther("1"),
+  incentiveConfig: {
+    stabilityIncentiveRatio: constants.Zero,
+    liquidationIncentiveRatio: constants.Zero,
+    selfLiquidationIncentiveRatio: constants.Zero,
+  },
+  feeRatio: {
+    fTokenMintFeeRatio: {
+      defaultFeeRatio: ethers.utils.parseEther("0.25").div(100),
+      extraFeeRatio: constants.Zero,
     },
-    address: "0x3eB6Da2d3f39BA184AEA23876026E0747Fb0E17f",
+    xTokenMintFeeRatio: {
+      defaultFeeRatio: ethers.utils.parseEther("1").div(100),
+      extraFeeRatio: ethers.utils.parseEther("-1").div(100),
+    },
+    fTokenRedeemFeeRatio: {
+      defaultFeeRatio: ethers.utils.parseEther("0.25").div(100),
+      extraFeeRatio: ethers.utils.parseEther("-0.25").div(100),
+    },
+    xTokenRedeemFeeRatio: {
+      defaultFeeRatio: ethers.utils.parseEther("1").div(100),
+      extraFeeRatio: ethers.utils.parseEther("7").div(100),
+    },
+  },
+
+  Sale: {
+    round1: {
+      cap: ethers.utils.parseEther("20000"),
+      time: { WhitelistStartTime: 1685620800, PublicStartTime: 1685624400, SaleDuration: 86400 * 6 },
+      tokens: [constants.AddressZero],
+      price: {
+        InitialPrice: ethers.utils.parseEther("0.005"),
+        UpRatio: constants.Zero,
+        Variation: ethers.utils.parseEther("1"),
+      },
+      address: "0x3eB6Da2d3f39BA184AEA23876026E0747Fb0E17f",
+    },
+    round2: {
+      cap: ethers.utils.parseEther("40000"),
+      time: { WhitelistStartTime: 1690981200, PublicStartTime: 1691586000, SaleDuration: 0 },
+      tokens: [constants.AddressZero],
+      price: {
+        InitialPrice: ethers.utils.parseEther("0.0075"),
+        UpRatio: constants.Zero,
+        Variation: ethers.utils.parseEther("1"),
+      },
+      address: "0x674A745ADb09c3333D655cC63e2d77ACbE6De935",
+    },
   },
   impls: {
-    LeveragedToken: "0x2651e295bC2B54BB7c60AB71f8fb0b032eBeBf7d",
-    FractionalToken: "0x0e20D8b0EC57cA8157d9bc2BEEc2c28a80Eaae8a",
-    stETHTreasury: "0xA6cdB82DD4288b38E691E68b8ecA9FdDe648D60a",
-    Market: "0x1AC1aD7Ba1D86A90C23B09FcA9b3F969d00DDCC0",
-    StabilityPool: "0xBB8828DDb2774a141EBE3BB449d1cc5BF6212885",
+    LeveragedToken: "0x92d0cb7E56806Bf977e7F5296EA2Fe84B475Fe83",
+    FractionalToken: "0x2a906eAB9B088E6753670bC8D3840f9473745748",
+    stETHTreasury: "0xCE938c27C04d4A638307D44e28515D4bcD28bD74",
+    Market: "0x505002BbADAC4eBC17666b1622cFF0605fe90bD5",
+    RebalancePool: "0x3415fcD2885C486E2d848403d51077f7176473C7",
   },
   Ratio: {
     stabilityPoolRatio: ethers.utils.parseEther("0.5"),
     harvestBountyRatio: ethers.utils.parseEther("0.01"),
   },
   Liquidator: {
-    LiquidatorWithBonusToken: "0xBED3FEBBB237AeDdAc81904aD49a93143d5026C8",
+    RebalanceWithBonusToken: constants.AddressZero,
   },
-  ChainlinkTwapOracleV3: "0xEbA9A8fdd2539d33e070c66Afc1127478bA78054",
-  FractionalToken: "0xdBB1AAeb04F3B5e2587E4bB849717E9ebD0c8acC",
-  LeveragedToken: "0x4eECa6bFa3C96210260691639827eEF4D80FA8C6",
-  StabilityPool: "0x719c287932B0ea6037862b4cec4A786939DEb1d8",
-  stETHTreasury: "0xe6AAF8fBB56488941f619A9ADB0EB4d89fA9d217",
-  Market: "0x7185E3477Ad54A8186e623768833e8C2686591D3",
-  wstETHWrapper: "0x7b9Bb9CdBb04BF57F2F82e51D54F6C8ee165FF3B",
-  stETHGateway: "0x674A745ADb09c3333D655cC63e2d77ACbE6De935",
+  ChainlinkTwapOracleV3: "0x460B3CdE57DfbA90DBed02fd83d3990a92DA1230",
+  FractionalToken: "0x53805A76E1f5ebbFE7115F16f9c87C2f7e633726",
+  LeveragedToken: "0xe063F04f280c60aECa68b38341C2eEcBeC703ae2",
+  stETHTreasury: "0x0e5CAA5c889Bdf053c9A76395f62267E653AFbb0",
+  Market: "0xe7b9c7c9cA85340b8c06fb805f7775e3015108dB",
+  RebalancePool: "0xa677d95B91530d56791FbA72C01a862f1B01A49e",
+  stETHGateway: "0x4C5C52d507066780500e627d592DbE11476E7c21",
+  wstETHWrapper: "0xb09e34dD25d5E88a1E9Ff6F6418109927675B658",
 };
 
-const maxFeePerGas = 30e9;
-const maxPriorityFeePerGas = 1.2e9;
+const maxFeePerGas = 20e9;
+const maxPriorityFeePerGas = 1e9;
 
 async function main() {
   const overrides = {
@@ -129,7 +184,7 @@ async function main() {
     config.ProxyAdmin = proxyAdmin.address;
   }
 
-  for (const name of ["LeveragedToken", "FractionalToken", "stETHTreasury", "Market", "StabilityPool"]) {
+  for (const name of ["LeveragedToken", "FractionalToken", "stETHTreasury", "Market", "RebalancePool"]) {
     if (config.impls[name] === "") {
       const Contract = await ethers.getContractFactory(name, deployer);
       let impl: Contract;
@@ -148,24 +203,66 @@ async function main() {
     }
   }
 
-  let sale: TokenSale;
-  if (config.Sale.address !== "") {
-    sale = await ethers.getContractAt("TokenSale", config.Sale.address, deployer);
-    console.log(`Found TokenSale at:`, sale.address);
-  } else {
-    const TokenSale = await ethers.getContractFactory("TokenSale", deployer);
-    sale = await TokenSale.deploy(
-      TOKENS.WETH.address,
-      TOKENS.WETH.address,
-      DEPLOYED_CONTRACTS.AladdinZap,
-      config.Sale.cap,
-      overrides
-    );
-    console.log(`Deploying TokenSale hash:`, sale.deployTransaction.hash);
-    await sale.deployed();
-    const receipt = await sale.deployTransaction.wait();
-    console.log(`✅ Deploy TokenSale at:`, sale.address, "gas used:", receipt.gasUsed.toString());
-    config.Sale.address = sale.address;
+  for (const round of ["round1", "round2"]) {
+    const saleConfig = config.Sale[round];
+    let sale: TokenSale;
+    if (saleConfig.address !== "") {
+      sale = await ethers.getContractAt("TokenSale", saleConfig.address, deployer);
+      console.log(`Found ${round} TokenSale at:`, sale.address);
+    } else {
+      const TokenSale = await ethers.getContractFactory("TokenSale", deployer);
+      sale = await TokenSale.deploy(
+        TOKENS.WETH.address,
+        TOKENS.WETH.address,
+        DEPLOYED_CONTRACTS.AladdinZap,
+        saleConfig.cap,
+        overrides
+      );
+      console.log(`Deploying ${round} TokenSale hash:`, sale.deployTransaction.hash);
+      await sale.deployed();
+      const receipt = await sale.deployTransaction.wait();
+      console.log(`✅ Deploy ${round} TokenSale at:`, sale.address, "gas used:", receipt.gasUsed.toString());
+      saleConfig.address = sale.address;
+    }
+
+    if (!(await sale.priceData()).initialPrice.eq(saleConfig.price.InitialPrice)) {
+      const tx = await sale.updatePrice(
+        saleConfig.price.InitialPrice,
+        saleConfig.price.UpRatio,
+        saleConfig.price.Variation
+      );
+      console.log("TokenSale.updatePrice, hash:", tx.hash);
+      const receipt = await tx.wait();
+      console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+    }
+
+    const saleTime = await sale.saleTimeData();
+    if (
+      !saleTime.whitelistSaleTime.eq(saleConfig.time.WhitelistStartTime) ||
+      !saleTime.publicSaleTime.eq(saleConfig.time.PublicStartTime) ||
+      !saleTime.saleDuration.eq(saleConfig.time.SaleDuration)
+    ) {
+      const tx = await sale.updateSaleTime(
+        saleConfig.time.WhitelistStartTime,
+        saleConfig.time.PublicStartTime,
+        saleConfig.time.SaleDuration
+      );
+      console.log("TokenSale.updateSaleTime, hash:", tx.hash);
+      const receipt = await tx.wait();
+      console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+    }
+    const tokens: string[] = [];
+    for (const token of saleConfig.tokens) {
+      if (!(await sale.isSupported(token))) {
+        tokens.push(token);
+      }
+    }
+    if (tokens.length > 0) {
+      const tx = await sale.updateSupportedTokens(tokens, true);
+      console.log("TokenSale.updateSupportedTokens, hash:", tx.hash);
+      const receipt = await tx.wait();
+      console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+    }
   }
 
   let oracle: ChainlinkTwapOracleV3;
@@ -248,13 +345,6 @@ async function main() {
     config.stETHTreasury = treasury.address;
   }
 
-  if ((await proxyAdmin.getProxyImplementation(treasury.address)) !== config.impls.stETHTreasury) {
-    const tx = await proxyAdmin.upgrade(treasury.address, config.impls.stETHTreasury);
-    console.log("ProxyAdmin.upgrade, Treasury, hash:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
-  }
-
   let market: Market;
   if (config.Market !== "") {
     market = await ethers.getContractAt("Market", config.Market, deployer);
@@ -269,23 +359,31 @@ async function main() {
     config.Market = market.address;
   }
 
-  let stabilityPool: StabilityPool;
-  if (config.StabilityPool !== "") {
-    stabilityPool = await ethers.getContractAt("StabilityPool", config.StabilityPool, deployer);
-    console.log(`Found StabilityPool at:`, stabilityPool.address);
+  let stabilityPool: RebalancePool;
+  if (config.RebalancePool !== "") {
+    stabilityPool = await ethers.getContractAt("RebalancePool", config.RebalancePool, deployer);
+    console.log(`Found RebalancePool at:`, stabilityPool.address);
   } else {
     const proxy = await TransparentUpgradeableProxy.deploy(
-      config.impls.StabilityPool,
+      config.impls.RebalancePool,
       config.ProxyAdmin,
       "0x",
       overrides
     );
-    console.log(`Deploying StabilityPool, hash:`, proxy.deployTransaction.hash);
+    console.log(`Deploying RebalancePool, hash:`, proxy.deployTransaction.hash);
     const receipt = await proxy.deployTransaction.wait();
-    console.log(`✅ Deploy StabilityPool, at:`, proxy.address, "gas used:", receipt.gasUsed.toString());
+    console.log(`✅ Deploy RebalancePool, at:`, proxy.address, "gas used:", receipt.gasUsed.toString());
 
-    stabilityPool = await ethers.getContractAt("StabilityPool", proxy.address, deployer);
-    config.StabilityPool = stabilityPool.address;
+    stabilityPool = await ethers.getContractAt("RebalancePool", proxy.address, deployer);
+    config.RebalancePool = stabilityPool.address;
+  }
+
+  /*
+  if ((await proxyAdmin.getProxyImplementation(treasury.address)) !== config.impls.stETHTreasury) {
+    const tx = await proxyAdmin.upgrade(treasury.address, config.impls.stETHTreasury);
+    console.log("ProxyAdmin.upgrade, Treasury, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
   if ((await proxyAdmin.getProxyImplementation(market.address)) !== config.impls.Market) {
@@ -295,12 +393,13 @@ async function main() {
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
-  if ((await proxyAdmin.getProxyImplementation(stabilityPool.address)) !== config.impls.StabilityPool) {
-    const tx = await proxyAdmin.upgrade(stabilityPool.address, config.impls.StabilityPool);
-    console.log("ProxyAdmin.upgrade, StabilityPool, hash:", tx.hash);
+  if ((await proxyAdmin.getProxyImplementation(stabilityPool.address)) !== config.impls.RebalancePool) {
+    const tx = await proxyAdmin.upgrade(stabilityPool.address, config.impls.RebalancePool);
+    console.log("ProxyAdmin.upgrade, RebalancePool, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
+  */
 
   let gateway: StETHGateway;
   if (config.stETHGateway !== "") {
@@ -332,25 +431,26 @@ async function main() {
     config.wstETHWrapper = wrapper.address;
   }
 
-  let liquidator: LiquidatorWithBonusToken;
-  if (config.Liquidator.LiquidatorWithBonusToken !== "") {
+  let liquidator: RebalanceWithBonusToken;
+  if (config.Liquidator.RebalanceWithBonusToken !== "") {
     liquidator = await ethers.getContractAt(
-      "LiquidatorWithBonusToken",
-      config.Liquidator.LiquidatorWithBonusToken,
+      "RebalanceWithBonusToken",
+      config.Liquidator.RebalanceWithBonusToken,
       deployer
     );
-    console.log(`Found LiquidatorWithBonusToken at:`, liquidator.address);
+    console.log(`Found RebalanceWithBonusToken at:`, liquidator.address);
   } else {
-    const LiquidatorWithBonusToken = await ethers.getContractFactory("LiquidatorWithBonusToken", deployer);
-    liquidator = await LiquidatorWithBonusToken.deploy(stabilityPool.address, TOKENS.WETH.address);
+    const RebalanceWithBonusToken = await ethers.getContractFactory("RebalanceWithBonusToken", deployer);
+    liquidator = await RebalanceWithBonusToken.deploy(stabilityPool.address, TOKENS.WETH.address);
 
-    console.log(`Deploying LiquidatorWithBonusToken hash:`, gateway.deployTransaction.hash);
+    console.log(`Deploying RebalanceWithBonusToken hash:`, gateway.deployTransaction.hash);
     await liquidator.deployed();
     const receipt = await liquidator.deployTransaction.wait();
-    console.log(`✅ Deploy LiquidatorWithBonusToken at:`, liquidator.address, "gas used:", receipt.gasUsed.toString());
-    config.Liquidator.LiquidatorWithBonusToken = liquidator.address;
+    console.log(`✅ Deploy RebalanceWithBonusToken at:`, liquidator.address, "gas used:", receipt.gasUsed.toString());
+    config.Liquidator.RebalanceWithBonusToken = liquidator.address;
   }
 
+  // initialize
   if ((await fETH.treasury()) === constants.AddressZero) {
     const tx = await fETH.initialize(treasury.address, "Fractional ETH", "fETH");
     console.log("Initialize fETH, hash:", tx.hash);
@@ -372,7 +472,8 @@ async function main() {
       fETH.address,
       xETH.address,
       oracle.address,
-      config.beta
+      config.beta,
+      config.baseTokenCap
     );
     console.log("Initialize Treasury, hash:", tx.hash);
     const receipt = await tx.wait();
@@ -380,7 +481,7 @@ async function main() {
   }
 
   if ((await market.treasury()) === constants.AddressZero) {
-    const tx = await market.initialize(treasury.address, deployer.address);
+    const tx = await market.initialize(treasury.address, DEPLOYED_CONTRACTS.Fx.Treasury);
     console.log("Initialize Market, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
@@ -388,7 +489,7 @@ async function main() {
 
   if ((await stabilityPool.market()) === constants.AddressZero) {
     const tx = await stabilityPool.initialize(treasury.address, market.address);
-    console.log("Initialize StabilityPool, hash:", tx.hash);
+    console.log("Initialize RebalancePool, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
@@ -402,14 +503,7 @@ async function main() {
   }
   */
 
-  if ((await treasury.lastPermissionedPrice()).eq(constants.Zero)) {
-    const tx = await treasury.initializePrice();
-    console.log("Treasury.initializePrice, hash:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
-    console.log("Price is:", ethers.utils.formatEther(await treasury.lastPermissionedPrice()));
-  }
-
+  // Setup Treasury
   if ((await treasury.stabilityPool()) !== stabilityPool.address) {
     const tx = await treasury.updateStabilityPool(stabilityPool.address);
     console.log("Treasury.updateStabilityPool, hash:", tx.hash);
@@ -434,7 +528,14 @@ async function main() {
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
-  if ((await market.marketConfig()).stabilityRatio.eq(constants.Zero)) {
+  // Setup Market
+  const marketConfig = await market.marketConfig();
+  if (
+    !marketConfig.stabilityRatio.eq(config.marketConfig.stabilityRatio) ||
+    !marketConfig.liquidationRatio.eq(config.marketConfig.liquidationRatio) ||
+    !marketConfig.selfLiquidationRatio.eq(config.marketConfig.selfLiquidationRatio) ||
+    !marketConfig.recapRatio.eq(config.marketConfig.recapRatio)
+  ) {
     const tx = await market.updateMarketConfig(
       config.marketConfig.stabilityRatio,
       config.marketConfig.liquidationRatio,
@@ -444,6 +545,134 @@ async function main() {
     console.log("Market.updateMarketConfig, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  const incentiveConfig = await market.incentiveConfig();
+  if (
+    !incentiveConfig.stabilityIncentiveRatio.eq(config.incentiveConfig.liquidationIncentiveRatio) ||
+    !incentiveConfig.liquidationIncentiveRatio.eq(config.incentiveConfig.liquidationIncentiveRatio) ||
+    !incentiveConfig.selfLiquidationIncentiveRatio.eq(config.incentiveConfig.selfLiquidationIncentiveRatio)
+  ) {
+    const tx = await market.updateIncentiveConfig(
+      config.incentiveConfig.liquidationIncentiveRatio,
+      config.incentiveConfig.liquidationIncentiveRatio,
+      config.incentiveConfig.selfLiquidationIncentiveRatio
+    );
+    console.log("Market.updateIncentiveConfig, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if (!(await market.fTokenMintInSystemStabilityModePaused())) {
+    const tx = await market.pauseFTokenMintInSystemStabilityMode(true);
+    console.log("Market.pauseFTokenMintInSystemStabilityMode, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if (await market.xTokenRedeemInSystemStabilityModePaused()) {
+    const tx = await market.pauseXTokenRedeemInSystemStabilityMode(false);
+    console.log("Market.pauseXTokenRedeemInSystemStabilityMode, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  const fTokenMintFeeRatio = await market.fTokenMintFeeRatio();
+  if (
+    !fTokenMintFeeRatio.defaultFeeRatio.eq(config.feeRatio.fTokenMintFeeRatio.defaultFeeRatio) ||
+    !fTokenMintFeeRatio.extraFeeRatio.eq(config.feeRatio.fTokenMintFeeRatio.extraFeeRatio)
+  ) {
+    const tx = await market.updateMintFeeRatio(
+      config.feeRatio.fTokenMintFeeRatio.defaultFeeRatio,
+      config.feeRatio.fTokenMintFeeRatio.extraFeeRatio,
+      true
+    );
+    console.log("Market.updateMintFeeRatio, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  const xTokenMintFeeRatio = await market.xTokenMintFeeRatio();
+  if (
+    !xTokenMintFeeRatio.defaultFeeRatio.eq(config.feeRatio.xTokenMintFeeRatio.defaultFeeRatio) ||
+    !xTokenMintFeeRatio.extraFeeRatio.eq(config.feeRatio.xTokenMintFeeRatio.extraFeeRatio)
+  ) {
+    const tx = await market.updateMintFeeRatio(
+      config.feeRatio.xTokenMintFeeRatio.defaultFeeRatio,
+      config.feeRatio.xTokenMintFeeRatio.extraFeeRatio,
+      false
+    );
+    console.log("Market.updateMintFeeRatio, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  const fTokenRedeemFeeRatio = await market.fTokenRedeemFeeRatio();
+  if (
+    !fTokenRedeemFeeRatio.defaultFeeRatio.eq(config.feeRatio.fTokenRedeemFeeRatio.defaultFeeRatio) ||
+    !fTokenRedeemFeeRatio.extraFeeRatio.eq(config.feeRatio.fTokenRedeemFeeRatio.extraFeeRatio)
+  ) {
+    const tx = await market.updateRedeemFeeRatio(
+      config.feeRatio.fTokenRedeemFeeRatio.defaultFeeRatio,
+      config.feeRatio.fTokenRedeemFeeRatio.extraFeeRatio,
+      true
+    );
+    console.log("Market.updateRedeemFeeRatio, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  const xTokenRedeemFeeRatio = await market.xTokenRedeemFeeRatio();
+  if (
+    !xTokenRedeemFeeRatio.defaultFeeRatio.eq(config.feeRatio.xTokenRedeemFeeRatio.defaultFeeRatio) ||
+    !xTokenRedeemFeeRatio.extraFeeRatio.eq(config.feeRatio.xTokenRedeemFeeRatio.extraFeeRatio)
+  ) {
+    const tx = await market.updateRedeemFeeRatio(
+      config.feeRatio.xTokenRedeemFeeRatio.defaultFeeRatio,
+      config.feeRatio.xTokenRedeemFeeRatio.extraFeeRatio,
+      false
+    );
+    console.log("Market.updateRedeemFeeRatio, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if (!(await market.liquidationWhitelist(KEEPER))) {
+    const tx = await market.updateLiquidationWhitelist(KEEPER, true);
+    console.log("Market.updateLiquidationWhitelist, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  // Setup StabilityPool
+  if ((await stabilityPool.rewardManager(TOKENS.wstETH.address)) === constants.AddressZero) {
+    const tx = await stabilityPool.addReward(TOKENS.wstETH.address, treasury.address, 86400 * 7);
+    console.log("RebalancePool.addReward, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if ((await stabilityPool.wrapper()) !== wrapper.address) {
+    const tx = await stabilityPool.updateWrapper(wrapper.address);
+    console.log("RebalancePool.updateWrapper, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  if (!(await stabilityPool.liquidatableCollateralRatio()).eq(config.marketConfig.stabilityRatio)) {
+    const tx = await stabilityPool.updateLiquidatableCollateralRatio(config.marketConfig.stabilityRatio);
+    console.log("RebalancePool.updateLiquidatableCollateralRatio, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+  }
+
+  /*
+  if ((await treasury.lastPermissionedPrice()).eq(constants.Zero)) {
+    const tx = await treasury.initializePrice();
+    console.log("Treasury.initializePrice, hash:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
+    console.log("Price is:", ethers.utils.formatEther(await treasury.lastPermissionedPrice()));
   }
 
   if ((await treasury.totalBaseToken()).eq(constants.Zero)) {
@@ -462,60 +691,9 @@ async function main() {
     await tx.wait();
   }
 
-  if ((await stabilityPool.rewardManager(TOKENS.wstETH.address)) === constants.AddressZero) {
-    const tx = await stabilityPool.addReward(TOKENS.wstETH.address, treasury.address, 86400 * 7);
-    console.log("StabilityPool.addReward, hash:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
-  }
-
   if ((await stabilityPool.liquidator()) === constants.AddressZero) {
     const tx = await stabilityPool.updateLiquidator(liquidator.address);
-    console.log("StabilityPool.updateLiquidator, hash:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
-  }
-
-  if ((await stabilityPool.wrapper()) !== wrapper.address) {
-    const tx = await stabilityPool.updateWrapper(wrapper.address);
-    console.log("StabilityPool.updateWrapper, hash:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
-  }
-
-  if (!(await stabilityPool.liquidatableCollateralRatio()).eq(config.marketConfig.stabilityRatio)) {
-    const tx = await stabilityPool.updateLiquidatableCollateralRatio(config.marketConfig.stabilityRatio);
-    console.log("StabilityPool.updateLiquidatableCollateralRatio, hash:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
-  }
-
-  console.log(await liquidator.callStatic.liquidate(0));
-
-  /*
-  if (!(await sale.priceData()).initialPrice.eq(config.Sale.price.InitialPrice)) {
-    const tx = await sale.updatePrice(
-      config.Sale.price.InitialPrice,
-      config.Sale.price.UpRatio,
-      config.Sale.price.Variation
-    );
-    console.log("TokenSale.updatePrice, hash:", tx.hash);
-    const receipt = await tx.wait();
-    console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
-  }
-
-  const saleTime = await sale.saleTimeData();
-  if (
-    !saleTime.whitelistSaleTime.eq(config.Sale.time.WhitelistStartTime) ||
-    !saleTime.publicSaleTime.eq(config.Sale.time.PublicStartTime) ||
-    !saleTime.saleDuration.eq(config.Sale.time.SaleDuration)
-  ) {
-    const tx = await sale.updateSaleTime(
-      config.Sale.time.WhitelistStartTime,
-      config.Sale.time.PublicStartTime,
-      config.Sale.time.SaleDuration
-    );
-    console.log("TokenSale.updateSaleTime, hash:", tx.hash);
+    console.log("RebalancePool.updateLiquidator, hash:", tx.hash);
     const receipt = await tx.wait();
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }

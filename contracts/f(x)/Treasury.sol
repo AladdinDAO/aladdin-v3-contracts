@@ -48,6 +48,10 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @param beta The new value of beta.
   event UpdateBeta(uint256 beta);
 
+  /// @notice Emitted when the base token cap is updated.
+  /// @param baseTokenCap The new base token cap.
+  event UpdateBaseTokenCap(uint256 baseTokenCap);
+
   /*************
    * Constants *
    *************/
@@ -60,15 +64,6 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @dev The initial mint ratio for fToken.
   uint256 private immutable initialMintRatio;
-
-  /***********
-   * Structs *
-   ***********/
-
-  struct TwapCache {
-    uint128 price;
-    uint128 timestamp;
-  }
 
   /*************
    * Variables *
@@ -94,6 +89,9 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @inheritdoc ITreasury
   uint256 public override lastPermissionedPrice;
+
+  /// @notice The maximum amount of base token can be deposited.
+  uint256 public baseTokenCap;
 
   /// @inheritdoc ITreasury
   uint256 public override totalBaseToken;
@@ -139,7 +137,8 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     address _fToken,
     address _xToken,
     address _priceOracle,
-    uint256 _beta
+    uint256 _beta,
+    uint256 _baseTokenCap
   ) external initializer {
     OwnableUpgradeable.__Ownable_init();
 
@@ -149,6 +148,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     xToken = _xToken;
     priceOracle = _priceOracle;
     beta = _beta;
+    baseTokenCap = _baseTokenCap;
   }
 
   /*************************
@@ -293,6 +293,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
       }
     }
 
+    require(_state.baseSupply + _baseIn <= baseTokenCap, "Exceed total cap");
     totalBaseToken = _state.baseSupply + _baseIn;
 
     if (_fTokenOut > 0) {
@@ -471,6 +472,14 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     settleWhitelist[_account] = _status;
 
     emit UpdateSettleWhitelist(_account, _status);
+  }
+
+  /// @notice Update the base token cap.
+  /// @param _baseTokenCap The new base token cap.
+  function updateBaseTokenCap(uint256 _baseTokenCap) external onlyOwner {
+    baseTokenCap = _baseTokenCap;
+
+    emit UpdateBaseTokenCap(_baseTokenCap);
   }
 
   /**********************

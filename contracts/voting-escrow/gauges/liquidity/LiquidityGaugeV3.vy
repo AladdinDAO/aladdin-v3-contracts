@@ -1,7 +1,7 @@
 # @version 0.3.1
 """
 @title Liquidity Gauge v3
-@author Curve Finance
+@author Aladdin DAO
 @license MIT
 """
 

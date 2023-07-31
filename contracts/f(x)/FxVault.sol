@@ -102,7 +102,7 @@ contract FxVault is ERC20Upgradeable, OwnableUpgradeable {
     require(_fxRatio <= PRECISION, "fxRatio out of bound");
 
     __Context_init();
-    __ERC20_init("x", "y");
+    __ERC20_init("f(x) Balancer FX/ETH&FX", "FXVault");
     __Ownable_init();
 
     fxToken = _fxToken;

@@ -37,10 +37,10 @@ const config: {
   };
 } = {
   impls: {
-    GovernanceToken: "0x126255b191D424B1CB8ec47aEBE16d0345aE483E",
-    Minter: "0x1cF484E6B8dBe0d40EdB9054338481F3763c476F",
-    VotingEscrow: "0x3158c23ef1C8c6A672fcFd05E1845dD02B99A46B",
-    GaugeController: "0x0E29A90D7797E92C4b76346dF06cb7c0bA0e2df6",
+    GovernanceToken: "0xE10CC35487b4770adf9aeFb1D9f8F3a2Eaae562A",
+    Minter: "0xEbA9A8fdd2539d33e070c66Afc1127478bA78054",
+    VotingEscrow: "0x3D8faCB2b65B8CEB682ADE00E016c672Ee6262c0",
+    GaugeController: "0xdBB1AAeb04F3B5e2587E4bB849717E9ebD0c8acC",
     LiquidityGaugeV3: "0x4745E0F6Ffb2cFE40F9E0088F9F66a245C70395d",
     FeeDistributor: "",
   },
@@ -48,16 +48,16 @@ const config: {
     fx: {
       ProxyAdmin: DEPLOYED_CONTRACTS.Fx.ProxyAdmin,
       token: {
-        name: "f(x) Token",
+        name: "FX Token",
         symbol: "FX",
-        initSupply: ethers.utils.parseEther("1000000"),
-        initRate: ethers.utils.parseEther("100000").div(86400 * 365), // 10% first year
+        initSupply: ethers.utils.parseEther("1020000"),
+        initRate: ethers.utils.parseEther("98000").div(86400 * 365), // 10% first year
         rateReductionCoefficient: BigNumber.from("1111111111111111111"), // 1/0.9 * 1e18
-        address: "0x2CD2e2e84985392D818178baEa8222cbB62F30A5",
+        address: "0x4eECa6bFa3C96210260691639827eEF4D80FA8C6",
       },
       ve: "0x8d6D41b883eAD56b5a8854946dD6a446624CD5b6",
-      controller: "0x517FF73C1E18941cb64954Af94109628f35AB5b3",
-      minter: "0xf2b854CD6316D03Ba7f5F211841aAE86e81569F4",
+      controller: "0xe6AAF8fBB56488941f619A9ADB0EB4d89fA9d217",
+      minter: "0x7185E3477Ad54A8186e623768833e8C2686591D3",
       distributor: {},
     },
     concentrator: {
@@ -117,14 +117,7 @@ async function main() {
     return;
   }
 
-  for (const name of [
-    "GovernanceToken",
-    "Minter",
-    "VotingEscrow",
-    "GaugeController",
-    "LiquidityGaugeV3",
-    "FeeDistributor",
-  ]) {
+  for (const name of ["GovernanceToken", "Minter", "GaugeController", "VotingEscrow"]) {
     if (config.impls[name] === "") {
       const Contract = await ethers.getContractFactory(name, deployer);
       const impl = await Contract.deploy(overrides);

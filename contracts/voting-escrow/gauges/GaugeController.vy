@@ -2,7 +2,7 @@
 
 """
 @title Gauge Controller
-@author Curve Finance
+@author Aladdin DAO
 @license MIT
 @notice Controls liquidity gauges and the issuance of coins through the gauges
 """
