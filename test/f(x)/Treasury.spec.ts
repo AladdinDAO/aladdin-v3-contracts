@@ -51,7 +51,8 @@ describe("Treasury.spec", async () => {
       fToken.address,
       xToken.address,
       oracle.address,
-      ethers.utils.parseEther("0.1")
+      ethers.utils.parseEther("0.1"),
+      ethers.utils.parseEther("1000")
     );
 
     await weth.deposit({ value: ethers.utils.parseEther("100") });
@@ -67,7 +68,8 @@ describe("Treasury.spec", async () => {
           fToken.address,
           xToken.address,
           oracle.address,
-          ethers.utils.parseEther("0.1")
+          ethers.utils.parseEther("0.1"),
+          ethers.utils.parseEther("1000")
         )
       ).to.revertedWith("Initializable: contract is already initialized");
     });
