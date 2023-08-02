@@ -1688,10 +1688,11 @@ async function main() {
   )) as any as TokenSale;
 
   const caps: BigNumber[] = lists.map((_) => ethers.utils.parseEther("20000"));
+  const step = 420;
 
   let nonce = await deployer.getTransactionCount();
-  for (let start = 420; start < lists.length; start += 420) {
-    const end = Math.min(start + 420, lists.length);
+  for (let start = 0; start < lists.length; start += step) {
+    const end = Math.min(start + step, lists.length);
     const estimateGas = await sale.estimateGas.updateWhitelistCap(lists.slice(start, end), caps.slice(start, end));
     console.log("estimate gas:", estimateGas.toString());
     const tx = await sale.updateWhitelistCap(lists.slice(start, end), caps.slice(start, end), {
