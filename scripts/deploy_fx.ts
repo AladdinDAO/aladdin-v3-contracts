@@ -133,7 +133,7 @@ const config: {
   impls: {
     LeveragedToken: "0x92d0cb7E56806Bf977e7F5296EA2Fe84B475Fe83",
     FractionalToken: "0x2a906eAB9B088E6753670bC8D3840f9473745748",
-    stETHTreasury: "0xCE938c27C04d4A638307D44e28515D4bcD28bD74",
+    stETHTreasury: "0x7d07Faf933A410a59F3048aeC5d61b46EFDFeD72",
     Market: "0x505002BbADAC4eBC17666b1622cFF0605fe90bD5",
     RebalancePool: "0x3415fcD2885C486E2d848403d51077f7176473C7",
   },
@@ -378,7 +378,6 @@ async function main() {
     config.RebalancePool = stabilityPool.address;
   }
 
-  /*
   if ((await proxyAdmin.getProxyImplementation(treasury.address)) !== config.impls.stETHTreasury) {
     const tx = await proxyAdmin.upgrade(treasury.address, config.impls.stETHTreasury);
     console.log("ProxyAdmin.upgrade, Treasury, hash:", tx.hash);
@@ -386,7 +385,7 @@ async function main() {
     console.log("✅ Done,", "gas used:", receipt.gasUsed.toString());
   }
 
-  if ((await proxyAdmin.getProxyImplementation(market.address)) !== config.impls.Market) {
+  /* if ((await proxyAdmin.getProxyImplementation(market.address)) !== config.impls.Market) {
     const tx = await proxyAdmin.upgrade(market.address, config.impls.Market);
     console.log("ProxyAdmin.upgrade, Market, hash:", tx.hash);
     const receipt = await tx.wait();

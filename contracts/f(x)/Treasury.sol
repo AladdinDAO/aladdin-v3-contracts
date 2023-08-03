@@ -338,7 +338,9 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     uint256 _fDeltaNav;
     (_xTokenOut, _fDeltaNav) = _state.mintXToken(_baseIn, _incentiveRatio);
 
+    require(_state.baseSupply + _baseIn <= baseTokenCap, "Exceed total cap");
     totalBaseToken = _state.baseSupply + _baseIn;
+
     IFractionalToken(fToken).setNav(
       _state.fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_state.fMultiple)))
     );
