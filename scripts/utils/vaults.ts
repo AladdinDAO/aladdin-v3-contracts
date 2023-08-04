@@ -3052,6 +3052,32 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
+  "crvUSD/ETH/CRV": {
+    token: "CURVE_crvUSD/ETH/CRV",
+    composition: "crvUSD+ETH+CRV",
+    convexCurveID: 211,
+    rewarder: "0xF956a46DbA1A0a567168db8655bc18E9050C7738",
+    gauge: "0x8d867bef70c6733ff25cc0d1caa8aa6c38b24817",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolType.CurveTriCryptoPool, 3, 0, 0, Action.Add),
+      ],
+      WETH: [encodePoolHintV2(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolType.CurveTriCryptoPool, 3, 1, 1, Action.Add)],
+      CRV: [encodePoolHintV2(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolType.CurveTriCryptoPool, 3, 2, 2, Action.Add)],
+    },
+    withdraw: {
+      crvUSD: [
+        encodePoolHintV2(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolType.CurveTriCryptoPool, 3, 0, 0, Action.Remove),
+      ],
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolType.CurveTriCryptoPool, 3, 1, 1, Action.Remove),
+      ],
+      CRV: [
+        encodePoolHintV2(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolType.CurveTriCryptoPool, 3, 2, 2, Action.Remove),
+      ],
+    },
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -3216,5 +3242,6 @@ export const DEPLOYED_VAULTS: {
     { name: "CRV/sdCRV-v2", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 9
     { name: "sUSD/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 10
     { name: "ETH/ALD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 11
+    { name: "crvUSD/ETH/CRV", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 12
   ],
 };
