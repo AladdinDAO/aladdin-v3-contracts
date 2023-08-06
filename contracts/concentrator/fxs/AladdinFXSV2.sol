@@ -183,12 +183,6 @@ contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
    * Restricted Functions *
    ************************/
 
-  /// @notice Update the list of reward tokens.
-  /// @param _rewards The address list of reward tokens to update.
-  function updateRewards(address[] memory _rewards) external onlyOwner {
-    IConcentratorStrategy(strategy).updateRewards(_rewards);
-  }
-
   /// @notice Update the zap contract
   /// @param _zap The address of the zap contract.
   function updateZap(address _zap) external onlyOwner {

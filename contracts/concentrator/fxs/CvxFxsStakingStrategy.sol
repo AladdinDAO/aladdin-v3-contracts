@@ -51,6 +51,7 @@ contract CvxFxsStakingStrategy is ConcentratorStrategyBase {
     _initialize(_operator, _rewards);
 
     IERC20(cvxFXS).safeApprove(staker, uint256(-1));
+    IERC20(FXS).safeApprove(FXS_DEPOSITOR, uint256(-1));
   }
 
   /****************************
