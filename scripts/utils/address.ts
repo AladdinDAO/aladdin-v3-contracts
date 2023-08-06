@@ -285,6 +285,8 @@ export const ADDRESS: { [name: string]: string } = {
   // Balancer V2
   SNX_WETH_BALANCER: "0x072f14B85ADd63488DDaD88f855Fda4A99d6aC9B",
   FEI_WETH_BALANCER: "0x90291319F1D4eA3ad4dB0Dd8fe9E12BAF749E845",
+  // FraxSwap
+  FXS_FRAX_FRAXSWAP: "0x03B59Bd1c8B9F6C265bA0c3421923B93f15036Fa",
 };
 
 Object.entries(TOKENS).forEach(([symbol, { address }]) => {

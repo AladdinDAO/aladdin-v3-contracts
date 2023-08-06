@@ -3,9 +3,11 @@
 pragma solidity ^0.7.6;
 
 interface IUniswapV2Pair {
-  function token0() external returns (address);
+  function token0() external view returns (address);
 
-  function token1() external returns (address);
+  function token1() external view returns (address);
+
+  function executeVirtualOrders(uint256 blockTimestamp) external;
 
   function getReserves()
     external
