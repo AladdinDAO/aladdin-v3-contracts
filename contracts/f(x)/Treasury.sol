@@ -14,6 +14,7 @@ import { IAssetStrategy } from "./interfaces/IAssetStrategy.sol";
 import { IFractionalToken } from "./interfaces/IFractionalToken.sol";
 import { ILeveragedToken } from "./interfaces/ILeveragedToken.sol";
 import { IMarket } from "./interfaces/IMarket.sol";
+import { IRateProvider } from "./interfaces/IRateProvider.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
 import { StableCoinMath } from "./StableCoinMath.sol";
@@ -39,6 +40,10 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @notice Emitted when the price oracle contract is updated.
   /// @param priceOracle The address of new price oracle.
   event UpdatePriceOracle(address priceOracle);
+
+  /// @notice Emitted when the rate provider contract is updated.
+  /// @param rateProvider The address of new rate provider.
+  event UpdateRateProvider(address rateProvider);
 
   /// @notice Emitted when the strategy contract is updated.
   /// @param strategy The address of new strategy.
@@ -105,8 +110,11 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @notice Whether the sender is allowed to do settlement.
   mapping(address => bool) public settleWhitelist;
 
+  /// @notice The address of rate provider contract.
+  address public rateProvider;
+
   /// @dev Slots for future use.
-  uint256[38] private _gap;
+  uint256[37] private _gap;
 
   /************
    * Modifier *
@@ -138,7 +146,8 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     address _xToken,
     address _priceOracle,
     uint256 _beta,
-    uint256 _baseTokenCap
+    uint256 _baseTokenCap,
+    address _rateProvider
   ) external initializer {
     OwnableUpgradeable.__Ownable_init();
 
@@ -149,6 +158,10 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     priceOracle = _priceOracle;
     beta = _beta;
     baseTokenCap = _baseTokenCap;
+
+    if (_rateProvider != address(0)) {
+      rateProvider = _rateProvider;
+    }
   }
 
   /*************************
@@ -265,6 +278,24 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
     StableCoinMath.SwapState memory _state = _loadSwapState();
     (_maxBaseOut, _maxFTokenLiquidatable) = _state.maxLiquidatable(_newCollateralRatio, _incentiveRatio);
+  }
+
+  /// @inheritdoc ITreasury
+  function convertToWrapped(uint256 _amount) public view override returns (uint256) {
+    address _rateProvider = rateProvider;
+    if (_rateProvider != address(0)) {
+      _amount = _amount.mul(PRECISION).div(IRateProvider(_rateProvider).getRate());
+    }
+    return _amount;
+  }
+
+  /// @inheritdoc ITreasury
+  function convertToUnwrapped(uint256 _amount) external view override returns (uint256) {
+    address _rateProvider = rateProvider;
+    if (_rateProvider != address(0)) {
+      _amount = _amount.mul(IRateProvider(_rateProvider).getRate()).div(PRECISION);
+    }
+    return _amount;
   }
 
   /****************************
@@ -384,8 +415,8 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     // The supply are locked, so it is safe to use this memory variable.
     StableCoinMath.SwapState memory _state = _loadSwapState();
 
-    _transferBaseToken(_baseAmt, msg.sender);
-    _fAmt = IMarket(msg.sender).onSelfLiquidate(_baseAmt, _data);
+    uint256 _transfered = _transferBaseToken(_baseAmt, msg.sender);
+    _fAmt = IMarket(msg.sender).onSelfLiquidate(_transfered, _data);
 
     uint256 _fDeltaNav;
     (_baseOut, _fDeltaNav) = _state.liquidateWithIncentive(_fAmt, _incentiveRatio);
@@ -467,6 +498,14 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     emit UpdatePriceOracle(_priceOracle);
   }
 
+  /// @notice Change address of rate provider contract.
+  /// @param _rateProvider The new address of rate provider contract.
+  function updateRateProvider(address _rateProvider) external onlyOwner {
+    rateProvider = _rateProvider;
+
+    emit UpdateRateProvider(_rateProvider);
+  }
+
   /// @notice Update the whitelist status for settle account.
   /// @param _account The address of account to update.
   /// @param _status The status of the account to update.
@@ -491,7 +530,9 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @dev Internal function to transfer base token to receiver.
   /// @param _amount The amount of base token to transfer.
   /// @param _recipient The address of receiver.
-  function _transferBaseToken(uint256 _amount, address _recipient) internal {
+  function _transferBaseToken(uint256 _amount, address _recipient) internal returns (uint256) {
+    _amount = convertToWrapped(_amount);
+
     address _baseToken = baseToken;
     uint256 _balance = IERC20Upgradeable(_baseToken).balanceOf(address(this));
     if (_balance < _amount) {
@@ -507,6 +548,8 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     }
 
     IERC20Upgradeable(_baseToken).safeTransfer(_recipient, _amount);
+
+    return _amount;
   }
 
   /// @dev Internal function to load swap variable to memory

@@ -9,6 +9,8 @@ interface AggregatorV3Interface {
 
   function version() external view returns (uint256);
 
+  function latestAnswer() external view returns (uint256);
+
   function getRoundData(uint80 _roundId)
     external
     view

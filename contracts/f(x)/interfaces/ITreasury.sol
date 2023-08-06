@@ -50,6 +50,14 @@ interface ITreasury {
   /// @notice Return the current collateral ratio of fToken, multipled by 1e18.
   function collateralRatio() external view returns (uint256);
 
+  /// @notice Internal function to convert unwrapped token amount to wrapped token amount.
+  /// @param amount The unwrapped token amount.
+  function convertToWrapped(uint256 amount) external view returns (uint256);
+
+  /// @notice Internal function to convert wrapped token amount to unwrapped token amount.
+  /// @param amount The wrapped token amount.
+  function convertToUnwrapped(uint256 amount) external view returns (uint256);
+
   /// @notice Return current nav for base token, fToken and xToken.
   /// @return baseNav The nav for base token.
   /// @return fNav The nav for fToken.
