@@ -12,6 +12,7 @@ import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
 import { IConvexFXSDepositor } from "../../interfaces/convex/IConvexFXSDepositor.sol";
 import { IConvexBasicRewards } from "../../interfaces/IConvexBasicRewards.sol";
 import { ICurveCryptoPool } from "../../interfaces/ICurveCryptoPool.sol";
+import { ICurveFactoryPlainPool } from "../../interfaces/ICurveFactoryPlainPool.sol";
 
 import { AladdinCompounder } from "../AladdinCompounder.sol";
 
@@ -43,7 +44,10 @@ contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
   address private constant cvxFXS = 0xFEEf77d3f69374f66429C91d732A244f074bdf74;
 
   /// @dev The address of Curve FXS/cvxFXS pool.
-  address private constant CURVE_FXS_cvxFXS_POOL = 0xd658A338613198204DCa1143Ac3F01A722b5d94A;
+  address private constant CURVE_FXS_cvxFXS_CRYPTO_POOL = 0xd658A338613198204DCa1143Ac3F01A722b5d94A;
+
+  /// @dev The address of Curve FXS/cvxFXS pool.
+  address private constant CURVE_FXS_cvxFXS_PLAIN_POOL = 0x6a9014FB802dCC5efE3b97Fd40aAa632585636D0;
 
   /// @dev The address of Convex FXS => cvxFXS Contract.
   address private constant FXS_DEPOSITOR = 0x8f55d7c21bDFf1A51AFAa60f3De7590222A3181e;
@@ -83,7 +87,11 @@ contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
     IConvexBasicRewards(CONVEX_REWARDER).withdrawAndUnwrap(_totalAssetsStored, false);
 
     // withdraw LP as cvxFXS
-    _totalAssetsStored = ICurveCryptoPool(CURVE_FXS_cvxFXS_POOL).remove_liquidity_one_coin(_totalAssetsStored, 1, 0);
+    _totalAssetsStored = ICurveCryptoPool(CURVE_FXS_cvxFXS_CRYPTO_POOL).remove_liquidity_one_coin(
+      _totalAssetsStored,
+      1,
+      0
+    );
 
     // transfer cvxFXS to strategy
     IERC20Upgradeable(cvxFXS).safeTransfer(_strategy, _totalAssetsStored);
@@ -293,13 +301,13 @@ contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
   /// @param _recipient The address of recipient who will recieve the cvxFXS.
   function _swapFXSToCvxFXS(uint256 _amountIn, address _recipient) internal returns (uint256) {
     // CRV swap to cvxFXS or stake to cvxFXS
-    uint256 _amountOut = ICurveCryptoPool(CURVE_FXS_cvxFXS_POOL).get_dy(0, 1, _amountIn);
+    uint256 _amountOut = ICurveFactoryPlainPool(CURVE_FXS_cvxFXS_PLAIN_POOL).get_dy(0, 1, _amountIn);
     bool useCurve = _amountOut > _amountIn;
 
     if (useCurve) {
-      IERC20Upgradeable(FXS).safeApprove(CURVE_FXS_cvxFXS_POOL, 0);
-      IERC20Upgradeable(FXS).safeApprove(CURVE_FXS_cvxFXS_POOL, _amountIn);
-      _amountOut = ICurveCryptoPool(CURVE_FXS_cvxFXS_POOL).exchange_underlying(0, 1, _amountIn, 0, _recipient);
+      IERC20Upgradeable(FXS).safeApprove(CURVE_FXS_cvxFXS_PLAIN_POOL, 0);
+      IERC20Upgradeable(FXS).safeApprove(CURVE_FXS_cvxFXS_PLAIN_POOL, _amountIn);
+      _amountOut = ICurveFactoryPlainPool(CURVE_FXS_cvxFXS_PLAIN_POOL).exchange(0, 1, _amountIn, 0, _recipient);
     } else {
       uint256 _lockIncentive = IConvexFXSDepositor(FXS_DEPOSITOR).incentiveFxs();
       // if use `lock = false`, will possible take fee
