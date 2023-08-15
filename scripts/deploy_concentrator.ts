@@ -494,12 +494,23 @@ async function deployConcentratorFXS() {
     ["CURVE_cvxFXS_TOKEN", "cvxFXS"],
     ["WETH", "cvxFXS"],
     ["USDC", "cvxFXS"],
+    ["cvxFXS", "FXS"],
+    ["cvxFXS", "WETH"],
+    ["cvxFXS", "USDC"],
   ]) {
     if (from === "WETH") {
       console.log(
         `zap ETH => ${to}:`,
         `from[${constants.AddressZero}]`,
         `to[${ADDRESS[to]}]`,
+        `routes[${ZAP_ROUTES[from][to].map((r) => `"${r.toHexString()}"`)}]`
+      );
+    }
+    if (to === "WETH") {
+      console.log(
+        `zap ${from} => ETH:`,
+        `from[${ADDRESS[from]}]`,
+        `to[${constants.AddressZero}]`,
         `routes[${ZAP_ROUTES[from][to].map((r) => `"${r.toHexString()}"`)}]`
       );
     }
