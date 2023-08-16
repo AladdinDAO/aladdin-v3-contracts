@@ -238,7 +238,7 @@ const config: {
       rewards: ["FXS", "CVX", "CRV"],
       strategy: "0x36925622dc537c65cd6433703f7aEdA5929b1CBf",
       proxy: "0xDAF03D70Fe637b91bA6E521A32E1Fb39256d3EC9",
-      impl: "",
+      impl: "0xD9cC44C567b1effdDDe8461AcD6c67028af99258",
     },
     vault: {
       proxy: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
