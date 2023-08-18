@@ -55,6 +55,30 @@ const POOL_FORK_CONFIG: {
     amount: "0.001",
     harvest: true,
   },
+  "sUSD/crvUSD": {
+    height: 17634884,
+    pid: 10,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x3F7aA1a6aF4Bc3Ac327dc2130D4e8F1fF5Aa32c2",
+    amount: "100",
+    harvest: false,
+  },
+  "ETH/ALD": {
+    height: 17713930,
+    pid: 11,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x28c921adAC4c1072658eB01a28DA06b5F651eF62",
+    amount: "1000",
+    harvest: true,
+  },
+  "crvUSD/ETH/CRV": {
+    height: 17839400,
+    pid: 12,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
+    amount: "10",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
@@ -286,16 +310,16 @@ describe("ConcentratorGeneralVault.asdCRV.add.spec", async () => {
             for (const reward of config.rewards) {
               const symbol = Object.entries(ADDRESS).find(([, address]) => address === reward)![0];
               if (symbol === "CRV") continue;
-              const routes = ZAP_ROUTES[symbol].WETH;
+              const routes = ZAP_ROUTES[symbol].CRV;
               if (firstCall) {
                 console.log(
-                  `harvest zap ${symbol}=>WETH:`,
+                  `harvest zap ${symbol}=>CRV:`,
                   `from[${reward}]`,
-                  `to[${ADDRESS.WETH}]`,
+                  `to[${ADDRESS.CRV}]`,
                   `routes[${routes.toString()}]`
                 );
               }
-              await zap.updateRoute(reward, ADDRESS.WETH, routes);
+              await zap.updateRoute(reward, ADDRESS.CRV, routes);
             }
             firstCall = false;
 

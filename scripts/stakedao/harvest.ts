@@ -172,9 +172,9 @@ async function main(round: string) {
         const tx = await burner.burn(
           item.token,
           ZAP_ROUTES[symbol].SDT,
-          amountSDT.mul(99).div(100),
+          amountSDT.mul(97).div(100),
           ZAP_ROUTES[symbol].CRV,
-          amountCRV.mul(99).div(100)
+          amountCRV.mul(92).div(100)
         );
         console.log("waiting for tx:", tx.hash);
         const receipt = await tx.wait();

@@ -29,6 +29,7 @@ import {
   ManualCompoundingCurveGaugeStrategy,
   ConcentratorVaultForAsdCRV__factory,
   ConcentratorVaultForAsdCRV,
+  CvxFxsStakingStrategy,
 } from "../typechain";
 import { ADDRESS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, AVAILABLE_VAULTS, ZAP_ROUTES } from "./utils";
 
@@ -235,9 +236,9 @@ const config: {
       name: "Aladdin cvxFXS/FXS",
       symbol: "aFXS",
       rewards: ["FXS", "CVX", "CRV"],
-      strategy: "",
+      strategy: "0x36925622dc537c65cd6433703f7aEdA5929b1CBf",
       proxy: "0xDAF03D70Fe637b91bA6E521A32E1Fb39256d3EC9",
-      impl: "0x165A7a410C14054cd39d03b4b7Cb392f61be6EDc",
+      impl: "0xD9cC44C567b1effdDDe8461AcD6c67028af99258",
     },
     vault: {
       proxy: "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
@@ -488,7 +489,71 @@ async function addVaults(
 }
 
 // eslint-disable-next-line no-unused-vars
-async function deployConcentratorFXS() {}
+async function deployConcentratorFXS() {
+  for (const [from, to] of [
+    ["CURVE_cvxFXS_TOKEN", "cvxFXS"],
+    ["WETH", "cvxFXS"],
+    ["USDC", "cvxFXS"],
+    ["cvxFXS", "FXS"],
+    ["cvxFXS", "WETH"],
+    ["cvxFXS", "USDC"],
+  ]) {
+    if (from === "WETH") {
+      console.log(
+        `zap ETH => ${to}:`,
+        `from[${constants.AddressZero}]`,
+        `to[${ADDRESS[to]}]`,
+        `routes[${ZAP_ROUTES[from][to].map((r) => `"${r.toHexString()}"`)}]`
+      );
+    }
+    if (to === "WETH") {
+      console.log(
+        `zap ${from} => ETH:`,
+        `from[${ADDRESS[from]}]`,
+        `to[${constants.AddressZero}]`,
+        `routes[${ZAP_ROUTES[from][to].map((r) => `"${r.toHexString()}"`)}]`
+      );
+    }
+    console.log(
+      `zap ${from} => ${to}:`,
+      `from[${ADDRESS[from]}]`,
+      `to[${ADDRESS[to]}]`,
+      `routes[${ZAP_ROUTES[from][to].map((r) => `"${r.toHexString()}"`)}]`
+    );
+  }
+
+  const [deployer] = await ethers.getSigners();
+  const concentratorFXSConfig = config.ConcentratorFXS;
+
+  const afxs = await ethers.getContractAt("AladdinFXS", DEPLOYED_CONTRACTS.Concentrator.cvxFXS.aFXS, deployer);
+
+  let strategy: CvxFxsStakingStrategy;
+
+  if (concentratorFXSConfig.compounder.strategy !== "") {
+    strategy = await ethers.getContractAt("CvxFxsStakingStrategy", concentratorFXSConfig.compounder.strategy, deployer);
+    console.log("Found CvxFxsStakingStrategy at:", strategy.address);
+  } else {
+    const CvxFxsStakingStrategy = await ethers.getContractFactory("CvxFxsStakingStrategy", deployer);
+    strategy = await CvxFxsStakingStrategy.deploy(afxs.address);
+    console.log("Deploying CvxFxsStakingStrategy, hash:", strategy.deployTransaction.hash);
+
+    const receipt = await strategy.deployTransaction.wait();
+    console.log("✅ Deploy CvxFxsStakingStrategy at:", strategy.address, "gas used:", receipt.gasUsed.toString());
+
+    concentratorFXSConfig.compounder.strategy = strategy.address;
+  }
+
+  if (concentratorFXSConfig.compounder.impl !== "") {
+    console.log("Found AladdinFXSV2 Impl at:", concentratorFXSConfig.compounder.impl);
+  } else {
+    const AladdinFXSV2 = await ethers.getContractFactory("AladdinFXSV2", deployer);
+    const impl = await AladdinFXSV2.deploy();
+    console.log("Deploying AladdinFXSV2 Impl, hash:", impl.deployTransaction.hash);
+    const receipt = await impl.deployTransaction.wait();
+    console.log("✅ Deploy AladdinFXSV2 Impl at:", impl.address, "gas used:", receipt.gasUsed.toString());
+    concentratorFXSConfig.compounder.impl = impl.address;
+  }
+}
 
 // eslint-disable-next-line no-unused-vars
 async function deployConcentratorCRV() {
