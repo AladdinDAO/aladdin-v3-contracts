@@ -147,7 +147,7 @@ contract FxVault is ERC20Upgradeable, OwnableUpgradeable {
       if (_fxRatio == 0) {
         _shares = _lpAmount;
         _fxAmount = 0;
-      } else if (_fxRatio == 1) {
+      } else if (_fxRatio == PRECISION) {
         _shares = _fxAmount;
         _lpAmount = 0;
       } else {

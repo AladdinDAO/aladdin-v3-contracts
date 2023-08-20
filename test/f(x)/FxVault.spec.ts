@@ -85,8 +85,8 @@ describe("FxVault.spec", async () => {
       });
 
       it("should initialize correctly", async () => {
-        expect(await vault.name()).to.eq("x");
-        expect(await vault.symbol()).to.eq("y");
+        expect(await vault.name()).to.eq("f(x) Balancer FX/ETH&FX");
+        expect(await vault.symbol()).to.eq("FXVault");
         expect(await vault.owner()).to.eq(deployer.address);
         expect(await vault.fxToken()).to.eq(src.address);
         expect(await vault.lpToken()).to.eq(dst.address);
