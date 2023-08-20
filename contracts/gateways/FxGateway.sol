@@ -8,6 +8,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import { IMarket } from "../f(x)/interfaces/IMarket.sol";
+import { ITokenConverter } from "../helpers/converter/ITokenConverter.sol";
 
 // solhint-disable contract-name-camelcase
 
@@ -34,11 +35,16 @@ contract FxGateway is Ownable {
    * Structs *
    ***********/
 
-  struct ZapCall {
+  struct ZapInCall {
     address src;
     uint256 amount;
     address target;
     bytes data;
+  }
+
+  struct ZapOutCall {
+    address converter;
+    uint256[] routes;
   }
 
   /*************
@@ -52,7 +58,7 @@ contract FxGateway is Ownable {
    * Modifier *
    ************/
 
-  modifier zapToken(ZapCall memory _call) {
+  modifier zapInToken(ZapInCall memory _call) {
     require(approvedTargets[_call.target], "target not approved");
     _transferTokenIn(_call.src, _call.amount);
 
@@ -105,11 +111,11 @@ contract FxGateway is Ownable {
 
   /// @notice Mint some fToken with some ETH.
   /// @param _minFTokenMinted The minimum amount of fToken should be received.
-  /// @return _fTokenMinted The amount of fToken should be received.
-  function mintFToken(ZapCall memory _call, uint256 _minFTokenMinted)
+  /// @return _fTokenMinted The amount of fToken received.
+  function mintFToken(ZapInCall memory _call, uint256 _minFTokenMinted)
     external
     payable
-    zapToken(_call)
+    zapInToken(_call)
     returns (uint256 _fTokenMinted)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
@@ -120,11 +126,11 @@ contract FxGateway is Ownable {
 
   /// @notice Mint some xToken with some ETH.
   /// @param _minXTokenMinted The minimum amount of xToken should be received.
-  /// @return _xTokenMinted The amount of xToken should be received.
-  function mintXToken(ZapCall memory _call, uint256 _minXTokenMinted)
+  /// @return _xTokenMinted The amount of xToken received.
+  function mintXToken(ZapInCall memory _call, uint256 _minXTokenMinted)
     external
     payable
-    zapToken(_call)
+    zapInToken(_call)
     returns (uint256 _xTokenMinted)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
@@ -135,15 +141,82 @@ contract FxGateway is Ownable {
 
   /// @notice Mint some xToken by add some ETH as collateral.
   /// @param _minXTokenMinted The minimum amount of xToken should be received.
-  /// @return _xTokenMinted The amount of xToken should be received.
-  function addBaseToken(ZapCall memory _call, uint256 _minXTokenMinted)
+  /// @return _xTokenMinted The amount of xToken received.
+  function addBaseToken(ZapInCall memory _call, uint256 _minXTokenMinted)
     external
     payable
-    zapToken(_call)
+    zapInToken(_call)
     returns (uint256 _xTokenMinted)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
     _xTokenMinted = IMarket(market).addBaseToken(_amount, msg.sender, _minXTokenMinted);
+
+    _refund(baseToken, msg.sender);
+  }
+
+  /// @notice Redeem and convert to some other token.
+  /// @param _fTokenIn the amount of fToken to redeem, use `uint256(-1)` to redeem all fToken.
+  /// @param _xTokenIn the amount of xToken to redeem, use `uint256(-1)` to redeem all xToken.
+  /// @param _minBaseToken The minimum amount of base token should be received.
+  /// @param _minDstToken The minimum amount of dst token should be received.
+  /// @return _baseOut The amount of base token received.
+  /// @return _dstOut The amount of dst token received.
+  function redeem(
+    ZapOutCall memory _call,
+    uint256 _fTokenIn,
+    uint256 _xTokenIn,
+    uint256 _minBaseToken,
+    uint256 _minDstToken
+  ) external returns (uint256 _baseOut, uint256 _dstOut) {
+    require(_call.routes.length > 0, "no routes");
+
+    if (_xTokenIn == 0) {
+      _fTokenIn = _transferTokenIn(fToken, _fTokenIn);
+    } else {
+      _xTokenIn = _transferTokenIn(xToken, _xTokenIn);
+      _fTokenIn = 0;
+    }
+
+    _baseOut = IMarket(market).redeem(_fTokenIn, _xTokenIn, _call.converter, _minBaseToken);
+    require(_baseOut >= _minBaseToken, "insufficient base token");
+
+    _dstOut = _baseOut;
+    for (uint256 i = 0; i < _call.routes.length; i++) {
+      address _recipient = i == _call.routes.length - 1 ? msg.sender : _call.converter;
+      _dstOut = ITokenConverter(_call.converter).convert(_call.routes[i], _dstOut, _recipient);
+    }
+    require(_dstOut >= _minDstToken, "insufficient dst token");
+
+    if (_fTokenIn > 0) {
+      _refund(fToken, msg.sender);
+    }
+    if (_xTokenIn > 0) {
+      _refund(xToken, msg.sender);
+    }
+  }
+
+  /// @notice Swap between fToken and xToken
+  /// @param _amountIn The amount of input token.
+  /// @param _fTokenForXToken Whether swap fToken for xToken.
+  /// @param _minOut The minimum amount of token should be received.
+  /// @return _amountOut The amount of token received.
+  function swap(
+    uint256 _amountIn,
+    bool _fTokenForXToken,
+    uint256 _minOut
+  ) external returns (uint256 _amountOut) {
+    if (_fTokenForXToken) {
+      _amountIn = _transferTokenIn(fToken, _amountIn);
+      uint256 _baseOut = IMarket(market).redeem(_amountIn, 0, address(this), 0);
+      _amountOut = IMarket(market).mintXToken(_baseOut, msg.sender, 0);
+      _refund(fToken, msg.sender);
+    } else {
+      _amountIn = _transferTokenIn(xToken, _amountIn);
+      uint256 _baseOut = IMarket(market).redeem(0, _amountIn, address(this), 0);
+      _amountOut = IMarket(market).mintFToken(_baseOut, msg.sender, 0);
+      _refund(xToken, msg.sender);
+    }
+    require(_amountOut >= _minOut, "insufficient output");
 
     _refund(baseToken, msg.sender);
   }

@@ -184,6 +184,8 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   /// @notice Whether to pause xToken redeem in system stability mode
   bool public xTokenRedeemInSystemStabilityModePaused;
 
+  address public reservePool;
+
   /************
    * Modifier *
    ************/
