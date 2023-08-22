@@ -12,7 +12,7 @@ import {
 import { request_fork } from "../utils";
 import { ADDRESS, Action, DEPLOYED_CONTRACTS, PoolTypeV3, TOKENS, encodePoolHintV3 } from "../../scripts/utils";
 
-const FORK_HEIGHT = 17628010;
+const FORK_HEIGHT = 17968230;
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
 
@@ -24,11 +24,11 @@ const revenues: {
 } = {
   aCRV: {
     amount: "1000",
-    holder: "0x781FeA3353D6EFbBABC9FaC0b4725EFF3C77dBA7",
+    holder: "0x7376b927836243f21b327164055891Eb4290f213",
   },
   CVX: {
     amount: "1000",
-    holder: "0x15A5F10cC2611bB18b18322E34eB473235EFCa39",
+    holder: "0xF977814e90dA44bFA03b6295A0616a897441aceC",
   },
   aFXS: {
     amount: "1000",
@@ -36,11 +36,11 @@ const revenues: {
   },
   afrxETH: {
     amount: "100",
-    holder: "0x7308A21030AE55721707fD4717BF5F8e1B0aFbEd",
+    holder: "0x48c6074fFcB8fb67D75CCD06571B42542ED82555",
   },
   asdCRV: {
     amount: "10000",
-    holder: "0xba154324a2b89D894cDE38B492a455Fef98c908C",
+    holder: "0x488b99c4A94BB0027791E8e0eEB421187EC9a487",
   },
 };
 
@@ -129,7 +129,7 @@ describe("DistributePlatformRevenues.spec", async () => {
     const lockerBefore = await acrv.balanceOf(DEPLOYED_CONTRACTS.Concentrator.FeeDistributor.aCRV);
     const routes = [
       encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap),
-      encodePoolHintV3(ADDRESS.CURVE_CRVETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 1, 2, Action.Swap),
       encodePoolHintV3(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.aCRV.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
     ];
@@ -157,16 +157,16 @@ describe("DistributePlatformRevenues.spec", async () => {
     let receipt = await tx.wait();
     console.log("PlatformFeeSpliter.claim, gas used:", receipt.gasUsed.toString());
 
-    // convert to aCRV by route: aFXS => Curve FXS/cvxFXS LP => FXS => WETH => CRV => cvxCRV => aCRV
+    // convert to aCRV by route: aFXS => cvxFXS => FXS => WETH => CRV => cvxCRV => aCRV
     const acrv = await ethers.getContractAt("IERC20", TOKENS.aCRV.address, deployer);
     const lockerBefore = await acrv.balanceOf(DEPLOYED_CONTRACTS.Concentrator.FeeDistributor.aCRV);
     const routes = [
       encodePoolHintV3(TOKENS.aFXS.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
-      encodePoolHintV3(ADDRESS.CURVE_cvxFXS_TOKEN, PoolTypeV3.CurveCryptoPool, 2, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS["CURVE_FXS/cvxFXS_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
       encodePoolHintV3(ADDRESS.FXS_WETH_UNIV2, PoolTypeV3.UniswapV2, 2, 0, 1, Action.Swap, {
         fee_num: 997000,
       }),
-      encodePoolHintV3(ADDRESS.CURVE_CRVETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 1, 2, Action.Swap),
       encodePoolHintV3(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.aCRV.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
     ];
@@ -222,7 +222,7 @@ describe("DistributePlatformRevenues.spec", async () => {
     const lockerBefore = await acrv.balanceOf(DEPLOYED_CONTRACTS.Concentrator.FeeDistributor.aCRV);
     const routes = [
       encodePoolHintV3(ADDRESS.CURVE_frxETH_TOKEN, PoolTypeV3.CurvePlainPool, 2, 0, 0, Action.Remove),
-      encodePoolHintV3(ADDRESS.CURVE_CRVETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 1, 2, Action.Swap),
       encodePoolHintV3(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.aCRV.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
     ];

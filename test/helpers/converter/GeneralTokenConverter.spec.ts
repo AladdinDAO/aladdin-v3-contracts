@@ -258,12 +258,19 @@ describe("GeneralTokenConverter.spec", async () => {
     "WETH => CRV with Curve": {
       tokenIn: TOKENS.WETH.address,
       tokenOut: TOKENS.CRV.address,
-      encoding: encodePoolHintV3(ADDRESS.CURVE_CRVETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),
-      fork: 17622145,
+      encoding: encodePoolHintV3(
+        ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"],
+        PoolTypeV3.CurveCryptoPool,
+        3,
+        1,
+        2,
+        Action.Swap
+      ),
+      fork: 17968230,
       deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
       holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28",
       amountIn: "1",
-      amountOut: "2396.804534254206684831",
+      amountOut: "3534.216084882960871069",
     },
     "CVX => WETH with Curve": {
       tokenIn: TOKENS.CVX.address,
@@ -342,16 +349,11 @@ describe("GeneralTokenConverter.spec", async () => {
         const amountIn = ethers.utils.parseUnits(swap.amountIn, decimalIn);
         const expectedAmountOut = ethers.utils.parseUnits(swap.amountOut, decimalOut);
 
-        // const estimatedOutput = await converter.queryConvert(swap.encoding, amountIn);
-
         await tokenIn.transfer(converter.address, amountIn);
         const before = await tokenOut.balanceOf(signer.address);
-        // const staticCallOutput = await converter.callStatic.convert(swap.encoding, amountIn, signer.address);
         const tx = await converter.convert(swap.encoding, amountIn, signer.address);
         await tx.wait();
         const after = await tokenOut.balanceOf(signer.address);
-        // expect(estimatedOutput).to.closeToBn(expectedAmountOut, expectedAmountOut.div(1e6));
-        // expect(staticCallOutput).to.closeToBn(expectedAmountOut, expectedAmountOut.div(1e6));
         expect(after.sub(before)).to.eq(expectedAmountOut);
       });
     });
