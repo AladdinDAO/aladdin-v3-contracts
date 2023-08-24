@@ -58,6 +58,7 @@ contract SdCRVBribeBurner is Ownable {
     logic = _logic;
 
     IERC20(CRV).safeApprove(vault, uint256(-1));
+    IERC20(sdCRV).safeApprove(vault, uint256(-1));
   }
 
   /****************************
