@@ -9,6 +9,8 @@ import "../interfaces/IAladdinCompounder.sol";
 import "../../interfaces/ICurveCryptoPool.sol";
 import "../../interfaces/IZap.sol";
 
+import { IAladdinFXSExtensions } from "./interfaces/IAladdinFXSExtensions.sol";
+
 contract AladdinFXSConvexVault is ConcentratorConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -110,30 +112,35 @@ contract AladdinFXSConvexVault is ConcentratorConvexVault {
     // 1. zap as FXS
     address _zap = zap;
     uint256 _amountFXS;
+    uint256 _amountCvxFxs;
     for (uint256 i = 0; i < _tokens.length; i++) {
       if (_tokens[i] == FXS) {
         _amountFXS = _amountFXS.add(_amounts[i]);
+      } else if (_tokens[i] == cvxFXS) {
+        _amountCvxFxs = _amountCvxFxs.add(_amounts[i]);
       } else if (_amounts[i] > 0) {
         IERC20Upgradeable(_tokens[i]).safeTransfer(_zap, _amounts[i]);
         _amountFXS = _amountFXS.add(IZap(_zap).zap(_tokens[i], _amounts[i], FXS, 0));
       }
     }
 
-    // 2. add liquidity as FXS/cvxFXS LP
-    uint256 _amountLP;
-    if (_amountFXS > 0) {
-      uint256[2] memory _inputs;
-      _inputs[0] = _amountFXS;
-      IERC20Upgradeable(FXS).safeApprove(CURVE_cvxFXS_POOL, 0);
-      IERC20Upgradeable(FXS).safeApprove(CURVE_cvxFXS_POOL, uint256(-1));
-      _amountLP = ICurveCryptoPool(CURVE_cvxFXS_POOL).add_liquidity(_inputs, 0);
+    address _aladdinFXS = aladdinFXS;
+    uint256 _amountOut;
+
+    // 2. deposit cvxFXS if possible
+    if (_amountCvxFxs > 0) {
+      IERC20Upgradeable(cvxFXS).safeApprove(_aladdinFXS, 0);
+      IERC20Upgradeable(cvxFXS).safeApprove(_aladdinFXS, _amountCvxFxs);
+      _amountOut = IAladdinCompounder(_aladdinFXS).deposit(_amountCvxFxs, address(this));
     }
 
-    // 3. deposit as aladdinFXS
-    if (_amountLP > 0) {
-      return IAladdinCompounder(aladdinFXS).deposit(_amountLP, address(this));
-    } else {
-      return 0;
+    // 3. deposit FXS if possible
+    if (_amountFXS > 0) {
+      IERC20Upgradeable(FXS).safeApprove(_aladdinFXS, 0);
+      IERC20Upgradeable(FXS).safeApprove(_aladdinFXS, _amountFXS);
+      _amountOut = _amountOut.add(IAladdinFXSExtensions(_aladdinFXS).depositWithFXS(_amountFXS, address(this), 0));
     }
+
+    return _amountOut;
   }
 }
