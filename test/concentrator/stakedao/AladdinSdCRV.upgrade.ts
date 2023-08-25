@@ -89,12 +89,12 @@ describe("AladdinSdCRV.upgrade.spec", async () => {
     const tricrv = await ethers.getContractAt("MockERC20", TOKENS.TRICRV.address, deployer);
     const crv = await ethers.getContractAt("MockERC20", TOKENS.CRV.address, deployer);
 
-    expect(await sdCRV.balanceOf(asdCRV.address)).to.eq(constants.Zero);
+    const balance = await sdCRV.balanceOf(asdCRV.address);
     expect(await sdt.balanceOf(asdCRV.address)).to.eq(constants.Zero);
     expect(await tricrv.balanceOf(asdCRV.address)).to.eq(constants.Zero);
     expect(await crv.balanceOf(asdCRV.address)).to.eq(constants.Zero);
     await asdCRV.harvest(deployer.address, 0);
-    expect(await sdCRV.balanceOf(asdCRV.address)).to.eq(constants.Zero);
+    expect(await sdCRV.balanceOf(asdCRV.address)).to.eq(balance);
     expect(await sdt.balanceOf(asdCRV.address)).to.eq(constants.Zero);
     expect(await tricrv.balanceOf(asdCRV.address)).to.eq(constants.Zero);
     expect(await crv.balanceOf(asdCRV.address)).to.eq(constants.Zero);

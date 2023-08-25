@@ -78,6 +78,21 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
     return _withdrawLockTime;
   }
 
+  /// @inheritdoc StakeDAOVaultBase
+  function getUserInfo(address _user) external view override returns (UserRewards memory _info) {
+    _info.balance = userInfo[_user].balance;
+
+    uint256 _count = rewardTokens.length;
+    _info.tokens = new address[](_count + 1);
+    _info.rewards = new uint256[](_count + 1);
+    for (uint256 i = 0; i < _count; i++) {
+      _info.tokens[i] = rewardTokens[i];
+      _info.rewards[i] = userInfo[_user].rewards[_info.tokens[i]];
+    }
+    _info.tokens[_count] = sdCRV;
+    _info.rewards[_count] = userInfo[_user].rewards[sdCRV];
+  }
+
   /********************************** Mutated Functions **********************************/
 
   /// @inheritdoc IStakeDAOCRVVault
@@ -246,7 +261,12 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
     UserInfo storage _info = userInfo[_user];
     _amounts[_length] = _info.rewards[sdCRV];
     if (_amounts[_length] > 0) {
-      IERC20Upgradeable(sdCRV).safeTransfer(_recipient, _amounts[_tokens.length]);
+      uint256 _balance = IERC20Upgradeable(sdCRV).balanceOf(address(this));
+      if (_balance < _amounts[_length]) {
+        _amounts[_length] = _balance;
+      }
+
+      IERC20Upgradeable(sdCRV).safeTransfer(_recipient, _amounts[_length]);
       _info.rewards[sdCRV] = 0;
     }
 

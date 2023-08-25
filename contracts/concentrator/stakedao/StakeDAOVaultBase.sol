@@ -168,7 +168,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
   /// @notice Return aggregated user information for single user.
   /// @param _user The address of user to query.
   /// @return _info The aggregated user information to return.
-  function getUserInfo(address _user) external view returns (UserRewards memory _info) {
+  function getUserInfo(address _user) external view virtual returns (UserRewards memory _info) {
     _info.balance = userInfo[_user].balance;
 
     uint256 _count = rewardTokens.length;
