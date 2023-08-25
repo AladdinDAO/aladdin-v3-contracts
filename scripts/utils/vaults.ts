@@ -3078,6 +3078,49 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
+  "FXS/cvxFXS": {
+    token: "CURVE_FXS/cvxFXS",
+    composition: "FXS+cvxFXS",
+    convexCurveID: 203,
+    rewarder: "0x19F3C877eA278e61fE1304770dbE5D78521792D2",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      FXS: [encodePoolHintV2(ADDRESS["CURVE_FXS/cvxFXS_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add)],
+      cvxFXS: [encodePoolHintV2(ADDRESS["CURVE_FXS/cvxFXS_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Add)],
+      // WETH ==(UniV3)==> USDC ==(Curve)==> FRAX ==(UniV2)==> FXS
+      WETH: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_FXS/cvxFXS_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
+      ],
+      // USDC ==(Curve)==> FRAX ==(UniV2)==> FXS
+      USDC: [
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_FXS/cvxFXS_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
+      ],
+    },
+    withdraw: {
+      FXS: [encodePoolHintV2(ADDRESS["CURVE_FXS/cvxFXS_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove)],
+      cvxFXS: [
+        encodePoolHintV2(ADDRESS["CURVE_FXS/cvxFXS_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 1, Action.Remove),
+      ],
+      // FXS ==(UniV2)==> FRAX ==(Curve)==> USDC ==(UniV3)==> WETH
+      WETH: [
+        encodePoolHintV2(ADDRESS["CURVE_FXS/cvxFXS_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+        encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      ],
+      // FXS ==(UniV2)==> FRAX ==(Curve)==> USDC
+      USDC: [
+        encodePoolHintV2(ADDRESS["CURVE_FXS/cvxFXS_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Remove),
+        encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 1, Action.Swap),
+      ],
+    },
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -3176,6 +3219,7 @@ export const DEPLOYED_VAULTS: {
     { name: "USDC/WBTC/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 63
     { name: "USDT/WBTC/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 64
     { name: "ETH/stETH-ng", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 65
+    { name: "FXS/cvxFXS", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 66
   ],
   aFXS: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 0
