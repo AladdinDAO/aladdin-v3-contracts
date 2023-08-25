@@ -15,12 +15,6 @@ contract AladdinFXSConvexVault is ConcentratorConvexVault {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
-  /// @dev The address of Curve cvxfxs pool.
-  address private constant CURVE_cvxFXS_POOL = 0xd658A338613198204DCa1143Ac3F01A722b5d94A;
-
-  /// @dev The address of Curve cvxfxs pool token.
-  address private constant CURVE_cvxFXS_TOKEN = 0xF3A43307DcAFa93275993862Aae628fCB50dC768;
-
   /// @dev The address of FXS token.
   address private constant FXS = 0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0;
 
@@ -47,7 +41,7 @@ contract AladdinFXSConvexVault is ConcentratorConvexVault {
     aladdinFXS = _aladdinFXS;
     zap = _zap;
 
-    IERC20Upgradeable(CURVE_cvxFXS_TOKEN).safeApprove(_aladdinFXS, uint256(-1));
+    IERC20Upgradeable(cvxFXS).safeApprove(_aladdinFXS, uint256(-1));
   }
 
   /********************************** View Functions **********************************/
@@ -82,10 +76,10 @@ contract AladdinFXSConvexVault is ConcentratorConvexVault {
       _amountOut = _amount;
     } else {
       _amountOut = IAladdinCompounder(_aladdinFXS).redeem(_amount, address(this), address(this));
-      if (_claimAsToken != CURVE_cvxFXS_TOKEN) {
+      if (_claimAsToken != cvxFXS) {
         address _zap = zap;
-        IERC20Upgradeable(CURVE_cvxFXS_TOKEN).safeTransfer(_zap, _amountOut);
-        _amountOut = IZap(_zap).zap(CURVE_cvxFXS_TOKEN, _amountOut, _claimAsToken, 0);
+        IERC20Upgradeable(cvxFXS).safeTransfer(_zap, _amountOut);
+        _amountOut = IZap(_zap).zap(cvxFXS, _amountOut, _claimAsToken, 0);
       }
     }
 
