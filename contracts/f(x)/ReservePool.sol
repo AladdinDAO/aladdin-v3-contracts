@@ -15,15 +15,26 @@ contract ReservePool is AccessControl, IReservePool {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
+  /**********
+   * Events *
+   **********/
+
   event RequestBonus(address indexed token, address indexed recipient, uint256 originalAmount, uint256 bonus);
+
+  /*************
+   * Constants *
+   *************/
 
   /// @dev The precison use to calculation.
   uint256 private constant PRECISION = 1e18;
 
+  /// @notice The role for liquidator.
   bytes32 public constant LIQUIDATOR_ROLE = keccak256("LIQUIDATOR_ROLE");
 
+  /// @notice The address of market contract.
   address public immutable market;
 
+  /// @notice The address of fToken.
   address public immutable fToken;
 
   /***********
@@ -37,7 +48,24 @@ contract ReservePool is AccessControl, IReservePool {
     bytes data;
   }
 
+  /*************
+   * Variables *
+   *************/
+
   mapping(address => uint256) public bonusRatio;
+
+  /************
+   * Modifier *
+   ************/
+
+  modifier onlyAdmin() {
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "only admin");
+    _;
+  }
+
+  /***************
+   * Constructor *
+   ***************/
 
   constructor(address _market, address _fToken) {
     market = _market;
@@ -46,6 +74,10 @@ contract ReservePool is AccessControl, IReservePool {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
   }
 
+  /****************************
+   * Public Mutated Functions *
+   ****************************/
+
   /// @inheritdoc IReservePool
   function requestBonus(
     address _token,
@@ -53,6 +85,7 @@ contract ReservePool is AccessControl, IReservePool {
     uint256 _originalAmount
   ) external override {
     require(msg.sender == market, "only market");
+
     uint256 _bonus = _originalAmount.mul(bonusRatio[_token]).div(PRECISION);
     uint256 _balance = _getBalance(_token);
 
@@ -98,14 +131,24 @@ contract ReservePool is AccessControl, IReservePool {
     require(IERC20(fToken).balanceOf(address(this)) == 0, "has dust fToken");
   }
 
+  /*******************************
+   * Public Restricted Functions *
+   *******************************/
+
+  function updateBonusRatio(address _token, uint256 _ratio) external onlyAdmin {
+    bonusRatio[_token] = _ratio;
+  }
+
   /// @notice Withdraw dust assets in this contract.
   /// @param _token The address of token to withdraw.
   /// @param _recipient The address of token receiver.
-  function withdrawFund(address _token, address _recipient) external {
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "only admin");
-
+  function withdrawFund(address _token, address _recipient) external onlyAdmin {
     _transferToken(_token, _recipient, _getBalance(_token));
   }
+
+  /**********************
+   * Internal Functions *
+   **********************/
 
   function _getBalance(address _token) internal view returns (uint256) {
     if (_token == address(0)) {

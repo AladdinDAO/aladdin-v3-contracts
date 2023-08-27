@@ -9,7 +9,7 @@ import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/m
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { ITwapOracle } from "../price-oracle/interfaces/ITwapOracle.sol";
+import { IFxPriceOracle } from "./interfaces/IFxPriceOracle.sol";
 import { IAssetStrategy } from "./interfaces/IAssetStrategy.sol";
 import { IFractionalToken } from "./interfaces/IFractionalToken.sol";
 import { ILeveragedToken } from "./interfaces/ILeveragedToken.sol";
@@ -69,6 +69,18 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @dev The initial mint ratio for fToken.
   uint256 private immutable initialMintRatio;
+
+  /*********
+   * Enums *
+   *********/
+
+  enum SwapKind {
+    None,
+    MintFToken,
+    MintXToken,
+    RedeemFToken,
+    RedeemXToken
+  }
 
   /*************
    * Variables *
@@ -170,7 +182,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @inheritdoc ITreasury
   function collateralRatio() external view override returns (uint256) {
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
 
     if (_state.baseSupply == 0) return PRECISION;
     if (_state.fSupply == 0 || _state.fNav == 0) return PRECISION * PRECISION;
@@ -189,7 +201,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
       uint256 _xNav
     )
   {
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
 
     _baseNav = _state.baseNav;
     _fNav = _state.fNav;
@@ -206,7 +218,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.MintFToken);
     (_maxBaseIn, _maxFTokenMintable) = _state.maxMintableFToken(_newCollateralRatio);
   }
 
@@ -220,7 +232,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
     (_maxBaseIn, _maxXTokenMintable) = _state.maxMintableXToken(_newCollateralRatio);
   }
 
@@ -234,7 +246,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
     (_maxBaseIn, _maxXTokenMintable) = _state.maxMintableXTokenWithIncentive(_newCollateralRatio, _incentiveRatio);
   }
 
@@ -248,7 +260,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
     (_maxBaseOut, _maxFTokenRedeemable) = _state.maxRedeemableFToken(_newCollateralRatio);
   }
 
@@ -262,7 +274,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemXToken);
     (_maxBaseOut, _maxXTokenRedeemable) = _state.maxRedeemableXToken(_newCollateralRatio);
   }
 
@@ -276,7 +288,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
     (_maxBaseOut, _maxFTokenLiquidatable) = _state.maxLiquidatable(_newCollateralRatio, _incentiveRatio);
   }
 
@@ -308,7 +320,15 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     address _recipient,
     MintOption _option
   ) external override onlyMarket returns (uint256 _fTokenOut, uint256 _xTokenOut) {
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state;
+
+    if (_option == MintOption.FToken) {
+      _state = _loadSwapState(SwapKind.MintFToken);
+    } else if (_option == MintOption.XToken) {
+      _state = _loadSwapState(SwapKind.MintXToken);
+    } else {
+      _state = _loadSwapState(SwapKind.None);
+    }
 
     if (_option == MintOption.FToken) {
       _fTokenOut = _state.mintFToken(_baseIn);
@@ -341,7 +361,13 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     uint256 _xTokenIn,
     address _owner
   ) external override onlyMarket returns (uint256 _baseOut) {
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state;
+
+    if (_fTokenIn > 0) {
+      _state = _loadSwapState(SwapKind.RedeemFToken);
+    } else {
+      _state = _loadSwapState(SwapKind.RedeemXToken);
+    }
 
     _baseOut = _state.redeem(_fTokenIn, _xTokenIn);
 
@@ -364,7 +390,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     uint256 _incentiveRatio,
     address _recipient
   ) external override onlyMarket returns (uint256 _xTokenOut) {
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
 
     uint256 _fDeltaNav;
     (_xTokenOut, _fDeltaNav) = _state.mintXToken(_baseIn, _incentiveRatio);
@@ -387,7 +413,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     uint256 _incentiveRatio,
     address _owner
   ) external override onlyMarket returns (uint256 _baseOut) {
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
 
     uint256 _fDeltaNav;
     (_baseOut, _fDeltaNav) = _state.liquidateWithIncentive(_fTokenIn, _incentiveRatio);
@@ -413,7 +439,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     bytes calldata _data
   ) external override onlyMarket returns (uint256 _baseOut, uint256 _fAmt) {
     // The supply are locked, so it is safe to use this memory variable.
-    StableCoinMath.SwapState memory _state = _loadSwapState();
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
 
     uint256 _transfered = _transferBaseToken(_baseAmt, msg.sender);
     _fAmt = IMarket(msg.sender).onSelfLiquidate(_transfered, _data);
@@ -440,7 +466,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     require(settleWhitelist[msg.sender], "only settle whitelist");
     if (totalBaseToken == 0) return;
 
-    uint256 _newPrice = _fetchTwapPrice();
+    uint256 _newPrice = _fetchTwapPrice(SwapKind.None);
     int256 _fMultiple = _computeMultiple(_newPrice);
     uint256 _fNav = IFractionalToken(fToken).updateNav(_fMultiple);
 
@@ -465,7 +491,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   function initializePrice() external onlyOwner {
     require(lastPermissionedPrice == 0, "only initialize price once");
-    uint256 _price = _fetchTwapPrice();
+    uint256 _price = _fetchTwapPrice(SwapKind.None);
 
     lastPermissionedPrice = _price;
 
@@ -553,9 +579,9 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   }
 
   /// @dev Internal function to load swap variable to memory
-  function _loadSwapState() internal view returns (StableCoinMath.SwapState memory _state) {
+  function _loadSwapState(SwapKind _kind) internal view returns (StableCoinMath.SwapState memory _state) {
     _state.baseSupply = totalBaseToken;
-    _state.baseNav = _fetchTwapPrice();
+    _state.baseNav = _fetchTwapPrice(_kind);
 
     if (_state.baseSupply == 0) {
       _state.fNav = PRECISION;
@@ -597,8 +623,19 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @dev Internal function to fetch twap price.
   /// @return _price The twap price of the base token.
-  function _fetchTwapPrice() internal view returns (uint256 _price) {
-    _price = ITwapOracle(priceOracle).getTwap(block.timestamp);
+  function _fetchTwapPrice(SwapKind _kind) internal view returns (uint256 _price) {
+    (bool _isValid, uint256 _safePrice, uint256 _minPrice, uint256 _maxPrice) = IFxPriceOracle(priceOracle).getPrice();
+
+    _price = _safePrice;
+    if (_kind == SwapKind.MintFToken || _kind == SwapKind.MintXToken) {
+      require(_isValid, "oracle price is invalid");
+    } else if (!_isValid) {
+      if (_kind == SwapKind.RedeemFToken) {
+        _price = _maxPrice;
+      } else if (_kind == SwapKind.RedeemXToken) {
+        _price = _minPrice;
+      }
+    }
 
     require(_price > 0, "invalid twap price");
   }

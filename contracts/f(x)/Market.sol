@@ -9,6 +9,7 @@ import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 import { IMarket } from "./interfaces/IMarket.sol";
+import { IReservePool } from "./interfaces/IReservePool.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
 // solhint-disable max-states-count
@@ -71,6 +72,10 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   /// @notice Emitted when the platform contract is changed.
   /// @param platform The address of new platform.
   event UpdatePlatform(address platform);
+
+  /// @notice Emitted when the  reserve pool contract is changed.
+  /// @param reservePool The address of new reserve pool.
+  event UpdateReservePool(address reservePool);
 
   /// @notice Pause or unpause mint.
   /// @param status The new status for mint.
@@ -318,6 +323,13 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
       ITreasury.MintOption.XToken
     );
     require(_xTokenMinted >= _minXTokenMinted, "insufficient xToken output");
+
+    // give bnous
+    if (_amountWithoutFee < _maxBaseInBeforeSystemStabilityMode) {
+      IReservePool(reservePool).requestBonus(baseToken, _recipient, _amountWithoutFee);
+    } else {
+      IReservePool(reservePool).requestBonus(baseToken, _recipient, _maxBaseInBeforeSystemStabilityMode);
+    }
 
     emit Mint(msg.sender, _recipient, _baseIn, 0, _xTokenMinted, _baseIn - _amountWithoutFee);
   }
@@ -646,6 +658,14 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     platform = _platform;
 
     emit UpdatePlatform(_platform);
+  }
+
+  /// @notice Change address of reserve pool contract.
+  /// @param _reservePool The new address of reserve pool contract.
+  function updateReservePool(address _reservePool) external onlyAdmin {
+    reservePool = _reservePool;
+
+    emit UpdateReservePool(_reservePool);
   }
 
   /// @notice Update the whitelist status for self liquidation account.
