@@ -277,7 +277,7 @@ const config: {
       start: 1675728000, // Tue Feb 07 2023 00:00:00 GMT+0000
     },
     StakeDAOCRVVault: {
-      impl: "0x0e20D8b0EC57cA8157d9bc2BEEc2c28a80Eaae8a",
+      impl: "0xF29FAFCA79cAa5EA426b03014D653f2361d254C1",
       proxy: "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6",
       gauge: "0x7f50786A0b15723D741727882ee99a0BF34e3466",
       lockDuration: 86400 * 1,
@@ -289,7 +289,7 @@ const config: {
       },
     },
     AladdinSdCRV: {
-      impl: "0x165A7a410C14054cd39d03b4b7Cb392f61be6EDc",
+      impl: "0x922837838aEd2937742CFF7b0AdFd74157e3B9D7",
       proxy: "0x43E54C2E7b3e294De3A155785F52AB49d87B9922",
       ratio: {
         platform: 10e7, // 10%
@@ -301,7 +301,7 @@ const config: {
       impl: "0x0a6E1167c9b8599EE1decCB331AaC176E2aA0b97",
       proxy: "0x59866EC5650e9BA00c51f6D681762b48b0AdA3de",
     },
-    SdCRVBribeBurner: "0xf98Af660d1ff28Cd986b205d6201FB1D5EE231A3",
+    SdCRVBribeBurner: "0x9D6Dc3dbC7Cc5e1d7241601473FD63d2bD1573f9",
   },
   PriceOracle: {
     AladdinPriceOracle: "0x304047F1D867A00082C8549E81a2F0b389d869B4",

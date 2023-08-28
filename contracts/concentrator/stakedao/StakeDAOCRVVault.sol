@@ -37,6 +37,10 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
   /// @dev The address of Curve CRV/sdCRV factory plain pool.
   address private constant CURVE_POOL = 0xCA0253A98D16e9C1e3614caFDA19318EE69772D0;
 
+  /// @dev The address of sdCRV Token.
+  // solhint-disable-next-line const-name-snakecase
+  address private constant sdCRV = 0xD1b5651E55D4CeeD36251c61c50C889B36F6abB5;
+
   /// @notice The name of the vault.
   // solhint-disable-next-line const-name-snakecase
   string public constant name = "Concentrator sdCRV Vault";
@@ -72,6 +76,21 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
   /// @inheritdoc SdCRVLocker
   function withdrawLockTime() public view override returns (uint256) {
     return _withdrawLockTime;
+  }
+
+  /// @inheritdoc StakeDAOVaultBase
+  function getUserInfo(address _user) external view override returns (UserRewards memory _info) {
+    _info.balance = userInfo[_user].balance;
+
+    uint256 _count = rewardTokens.length;
+    _info.tokens = new address[](_count + 1);
+    _info.rewards = new uint256[](_count + 1);
+    for (uint256 i = 0; i < _count; i++) {
+      _info.tokens[i] = rewardTokens[i];
+      _info.rewards[i] = userInfo[_user].rewards[_info.tokens[i]];
+    }
+    _info.tokens[_count] = sdCRV;
+    _info.rewards[_count] = userInfo[_user].rewards[sdCRV];
   }
 
   /********************************** Mutated Functions **********************************/
@@ -222,7 +241,38 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
     if (!_hasSDT) {
       _checkpoint(SDT, userInfo[_user], userInfo[_user].balance);
     }
+
+    _checkpoint(sdCRV, userInfo[_user], userInfo[_user].balance);
+
     return true;
+  }
+
+  /// @inheritdoc StakeDAOVaultBase
+  function _claim(
+    address[] memory _tokens,
+    address _user,
+    address _recipient
+  ) internal virtual override returns (uint256[] memory _amounts) {
+    uint256[] memory _tmpAmounts = StakeDAOVaultBase._claim(_tokens, _user, _recipient);
+
+    uint256 _length = _tokens.length;
+    _amounts = new uint256[](_length + 1);
+
+    UserInfo storage _info = userInfo[_user];
+    _amounts[_length] = _info.rewards[sdCRV];
+    if (_amounts[_length] > 0) {
+      uint256 _balance = IERC20Upgradeable(sdCRV).balanceOf(address(this));
+      if (_balance < _amounts[_length]) {
+        _amounts[_length] = _balance;
+      }
+
+      IERC20Upgradeable(sdCRV).safeTransfer(_recipient, _amounts[_length]);
+      _info.rewards[sdCRV] = 0;
+    }
+
+    for (uint256 i = 0; i < _length; i++) {
+      _amounts[i] = _tmpAmounts[i];
+    }
   }
 
   /// @inheritdoc SdCRVLocker

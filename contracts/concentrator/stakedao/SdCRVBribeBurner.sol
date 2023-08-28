@@ -29,6 +29,9 @@ contract SdCRVBribeBurner is Ownable {
   /// @dev The address of CRV Token.
   address private constant CRV = 0xD533a949740bb3306d119CC777fa900bA034cd52;
 
+  /// @dev The address of CRV Token.
+  address private constant sdCRV = 0xD1b5651E55D4CeeD36251c61c50C889B36F6abB5;
+
   /// @dev The address of Stake DAO: SDT Token.
   address private constant SDT = 0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F;
 
@@ -55,6 +58,7 @@ contract SdCRVBribeBurner is Ownable {
     logic = _logic;
 
     IERC20(CRV).safeApprove(vault, uint256(-1));
+    IERC20(sdCRV).safeApprove(vault, uint256(-1));
   }
 
   /****************************
@@ -77,29 +81,40 @@ contract SdCRVBribeBurner is Ownable {
     uint256 _balance = IERC20(token).balanceOf(address(this));
     (address _platform, uint256 _platformFee, , uint256 _boostFee, ) = StakeDAOVaultBase(vault).feeInfo();
 
+    uint256 _rewards = _balance;
     if (_platformFee > 0) {
       _platformFee = (_platformFee * _balance) / 1e7;
+      _rewards -= _platformFee;
 
       IERC20(token).safeTransfer(_platform, _platformFee);
     }
 
     if (_boostFee > 0) {
       _boostFee = (_boostFee * _balance) / 1e7;
+      _rewards -= _boostFee;
+
       _boostFee = _convert(_boostFee, routeSDT);
       require(_boostFee >= minSDT, "insufficient SDT");
 
       IERC20(SDT).safeTransfer(delegator, _boostFee);
     }
 
-    _balance -= _platformFee + _boostFee;
-    if (_balance > 0) {
-      _balance = _convert(_balance, routeCRV);
-      require(_balance >= minCRV, "insufficient CRV");
+    if (_rewards > 0) {
+      address[] memory _tokens = new address[](1);
+
+      // don't convert sdCRV for gas saving.
+      if (token != sdCRV) {
+        _rewards = _convert(_rewards, routeCRV);
+        require(_rewards >= minCRV, "insufficient CRV");
+
+        _tokens[0] = CRV;
+      } else {
+        _tokens[0] = sdCRV;
+      }
 
       uint256[] memory _amounts = new uint256[](1);
-      address[] memory _tokens = new address[](1);
-      _amounts[0] = _balance;
-      _tokens[0] = CRV;
+      _amounts[0] = _rewards;
+
       StakeDAOVaultBase(vault).donate(_tokens, _amounts);
     }
   }
