@@ -1,3 +1,9 @@
+import * as fs from "fs";
+import * as path from "path";
+import editJsonFile from "edit-json-file";
+
+const CONFIG_FILE_DIR = path.join(__dirname, "../../", "deployments");
+
 export const DEPLOYED_CONTRACTS = {
   CommunityMultisig: "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F",
   ManagementMultisig: "0x28c921adAC4c1072658eB01a28DA06b5F651eF62",
@@ -130,3 +136,22 @@ export const DEPLOYED_CONTRACTS = {
     },
   },
 };
+
+export function selectDeployments(network: string, name: string): editJsonFile.JsonEditor {
+  if (!fs.existsSync(path.join(CONFIG_FILE_DIR, network))) {
+    fs.mkdirSync(path.join(CONFIG_FILE_DIR, network), { recursive: true });
+  }
+
+  const filename = path.join(CONFIG_FILE_DIR, network, `${name}.json`);
+
+  if (!fs.existsSync(filename)) {
+    fs.writeFileSync(filename, "{}");
+  }
+
+  const addressFile = editJsonFile(filename, {
+    stringify_eol: true,
+    autosave: true,
+  });
+
+  return addressFile;
+}
