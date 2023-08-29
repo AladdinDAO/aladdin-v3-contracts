@@ -16,8 +16,10 @@ export async function deploy(deployer: SignerWithAddress): Promise<ProxyAdminDep
 
   for (const name of ["Concentrator", "CLever", "Fx"]) {
     if (!deployment.get(name)) {
-      const address = await contractDeploy(deployer, "ProxyAdmin", []);
+      const address = await contractDeploy(deployer, "ProxyAdmin for " + name, "ProxyAdmin", []);
       deployment.set(name, address);
+    } else {
+      console.log(`Found ProxyAdmin for ${name} at:`, deployment.get(name));
     }
   }
 

@@ -14,13 +14,22 @@ export async function deploy(deployer: SignerWithAddress): Promise<ConverterDepl
   const deployment = selectDeployments(network.name, "Converter");
 
   if (!deployment.get("ConverterRegistry")) {
-    const address = await contractDeploy(deployer, "ConverterRegistry", []);
+    const address = await contractDeploy(deployer, "ConverterRegistry", "ConverterRegistry", []);
     deployment.set("ConverterRegistry", address);
   }
 
   if (!deployment.get("GeneralTokenConverter")) {
-    const address = await contractDeploy(deployer, "GeneralTokenConverter", [deployment.get("ConverterRegistry")]);
+    const address = await contractDeploy(deployer, "GeneralTokenConverter", "GeneralTokenConverter", [
+      deployment.get("ConverterRegistry"),
+    ]);
     deployment.set("GeneralTokenConverter", address);
+  }
+
+  if (!deployment.get("MultiPathConverter")) {
+    const address = await contractDeploy(deployer, "MultiPathConverter", "MultiPathConverter", [
+      deployment.get("GeneralTokenConverter"),
+    ]);
+    deployment.set("MultiPathConverter", address);
   }
 
   return deployment.toObject() as ConverterDeployment;

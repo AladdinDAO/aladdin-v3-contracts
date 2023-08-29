@@ -1,17 +1,18 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumberish, Contract, ContractReceipt, PayableOverrides } from "ethers";
+import { Contract, ContractReceipt, PayableOverrides, constants } from "ethers";
 import { ethers } from "hardhat";
 
 export async function contractDeploy(
   deployer: SignerWithAddress,
+  desc: string,
   name: string,
   args: Array<any>,
   overrides?: PayableOverrides
 ): Promise<string> {
   const contract = await ethers.getContractFactory(name, deployer);
 
-  console.log(`\nDeploying ${name}...`);
-  const instance = await contract.deploy(...args, overrides);
+  console.log(`\nDeploying ${desc} ...`);
+  const instance = overrides ? await contract.deploy(...args, overrides) : await contract.deploy(...args);
   console.log("  transaction hash:", instance.deployTransaction.hash);
   const receipt = await instance.deployTransaction.wait();
   console.log("  ✅ Done, deployed at:", instance.address, "gas used:", receipt.gasUsed.toString());
@@ -24,15 +25,53 @@ export async function contractCall(
   desc: string,
   method: string,
   args: Array<any>,
-  value?: BigNumberish
+  overrides?: PayableOverrides
 ): Promise<ContractReceipt> {
   console.log(`\n${desc}`);
-  const tx = await contract[method](...args, { value: value });
+  const tx = overrides ? await contract[method](...args, overrides) : await contract[method](...args);
   console.log("  transaction hash:", tx.hash);
   const receipt: ContractReceipt = await tx.wait();
   console.log("  ✅ Done, gas used:", receipt.gasUsed.toString());
 
   return receipt;
+}
+
+export async function ownerContractCall(
+  contract: Contract,
+  desc: string,
+  method: string,
+  args: Array<any>,
+  overrides?: PayableOverrides
+): Promise<ContractReceipt | undefined> {
+  const owner = await contract.callStatic.owner();
+  if (owner === (await contract.signer.getAddress())) {
+    return contractCall(contract, desc, method, args, overrides);
+  } else {
+    console.log(`\n${desc}:`);
+    console.log("  target:", contract.address);
+    console.log("  method:", method);
+    console.log("  args:", args.map((x) => x.toString()).join(", "));
+    return undefined;
+  }
+}
+
+export async function adminContractCall(
+  contract: Contract,
+  desc: string,
+  method: string,
+  args: Array<any>,
+  overrides?: PayableOverrides
+): Promise<ContractReceipt | undefined> {
+  const isAdmin = await contract.callStatic.hasRole(constants.HashZero, await contract.signer.getAddress());
+  if (isAdmin) {
+    return contractCall(contract, desc, method, args, overrides);
+  } else {
+    console.log(`\n${desc}:`);
+    console.log("  target:", contract.address);
+    console.log("  method:", method);
+    console.log("  args:", args.map((x) => x.toString()).join(", "));
+    return undefined;
+  }
 }
 
 export function abiEncode(types: Array<string>, args: Array<any>): string {
