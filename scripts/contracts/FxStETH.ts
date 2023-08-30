@@ -11,11 +11,11 @@ const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
 const ReservePoolBonusRatio = ethers.utils.parseEther("0.05"); // 5%
 
 export interface FxStETHDeployment {
-  fETH: {
+  FractionalToken: {
     implementation: string;
     proxy: string;
   };
-  xETH: {
+  LeveragedToken: {
     implementation: string;
     proxy: string;
   };
@@ -49,6 +49,8 @@ const ChainlinkPriceFeed: { [name: string]: string } = {
 
 export async function deploy(deployer: SignerWithAddress, overrides?: Overrides): Promise<FxStETHDeployment> {
   const admin = await ProxyAdmin.deploy(deployer);
+
+  console.log("");
   const deployment = selectDeployments(network.name, "Fx.stETH");
 
   // deploy implementation

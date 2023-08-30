@@ -12,6 +12,7 @@ export interface ProxyAdminDeployment {
 }
 
 export async function deploy(deployer: SignerWithAddress): Promise<ProxyAdminDeployment> {
+  console.log("");
   const deployment = selectDeployments(network.name, "ProxyAdmin");
 
   for (const name of ["Concentrator", "CLever", "Fx"]) {
