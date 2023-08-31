@@ -66,6 +66,11 @@ const config: HardhatUserConfig = {
       chainId: 42,
       accounts,
     },
+    hermez: {
+      url: process.env.HERMEZ_URL || "https://zkevm-rpc.com",
+      chainId: 1101,
+      accounts: [process.env.PRIVATE_KEY_HERMEZ!],
+    },
     mainnet_fork_10540: {
       url: process.env.MAINNET_FORK_10540_URL || "",
       chainId: 10540,
