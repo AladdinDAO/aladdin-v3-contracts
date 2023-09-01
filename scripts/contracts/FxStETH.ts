@@ -19,7 +19,7 @@ export interface FxStETHDeployment {
     implementation: string;
     proxy: string;
   };
-  Treasury: {
+  stETHTreasury: {
     implementation: string;
     proxy: string;
   };

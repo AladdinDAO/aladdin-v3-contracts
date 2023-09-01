@@ -2,10 +2,9 @@ import { BigNumber } from "ethers";
 import "@nomiclabs/hardhat-ethers";
 import { ethers } from "hardhat";
 
-import * as FxGovernance from "./contracts/FxGovernance";
-import * as FxStETH from "./contracts/FxStETH";
+import * as Converter from "./contracts/Converter";
 
-const maxFeePerGas = 30e9;
+const maxFeePerGas = 20e9;
 const maxPriorityFeePerGas = 1e9;
 
 async function main() {
@@ -20,10 +19,7 @@ async function main() {
     return;
   }
 
-  await FxGovernance.deploy(deployer, overrides);
-
-  const fxsteth = await FxStETH.deploy(deployer, overrides);
-  await FxStETH.initialize(deployer, fxsteth);
+  await Converter.deploy(deployer, overrides);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

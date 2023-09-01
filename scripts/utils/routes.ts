@@ -529,3 +529,11 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
     cvxFXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
   },
 };
+
+export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: BigNumber[] } } = {
+  stETH: {
+    WETH: [],
+    USDC: [],
+    USDT: [],
+  },
+};
