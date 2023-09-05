@@ -105,4 +105,5 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   crvUSD: { decimals: 18, address: "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E" },
   sdFXS: { decimals: 18, address: "0x402f878bdd1f5c66fdaf0fababcf74741b68ac36" },
   ALD: { decimals: 18, address: "0xb26c4b3ca601136daf98593feaeff9e0ca702a8d" },
+  GRAI: { decimals: 18, address: "0x15f74458aE0bFdAA1a96CA1aa779D715Cc1Eefe4" },
 };
