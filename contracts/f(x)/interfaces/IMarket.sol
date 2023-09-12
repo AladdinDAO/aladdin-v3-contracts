@@ -94,11 +94,12 @@ interface IMarket {
   /// @param recipient The address of receiver for xToken.
   /// @param minXTokenMinted The minimum amount of xToken should be received.
   /// @return xTokenMinted The amount of xToken should be received.
+  /// @return bonus The amount of base token as bonus.
   function mintXToken(
     uint256 baseIn,
     address recipient,
     uint256 minXTokenMinted
-  ) external returns (uint256 xTokenMinted);
+  ) external returns (uint256 xTokenMinted, uint256 bonus);
 
   /// @notice Mint some xToken by add some base token as collateral.
   /// @param baseIn The amount of base token supplied, use `uint256(-1)` to supply all base token.
@@ -136,7 +137,7 @@ interface IMarket {
   ) external returns (uint256 baseOut);
 
   /// @notice Self liquidate some fToken to increase the collateral ratio.
-  /// @param baseSwapAmt The amount of base token to swap.
+  /// @param baseSwapAmt The amount of base token (or wrapped base token) to swap.
   /// @param minFTokenLiquidated The minimum amount of fToken should be liquidated.
   /// @param data The data used to swap base token to fToken.
   /// @return baseOut The amount of base token should be received.

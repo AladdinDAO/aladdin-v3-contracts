@@ -301,7 +301,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _baseIn,
     address _recipient,
     uint256 _minXTokenMinted
-  ) external override nonReentrant returns (uint256 _xTokenMinted) {
+  ) external override nonReentrant returns (uint256 _xTokenMinted, uint256 _bonus) {
     require(!mintPaused, "mint is paused");
 
     address _baseToken = baseToken;
@@ -326,9 +326,9 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
 
     // give bnous
     if (_amountWithoutFee < _maxBaseInBeforeSystemStabilityMode) {
-      IReservePool(reservePool).requestBonus(baseToken, _recipient, _amountWithoutFee);
-    } else {
-      IReservePool(reservePool).requestBonus(baseToken, _recipient, _maxBaseInBeforeSystemStabilityMode);
+      _bonus = IReservePool(reservePool).requestBonus(baseToken, _recipient, _amountWithoutFee);
+    } else if (_maxBaseInBeforeSystemStabilityMode > 0) {
+      _bonus = IReservePool(reservePool).requestBonus(baseToken, _recipient, _maxBaseInBeforeSystemStabilityMode);
     }
 
     emit Mint(msg.sender, _recipient, _baseIn, 0, _xTokenMinted, _baseIn - _amountWithoutFee);
@@ -729,7 +729,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _feeRatio0 = _ratio.defaultFeeRatio;
     uint256 _feeRatio1 = uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio);
 
-    _baseInWithoutFee = _defuctMintFee(_baseIn, _feeRatio0, _feeRatio1, _maxBaseInBeforeSystemStabilityMode);
+    _baseInWithoutFee = _deductMintFee(_baseIn, _feeRatio0, _feeRatio1, _maxBaseInBeforeSystemStabilityMode);
   }
 
   /// @dev Internal function to deduct fToken mint fee for base token.
@@ -748,10 +748,10 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _feeRatio0 = uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio);
     uint256 _feeRatio1 = _ratio.defaultFeeRatio;
 
-    _baseInWithoutFee = _defuctMintFee(_baseIn, _feeRatio0, _feeRatio1, _maxBaseInBeforeSystemStabilityMode);
+    _baseInWithoutFee = _deductMintFee(_baseIn, _feeRatio0, _feeRatio1, _maxBaseInBeforeSystemStabilityMode);
   }
 
-  function _defuctMintFee(
+  function _deductMintFee(
     uint256 _baseIn,
     uint256 _feeRatio0,
     uint256 _feeRatio1,

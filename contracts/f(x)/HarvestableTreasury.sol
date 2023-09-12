@@ -86,6 +86,8 @@ abstract contract HarvestableTreasury is Treasury {
     uint256 _harvestBounty = (harvestBountyRatio * _totalRewards) / PRECISION;
     uint256 _stabilityPoolRewards = (stabilityPoolRatio * _totalRewards) / PRECISION;
 
+    emit Harvest(msg.sender, _totalRewards, _stabilityPoolRewards, _harvestBounty);
+
     if (_harvestBounty > 0) {
       _totalRewards = _totalRewards - _harvestBounty;
 

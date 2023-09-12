@@ -127,14 +127,15 @@ contract FxGateway is Ownable {
   /// @notice Mint some xToken with some ETH.
   /// @param _minXTokenMinted The minimum amount of xToken should be received.
   /// @return _xTokenMinted The amount of xToken received.
+  /// @return _bonus The amount of bonus base token received.
   function mintXToken(ZapInCall memory _call, uint256 _minXTokenMinted)
     external
     payable
     zapInToken(_call)
-    returns (uint256 _xTokenMinted)
+    returns (uint256 _xTokenMinted, uint256 _bonus)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
-    _xTokenMinted = IMarket(market).mintXToken(_amount, msg.sender, _minXTokenMinted);
+    (_xTokenMinted, _bonus) = IMarket(market).mintXToken(_amount, msg.sender, _minXTokenMinted);
 
     _refund(baseToken, msg.sender);
   }
@@ -208,7 +209,7 @@ contract FxGateway is Ownable {
     if (_fTokenForXToken) {
       _amountIn = _transferTokenIn(fToken, _amountIn);
       uint256 _baseOut = IMarket(market).redeem(_amountIn, 0, address(this), 0);
-      _amountOut = IMarket(market).mintXToken(_baseOut, msg.sender, 0);
+      (_amountOut, ) = IMarket(market).mintXToken(_baseOut, msg.sender, 0);
       _refund(fToken, msg.sender);
     } else {
       _amountIn = _transferTokenIn(xToken, _amountIn);

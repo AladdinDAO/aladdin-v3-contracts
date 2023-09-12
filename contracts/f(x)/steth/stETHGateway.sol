@@ -66,11 +66,12 @@ contract stETHGateway {
 
   /// @notice Mint some xToken with some ETH.
   /// @param _minXTokenMinted The minimum amount of xToken should be received.
-  /// @return _xTokenMinted The amount of xToken should be received.
-  function mintXToken(uint256 _minXTokenMinted) external payable returns (uint256 _xTokenMinted) {
+  /// @return _xTokenMinted The amount of xToken received.
+  /// @return _bonus The amount of bonus base token received.
+  function mintXToken(uint256 _minXTokenMinted) external payable returns (uint256 _xTokenMinted, uint256 _bonus) {
     ILidoStETH(stETH).submit{ value: msg.value }(address(0));
 
-    _xTokenMinted = IMarket(market).mintXToken(msg.value, msg.sender, _minXTokenMinted);
+    (_xTokenMinted, _bonus) = IMarket(market).mintXToken(msg.value, msg.sender, _minXTokenMinted);
 
     _refund(stETH, msg.sender);
   }

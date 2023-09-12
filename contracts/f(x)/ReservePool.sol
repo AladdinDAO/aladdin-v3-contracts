@@ -83,7 +83,7 @@ contract ReservePool is AccessControl, IReservePool {
     address _token,
     address _recipient,
     uint256 _originalAmount
-  ) external override {
+  ) external override returns (uint256) {
     require(msg.sender == market, "only market");
 
     uint256 _bonus = _originalAmount.mul(bonusRatio[_token]).div(PRECISION);
@@ -97,6 +97,8 @@ contract ReservePool is AccessControl, IReservePool {
 
       emit RequestBonus(_token, _recipient, _originalAmount, _bonus);
     }
+
+    return _bonus;
   }
 
   function liquidate(ZapInCall memory _call, uint256 _minBaseOut) external returns (uint256 _baseOut) {
