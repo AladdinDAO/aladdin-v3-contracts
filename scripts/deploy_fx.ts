@@ -4,11 +4,20 @@ import { ethers } from "hardhat";
 
 import * as FxGovernance from "./contracts/FxGovernance";
 import * as FxStETH from "./contracts/FxStETH";
+import { showConverterRoute } from "./utils";
 
 const maxFeePerGas = 30e9;
 const maxPriorityFeePerGas = 1e9;
 
 async function main() {
+  for (const [src, dst] of [
+    ["stETH", "WETH"],
+    ["stETH", "USDC"],
+    ["stETH", "USDT"],
+  ]) {
+    showConverterRoute(src, dst);
+  }
+
   const overrides = {
     maxFeePerGas: BigNumber.from(maxFeePerGas),
     maxPriorityFeePerGas: BigNumber.from(maxPriorityFeePerGas),
@@ -20,7 +29,8 @@ async function main() {
     return;
   }
 
-  await FxGovernance.deploy(deployer, overrides);
+  const governance = await FxGovernance.deploy(deployer, overrides);
+  await FxGovernance.initialize(deployer, governance, overrides);
 
   const fxsteth = await FxStETH.deploy(deployer, overrides);
   await FxStETH.initialize(deployer, fxsteth);

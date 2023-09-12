@@ -1,5 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Contract, ContractReceipt, PayableOverrides, constants } from "ethers";
+import { concat } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 export async function contractDeploy(
@@ -18,6 +19,27 @@ export async function contractDeploy(
   console.log("  ✅ Done, deployed at:", instance.address, "gas used:", receipt.gasUsed.toString());
 
   return instance.address;
+}
+
+export async function minimalProxyDeploy(
+  deployer: SignerWithAddress,
+  name: string,
+  implementation: string,
+  overrides?: PayableOverrides
+): Promise<string> {
+  console.log(`\nDeploying Minimal Proxy for ${name} ...`);
+  const tx = await deployer.sendTransaction({
+    data: concat(["0x3d602d80600a3d3981f3363d3d373d3d3d363d73", implementation, "0x5af43d82803e903d91602b57fd5bf3"]),
+    gasPrice: overrides?.gasPrice,
+    maxFeePerGas: overrides?.maxFeePerGas,
+    maxPriorityFeePerGas: overrides?.maxPriorityFeePerGas,
+    gasLimit: overrides?.gasLimit,
+  });
+  console.log("  transaction hash:", tx.hash);
+  const receipt = await tx.wait();
+  console.log("  ✅ Done, deployed at:", receipt.contractAddress, "gas used:", receipt.gasUsed.toString());
+
+  return receipt.contractAddress;
 }
 
 export async function contractCall(
