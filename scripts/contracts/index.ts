@@ -11,7 +11,7 @@ export async function contractDeploy(
   const contract = await ethers.getContractFactory(name, deployer);
 
   console.log(`\nDeploying ${name}...`);
-  const instance = await contract.deploy(...args, overrides);
+  const instance = overrides ? await contract.deploy(...args, overrides) : await contract.deploy(...args);
   console.log("  transaction hash:", instance.deployTransaction.hash);
   const receipt = await instance.deployTransaction.wait();
   console.log("  ✅ Done, deployed at:", instance.address, "gas used:", receipt.gasUsed.toString());

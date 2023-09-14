@@ -4,6 +4,11 @@
 import { assert } from "console";
 import { BigNumber } from "ethers";
 
+export const ExpectedDeployers: { [network: string]: string } = {
+  hermez: "0xa1d0a635f7b447b06836d9aC773b03f1F706bBC4",
+  mainnet: "0xa1d0027ca4c0cb79f9403d06a29470abc7b0a468",
+};
+
 export enum PoolType {
   UniswapV2, // with fee 0.3%, add/remove liquidity not supported
   UniswapV3, // add/remove liquidity not supported

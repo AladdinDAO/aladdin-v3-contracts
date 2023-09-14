@@ -1,7 +1,7 @@
 import * as dotenv from "dotenv";
 
 import { HardhatUserConfig, task } from "hardhat/config";
-import "@nomiclabs/hardhat-etherscan";
+import "@nomicfoundation/hardhat-verify";
 import "@nomiclabs/hardhat-vyper";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
@@ -66,6 +66,11 @@ const config: HardhatUserConfig = {
       chainId: 42,
       accounts,
     },
+    hermez: {
+      url: process.env.HERMEZ_URL || "https://zkevm-rpc.com",
+      chainId: 1101,
+      accounts: [process.env.PRIVATE_KEY_HERMEZ!],
+    },
     mainnet_fork_10540: {
       url: process.env.MAINNET_FORK_10540_URL || "",
       chainId: 10540,
@@ -91,6 +96,16 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+    customChains: [
+      {
+        network: "hermez",
+        chainId: 1101,
+        urls: {
+          apiURL: "https://api-zkevm.polygonscan.com/api",
+          browserURL: "https://zkevm.polygonscan.com",
+        },
+      },
+    ],
   },
   mocha: {
     timeout: 400000,
