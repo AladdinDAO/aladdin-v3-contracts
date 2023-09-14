@@ -59,12 +59,13 @@ export async function deploy(deployer: SignerWithAddress, overrides?: Overrides)
 
   for (const round of ["TokenSale1", "TokenSale2"]) {
     if (!deployment.get(round)) {
-      await contractDeploy(deployer, round, "TokenSale", [
+      const address = await contractDeploy(deployer, round, "TokenSale", [
         TOKENS.WETH.address,
         TOKENS.WETH.address,
         DEPLOYED_CONTRACTS.AladdinZap,
         SaleConfig[round].cap,
       ]);
+      deployment.set(round, address);
     } else {
       console.log(`Found ${round} at:`, deployment.get(round));
     }
