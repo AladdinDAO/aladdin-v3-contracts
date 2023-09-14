@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "./interfaces/ICLeverCVXLocker.sol";
 import "./interfaces/ICLeverToken.sol";
+import { ICommitUserSurrogate } from "./interfaces/ICommitUserSurrogate.sol";
 import "./interfaces/IFurnace.sol";
 import "../interfaces/IConvexCVXLocker.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
@@ -700,6 +701,16 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     address _delegate
   ) external onlyGovernorOrOwner {
     ISnapshotDelegateRegistry(_registry).setDelegate(_id, _delegate);
+  }
+
+  /// @notice delegate vlCVX voting power to L2. The current address of `_commiter`
+  /// is `0x861cBbFCFDbd42AD69b3f626F23C3E36388FF01E`.
+  function commitUserSurrogate(
+    address _commiter,
+    address _surrogate,
+    address _contractAddr
+  ) external onlyGovernorOrOwner {
+    ICommitUserSurrogate(_commiter).commit(_surrogate, _contractAddr);
   }
 
   /// @dev Update the address of governor.

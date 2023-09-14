@@ -1,18 +1,17 @@
-import { BigNumber } from "ethers";
-import "@nomiclabs/hardhat-ethers";
 import { ethers } from "hardhat";
 
 import * as FxGovernance from "./contracts/FxGovernance";
 import * as FxStETH from "./contracts/FxStETH";
 import { showConverterRoute } from "./utils";
+import { toBigInt } from "ethers";
 
 const maxFeePerGas = 30e9;
 const maxPriorityFeePerGas = 1e9;
 
 async function main() {
   const overrides = {
-    maxFeePerGas: BigNumber.from(maxFeePerGas),
-    maxPriorityFeePerGas: BigNumber.from(maxPriorityFeePerGas),
+    maxFeePerGas: toBigInt(maxFeePerGas),
+    maxPriorityFeePerGas: toBigInt(maxPriorityFeePerGas),
   };
 
   const [deployer] = await ethers.getSigners();

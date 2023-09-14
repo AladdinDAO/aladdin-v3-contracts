@@ -1,13 +1,13 @@
 /* eslint-disable node/no-missing-import */
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { network, ethers } from "hardhat";
-import { BigNumber, Contract, Overrides, constants } from "ethers";
 
 import { DEPLOYED_CONTRACTS, TOKENS, selectDeployments } from "../utils";
 import { contractCall, contractDeploy, minimalProxyDeploy, ownerContractCall } from ".";
 
 import * as Multisig from "./Multisig";
 import * as VotingEscrow from "./VotingEscrow";
+import { ZeroAddress, Overrides, Contract } from "ethers";
 
 export interface FxGovernanceDeployment {
   TokenSale1: string;
@@ -26,39 +26,39 @@ export interface FxGovernanceDeployment {
 
 const SaleConfig: {
   [round: string]: {
-    cap: BigNumber;
-    time: { WhitelistStartTime: number; PublicStartTime: number; SaleDuration: number };
+    cap: bigint;
+    time: { WhitelistStartTime: bigint; PublicStartTime: bigint; SaleDuration: bigint };
     tokens: string[];
     price: {
-      InitialPrice: BigNumber;
-      UpRatio: BigNumber;
-      Variation: BigNumber;
+      InitialPrice: bigint;
+      UpRatio: bigint;
+      Variation: bigint;
     };
   };
 } = {
   TokenSale1: {
-    cap: ethers.utils.parseEther("20000"),
-    time: { WhitelistStartTime: 1685620800, PublicStartTime: 1685624400, SaleDuration: 86400 * 6 },
-    tokens: [constants.AddressZero],
+    cap: ethers.parseEther("20000"),
+    time: { WhitelistStartTime: 1685620800n, PublicStartTime: 1685624400n, SaleDuration: 86400n * 6n },
+    tokens: [ZeroAddress],
     price: {
-      InitialPrice: ethers.utils.parseEther("0.005"),
-      UpRatio: constants.Zero,
-      Variation: ethers.utils.parseEther("1"),
+      InitialPrice: ethers.parseEther("0.005"),
+      UpRatio: 0n,
+      Variation: ethers.parseEther("1"),
     },
   },
   TokenSale2: {
-    cap: ethers.utils.parseEther("40000"),
-    time: { WhitelistStartTime: 1690981200, PublicStartTime: 1691586000, SaleDuration: 0 },
-    tokens: [constants.AddressZero],
+    cap: ethers.parseEther("40000"),
+    time: { WhitelistStartTime: 1690981200n, PublicStartTime: 1691586000n, SaleDuration: 0n },
+    tokens: [ZeroAddress],
     price: {
-      InitialPrice: ethers.utils.parseEther("0.0075"),
-      UpRatio: constants.Zero,
-      Variation: ethers.utils.parseEther("1"),
+      InitialPrice: ethers.parseEther("0.0075"),
+      UpRatio: 0n,
+      Variation: ethers.parseEther("1"),
     },
   },
 };
 
-export async function deploy(deployer: SignerWithAddress, overrides?: Overrides): Promise<FxGovernanceDeployment> {
+export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxGovernanceDeployment> {
   const multisig = Multisig.deploy(network.name);
   const implementationDeployment = await VotingEscrow.deploy(deployer, overrides);
   const deployment = selectDeployments(network.name, "Fx.Governance");
@@ -153,7 +153,7 @@ export async function deploy(deployer: SignerWithAddress, overrides?: Overrides)
 }
 
 export async function initialize(
-  deployer: SignerWithAddress,
+  deployer: HardhatEthersSigner,
   deployment: FxGovernanceDeployment,
   overrides?: Overrides
 ) {
@@ -164,8 +164,8 @@ export async function initialize(
     const sale = await ethers.getContractAt("TokenSale", (deployment as any)[round], deployer);
     const saleConfig = SaleConfig[round];
 
-    if (!(await sale.priceData()).initialPrice.eq(saleConfig.price.InitialPrice)) {
-      await contractCall(sale as Contract, "TokenSale.updatePrice", "updatePrice", [
+    if ((await sale.priceData()).initialPrice !== saleConfig.price.InitialPrice) {
+      await contractCall(sale as unknown as Contract, "TokenSale.updatePrice", "updatePrice", [
         saleConfig.price.InitialPrice,
         saleConfig.price.UpRatio,
         saleConfig.price.Variation,
@@ -174,11 +174,11 @@ export async function initialize(
 
     const saleTime = await sale.saleTimeData();
     if (
-      !saleTime.whitelistSaleTime.eq(saleConfig.time.WhitelistStartTime) ||
-      !saleTime.publicSaleTime.eq(saleConfig.time.PublicStartTime) ||
-      !saleTime.saleDuration.eq(saleConfig.time.SaleDuration)
+      saleTime.whitelistSaleTime !== saleConfig.time.WhitelistStartTime ||
+      saleTime.publicSaleTime !== saleConfig.time.PublicStartTime ||
+      saleTime.saleDuration !== saleConfig.time.SaleDuration
     ) {
-      await contractCall(sale as Contract, "TokenSale.updateSaleTime", "updateSaleTime", [
+      await contractCall(sale as unknown as Contract, "TokenSale.updateSaleTime", "updateSaleTime", [
         saleConfig.time.WhitelistStartTime,
         saleConfig.time.PublicStartTime,
         saleConfig.time.SaleDuration,
@@ -192,7 +192,10 @@ export async function initialize(
       }
     }
     if (tokens.length > 0) {
-      await contractCall(sale as Contract, "TokenSale.updateSupportedTokens", "updateSupportedTokens", [tokens, true]);
+      await contractCall(sale as unknown as Contract, "TokenSale.updateSupportedTokens", "updateSupportedTokens", [
+        tokens,
+        true,
+      ]);
     }
   }
 
@@ -208,13 +211,13 @@ export async function initialize(
   // initialize FNX
   if ((await fnx.name()) === "") {
     await contractCall(
-      fnx,
+      fnx as unknown as Contract,
       "initialize FNX",
       "initialize",
       [
-        ethers.utils.parseEther("1020000"), // initial supply
-        ethers.utils.parseEther("98000").div(86400 * 365), // initial rate, 10%,
-        BigNumber.from("1111111111111111111"), // rate reduction coefficient, 1/0.9 * 1e18,
+        ethers.parseEther("1020000"), // initial supply
+        ethers.parseEther("98000") / (86400n * 365n), // initial rate, 10%,
+        1111111111111111111n, // rate reduction coefficient, 1/0.9 * 1e18,
         deployer.address,
         "FNX Token",
         "FNX",
@@ -223,14 +226,20 @@ export async function initialize(
     );
   }
   // set minter
-  if ((await fnx.minter({ gasLimit: 1e6 })) === constants.AddressZero) {
-    await contractCall(fnx, "initialize minter for FNX", "set_minter", [deployment.TokenMinter], overrides);
+  if ((await fnx.minter({ gasLimit: 1e6 })) === ZeroAddress) {
+    await contractCall(
+      fnx as unknown as Contract,
+      "initialize minter for FNX",
+      "set_minter",
+      [deployment.TokenMinter],
+      overrides
+    );
   }
 
   // initialize veFNX
-  if ((await ve.token({ gasLimit: 1e6 })) === constants.AddressZero) {
+  if ((await ve.token({ gasLimit: 1e6 })) === ZeroAddress) {
     await contractCall(
-      ve,
+      ve as unknown as Contract,
       "initialize veFNX",
       "initialize",
       [deployer.address, deployment.FNX, "Voting Escrow FNX", "veFNX", "1.0.0"],
@@ -243,7 +252,7 @@ export async function initialize(
     (await ve.future_smart_wallet_checker({ gasLimit: 1e6 })) !== deployment.SmartWalletWhitelist
   ) {
     await ownerContractCall(
-      ve,
+      ve as unknown as Contract,
       "commit smart_wallet_checker",
       "commit_smart_wallet_checker",
       [deployment.SmartWalletWhitelist],
@@ -255,13 +264,19 @@ export async function initialize(
     (await ve.smart_wallet_checker({ gasLimit: 1e6 })) !== deployment.SmartWalletWhitelist &&
     (await ve.future_smart_wallet_checker({ gasLimit: 1e6 })) === deployment.SmartWalletWhitelist
   ) {
-    await ownerContractCall(ve, "apply smart_wallet_checker", "apply_smart_wallet_checker", [], overrides);
+    await ownerContractCall(
+      ve as unknown as Contract,
+      "apply smart_wallet_checker",
+      "apply_smart_wallet_checker",
+      [],
+      overrides
+    );
   }
 
   // initialize TokenMinter
-  if ((await minter.token({ gasLimit: 1e6 })) === constants.AddressZero) {
+  if ((await minter.token({ gasLimit: 1e6 })) === ZeroAddress) {
     await contractCall(
-      minter,
+      minter as unknown as Contract,
       "initialize TokenMinter",
       "initialize",
       [deployment.FNX, deployment.GaugeController],
@@ -270,9 +285,9 @@ export async function initialize(
   }
 
   // initialize GaugeController
-  if ((await controller.admin({ gasLimit: 1e6 })) === constants.AddressZero) {
+  if ((await controller.admin({ gasLimit: 1e6 })) === ZeroAddress) {
     await contractCall(
-      controller,
+      controller as unknown as Contract,
       "initialize GaugeController",
       "initialize",
       [multisig.Fx, deployment.FNX, deployment.veFNX],
@@ -281,7 +296,7 @@ export async function initialize(
   }
 
   // initialize FeeDistributor
-  if ((await distributor.token({ gasLimit: 1e6 })) === constants.AddressZero) {
+  if ((await distributor.token({ gasLimit: 1e6 })) === ZeroAddress) {
     // @todo
   }
 

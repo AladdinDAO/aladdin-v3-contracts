@@ -1,4 +1,4 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
 import { network } from "hardhat";
 
@@ -13,7 +13,7 @@ export interface VotingEscrowDeployment {
   FeeDistributor: string;
 }
 
-export async function deploy(deployer: SignerWithAddress, overrides?: Overrides): Promise<VotingEscrowDeployment> {
+export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<VotingEscrowDeployment> {
   const deployment = selectDeployments(network.name, "VotingEscrow");
 
   for (const name of ["GovernanceToken", "TokenMinter", "VotingEscrow", "GaugeController", "FeeDistributor"]) {

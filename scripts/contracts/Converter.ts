@@ -1,5 +1,4 @@
-/* eslint-disable node/no-missing-import */
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { network } from "hardhat";
 
 import { selectDeployments } from "../utils";
@@ -11,7 +10,7 @@ export interface ConverterDeployment {
   GeneralTokenConverter: string;
 }
 
-export async function deploy(deployer: SignerWithAddress, overrides?: Overrides): Promise<ConverterDeployment> {
+export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<ConverterDeployment> {
   const deployment = selectDeployments(network.name, "Converter");
 
   if (!deployment.get("ConverterRegistry")) {

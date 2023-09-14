@@ -1,4 +1,4 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { network, ethers } from "hardhat";
 import { Contract, Overrides } from "ethers";
 
@@ -8,7 +8,7 @@ import { contractDeploy, ownerContractCall } from ".";
 import * as ProxyAdmin from "./ProxyAdmin";
 
 const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
-const ReservePoolBonusRatio = ethers.utils.parseEther("0.05"); // 5%
+const ReservePoolBonusRatio = ethers.parseEther("0.05"); // 5%
 
 export interface FxStETHDeployment {
   FractionalToken: {
@@ -47,7 +47,7 @@ const ChainlinkPriceFeed: { [name: string]: string } = {
   stETH: "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8",
 };
 
-export async function deploy(deployer: SignerWithAddress, overrides?: Overrides): Promise<FxStETHDeployment> {
+export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxStETHDeployment> {
   const admin = await ProxyAdmin.deploy(deployer);
 
   console.log("");
@@ -67,7 +67,7 @@ export async function deploy(deployer: SignerWithAddress, overrides?: Overrides)
       deployer,
       "stETHTreasury implementation",
       "stETHTreasury",
-      [ethers.utils.parseEther("0.5")],
+      [ethers.parseEther("0.5")],
       overrides
     );
     deployment.set("stETHTreasury.implementation", address);
@@ -183,7 +183,7 @@ export async function deploy(deployer: SignerWithAddress, overrides?: Overrides)
   return deployment.toObject() as FxStETHDeployment;
 }
 
-export async function initialize(deployer: SignerWithAddress, deployment: FxStETHDeployment, overrides?: Overrides) {
+export async function initialize(deployer: HardhatEthersSigner, deployment: FxStETHDeployment, overrides?: Overrides) {
   const admin = await ProxyAdmin.deploy(deployer);
   const proxyAdmin = await ethers.getContractAt("ProxyAdmin", admin.Fx, deployer);
 
@@ -196,7 +196,7 @@ export async function initialize(deployer: SignerWithAddress, deployment: FxStET
     const proxy = (deployment as any)[name].proxy;
     if ((await proxyAdmin.getProxyImplementation(proxy)) !== impl) {
       await ownerContractCall(
-        proxyAdmin as Contract,
+        proxyAdmin as unknown as Contract,
         "ProxyAdmin upgrade " + name,
         "upgrade",
         [proxy, impl],
@@ -207,7 +207,7 @@ export async function initialize(deployer: SignerWithAddress, deployment: FxStET
 
   if (!(await reservePool.hasRole(LIQUIDATOR_ROLE, KEEPER))) {
     await ownerContractCall(
-      reservePool as Contract,
+      reservePool as unknown as Contract,
       "ReservePool Grant LiquidatorRole",
       "grantRole",
       [LIQUIDATOR_ROLE, KEEPER],
@@ -215,9 +215,9 @@ export async function initialize(deployer: SignerWithAddress, deployment: FxStET
     );
   }
 
-  if (!(await reservePool.bonusRatio(TOKENS.stETH.address)).eq(ReservePoolBonusRatio)) {
+  if ((await reservePool.bonusRatio(TOKENS.stETH.address)) !== ReservePoolBonusRatio) {
     await ownerContractCall(
-      reservePool as Contract,
+      reservePool as unknown as Contract,
       "ReservePool updateBonusRatio for stETH",
       "updateBonusRatio",
       [TOKENS.stETH.address, ReservePoolBonusRatio],

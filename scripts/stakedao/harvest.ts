@@ -12,7 +12,7 @@ const program = new Command();
 program.version("1.0.0");
 
 const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
-const BURNER = "0xf98Af660d1ff28Cd986b205d6201FB1D5EE231A3";
+const BURNER = "0x9D6Dc3dbC7Cc5e1d7241601473FD63d2bD1573f9";
 const STASH = "0x03E34b085C52985F6a5D27243F20C84bDdc01Db4";
 
 interface ICoinGeckoResponse {
@@ -87,18 +87,26 @@ async function main(round: string) {
           18
         )
       );
-      const amountCRV = ethers.utils.parseEther(
-        (
-          (parseFloat(ethers.utils.formatUnits(amount.sub(platformFee).sub(boostFee), TOKENS[symbol].decimals)) *
-            prices[symbol]) /
-          priceCRV
-        ).toFixed(18)
-      );
-      console.log(
-        `  + treasury[${ethers.utils.formatEther(platformFee)} ${symbol}]`,
-        `delegation[~${ethers.utils.formatEther(amountSDT)} SDT]`,
-        `staker[~${ethers.utils.formatEther(amountCRV)} CRV]`
-      );
+      if (symbol === "sdCRV") {
+        console.log(
+          `  + treasury[${ethers.utils.formatEther(platformFee)} ${symbol}]`,
+          `delegation[~${ethers.utils.formatEther(amountSDT)} SDT]`,
+          `staker[${ethers.utils.formatEther(amount.sub(platformFee).sub(boostFee))} sdCRV]`
+        );
+      } else {
+        const amountCRV = ethers.utils.parseEther(
+          (
+            (parseFloat(ethers.utils.formatUnits(amount.sub(platformFee).sub(boostFee), TOKENS[symbol].decimals)) *
+              prices[symbol]) /
+            priceCRV
+          ).toFixed(18)
+        );
+        console.log(
+          `  + treasury[${ethers.utils.formatEther(platformFee)} ${symbol}]`,
+          `delegation[~${ethers.utils.formatEther(amountSDT)} SDT]`,
+          `staker[~${ethers.utils.formatEther(amountCRV)} CRV]`
+        );
+      }
     }
   }
 
@@ -172,13 +180,13 @@ async function main(round: string) {
         const tx = await burner.burn(
           item.token,
           ZAP_ROUTES[symbol].SDT,
-          amountSDT.mul(97).div(100),
+          amountSDT.mul(99).div(100),
           ZAP_ROUTES[symbol].CRV,
-          amountCRV.mul(92).div(100)
+          amountCRV.mul(99).div(100)
         );
-        console.log("waiting for tx:", tx.hash);
+        console.log("  waiting for tx:", tx.hash);
         const receipt = await tx.wait();
-        console.log("confirmed, gas used:", receipt.gasUsed.toString());
+        console.log("  confirmed, gas used:", receipt.gasUsed.toString());
         let treasuryAmount = constants.Zero;
         let delegationAmount = constants.Zero;
         let stakerAmount = constants.Zero;
@@ -208,10 +216,17 @@ async function main(round: string) {
             ) {
               stakerAmount = value;
             }
+            if (
+              log.address.toLowerCase() === TOKENS.sdCRV.address.toLowerCase() &&
+              from === burner.address &&
+              to === vault.address
+            ) {
+              stakerAmount = value;
+            }
           }
         }
         console.log(
-          "actual reward CRV:",
+          "  actual reward CRV or sdCRV:",
           ethers.utils.formatEther(stakerAmount),
           `treasury ${symbol}:`,
           ethers.utils.formatUnits(treasuryAmount, TOKENS[symbol].decimals),

@@ -1,8 +1,6 @@
-/* eslint-disable node/no-missing-import */
-import { BigNumber } from "ethers";
 import { Action, ADDRESS, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3, TOKENS } from ".";
 
-export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
+export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
   ALCX: {
     // ALCX ==(UniV2)==> WETH ==(CurveV2)==> CVX
     CVX: [
@@ -528,9 +526,16 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: BigNumber[] } } = {
   CURVE_cvxFXS_TOKEN: {
     cvxFXS: [encodePoolHintV2(ADDRESS.CURVE_cvxFXS_POOL, PoolType.CurveCryptoPool, 2, 1, 1, Action.Remove)],
   },
+  GRAI: {
+    // GRAI ==(UniV3)==> USDC ==(UniV3)==> WETH
+    WETH: [
+      encodePoolHintV2(ADDRESS.GRAI_USDC_UNIV3_500, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+    ],
+  },
 };
 
-export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: BigNumber[] } } = {
+export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = {
   stETH: {
     WETH: [
       encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, { use_eth: false }),
@@ -553,6 +558,6 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: BigNumber[] } }
 export function showConverterRoute(src: string, dst: string) {
   console.log(
     `convert ${src}[${TOKENS[src].address}] => ${dst}[${TOKENS[dst].address}]:`,
-    `[${CONVERTER_ROUTRS[src][dst].map((r) => `"${r.toHexString()}"`).join(",")}]`
+    `[${CONVERTER_ROUTRS[src][dst].map((r) => `"0x${r.toString(16)}"`).join(",")}]`
   );
 }

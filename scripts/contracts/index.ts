@@ -1,10 +1,10 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Contract, ContractReceipt, PayableOverrides, constants } from "ethers";
-import { concat } from "ethers/lib/utils";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { PayableOverrides } from "@typechain/common";
+import { Contract, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
 import { ethers } from "hardhat";
 
 export async function contractDeploy(
-  deployer: SignerWithAddress,
+  deployer: HardhatEthersSigner,
   desc: string,
   name: string,
   args: Array<any>,
@@ -14,15 +14,16 @@ export async function contractDeploy(
 
   console.log(`\nDeploying ${desc} ...`);
   const instance = overrides ? await contract.deploy(...args, overrides) : await contract.deploy(...args);
-  console.log("  transaction hash:", instance.deployTransaction.hash);
-  const receipt = await instance.deployTransaction.wait();
-  console.log("  ✅ Done, deployed at:", instance.address, "gas used:", receipt.gasUsed.toString());
+  console.log("  transaction hash:", instance.deploymentTransaction()?.hash);
+  const receipt = await instance.deploymentTransaction()?.wait();
+  const address = await instance.getAddress();
+  console.log("  ✅ Done, deployed at:", address, "gas used:", receipt!.gasUsed.toString());
 
-  return instance.address;
+  return address;
 }
 
 export async function minimalProxyDeploy(
-  deployer: SignerWithAddress,
+  deployer: HardhatEthersSigner,
   name: string,
   implementation: string,
   overrides?: PayableOverrides
@@ -37,9 +38,9 @@ export async function minimalProxyDeploy(
   });
   console.log("  transaction hash:", tx.hash);
   const receipt = await tx.wait();
-  console.log("  ✅ Done, deployed at:", receipt.contractAddress, "gas used:", receipt.gasUsed.toString());
+  console.log("  ✅ Done, deployed at:", receipt!.contractAddress, "gas used:", receipt!.gasUsed.toString());
 
-  return receipt.contractAddress;
+  return receipt!.contractAddress!;
 }
 
 export async function contractCall(
@@ -48,11 +49,11 @@ export async function contractCall(
   method: string,
   args: Array<any>,
   overrides?: PayableOverrides
-): Promise<ContractReceipt> {
+): Promise<TransactionReceipt> {
   console.log(`\n${desc}`);
   const tx = overrides ? await contract[method](...args, overrides) : await contract[method](...args);
   console.log("  transaction hash:", tx.hash);
-  const receipt: ContractReceipt = await tx.wait();
+  const receipt: TransactionReceipt = await tx.wait();
   console.log("  ✅ Done, gas used:", receipt.gasUsed.toString());
 
   return receipt;
@@ -64,21 +65,22 @@ export async function ownerContractCall(
   method: string,
   args: Array<any>,
   overrides?: PayableOverrides
-): Promise<ContractReceipt | undefined> {
-  let owner: string = constants.AddressZero;
-  if (contract.callStatic.owner) {
-    owner = await contract.callStatic.owner({ gasLimit: 1e6 });
-  } else if (contract.callStatic.admin) {
-    owner = await contract.callStatic.admin({ gasLimit: 1e6 });
-  } else if (contract.callStatic.hasRole) {
-    const isAdmin = await contract.callStatic.hasRole(constants.HashZero, await contract.signer.getAddress());
-    if (isAdmin) owner = await contract.signer.getAddress();
+): Promise<TransactionReceipt | undefined> {
+  const signer = contract.runner! as HardhatEthersSigner;
+  let owner: string = ZeroAddress;
+  if (contract.owner) {
+    owner = await contract.owner.staticCall({ gasLimit: 1e6 });
+  } else if (contract.admin) {
+    owner = await contract.admin.staticCall({ gasLimit: 1e6 });
+  } else if (contract.hasRole) {
+    const isAdmin = await contract.hasRole.staticCall(ZeroHash, await signer.getAddress());
+    if (isAdmin) owner = await signer.getAddress();
   }
-  if (owner.toLowerCase() === (await contract.signer.getAddress()).toLowerCase()) {
+  if (owner.toLowerCase() === (await signer.getAddress()).toLowerCase()) {
     return contractCall(contract, desc, method, args, overrides);
   } else {
     console.log(`\n${desc}:`);
-    console.log("  target:", contract.address);
+    console.log("  target:", await contract.getAddress());
     console.log("  method:", method);
     console.log("  args:", args.map((x) => x.toString()).join(", "));
     return undefined;
@@ -86,5 +88,5 @@ export async function ownerContractCall(
 }
 
 export function abiEncode(types: Array<string>, args: Array<any>): string {
-  return ethers.utils.defaultAbiCoder.encode(types, args);
+  return ethers.AbiCoder.defaultAbiCoder().encode(types, args);
 }
