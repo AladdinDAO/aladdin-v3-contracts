@@ -4,7 +4,7 @@ import { network, ethers } from "hardhat";
 import { BigNumber, Contract, Overrides, constants } from "ethers";
 
 import { DEPLOYED_CONTRACTS, TOKENS, selectDeployments } from "../utils";
-import { contractCall, contractDeploy, minimalProxyDeploy } from ".";
+import { contractCall, contractDeploy, minimalProxyDeploy, ownerContractCall } from ".";
 
 import * as Multisig from "./Multisig";
 import * as VotingEscrow from "./VotingEscrow";
@@ -17,6 +17,11 @@ export interface FxGovernanceDeployment {
   veFNX: string;
   TokenMinter: string;
   GaugeController: string;
+  FeeDistributor: string;
+
+  SmartWalletWhitelist: string;
+  PlatformFeeSpliter: string;
+  Vesting: string;
 }
 
 const SaleConfig: {
@@ -54,6 +59,7 @@ const SaleConfig: {
 };
 
 export async function deploy(deployer: SignerWithAddress, overrides?: Overrides): Promise<FxGovernanceDeployment> {
+  const multisig = Multisig.deploy(network.name);
   const implementationDeployment = await VotingEscrow.deploy(deployer, overrides);
   const deployment = selectDeployments(network.name, "Fx.Governance");
 
@@ -102,6 +108,45 @@ export async function deploy(deployer: SignerWithAddress, overrides?: Overrides)
     deployment.set("GaugeController", address);
   } else {
     console.log(`Found GaugeController at:`, deployment.get("GaugeController"));
+  }
+
+  if (!deployment.get("FeeDistributor")) {
+    const address = await minimalProxyDeploy(
+      deployer,
+      "FeeDistributor",
+      implementationDeployment.FeeDistributor,
+      overrides
+    );
+    deployment.set("FeeDistributor", address);
+  } else {
+    console.log(`Found FeeDistributor at:`, deployment.get("FeeDistributor"));
+  }
+
+  if (!deployment.get("SmartWalletWhitelist")) {
+    const address = await contractDeploy(deployer, "SmartWalletWhitelist", "SmartWalletWhitelist", [], overrides);
+    deployment.set("SmartWalletWhitelist", address);
+  } else {
+    console.log(`Found SmartWalletWhitelist at:`, deployment.get("SmartWalletWhitelist"));
+  }
+
+  if (!deployment.get("Vesting")) {
+    const address = await contractDeploy(deployer, "FNX Vesting", "Vesting", [deployment.get("FNX")], overrides);
+    deployment.set("Vesting", address);
+  } else {
+    console.log(`Found FNX Vesting at:`, deployment.get("Vesting"));
+  }
+
+  if (!deployment.get("PlatformFeeSpliter")) {
+    const address = await contractDeploy(
+      deployer,
+      "PlatformFeeSpliter",
+      "PlatformFeeSpliter",
+      [multisig.Fx, multisig.Fx, multisig.Fx],
+      overrides
+    );
+    deployment.set("PlatformFeeSpliter", address);
+  } else {
+    console.log(`Found PlatformFeeSpliter at:`, deployment.get("PlatformFeeSpliter"));
   }
 
   return deployment.toObject() as FxGovernanceDeployment;
@@ -155,6 +200,10 @@ export async function initialize(
   const ve = await ethers.getContractAt("VotingEscrow", deployment.veFNX, deployer);
   const minter = await ethers.getContractAt("TokenMinter", deployment.TokenMinter, deployer);
   const controller = await ethers.getContractAt("GaugeController", deployment.GaugeController, deployer);
+  const distributor = await ethers.getContractAt("FeeDistributor", deployment.FeeDistributor, deployer);
+  // const whitelist = await ethers.getContractAt("SmartWalletWhitelist", deployment.SmartWalletWhitelist, deployer);
+  // const spliter = await ethers.getContractAt("PlatformFeeSpliter", deployment.PlatformFeeSpliter, deployer);
+  // const vesting = await ethers.getContractAt("Vesting", deployment.Vesting, deployer);
 
   // initialize FNX
   if ((await fnx.name()) === "") {
@@ -173,6 +222,10 @@ export async function initialize(
       overrides
     );
   }
+  // set minter
+  if ((await fnx.minter({ gasLimit: 1e6 })) === constants.AddressZero) {
+    await contractCall(fnx, "initialize minter for FNX", "set_minter", [deployment.TokenMinter], overrides);
+  }
 
   // initialize veFNX
   if ((await ve.token({ gasLimit: 1e6 })) === constants.AddressZero) {
@@ -180,9 +233,29 @@ export async function initialize(
       ve,
       "initialize veFNX",
       "initialize",
-      [multisig.Fx, deployment.FNX, "Voting Escrow FNX", "veFNX", "1.0.0"],
+      [deployer.address, deployment.FNX, "Voting Escrow FNX", "veFNX", "1.0.0"],
       overrides
     );
+  }
+  // commit smart_wallet_checker
+  if (
+    (await ve.smart_wallet_checker({ gasLimit: 1e6 })) !== deployment.SmartWalletWhitelist &&
+    (await ve.future_smart_wallet_checker({ gasLimit: 1e6 })) !== deployment.SmartWalletWhitelist
+  ) {
+    await ownerContractCall(
+      ve,
+      "commit smart_wallet_checker",
+      "commit_smart_wallet_checker",
+      [deployment.SmartWalletWhitelist],
+      overrides
+    );
+  }
+  // apply smart_wallet_checker
+  if (
+    (await ve.smart_wallet_checker({ gasLimit: 1e6 })) !== deployment.SmartWalletWhitelist &&
+    (await ve.future_smart_wallet_checker({ gasLimit: 1e6 })) === deployment.SmartWalletWhitelist
+  ) {
+    await ownerContractCall(ve, "apply smart_wallet_checker", "apply_smart_wallet_checker", [], overrides);
   }
 
   // initialize TokenMinter
@@ -207,8 +280,14 @@ export async function initialize(
     );
   }
 
-  // set minter
-  if ((await fnx.minter({ gasLimit: 1e6 })) === constants.AddressZero) {
-    await contractCall(fnx, "initialize minter for FNX", "set_minter", [deployment.TokenMinter], overrides);
+  // initialize FeeDistributor
+  if ((await distributor.token({ gasLimit: 1e6 })) === constants.AddressZero) {
+    // @todo
   }
+
+  // setup SmartWalletWhitelist
+
+  // setup PlatformFeeSpliter
+
+  // setup Vesting
 }

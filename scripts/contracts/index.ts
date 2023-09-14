@@ -65,27 +65,16 @@ export async function ownerContractCall(
   args: Array<any>,
   overrides?: PayableOverrides
 ): Promise<ContractReceipt | undefined> {
-  const owner = await contract.callStatic.owner();
-  if (owner === (await contract.signer.getAddress())) {
-    return contractCall(contract, desc, method, args, overrides);
-  } else {
-    console.log(`\n${desc}:`);
-    console.log("  target:", contract.address);
-    console.log("  method:", method);
-    console.log("  args:", args.map((x) => x.toString()).join(", "));
-    return undefined;
+  let owner: string = constants.AddressZero;
+  if (contract.callStatic.owner) {
+    owner = await contract.callStatic.owner({ gasLimit: 1e6 });
+  } else if (contract.callStatic.admin) {
+    owner = await contract.callStatic.admin({ gasLimit: 1e6 });
+  } else if (contract.callStatic.hasRole) {
+    const isAdmin = await contract.callStatic.hasRole(constants.HashZero, await contract.signer.getAddress());
+    if (isAdmin) owner = await contract.signer.getAddress();
   }
-}
-
-export async function adminContractCall(
-  contract: Contract,
-  desc: string,
-  method: string,
-  args: Array<any>,
-  overrides?: PayableOverrides
-): Promise<ContractReceipt | undefined> {
-  const isAdmin = await contract.callStatic.hasRole(constants.HashZero, await contract.signer.getAddress());
-  if (isAdmin) {
+  if (owner.toLowerCase() === (await contract.signer.getAddress()).toLowerCase()) {
     return contractCall(contract, desc, method, args, overrides);
   } else {
     console.log(`\n${desc}:`);

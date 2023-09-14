@@ -10,14 +10,6 @@ const maxFeePerGas = 30e9;
 const maxPriorityFeePerGas = 1e9;
 
 async function main() {
-  for (const [src, dst] of [
-    ["stETH", "WETH"],
-    ["stETH", "USDC"],
-    ["stETH", "USDT"],
-  ]) {
-    showConverterRoute(src, dst);
-  }
-
   const overrides = {
     maxFeePerGas: BigNumber.from(maxFeePerGas),
     maxPriorityFeePerGas: BigNumber.from(maxPriorityFeePerGas),
@@ -27,6 +19,14 @@ async function main() {
   if (deployer.address !== "0x07dA2d30E26802ED65a52859a50872cfA615bD0A") {
     console.log("invalid deployer");
     return;
+  }
+
+  for (const [src, dst] of [
+    ["stETH", "WETH"],
+    ["stETH", "USDC"],
+    ["stETH", "USDT"],
+  ]) {
+    showConverterRoute(src, dst);
   }
 
   const governance = await FxGovernance.deploy(deployer, overrides);

@@ -3,7 +3,7 @@ import { network, ethers } from "hardhat";
 import { Contract, Overrides } from "ethers";
 
 import { TOKENS, selectDeployments } from "../utils";
-import { adminContractCall, contractDeploy, ownerContractCall } from ".";
+import { contractDeploy, ownerContractCall } from ".";
 
 import * as ProxyAdmin from "./ProxyAdmin";
 
@@ -206,7 +206,7 @@ export async function initialize(deployer: SignerWithAddress, deployment: FxStET
   }
 
   if (!(await reservePool.hasRole(LIQUIDATOR_ROLE, KEEPER))) {
-    await adminContractCall(
+    await ownerContractCall(
       reservePool as Contract,
       "ReservePool Grant LiquidatorRole",
       "grantRole",
@@ -216,7 +216,7 @@ export async function initialize(deployer: SignerWithAddress, deployment: FxStET
   }
 
   if (!(await reservePool.bonusRatio(TOKENS.stETH.address)).eq(ReservePoolBonusRatio)) {
-    await adminContractCall(
+    await ownerContractCall(
       reservePool as Contract,
       "ReservePool updateBonusRatio for stETH",
       "updateBonusRatio",
