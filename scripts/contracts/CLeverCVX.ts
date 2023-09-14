@@ -27,7 +27,7 @@ export async function deployVoter(deployer: SignerWithAddress): Promise<CLeverCV
   const deployment = selectDeployments(network.name, "vlCVX.Voter");
 
   if (!deployment.get("ConvexHermezVoter")) {
-    const address = await contractDeploy(deployer, "ConverterRegistry", [
+    const address = await contractDeploy(deployer, "ConvexHermezVoter", [
       clevcvx.get("CVXLocker"),
       CONVEX_VOTE_PLATFORM,
     ]);
