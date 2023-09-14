@@ -97,7 +97,7 @@ contract FxETHTwapOracle is IFxPriceOracle {
     _cached.stETH_USDPrice = ITwapOracle(chainlinkStETHTwapOracle).getTwap(block.timestamp);
 
     if (curvePool != address(0)) {
-      _cached.stETH_ETHPrice = (PRECISION * PRECISION) / ICurvePoolOracle(curvePool).ema_price();
+      _cached.stETH_ETHPrice = ICurvePoolOracle(curvePool).ema_price();
     }
   }
 
