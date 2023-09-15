@@ -7,7 +7,6 @@ import { contractDeploy, ownerContractCall } from ".";
 
 import * as ProxyAdmin from "./ProxyAdmin";
 
-const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
 const ReservePoolBonusRatio = ethers.parseEther("0.05"); // 5%
 
 export interface FxStETHDeployment {
@@ -188,7 +187,6 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   const proxyAdmin = await ethers.getContractAt("ProxyAdmin", admin.Fx, deployer);
 
   const reservePool = await ethers.getContractAt("ReservePool", deployment.ReservePool, deployer);
-  const LIQUIDATOR_ROLE = await reservePool.LIQUIDATOR_ROLE();
 
   // upgrade proxy
   for (const name of ["FractionalToken", "LeveragedToken", "stETHTreasury", "Market", "RebalancePool"]) {
@@ -203,16 +201,6 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
         overrides
       );
     }
-  }
-
-  if (!(await reservePool.hasRole(LIQUIDATOR_ROLE, KEEPER))) {
-    await ownerContractCall(
-      reservePool as unknown as Contract,
-      "ReservePool Grant LiquidatorRole",
-      "grantRole",
-      [LIQUIDATOR_ROLE, KEEPER],
-      overrides
-    );
   }
 
   if ((await reservePool.bonusRatio(TOKENS.stETH.address)) !== ReservePoolBonusRatio) {

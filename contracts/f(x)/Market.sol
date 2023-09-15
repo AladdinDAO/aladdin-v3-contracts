@@ -495,63 +495,6 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     emit UserLiquidate(msg.sender, _recipient, _fTokenIn, _baseOut);
   }
 
-  /// @inheritdoc IMarket
-  function selfLiquidate(
-    uint256 _baseSwapAmt,
-    uint256 _minFTokenLiquidated,
-    bytes calldata _data
-  ) external override nonReentrant returns (uint256 _baseOut, uint256 _fTokenLiquidated) {
-    require(!redeemPaused, "redeem is paused");
-    require(liquidationWhitelist[msg.sender], "not liquidation whitelist");
-
-    ITreasury _treasury = ITreasury(treasury);
-    uint256 _collateralRatio = _treasury.collateralRatio();
-
-    MarketConfig memory _marketConfig = marketConfig;
-    require(
-      _marketConfig.recapRatio <= _collateralRatio && _collateralRatio < _marketConfig.selfLiquidationRatio,
-      "Not self liquidation mode"
-    );
-
-    // bound the amount of base token
-    (uint256 _maxBaseOut, ) = _treasury.maxLiquidatable(
-      _marketConfig.selfLiquidationRatio,
-      incentiveConfig.selfLiquidationIncentiveRatio
-    );
-    if (_baseSwapAmt > _maxBaseOut) {
-      _baseSwapAmt = _maxBaseOut;
-    }
-
-    (_baseOut, _fTokenLiquidated) = _treasury.selfLiquidate(
-      _baseSwapAmt,
-      incentiveConfig.selfLiquidationIncentiveRatio,
-      platform,
-      _data
-    );
-    require(_fTokenLiquidated >= _minFTokenLiquidated, "insufficient fToken liquidated");
-
-    emit SelfLiquidate(msg.sender, _baseSwapAmt, _baseOut, _fTokenLiquidated);
-  }
-
-  /// @inheritdoc IMarket
-  function onSelfLiquidate(uint256 _baseSwapAmt, bytes calldata _data) external override returns (uint256 _fTokenAmt) {
-    require(msg.sender == treasury, "only called by treasury");
-    (address _target, bytes memory _calldata) = abi.decode(_data, (address, bytes));
-    require(_target != treasury, "invalid target contract");
-
-    address _baseToken = baseToken;
-    IERC20Upgradeable(_baseToken).safeApprove(_target, 0);
-    IERC20Upgradeable(_baseToken).safeApprove(_target, _baseSwapAmt);
-
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool _success, ) = _target.call(_calldata);
-    require(_success, "call failed");
-
-    address _fToken = fToken;
-    _fTokenAmt = IERC20Upgradeable(_fToken).balanceOf(address(this));
-    IERC20Upgradeable(_fToken).safeTransfer(msg.sender, _fTokenAmt);
-  }
-
   /*******************************
    * Public Restricted Functions *
    *******************************/

@@ -135,22 +135,4 @@ interface IMarket {
     address recipient,
     uint256 minBaseOut
   ) external returns (uint256 baseOut);
-
-  /// @notice Self liquidate some fToken to increase the collateral ratio.
-  /// @param baseSwapAmt The amount of base token (or wrapped base token) to swap.
-  /// @param minFTokenLiquidated The minimum amount of fToken should be liquidated.
-  /// @param data The data used to swap base token to fToken.
-  /// @return baseOut The amount of base token should be received.
-  /// @return fTokenLiquidated the amount of fToken liquidated.
-  function selfLiquidate(
-    uint256 baseSwapAmt,
-    uint256 minFTokenLiquidated,
-    bytes calldata data
-  ) external returns (uint256 baseOut, uint256 fTokenLiquidated);
-
-  /// @notice Callback to swap base token to fToken
-  /// @param baseSwapAmt The amount of base token to swap.
-  /// @param data The data passed to market contract.
-  /// @return fTokenAmt The amount of fToken received.
-  function onSelfLiquidate(uint256 baseSwapAmt, bytes calldata data) external returns (uint256 fTokenAmt);
 }

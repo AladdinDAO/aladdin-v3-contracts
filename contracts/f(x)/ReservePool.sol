@@ -28,9 +28,6 @@ contract ReservePool is AccessControl, IReservePool {
   /// @dev The precison use to calculation.
   uint256 private constant PRECISION = 1e18;
 
-  /// @notice The role for liquidator.
-  bytes32 public constant LIQUIDATOR_ROLE = keccak256("LIQUIDATOR_ROLE");
-
   /// @notice The address of market contract.
   address public immutable market;
 
@@ -99,38 +96,6 @@ contract ReservePool is AccessControl, IReservePool {
     }
 
     return _bonus;
-  }
-
-  function liquidate(ZapInCall memory _call, uint256 _minBaseOut) external returns (uint256 _baseOut) {
-    require(hasRole(LIQUIDATOR_ROLE, msg.sender), "only liquidator");
-
-    bool _success;
-    if (_call.src == address(0)) {
-      (_success, ) = _call.target.call{ value: _call.amount }(_call.data);
-    } else {
-      IERC20(_call.src).safeApprove(_call.target, 0);
-      IERC20(_call.src).safeApprove(_call.target, _call.amount);
-      (_success, ) = _call.target.call(_call.data);
-    }
-
-    // below lines will propagate inner error up
-    if (!_success) {
-      // solhint-disable-next-line no-inline-assembly
-      assembly {
-        let ptr := mload(0x40)
-        let size := returndatasize()
-        returndatacopy(ptr, 0, size)
-        revert(ptr, size)
-      }
-    }
-
-    uint256 _fTokenIn = IERC20(fToken).balanceOf(address(this));
-    IERC20(fToken).safeApprove(market, 0);
-    IERC20(fToken).safeApprove(market, _fTokenIn);
-    _baseOut = IMarket(market).liquidate(_fTokenIn, address(this), _minBaseOut);
-
-    // make sure all fToken is used to prevent liquidator steal fund.
-    require(IERC20(fToken).balanceOf(address(this)) == 0, "has dust fToken");
   }
 
   /*******************************

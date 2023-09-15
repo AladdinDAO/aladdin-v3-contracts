@@ -13,8 +13,8 @@ export interface FxGovernanceDeployment {
   TokenSale1: string;
   TokenSale2: string;
 
-  FNX: string;
-  veFNX: string;
+  FXN: string;
+  veFXN: string;
   TokenMinter: string;
   GaugeController: string;
   FeeDistributor: string;
@@ -77,18 +77,18 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     }
   }
 
-  if (!deployment.get("FNX")) {
-    const address = await minimalProxyDeploy(deployer, "FNX", implementationDeployment.GovernanceToken, overrides);
-    deployment.set("FNX", address);
+  if (!deployment.get("FXN")) {
+    const address = await minimalProxyDeploy(deployer, "FXN", implementationDeployment.GovernanceToken, overrides);
+    deployment.set("FXN", address);
   } else {
-    console.log(`Found FNX token at:`, deployment.get("FNX"));
+    console.log(`Found FXN token at:`, deployment.get("FXN"));
   }
 
-  if (!deployment.get("veFNX")) {
-    const address = await minimalProxyDeploy(deployer, "veFNX", implementationDeployment.VotingEscrow, overrides);
-    deployment.set("veFNX", address);
+  if (!deployment.get("veFXN")) {
+    const address = await minimalProxyDeploy(deployer, "veFXN", implementationDeployment.VotingEscrow, overrides);
+    deployment.set("veFXN", address);
   } else {
-    console.log(`Found veFNX at:`, deployment.get("veFNX"));
+    console.log(`Found veFXN at:`, deployment.get("veFXN"));
   }
 
   if (!deployment.get("TokenMinter")) {
@@ -130,10 +130,10 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   }
 
   if (!deployment.get("Vesting")) {
-    const address = await contractDeploy(deployer, "FNX Vesting", "Vesting", [deployment.get("FNX")], overrides);
+    const address = await contractDeploy(deployer, "FXN Vesting", "Vesting", [deployment.get("FXN")], overrides);
     deployment.set("Vesting", address);
   } else {
-    console.log(`Found FNX Vesting at:`, deployment.get("Vesting"));
+    console.log(`Found FXN Vesting at:`, deployment.get("Vesting"));
   }
 
   if (!deployment.get("PlatformFeeSpliter")) {
@@ -199,8 +199,8 @@ export async function initialize(
     }
   }
 
-  const fnx = await ethers.getContractAt("GovernanceToken", deployment.FNX, deployer);
-  const ve = await ethers.getContractAt("VotingEscrow", deployment.veFNX, deployer);
+  const fxn = await ethers.getContractAt("GovernanceToken", deployment.FXN, deployer);
+  const ve = await ethers.getContractAt("VotingEscrow", deployment.veFXN, deployer);
   const minter = await ethers.getContractAt("TokenMinter", deployment.TokenMinter, deployer);
   const controller = await ethers.getContractAt("GaugeController", deployment.GaugeController, deployer);
   const distributor = await ethers.getContractAt("FeeDistributor", deployment.FeeDistributor, deployer);
@@ -208,41 +208,41 @@ export async function initialize(
   // const spliter = await ethers.getContractAt("PlatformFeeSpliter", deployment.PlatformFeeSpliter, deployer);
   // const vesting = await ethers.getContractAt("Vesting", deployment.Vesting, deployer);
 
-  // initialize FNX
-  if ((await fnx.name()) === "") {
+  // initialize FXN
+  if ((await fxn.name()) === "") {
     await contractCall(
-      fnx as unknown as Contract,
-      "initialize FNX",
+      fxn as unknown as Contract,
+      "initialize FXN",
       "initialize",
       [
         ethers.parseEther("1020000"), // initial supply
         ethers.parseEther("98000") / (86400n * 365n), // initial rate, 10%,
         1111111111111111111n, // rate reduction coefficient, 1/0.9 * 1e18,
         deployer.address,
-        "FNX Token",
-        "FNX",
+        "FXN Token",
+        "FXN",
       ],
       overrides
     );
   }
   // set minter
-  if ((await fnx.minter({ gasLimit: 1e6 })) === ZeroAddress) {
+  if ((await fxn.minter({ gasLimit: 1e6 })) === ZeroAddress) {
     await contractCall(
-      fnx as unknown as Contract,
-      "initialize minter for FNX",
+      fxn as unknown as Contract,
+      "initialize minter for FXN",
       "set_minter",
       [deployment.TokenMinter],
       overrides
     );
   }
 
-  // initialize veFNX
+  // initialize veFXN
   if ((await ve.token({ gasLimit: 1e6 })) === ZeroAddress) {
     await contractCall(
       ve as unknown as Contract,
-      "initialize veFNX",
+      "initialize veFXN",
       "initialize",
-      [deployer.address, deployment.FNX, "Voting Escrow FNX", "veFNX", "1.0.0"],
+      [deployer.address, deployment.FXN, "Voting Escrow FXN", "veFXN", "1.0.0"],
       overrides
     );
   }
@@ -279,7 +279,7 @@ export async function initialize(
       minter as unknown as Contract,
       "initialize TokenMinter",
       "initialize",
-      [deployment.FNX, deployment.GaugeController],
+      [deployment.FXN, deployment.GaugeController],
       overrides
     );
   }
@@ -290,7 +290,7 @@ export async function initialize(
       controller as unknown as Contract,
       "initialize GaugeController",
       "initialize",
-      [multisig.Fx, deployment.FNX, deployment.veFNX],
+      [multisig.Fx, deployment.FXN, deployment.veFXN],
       overrides
     );
   }

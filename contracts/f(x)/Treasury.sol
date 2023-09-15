@@ -432,36 +432,6 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   }
 
   /// @inheritdoc ITreasury
-  function selfLiquidate(
-    uint256 _baseAmt,
-    uint256 _incentiveRatio,
-    address _recipient,
-    bytes calldata _data
-  ) external override onlyMarket returns (uint256 _baseOut, uint256 _fAmt) {
-    // The supply are locked, so it is safe to use this memory variable.
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
-
-    uint256 _transfered = _transferBaseToken(_baseAmt, msg.sender);
-    _fAmt = IMarket(msg.sender).onSelfLiquidate(_transfered, _data);
-
-    uint256 _fDeltaNav;
-    (_baseOut, _fDeltaNav) = _state.liquidateWithIncentive(_fAmt, _incentiveRatio);
-    require(_baseOut >= _baseAmt, "self liquidate with loss");
-
-    address _fToken = fToken;
-    IFractionalToken(_fToken).burn(address(this), _fAmt);
-    totalBaseToken = _state.baseSupply.sub(_baseOut);
-
-    IFractionalToken(_fToken).setNav(
-      _state.fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_state.fMultiple)))
-    );
-
-    if (_baseOut > _baseAmt) {
-      _transferBaseToken(_baseOut - _baseAmt, _recipient);
-    }
-  }
-
-  /// @inheritdoc ITreasury
   function protocolSettle() external override {
     require(settleWhitelist[msg.sender], "only settle whitelist");
     if (totalBaseToken == 0) return;

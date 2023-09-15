@@ -176,20 +176,6 @@ interface ITreasury {
     address owner
   ) external returns (uint256 baseOut);
 
-  /// @notice Self liquidate fToken to base token with incentive.
-  /// @param baseSwapAmt The amount of base token used to buy fToken.
-  /// @param incentiveRatio The incentive ratio.
-  /// @param recipient The address of receiver of profited base token.
-  /// @param data The calldata passed to market contract.
-  /// @return baseOut The expected base token received.
-  /// @return fAmt The amount of fToken liquidated.
-  function selfLiquidate(
-    uint256 baseSwapAmt,
-    uint256 incentiveRatio,
-    address recipient,
-    bytes calldata data
-  ) external returns (uint256 baseOut, uint256 fAmt);
-
   /// @notice Settle the nav of base token, fToken and xToken.
   function protocolSettle() external;
 
