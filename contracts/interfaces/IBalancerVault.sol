@@ -11,6 +11,12 @@ interface IBalancerVault {
     ALL_TOKENS_IN_FOR_EXACT_BPT_OUT
   }
 
+  enum ExitKind {
+    EXACT_BPT_IN_FOR_ONE_TOKEN_OUT,
+    EXACT_BPT_IN_FOR_TOKENS_OUT,
+    BPT_IN_FOR_EXACT_TOKENS_OUT
+  }
+
   enum SwapKind {
     GIVEN_IN,
     GIVEN_OUT
@@ -61,4 +67,18 @@ interface IBalancerVault {
     address recipient,
     JoinPoolRequest memory request
   ) external payable;
+
+  struct ExitPoolRequest {
+    address[] assets;
+    uint256[] minAmountsOut;
+    bytes userData;
+    bool toInternalBalance;
+  }
+
+  function exitPool(
+    bytes32 poolId,
+    address sender,
+    address payable recipient,
+    ExitPoolRequest memory request
+  ) external;
 }

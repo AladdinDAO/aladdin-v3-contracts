@@ -1,0 +1,27 @@
+{
+  "FractionalToken": {
+    "implementation": "0x2a906eAB9B088E6753670bC8D3840f9473745748",
+    "proxy": "0x53805A76E1f5ebbFE7115F16f9c87C2f7e633726"
+  },
+  "LeveragedToken": {
+    "implementation": "0x92d0cb7E56806Bf977e7F5296EA2Fe84B475Fe83",
+    "proxy": "0xe063F04f280c60aECa68b38341C2eEcBeC703ae2"
+  },
+  "stETHTreasury": {
+    "implementation": "0x7d07Faf933A410a59F3048aeC5d61b46EFDFeD72",
+    "proxy": "0x0e5CAA5c889Bdf053c9A76395f62267E653AFbb0"
+  },
+  "Market": {
+    "implementation": "0x505002BbADAC4eBC17666b1622cFF0605fe90bD5",
+    "proxy": "0xe7b9c7c9cA85340b8c06fb805f7775e3015108dB"
+  },
+  "RebalancePool": {
+    "implementation": "0x3415fcD2885C486E2d848403d51077f7176473C7",
+    "proxy": "0xa677d95B91530d56791FbA72C01a862f1B01A49e"
+  },
+  "stETHGateway": "0x4C5C52d507066780500e627d592DbE11476E7c21",
+  "wstETHWrapper": "0xb09e34dD25d5E88a1E9Ff6F6418109927675B658",
+  "ChainlinkTwapOracle": {
+    "ETH": "0x460B3CdE57DfbA90DBed02fd83d3990a92DA1230"
+  }
+}

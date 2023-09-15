@@ -1,24 +1,21 @@
 import * as dotenv from "dotenv";
+import { ProxyAgent, setGlobalDispatcher } from "undici";
 
-import { HardhatUserConfig, task } from "hardhat/config";
+import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-verify";
+import "@nomicfoundation/hardhat-ethers";
+import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomiclabs/hardhat-vyper";
-import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 
 dotenv.config();
 
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
-task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
-
-  for (const account of accounts) {
-    console.log(account.address);
-  }
-});
+if (process.env.PROXY) {
+  const proxyAgent = new ProxyAgent(process.env.PROXY);
+  setGlobalDispatcher(proxyAgent);
+}
 
 const accounts = process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [];
 
@@ -52,18 +49,19 @@ const config: HardhatUserConfig = {
     compilers: [{ version: "0.3.1" }, { version: "0.2.7" }],
   },
   networks: {
-    ropsten: {
-      url: process.env.ROPSTEN_URL || "",
-      accounts,
-    },
     mainnet: {
       url: process.env.MAINNET_URL || "https://rpc.ankr.com/eth",
       chainId: 1,
+      accounts: [process.env.PRIVATE_KEY_MAINNET!],
+    },
+    goerli: {
+      url: process.env.GOERLI_URL || "https://rpc.ankr.com/eth_goerli",
+      chainId: 5,
       accounts,
     },
-    kovan: {
-      url: "https://kovan.infura.io/v3/5516520a57c34a3095cb9cf859bf2cd7",
-      chainId: 42,
+    sepolia: {
+      url: process.env.SEPOLIA_URL || "https://rpc.sepolia.org",
+      chainId: 11155111,
       accounts,
     },
     hermez: {
@@ -71,24 +69,22 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       accounts: [process.env.PRIVATE_KEY_HERMEZ!],
     },
-    mainnet_fork_10540: {
+    fork_mainnet_10540: {
       url: process.env.MAINNET_FORK_10540_URL || "",
-      chainId: 10540,
       accounts,
     },
-    mainnet_fork_10548: {
-      url: process.env.MAINNET_FORK_10548_URL || "",
-      chainId: 10548,
-      accounts,
-    },
-    mainnet_fork_10547: {
+    fork_mainnet_10547: {
       url: process.env.MAINNET_FORK_10547_URL || "",
-      chainId: 10547,
+      accounts,
+    },
+    fork_mainnet_10548: {
+      url: process.env.MAINNET_FORK_10548_URL || "",
       accounts,
     },
   },
   typechain: {
     outDir: "./typechain",
+    target: "ethers-v6",
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
