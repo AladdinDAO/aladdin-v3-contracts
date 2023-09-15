@@ -1,6 +1,6 @@
 # @version 0.3.1
 """
-@title GovernanceToken
+@title Governance Token
 @author Aladdin DAO
 @license MIT
 @notice ERC20 with piecewise-linear mining supply.

@@ -1,0 +1,7 @@
+{
+  "GovernanceToken": "0x2d1B0cC1Cb7fce4212733Bf5aFdA875a1Ff4435C",
+  "TokenMinter": "0xEbA9A8fdd2539d33e070c66Afc1127478bA78054",
+  "VotingEscrow": "0xf29b80B512f7055F164A33aA13105dfac3b01B6b",
+  "GaugeController": "0xdBB1AAeb04F3B5e2587E4bB849717E9ebD0c8acC",
+  "FeeDistributor": "0x0919BbeE89EA2d6c306e5Fe873b64Ceb0efE555B"
+}

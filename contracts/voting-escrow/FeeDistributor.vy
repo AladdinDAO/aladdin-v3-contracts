@@ -1,7 +1,7 @@
 # @version 0.2.7
 """
-@title Curve Fee Distribution
-@author Curve Finance
+@title Fee Distributor
+@author Aladdin DAO
 @license MIT
 """
 

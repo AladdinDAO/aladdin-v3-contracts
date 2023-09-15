@@ -1,9 +1,10 @@
-import { ethers } from "hardhat";
+import { network } from "hardhat";
+import { toBigInt } from "ethers";
+
+import { ensureDeployer, showConverterRoute } from "./utils";
 
 import * as FxGovernance from "./contracts/FxGovernance";
 import * as FxStETH from "./contracts/FxStETH";
-import { showConverterRoute } from "./utils";
-import { toBigInt } from "ethers";
 
 const maxFeePerGas = 30e9;
 const maxPriorityFeePerGas = 1e9;
@@ -13,12 +14,7 @@ async function main() {
     maxFeePerGas: toBigInt(maxFeePerGas),
     maxPriorityFeePerGas: toBigInt(maxPriorityFeePerGas),
   };
-
-  const [deployer] = await ethers.getSigners();
-  if (deployer.address !== "0x07dA2d30E26802ED65a52859a50872cfA615bD0A") {
-    console.log("invalid deployer");
-    return;
-  }
+  const deployer = await ensureDeployer(network.name);
 
   for (const [src, dst] of [
     ["stETH", "WETH"],

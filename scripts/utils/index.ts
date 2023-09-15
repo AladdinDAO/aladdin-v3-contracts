@@ -1,12 +1,13 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
-/* eslint-disable node/no-missing-import */
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { assert } from "console";
 import { toBigInt } from "ethers";
+import { ethers } from "hardhat";
 
 export const ExpectedDeployers: { [network: string]: string } = {
+  mainnet: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
   hermez: "0xa1d0a635f7b447b06836d9aC773b03f1F706bBC4",
-  mainnet: "0xa1d0027ca4c0cb79f9403d06a29470abc7b0a468",
 };
 
 export enum PoolType {
@@ -139,6 +140,18 @@ export function encodePoolHintV3(
   encoding = (encoding << 2n) | toBigInt(action);
   encoding = (encoding << 8n) | toBigInt(poolType);
   return encoding;
+}
+
+export async function ensureDeployer(network: string): Promise<HardhatEthersSigner> {
+  const [deployer] = await ethers.getSigners();
+  if (deployer.address.toLowerCase() !== ExpectedDeployers[network]?.toLowerCase()) {
+    throw Error(`invalid deployer[${deployer.address}] expected[${ExpectedDeployers[network]}]`);
+  }
+  console.log(
+    `deployer[${deployer.address}]`,
+    `balance[${ethers.formatEther(await ethers.provider.getBalance(deployer.address))}]`
+  );
+  return deployer;
 }
 
 export * from "./deploys";

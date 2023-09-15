@@ -1,7 +1,7 @@
 # @version 0.3.1
 """
 @title Token Minter
-@author Curve Finance
+@author Aladdin DAO
 @license MIT
 """
 
