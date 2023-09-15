@@ -7,32 +7,46 @@ interface IVotingEscrowBoost {
    * Errors *
    **********/
 
+  /// @dev Thrown when deadline is expired in `permit`.
   error ExpiredDeadline();
 
+  /// @dev Thrown when signature is invalid in `permit`.
   error InvalidSignature();
 
+  /// @dev Thrown when zero address try to approve.
   error ApproveFromZeroAddress();
 
+  /// @dev Thrown when approve to zero address.
   error ApproveToZeroAddress();
 
+  /// @dev Thrown when decrease allowance below zero.
   error DecreasedAllowanceBelowZero();
 
+  /// @dev Thrown when someone try to use more than allowance.
   error InsufficientAllowance();
 
+  /// @dev Thrown when boost zero amount.
   error BoostZeroAmount();
 
+  /// @dev Thrown when boost endtime before current timestamp.
   error EndTimeSmallerThanCurrentTimestamp();
 
+  /// @dev Thrown when boost endtime is not multiple of week.
   error EndTimeNotAlignedWithWeek();
 
+  /// @dev Thrown when boost endtime exceed lock end.
   error EndTimeExceedLockEnd();
 
+  /// @dev Thrown when boost more than current delegable balance.
   error BoostExceedBalance();
 
+  /// @dev Thrown when unboost a non-existed boost.
   error IndexOutOfBound();
 
+  /// @dev Thrown when cancel more than boosted.
   error CancelBoostExceedBalance();
 
+  /// @dev Thrown when cancel expired boost.
   error CancelExpiredBoost();
 
   /**********
@@ -216,7 +230,7 @@ interface IVotingEscrowBoost {
   /// @notice Cancel an existing boost.
   /// @param index The index of in the boost lists.
   /// @param amount The amount of boost to cancel.
-  function unboost(uint256 index, uint256 amount) external;
+  function unboost(uint256 index, uint128 amount) external;
 
   /// @notice Update the user balance snapshot.
   /// @param account The address of the user to update.

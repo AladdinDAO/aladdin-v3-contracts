@@ -85,7 +85,7 @@ abstract contract MultipleRewardAccumulator is
    *************************/
 
   /// @inheritdoc IMultipleRewardAccumulator
-  function claimable(address _account, address _token) public view returns (uint256) {
+  function claimable(address _account, address _token) public view override returns (uint256) {
     UserRewardSnapshot memory _userSnapshot = userRewardSnapshot[_account][_token];
     uint256 _shares = _getUserPoolShare(_account);
     return
@@ -99,27 +99,25 @@ abstract contract MultipleRewardAccumulator is
    ****************************/
 
   /// @inheritdoc IMultipleRewardAccumulator
-  function checkpoint(address _account) external nonReentrant {
+  function checkpoint(address _account) external override nonReentrant {
     _checkpoint(_account);
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
-  function claim() external nonReentrant {
+  function claim() external override {
     address _sender = _msgSender();
-    _checkpoint(_sender);
-    _claim(_sender, _sender);
+    claim(_sender, _sender);
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
-  function claim(address _account) external nonReentrant {
-    _checkpoint(_account);
-    _claim(_account, _account);
+  function claim(address _account) external override {
+    claim(_account, _account);
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
-  function claim(address _account, address _receiver) external nonReentrant {
-    if (_account != _msgSender()) {
-      require(_account == _receiver, "claim to other");
+  function claim(address _account, address _receiver) public override nonReentrant {
+    if (_account != _msgSender() && _account != _receiver) {
+      revert ClaimOthersRewardToAnother();
     }
 
     _checkpoint(_account);
@@ -157,16 +155,29 @@ abstract contract MultipleRewardAccumulator is
     _distributePendingReward();
 
     if (_account != address(0)) {
+      // checkpoint active reward tokens
       address[] memory _rewardTokens = getActiveRewardTokens();
       for (uint256 i = 0; i < _rewardTokens.length; i++) {
-        address _token = _rewardTokens[i];
-        UserRewardSnapshot memory _snapshot = userRewardSnapshot[_account][_token];
-        _snapshot.rewards.pending = uint128(claimable(_account, _token));
-        _snapshot.checkpoint = rewardSnapshot[_token];
-        _snapshot.checkpoint.timestamp = uint64(block.timestamp);
-        userRewardSnapshot[_account][_token] = _snapshot;
+        _updateSnapshot(_account, _rewardTokens[i]);
+      }
+
+      // checkpoint historical reward tokens
+      _rewardTokens = getHistoricalRewardTokens();
+      for (uint256 i = 0; i < _rewardTokens.length; i++) {
+        _updateSnapshot(_account, _rewardTokens[i]);
       }
     }
+  }
+
+  /// @notice Internal function to update snapshot for single token.
+  /// @param _account The address of user to update.
+  /// @param _token The address of token to update.
+  function _updateSnapshot(address _account, address _token) internal {
+    UserRewardSnapshot memory _snapshot = userRewardSnapshot[_account][_token];
+    _snapshot.rewards.pending = uint128(claimable(_account, _token));
+    _snapshot.checkpoint = rewardSnapshot[_token];
+    _snapshot.checkpoint.timestamp = uint64(block.timestamp);
+    userRewardSnapshot[_account][_token] = _snapshot;
   }
 
   /// @dev Internal function to claim active reward tokens.

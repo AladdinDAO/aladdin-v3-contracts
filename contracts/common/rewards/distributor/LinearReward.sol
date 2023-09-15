@@ -64,15 +64,19 @@ library LinearReward {
   /// @dev Return the amount of pending distributed rewards in current period.
   ///
   /// @param _data The struct of reward data.
-  function pending(RewardData memory _data) internal view returns (uint256) {
+  function pending(RewardData memory _data) internal view returns (uint256, uint256) {
     uint256 _elapsed;
+    uint256 _left;
     if (block.timestamp > _data.finishAt) {
       // finishAt >= lastUpdate will happen, if `_notifyReward` is not called during current period.
       _elapsed = _data.finishAt >= _data.lastUpdate ? _data.finishAt - _data.lastUpdate : 0;
     } else {
-      _elapsed = block.timestamp - _data.lastUpdate; // never overflow
+      unchecked {
+        _elapsed = block.timestamp - _data.lastUpdate;
+        _left = uint256(_data.finishAt) - block.timestamp;
+      }
     }
 
-    return uint256(_data.rate) * _elapsed;
+    return (uint256(_data.rate) * _elapsed, uint256(_data.rate) * _left);
   }
 }

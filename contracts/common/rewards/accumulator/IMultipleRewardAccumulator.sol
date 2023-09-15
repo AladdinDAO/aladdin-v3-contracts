@@ -13,6 +13,13 @@ interface IMultipleRewardAccumulator {
   /// @param amount The amount of token claimed.
   event Claim(address indexed account, address indexed token, uint256 amount);
 
+  /**********
+   * Errors *
+   **********/
+
+  /// @dev Thrown when caller claim others reward to another user.
+  error ClaimOthersRewardToAnother();
+
   /*************************
    * Public View Functions *
    *************************/

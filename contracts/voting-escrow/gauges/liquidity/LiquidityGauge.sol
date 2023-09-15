@@ -85,11 +85,14 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   /// @dev The integral is the value of `snapshot.integral` when the snapshot is taken.
   mapping(address => UserRewardSnapshot) public userSnapshot;
 
+  /// @dev reserved slots.
+  uint256[44] private __gap;
+
   /***************
    * Constructor *
    ***************/
 
-  constructor(address _minter) LinearMultipleRewardDistributor(WEEK) {
+  constructor(address _minter) LinearMultipleRewardDistributor(uint40(WEEK)) {
     address _controller = ITokenMinter(_minter).controller();
 
     governanceToken = ITokenMinter(_minter).token();
@@ -108,7 +111,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
 
     __MultipleRewardAccumulator_init();
 
-    _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
     stakingToken = _stakingToken;
   }

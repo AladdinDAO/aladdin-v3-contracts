@@ -38,6 +38,9 @@ interface IMultipleRewardDistributor {
   /// @dev Thrown when caller access an unactive reward token.
   error NotActiveRewardToken();
 
+  /// @dev Thrown when the address of reward distributor is `address(0)`.
+  error RewardDistributorIsZero();
+
   /// @dev Thrown when caller is not reward distributor.
   error NotRewardDistributor();
 
@@ -65,7 +68,9 @@ interface IMultipleRewardDistributor {
   /// @notice Return the amount of pending distributed rewards in current period.
   ///
   /// @param token The address of reward token.
-  function pendingRewards(address token) external view returns (uint256);
+  /// @return distributable The amount of reward token can be distributed in current period.
+  /// @return undistributed The amount of reward token still locked in current period.
+  function pendingRewards(address token) external view returns (uint256 distributable, uint256 undistributed);
 
   /****************************
    * Public Mutated Functions *

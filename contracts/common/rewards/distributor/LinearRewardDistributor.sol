@@ -61,7 +61,7 @@ abstract contract LinearRewardDistributor is AccessControlUpgradeable, IRewardDi
    *************************/
 
   /// @inheritdoc IRewardDistributor
-  function pendingRewards() public view override returns (uint256) {
+  function pendingRewards() external view override returns (uint256, uint256) {
     return rewardData.pending();
   }
 
@@ -103,7 +103,7 @@ abstract contract LinearRewardDistributor is AccessControlUpgradeable, IRewardDi
   function _distributePendingReward() internal {
     if (periodLength == 0) return;
 
-    uint256 _pending = pendingRewards();
+    (uint256 _pending, ) = rewardData.pending();
     rewardData.lastUpdate = uint40(block.timestamp);
 
     if (_pending > 0) {

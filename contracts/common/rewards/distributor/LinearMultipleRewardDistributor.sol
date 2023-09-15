@@ -10,6 +10,7 @@ import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable-v4
 import { IMultipleRewardDistributor } from "./IMultipleRewardDistributor.sol";
 import { LinearReward } from "./LinearReward.sol";
 
+// solhint-disable no-empty-blocks
 // solhint-disable not-rely-on-time
 
 abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, IMultipleRewardDistributor {
@@ -27,7 +28,8 @@ abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, I
 
   /// @notice The length of reward period in seconds.
   /// @dev If the value is zero, the reward will be distributed immediately.
-  uint256 public immutable periodLength;
+  /// @dev It is either zero or at least 1 day (which is 86400).
+  uint40 public immutable periodLength;
 
   /*************
    * Variables *
@@ -52,7 +54,9 @@ abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, I
    * Constructor *
    ***************/
 
-  constructor(uint256 _periodLength) {
+  constructor(uint40 _periodLength) {
+    require(_periodLength == 0 || (_periodLength >= 1 days && _periodLength <= 28 days), "invalid period length");
+
     periodLength = _periodLength;
   }
 
@@ -84,8 +88,8 @@ abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, I
   }
 
   /// @inheritdoc IMultipleRewardDistributor
-  function pendingRewards(address token) public view override returns (uint256) {
-    return rewardData[token].pending();
+  function pendingRewards(address _token) external view override returns (uint256, uint256) {
+    return rewardData[_token].pending();
   }
 
   /****************************
@@ -119,6 +123,7 @@ abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, I
   /// @param _token The address of reward token.
   /// @param _distributor The address of reward distributor.
   function registerRewardToken(address _token, address _distributor) external onlyRole(REWARD_MANAGER_ROLE) {
+    if (_distributor == address(0)) revert RewardDistributorIsZero();
     if (activeRewardTokens.contains(_token)) revert DuplicatedRewardToken();
 
     activeRewardTokens.add(_token);
@@ -133,6 +138,7 @@ abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, I
   /// @param _token The address of reward token.
   /// @param _newDistributor The address of new reward distributor.
   function updateRewardDistributor(address _token, address _newDistributor) external onlyRole(REWARD_MANAGER_ROLE) {
+    if (_newDistributor == address(0)) revert RewardDistributorIsZero();
     if (!activeRewardTokens.contains(_token)) revert NotActiveRewardToken();
 
     address _oldDistributor = distributors[_token];
@@ -148,9 +154,13 @@ abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, I
     if (!activeRewardTokens.contains(_token)) revert NotActiveRewardToken();
 
     LinearReward.RewardData memory _data = rewardData[_token];
-    if (_data.queued > 0 || _data.pending() > 0) revert RewardDistributionNotFinished();
+    unchecked {
+      (uint256 _distributable, uint256 _undistributed) = _data.pending();
+      if (_data.queued + _distributable + _undistributed > 0) revert RewardDistributionNotFinished();
+    }
 
     activeRewardTokens.remove(_token);
+    distributors[_token] = address(0);
     historicalRewardTokens.add(_token);
 
     emit UnregisterRewardToken(_token);
@@ -181,7 +191,7 @@ abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, I
     address[] memory _activeRewardTokens = getActiveRewardTokens();
     for (uint256 i = 0; i < _activeRewardTokens.length; i++) {
       address _token = _activeRewardTokens[i];
-      uint256 _pending = pendingRewards(_token);
+      (uint256 _pending, ) = rewardData[_token].pending();
       rewardData[_token].lastUpdate = uint40(block.timestamp);
 
       if (_pending > 0) {

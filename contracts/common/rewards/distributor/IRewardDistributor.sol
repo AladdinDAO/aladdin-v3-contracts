@@ -20,7 +20,9 @@ interface IRewardDistributor {
   function rewardToken() external view returns (address);
 
   /// @notice Return the amount of pending distributed rewards in current period.
-  function pendingRewards() external view returns (uint256);
+  /// @return distributable The amount of reward token can be distributed in current period.
+  /// @return undistributed The amount of reward token still locked in current period.
+  function pendingRewards() external view returns (uint256 distributable, uint256 undistributed);
 
   /****************************
    * Public Mutated Functions *

@@ -92,7 +92,7 @@ contract VotingEscrowBoost is EIP712, Context, IVotingEscrowBoost {
    * Constructor *
    ***************/
 
-  constructor(address _ve) EIP712(string(abi.encodePacked(IERC20Metadata(_ve).name(), " Boost")), "1") {
+  constructor(address _ve) EIP712("VotingEscrow Boost", "1") {
     ve = _ve;
   }
 
@@ -229,17 +229,17 @@ contract VotingEscrowBoost is EIP712, Context, IVotingEscrowBoost {
   }
 
   /// @inheritdoc IVotingEscrowBoost
-  function unboost(uint256 _index, uint256 _amount) external {
+  function unboost(uint256 _index, uint128 _amount) external {
     address _owner = _msgSender();
     if (_index >= boostLength(_owner)) revert IndexOutOfBound();
 
     BoostItem memory _item = boosts[_owner][_index];
-    _item.cancelAmount += uint128(_amount);
+    _item.cancelAmount += _amount;
     if (_item.cancelAmount > _item.initialAmount) revert CancelBoostExceedBalance();
     if (_item.endTime <= block.timestamp) revert CancelExpiredBoost();
 
     // update amount based on current timestamp
-    _amount -= (_amount / (_item.endTime - _item.startTime)) * (block.timestamp - _item.startTime);
+    _amount -= uint128((uint256(_amount) * (block.timestamp - _item.startTime)) / (_item.endTime - _item.startTime));
 
     // checkpoint delegated point
     Point memory p = _checkpointWrite(_owner, true);
@@ -265,13 +265,13 @@ contract VotingEscrowBoost is EIP712, Context, IVotingEscrowBoost {
     received[_item.receiver] = p;
     receivedSlopeChanges[_item.receiver][_item.endTime] -= slope;
 
-    emit Transfer(_item.receiver, _owner, _amount);
+    emit Transfer(_item.receiver, address(0), bias);
 
     // also checkpoint received and delegated
     received[_owner] = _checkpointWrite(_owner, false);
     delegated[_item.receiver] = _checkpointWrite(_item.receiver, true);
 
-    emit Unboost(_owner, _item.receiver, bias, slope, _item.startTime);
+    emit Unboost(_owner, _item.receiver, bias, slope, block.timestamp);
 
     boosts[_owner][_index] = _item;
   }
@@ -325,7 +325,7 @@ contract VotingEscrowBoost is EIP712, Context, IVotingEscrowBoost {
     received[_receiver] = p;
     receivedSlopeChanges[_receiver][_endtime] += slope;
 
-    emit Transfer(_owner, _receiver, _amount);
+    emit Transfer(_owner, _receiver, bias);
     emit Boost(_owner, _receiver, bias, slope, block.timestamp);
 
     // also checkpoint received and delegated
@@ -337,7 +337,7 @@ contract VotingEscrowBoost is EIP712, Context, IVotingEscrowBoost {
         receiver: _receiver,
         startTime: uint48(block.timestamp),
         endTime: uint48(_endtime),
-        initialAmount: uint128(_amount),
+        initialAmount: uint128(bias),
         cancelAmount: 0
       })
     );
