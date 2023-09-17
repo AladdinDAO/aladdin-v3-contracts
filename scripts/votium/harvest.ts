@@ -1,11 +1,11 @@
 /* eslint-disable node/no-missing-import */
 import axios from "axios";
 import { Command } from "commander";
-import { BigNumber, constants } from "ethers";
 import * as hre from "hardhat";
-import "@nomiclabs/hardhat-ethers";
-import { DEPLOYED_CONTRACTS, TOKENS, ZAP_ROUTES } from "../utils";
+import "@nomicfoundation/hardhat-ethers";
+import { DEPLOYED_CONTRACTS, TOKENS, ZAP_ROUTES, same, selectDeployments } from "../utils";
 import { loadParams } from "./config";
+import { toBigInt } from "ethers";
 
 const ethers = hre.ethers;
 const program = new Command();
@@ -39,6 +39,8 @@ const symbol2ids: { [symbol: string]: string } = {
 };
 
 async function main(round: number, manualStr: string) {
+  const deployment = selectDeployments("mainnet", "CLever.CVX");
+
   // fetch price
   const response = await axios.get<ICoinGeckoResponse>(
     `https://api.coingecko.com/api/v3/simple/price?ids=${Object.values(symbol2ids).join("%2C")}&vs_currencies=usd`
@@ -51,16 +53,11 @@ async function main(round: number, manualStr: string) {
   }
 
   const [deployer] = await ethers.getSigners();
-  const furnance = await ethers.getContractAt("Furnace", DEPLOYED_CONTRACTS.CLever.CLeverCVX.FurnaceForCVX, deployer);
-  const cvxLocker = await ethers.getContractAt(
-    "CLeverCVXLocker",
-    DEPLOYED_CONTRACTS.CLever.CLeverCVX.CLeverForCVX,
-    deployer
-  );
+  const locker = await ethers.getContractAt("CLeverCVXLocker", deployment.get("CLeverForCVX"), deployer);
 
   const manualTokens = manualStr === "" ? [] : manualStr.split(",");
   console.log("Harvest Round:", round);
-  const routes: BigNumber[][] = [];
+  const routes: bigint[][] = [];
   const claimParams = loadParams(round);
   for (const item of claimParams) {
     const symbol: string = Object.entries(TOKENS).filter(
@@ -68,15 +65,15 @@ async function main(round: number, manualStr: string) {
     )[0][0];
     const routeToETH = ZAP_ROUTES[symbol].WETH;
     const routeToCVX = ZAP_ROUTES.WETH.CVX;
-    const estimate = BigNumber.from(
+    const estimate = toBigInt(
       await ethers.provider.call({
         from: KEEPER,
-        to: cvxLocker.address,
-        data: cvxLocker.interface.encodeFunctionData("harvestVotium", [[item], [routeToETH, routeToCVX], 0]),
+        to: deployment.get("CLeverForCVX"),
+        data: locker.interface.encodeFunctionData("harvestVotium", [[item], [routeToETH, routeToCVX], 0]),
       })
     );
-    const tokenAmountStr = ethers.utils.formatUnits(item.amount, TOKENS[symbol].decimals);
-    const cvxAmountStr = ethers.utils.formatEther(estimate.toString());
+    const tokenAmountStr = ethers.formatUnits(item.amount, TOKENS[symbol].decimals);
+    const cvxAmountStr = ethers.formatEther(estimate.toString());
     if (prices[symbol]) {
       console.log(
         `  token[${symbol}]`,
@@ -91,53 +88,55 @@ async function main(round: number, manualStr: string) {
   }
   routes.push(ZAP_ROUTES.WETH.CVX);
 
-  const estimate = BigNumber.from(
+  const estimate = toBigInt(
     await ethers.provider.call({
       from: KEEPER,
-      to: cvxLocker.address,
-      data: cvxLocker.interface.encodeFunctionData("harvestVotium", [claimParams, routes, 0]),
+      to: await locker.getAddress(),
+      data: locker.interface.encodeFunctionData("harvestVotium", [claimParams, routes, 0]),
     })
   );
-  console.log("estimate harvested CVX:", ethers.utils.formatEther(estimate.toString()));
+  console.log("estimate harvested CVX:", ethers.formatEther(estimate.toString()));
   const gasEstimate = await ethers.provider.estimateGas({
     from: KEEPER,
-    to: cvxLocker.address,
-    data: cvxLocker.interface.encodeFunctionData("harvestVotium", [claimParams, routes, 0]),
+    to: await locker.getAddress(),
+    data: locker.interface.encodeFunctionData("harvestVotium", [claimParams, routes, 0]),
   });
   console.log("gas estimate:", gasEstimate.toString());
 
   if (KEEPER === deployer.address) {
     const fee = await ethers.provider.getFeeData();
-    const tx = await cvxLocker.harvestVotium(claimParams, routes, estimate.mul(9995).div(10000), {
-      gasLimit: gasEstimate.mul(12).div(10),
+    const tx = await locker.harvestVotium(claimParams, routes, (estimate * 9995n) / 10000n, {
+      gasLimit: (gasEstimate * 12n) / 10n,
       maxFeePerGas: fee.maxFeePerGas!,
-      maxPriorityFeePerGas: ethers.utils.parseUnits("2", "gwei"),
+      maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
     });
     console.log("waiting for tx:", tx.hash);
     const receipt = await tx.wait();
-    console.log("confirmed, gas used:", receipt.gasUsed.toString());
-    let furnaceCVX = constants.Zero;
-    let treasuryCVX = constants.Zero;
-    for (const log of receipt.logs) {
+    console.log("confirmed, gas used:", receipt!.gasUsed.toString());
+    let furnaceCVX = 0n;
+    let treasuryCVX = 0n;
+    for (const log of receipt!.logs) {
       if (log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef") {
-        const [from] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[1]) as [string];
-        const [to] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[2]) as [string];
-        const [value] = ethers.utils.defaultAbiCoder.decode(["uint256"], log.data) as [BigNumber];
-        if (from === cvxLocker.address && to === DEPLOYED_CONTRACTS.CLever.PlatformFeeDistributor) treasuryCVX = value;
-        if (from === cvxLocker.address && to === furnance.address) furnaceCVX = value;
+        const [from] = ethers.AbiCoder.defaultAbiCoder().decode(["address"], log.topics[1]);
+        const [to] = ethers.AbiCoder.defaultAbiCoder().decode(["address"], log.topics[2]);
+        const [value] = ethers.AbiCoder.defaultAbiCoder().decode(["uint256"], log.data);
+        if (same(from, deployment.get("CLeverForCVX"))) {
+          if (same(to, DEPLOYED_CONTRACTS.CLever.PlatformFeeDistributor)) treasuryCVX = value;
+          if (same(to, deployment.get("Furnace"))) furnaceCVX = value;
+        }
       }
     }
     console.log(
       "actual furnace CVX:",
-      ethers.utils.formatEther(furnaceCVX),
+      ethers.formatEther(furnaceCVX),
       "treasury CVX:",
-      ethers.utils.formatEther(treasuryCVX)
+      ethers.formatEther(treasuryCVX)
     );
     for (const symbol of manualTokens) {
       const { address, decimals } = TOKENS[symbol];
       const token = await ethers.getContractAt("IERC20", address, deployer);
-      const balance = await token.balanceOf(cvxLocker.address);
-      console.log(`harvested ${symbol}:`, ethers.utils.formatUnits(balance, decimals));
+      const balance = await token.balanceOf(deployment.get("CLeverForCVX"));
+      console.log(`harvested ${symbol}:`, ethers.formatUnits(balance, decimals));
     }
   }
 }

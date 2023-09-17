@@ -6,7 +6,7 @@ import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol"
 
 import { IConvexGaugeVotePlatform } from "../interfaces/convex/IConvexGaugeVotePlatform.sol";
 
-contract ConvexHermezVoter is AccessControl {
+contract CLeverHermezSurrogate is AccessControl {
   /*************
    * Constants *
    *************/

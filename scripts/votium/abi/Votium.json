@@ -1,0 +1,581 @@
+[
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_approved", "type": "address" },
+      { "internalType": "address", "name": "_approved2", "type": "address" },
+      { "internalType": "address", "name": "_feeAddress", "type": "address" },
+      { "internalType": "address", "name": "_distributor", "type": "address" },
+      { "internalType": "address", "name": "_initialOwner", "type": "address" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [{ "indexed": false, "internalType": "bool", "name": "_requireAllowlist", "type": "bool" }],
+    "name": "AllowlistRequirement",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": false, "internalType": "uint256", "name": "_index", "type": "uint256" },
+      { "indexed": false, "internalType": "address", "name": "_token", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "_total", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "_increase", "type": "uint256" },
+      { "indexed": true, "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "_gauge", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "_maxPerVote", "type": "uint256" }
+    ],
+    "name": "IncreasedIncentive",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [{ "indexed": false, "internalType": "uint256", "name": "_maxExclusions", "type": "uint256" }],
+    "name": "MaxExclusions",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": false, "internalType": "address", "name": "_member", "type": "address" },
+      { "indexed": false, "internalType": "bool", "name": "_approval", "type": "bool" }
+    ],
+    "name": "ModifiedTeam",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": false, "internalType": "uint256", "name": "_index", "type": "uint256" },
+      { "indexed": false, "internalType": "address", "name": "_token", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "_amount", "type": "uint256" },
+      { "indexed": true, "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "_gauge", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "_maxPerVote", "type": "uint256" },
+      { "indexed": false, "internalType": "address[]", "name": "_excluded", "type": "address[]" },
+      { "indexed": true, "internalType": "address", "name": "_depositor", "type": "address" },
+      { "indexed": false, "internalType": "bool", "name": "_recycled", "type": "bool" }
+    ],
+    "name": "NewIncentive",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": false, "internalType": "address", "name": "_token", "type": "address" },
+      { "indexed": false, "internalType": "bool", "name": "_allow", "type": "bool" }
+    ],
+    "name": "TokenAllow",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [{ "indexed": false, "internalType": "address", "name": "_distributor", "type": "address" }],
+    "name": "UpdatedDistributor",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [{ "indexed": false, "internalType": "uint256", "name": "_feeAmount", "type": "uint256" }],
+    "name": "UpdatedFee",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": false, "internalType": "uint256", "name": "_index", "type": "uint256" },
+      { "indexed": true, "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "_gauge", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "_amount", "type": "uint256" }
+    ],
+    "name": "WithdrawUnprocessed",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "DENOMINATOR",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "activeRound",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" },
+      { "internalType": "bool", "name": "_allow", "type": "bool" }
+    ],
+    "name": "allowToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address[]", "name": "_tokens", "type": "address[]" },
+      { "internalType": "bool", "name": "_allow", "type": "bool" }
+    ],
+    "name": "allowTokens",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "approvedTeam",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentEpoch",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" },
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" },
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" },
+      { "internalType": "uint256", "name": "_maxPerVote", "type": "uint256" },
+      { "internalType": "address[]", "name": "_excluded", "type": "address[]" }
+    ],
+    "name": "depositIncentive",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" },
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" }
+    ],
+    "name": "depositIncentiveSimple",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" },
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" },
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address[]", "name": "_gauges", "type": "address[]" },
+      { "internalType": "uint256", "name": "_maxPerVote", "type": "uint256" },
+      { "internalType": "address[]", "name": "_excluded", "type": "address[]" }
+    ],
+    "name": "depositSplitGauges",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" },
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" },
+      { "internalType": "uint256", "name": "_numRounds", "type": "uint256" },
+      { "internalType": "address[]", "name": "_gauges", "type": "address[]" },
+      { "internalType": "uint256", "name": "_maxPerVote", "type": "uint256" },
+      { "internalType": "address[]", "name": "_excluded", "type": "address[]" }
+    ],
+    "name": "depositSplitGaugesRounds",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" },
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" },
+      { "internalType": "uint256", "name": "_numRounds", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" },
+      { "internalType": "uint256", "name": "_maxPerVote", "type": "uint256" },
+      { "internalType": "address[]", "name": "_excluded", "type": "address[]" }
+    ],
+    "name": "depositSplitRounds",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" },
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address[]", "name": "_gauges", "type": "address[]" },
+      { "internalType": "uint256[]", "name": "_amounts", "type": "uint256[]" },
+      { "internalType": "uint256", "name": "_maxPerVote", "type": "uint256" },
+      { "internalType": "address[]", "name": "_excluded", "type": "address[]" }
+    ],
+    "name": "depositUnevenSplitGauges",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" },
+      { "internalType": "uint256", "name": "_numRounds", "type": "uint256" },
+      { "internalType": "address[]", "name": "_gauges", "type": "address[]" },
+      { "internalType": "uint256[]", "name": "_amounts", "type": "uint256[]" },
+      { "internalType": "uint256", "name": "_maxPerVote", "type": "uint256" },
+      { "internalType": "address[]", "name": "_excluded", "type": "address[]" }
+    ],
+    "name": "depositUnevenSplitGaugesRounds",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" },
+      { "internalType": "address[]", "name": "_gauges", "type": "address[]" },
+      { "internalType": "uint256[]", "name": "_amounts", "type": "uint256[]" }
+    ],
+    "name": "depositUnevenSplitGaugesSimple",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "distributor",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address[]", "name": "_gauges", "type": "address[]" },
+      { "internalType": "uint256", "name": "_batch", "type": "uint256" }
+    ],
+    "name": "endRound",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "excludedVotesReceived",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_to", "type": "address" },
+      { "internalType": "uint256", "name": "_value", "type": "uint256" },
+      { "internalType": "bytes", "name": "_data", "type": "bytes" }
+    ],
+    "name": "execute",
+    "outputs": [
+      { "internalType": "bool", "name": "", "type": "bool" },
+      { "internalType": "bytes", "name": "", "type": "bytes" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feeAddress",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "uint256", "name": "_batch", "type": "uint256" }
+    ],
+    "name": "finalizeRound",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_round", "type": "uint256" }],
+    "name": "gaugesLength",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "inRoundGauges",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "incentives",
+    "outputs": [
+      { "internalType": "address", "name": "token", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "internalType": "uint256", "name": "maxPerVote", "type": "uint256" },
+      { "internalType": "uint256", "name": "distributed", "type": "uint256" },
+      { "internalType": "uint256", "name": "recycled", "type": "uint256" },
+      { "internalType": "address", "name": "depositor", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" }
+    ],
+    "name": "incentivesLength",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" },
+      { "internalType": "uint256", "name": "_incentive", "type": "uint256" },
+      { "internalType": "uint256", "name": "_increase", "type": "uint256" },
+      { "internalType": "uint256", "name": "_maxPerVote", "type": "uint256" }
+    ],
+    "name": "increaseIncentive",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" },
+      { "internalType": "uint256", "name": "_incentive", "type": "uint256" }
+    ],
+    "name": "invalidateIncentive",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lastRoundProcessed",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxExclusions",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_member", "type": "address" },
+      { "internalType": "bool", "name": "_approval", "type": "bool" }
+    ],
+    "name": "modifyTeam",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "platformFee",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" },
+      { "internalType": "uint256", "name": "_incentive", "type": "uint256" }
+    ],
+    "name": "recycleUnprocessed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  { "inputs": [], "name": "renounceOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  {
+    "inputs": [],
+    "name": "requireAllowlist",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "roundGauges",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bool", "name": "_requireAllowlist", "type": "bool" }],
+    "name": "setAllowlistRequired",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_maxExclusions", "type": "uint256" }],
+    "name": "setMaxExclusions",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" },
+      { "internalType": "address[]", "name": "_excluded", "type": "address[]" },
+      { "internalType": "uint256[]", "name": "_totals", "type": "uint256[]" }
+    ],
+    "name": "submitExcludedTotals",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address[]", "name": "_gauges", "type": "address[]" },
+      { "internalType": "uint256[]", "name": "_totals", "type": "uint256[]" }
+    ],
+    "name": "submitVoteTotals",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "tokenAllowed",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "_distributor", "type": "address" }],
+    "name": "updateDistributor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "_feeAddress", "type": "address" }],
+    "name": "updateFeeAddress",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_feeAmount", "type": "uint256" }],
+    "name": "updateFeeAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" },
+      { "internalType": "uint256", "name": "_incentive", "type": "uint256" }
+    ],
+    "name": "viewIncentive",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "token", "type": "address" },
+          { "internalType": "uint256", "name": "amount", "type": "uint256" },
+          { "internalType": "uint256", "name": "maxPerVote", "type": "uint256" },
+          { "internalType": "uint256", "name": "distributed", "type": "uint256" },
+          { "internalType": "uint256", "name": "recycled", "type": "uint256" },
+          { "internalType": "address", "name": "depositor", "type": "address" },
+          { "internalType": "address[]", "name": "excluded", "type": "address[]" }
+        ],
+        "internalType": "struct Votium.Incentive",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "virtualBalance",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "votesReceived",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_round", "type": "uint256" },
+      { "internalType": "address", "name": "_gauge", "type": "address" },
+      { "internalType": "uint256", "name": "_incentive", "type": "uint256" }
+    ],
+    "name": "withdrawUnprocessed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

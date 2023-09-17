@@ -154,6 +154,10 @@ export async function ensureDeployer(network: string): Promise<HardhatEthersSign
   return deployer;
 }
 
+export function same(x: string, y: string): boolean {
+  return x.toLowerCase() === y.toLowerCase();
+}
+
 export * from "./deploys";
 export * from "./tokens";
 export * from "./address";
