@@ -204,12 +204,11 @@ export async function initialize(
   const minter = await ethers.getContractAt("TokenMinter", deployment.TokenMinter, deployer);
   const controller = await ethers.getContractAt("GaugeController", deployment.GaugeController, deployer);
   const distributor = await ethers.getContractAt("FeeDistributor", deployment.FeeDistributor, deployer);
-  // const whitelist = await ethers.getContractAt("SmartWalletWhitelist", deployment.SmartWalletWhitelist, deployer);
-  // const spliter = await ethers.getContractAt("PlatformFeeSpliter", deployment.PlatformFeeSpliter, deployer);
+  const whitelist = await ethers.getContractAt("SmartWalletWhitelist", deployment.SmartWalletWhitelist, deployer);
   // const vesting = await ethers.getContractAt("Vesting", deployment.Vesting, deployer);
 
   // initialize FXN
-  if ((await fxn.name()) === "") {
+  if ((await fxn.admin({ gasLimit: 1e6 })) === ZeroAddress) {
     await contractCall(
       fxn as unknown as Contract,
       "initialize FXN",
@@ -296,13 +295,28 @@ export async function initialize(
   }
 
   // initialize FeeDistributor
-  if ((await distributor.token({ gasLimit: 1e6 })) === ZeroAddress) {
-    // @todo
+  if ((await distributor.start_time({ gasLimit: 1e6 })) === 0n) {
+    await contractCall(
+      distributor as unknown as Contract,
+      "initialize FeeDistributor",
+      "initialize",
+      [deployment.veFXN, 1695859200n, TOKENS.stETH.address, deployer.address, multisig.Fx],
+      overrides
+    );
   }
 
   // setup SmartWalletWhitelist
-
-  // setup PlatformFeeSpliter
+  for (const address of [multisig.AladdinDAO]) {
+    if (!(await whitelist.wallets(address))) {
+      await ownerContractCall(
+        whitelist as unknown as Contract,
+        `SmartWalletWhitelist approve ${address}`,
+        "approveWallet",
+        [address],
+        overrides
+      );
+    }
+  }
 
   // setup Vesting
 }

@@ -5,6 +5,7 @@ import { Contract, Overrides } from "ethers";
 import { TOKENS, selectDeployments } from "../utils";
 import { contractDeploy, ownerContractCall } from ".";
 
+import * as FxGovernance from "./FxGovernance";
 import * as ProxyAdmin from "./ProxyAdmin";
 
 const ReservePoolBonusRatio = ethers.parseEther("0.05"); // 5%
@@ -184,9 +185,13 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
 
 export async function initialize(deployer: HardhatEthersSigner, deployment: FxStETHDeployment, overrides?: Overrides) {
   const admin = await ProxyAdmin.deploy(deployer);
+  const governance = await FxGovernance.deploy(deployer, overrides);
   const proxyAdmin = await ethers.getContractAt("ProxyAdmin", admin.Fx, deployer);
 
+  const treasury = await ethers.getContractAt("stETHTreasury", deployment.stETHTreasury.proxy, deployer);
+  const market = await ethers.getContractAt("Market", deployment.Market.proxy, deployer);
   const reservePool = await ethers.getContractAt("ReservePool", deployment.ReservePool, deployer);
+  const spliter = await ethers.getContractAt("PlatformFeeSpliter", governance.PlatformFeeSpliter, deployer);
 
   // upgrade proxy
   for (const name of ["FractionalToken", "LeveragedToken", "stETHTreasury", "Market", "RebalancePool"]) {
@@ -203,12 +208,76 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
     }
   }
 
+  // initialize reserve pool
   if ((await reservePool.bonusRatio(TOKENS.stETH.address)) !== ReservePoolBonusRatio) {
     await ownerContractCall(
       reservePool as unknown as Contract,
       "ReservePool updateBonusRatio for stETH",
       "updateBonusRatio",
       [TOKENS.stETH.address, ReservePoolBonusRatio],
+      overrides
+    );
+  }
+
+  // initialize stETHTreasury
+  if ((await treasury.priceOracle()) !== deployment.FxETHTwapOracle) {
+    await ownerContractCall(
+      treasury as unknown as Contract,
+      "stETHTreasury update price oracle",
+      "updatePriceOracle",
+      [deployment.FxETHTwapOracle],
+      overrides
+    );
+  }
+
+  if ((await treasury.platform()) !== governance.PlatformFeeSpliter) {
+    await ownerContractCall(
+      treasury as unknown as Contract,
+      "stETHTreasury update platform",
+      "updatePlatform",
+      [governance.PlatformFeeSpliter],
+      overrides
+    );
+  }
+
+  // initialize Market
+  if (
+    (await proxyAdmin.getProxyImplementation(deployment.Market.proxy)) === deployment.Market.implementation &&
+    (await market.reservePool()) !== deployment.ReservePool
+  ) {
+    await ownerContractCall(
+      treasury as unknown as Contract,
+      "Market update reserve pool",
+      "updateReservePool",
+      [deployment.ReservePool],
+      overrides
+    );
+  }
+
+  // initialize PlatformFeeSpliter
+  if ((await spliter.treasury()) !== deployment.ReservePool) {
+    await ownerContractCall(
+      spliter as unknown as Contract,
+      "PlatformFeeSpliter set ReservePool as Treasury",
+      "updateTreasury",
+      [deployment.ReservePool],
+      overrides
+    );
+  }
+
+  const length = await spliter.getRewardCount();
+  let foundIndex = -1;
+  for (let i = 0; i < length; i++) {
+    if ((await spliter.rewards(i)).token === TOKENS.stETH.address) {
+      foundIndex = i;
+    }
+  }
+  if (foundIndex === -1) {
+    await ownerContractCall(
+      spliter as unknown as Contract,
+      "PlatformFeeSpliter add stETH",
+      "addRewardToken",
+      [TOKENS.stETH.address, governance.FeeDistributor, 0n, ethers.parseUnits("0.25", 9), ethers.parseUnits("0.75", 9)],
       overrides
     );
   }
