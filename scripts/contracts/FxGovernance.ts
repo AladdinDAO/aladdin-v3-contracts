@@ -21,6 +21,7 @@ export interface FxGovernanceDeployment {
 
   SmartWalletWhitelist: string;
   PlatformFeeSpliter: string;
+  MultipleVestHelper: string;
   Vesting: string;
 }
 
@@ -127,6 +128,13 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.set("SmartWalletWhitelist", address);
   } else {
     console.log(`Found SmartWalletWhitelist at:`, deployment.get("SmartWalletWhitelist"));
+  }
+
+  if (!deployment.get("MultipleVestHelper")) {
+    const address = await contractDeploy(deployer, "FXN MultipleVestHelper", "MultipleVestHelper", [], overrides);
+    deployment.set("MultipleVestHelper", address);
+  } else {
+    console.log(`Found FXN MultipleVestHelper at:`, deployment.get("MultipleVestHelper"));
   }
 
   if (!deployment.get("Vesting")) {
@@ -329,7 +337,7 @@ export async function initialize(
 
   // setup Vesting
   const whitelists = [];
-  for (const address of [multisig.Fx, deployer.address]) {
+  for (const address of [multisig.Fx, deployment.MultipleVestHelper]) {
     if (!(await vesting.isWhitelist(address))) {
       whitelists.push(address);
     }
