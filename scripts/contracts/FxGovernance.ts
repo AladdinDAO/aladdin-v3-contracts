@@ -205,7 +205,7 @@ export async function initialize(
   const controller = await ethers.getContractAt("GaugeController", deployment.GaugeController, deployer);
   const distributor = await ethers.getContractAt("FeeDistributor", deployment.FeeDistributor, deployer);
   const whitelist = await ethers.getContractAt("SmartWalletWhitelist", deployment.SmartWalletWhitelist, deployer);
-  // const vesting = await ethers.getContractAt("Vesting", deployment.Vesting, deployer);
+  const vesting = await ethers.getContractAt("Vesting", deployment.Vesting, deployer);
 
   // initialize FXN
   if ((await fxn.admin({ gasLimit: 1e6 })) === ZeroAddress) {
@@ -304,6 +304,15 @@ export async function initialize(
       overrides
     );
   }
+  if (!(await distributor.can_checkpoint_token())) {
+    await ownerContractCall(
+      distributor as unknown as Contract,
+      "FeeDistributor allow checkpoint ",
+      "toggle_allow_checkpoint_token",
+      [],
+      overrides
+    );
+  }
 
   // setup SmartWalletWhitelist
   for (const address of [multisig.AladdinDAO]) {
@@ -319,4 +328,19 @@ export async function initialize(
   }
 
   // setup Vesting
+  const whitelists = [];
+  for (const address of [multisig.Fx, deployer.address]) {
+    if (!(await vesting.isWhitelist(address))) {
+      whitelists.push(address);
+    }
+  }
+  if (whitelists.length > 0) {
+    await ownerContractCall(
+      vesting as unknown as Contract,
+      `Vesting approve [${whitelists.join(",")}]`,
+      "updateWhitelist",
+      [whitelists, true],
+      overrides
+    );
+  }
 }

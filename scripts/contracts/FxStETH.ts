@@ -191,6 +191,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   const treasury = await ethers.getContractAt("stETHTreasury", deployment.stETHTreasury.proxy, deployer);
   const market = await ethers.getContractAt("Market", deployment.Market.proxy, deployer);
   const reservePool = await ethers.getContractAt("ReservePool", deployment.ReservePool, deployer);
+  const gateway = await ethers.getContractAt("FxGateway", deployment.FxGateway, deployer);
   const spliter = await ethers.getContractAt("PlatformFeeSpliter", governance.PlatformFeeSpliter, deployer);
 
   // upgrade proxy
@@ -254,6 +255,19 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
     );
   }
 
+  // initialize FxGateway
+  for (const target of ["0x99a58482bd75cbab83b27ec03ca68ff489b5788f", "0x1111111254eeb25477b68fb85ed929f73a960582"]) {
+    if (!(await gateway.approvedTargets(target))) {
+      await ownerContractCall(
+        gateway as unknown as Contract,
+        "FxGateway approve " + target,
+        "updateTargetStatus",
+        [target, true],
+        overrides
+      );
+    }
+  }
+
   // initialize PlatformFeeSpliter
   if ((await spliter.treasury()) !== deployment.ReservePool) {
     await ownerContractCall(
@@ -261,6 +275,15 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       "PlatformFeeSpliter set ReservePool as Treasury",
       "updateTreasury",
       [deployment.ReservePool],
+      overrides
+    );
+  }
+  if ((await spliter.staker()) !== "0x11E91BB6d1334585AA37D8F4fde3932C7960B938") {
+    await ownerContractCall(
+      spliter as unknown as Contract,
+      "PlatformFeeSpliter set keeper as staker",
+      "updateStaker",
+      ["0x11E91BB6d1334585AA37D8F4fde3932C7960B938"],
       overrides
     );
   }
