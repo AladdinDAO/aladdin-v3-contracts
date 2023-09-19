@@ -1,6 +1,6 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { PayableOverrides } from "@typechain/common";
-import { Contract, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
+import { BaseContract, Contract, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
 import { ethers } from "hardhat";
 
 export async function contractDeploy(
@@ -44,15 +44,21 @@ export async function minimalProxyDeploy(
 }
 
 export async function contractCall(
-  contract: Contract,
+  contract: BaseContract,
   desc: string,
   method: string,
   args: Array<any>,
   overrides?: PayableOverrides
 ): Promise<TransactionReceipt> {
   console.log(`\n${desc}`);
-  const tx = overrides ? await contract[method](...args, overrides) : await contract[method](...args);
-  console.log("  transaction hash:", tx.hash);
+  const estimated = await contract.getFunction(method).estimateGas(...args);
+  if (overrides) {
+    overrides.gasLimit = (estimated * 12n) / 10n;
+  }
+  const tx = overrides
+    ? await contract.getFunction(method)(...args, overrides)
+    : await contract.getFunction(method)(...args);
+  console.log(`  EstimatedGas[${estimated.toString()}] transaction hash[${tx.hash}]`);
   const receipt: TransactionReceipt = await tx.wait();
   console.log("  ✅ Done, gas used:", receipt.gasUsed.toString());
 
