@@ -57,6 +57,7 @@
     "solhint": "^3.3.6",
     "solidity-coverage": "^0.7.16",
     "ts-node": "^10.1.0",
+    "tsconfig-paths": "^4.2.0",
     "tty-table": "^4.1.6",
     "typechain": "^8.3.1",
     "typescript": "^5.2.2",

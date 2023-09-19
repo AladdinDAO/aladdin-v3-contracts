@@ -1,11 +1,11 @@
-/* eslint-disable node/no-missing-import */
 import { Command } from "commander";
 import fs from "fs";
 import path from "path";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { TOKENS } from "../utils";
 import { IClaimParam } from "./config";
+
+import { TOKENS } from "@/utils/tokens";
 
 const program = new Command();
 program.version("1.0.0");

@@ -1,0 +1,23 @@
+{
+  "StakeDAOLockerProxy": {
+    "proxy": "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09",
+    "implementation": "0x98626a8E560014B6d25336ef72969D8ec1188E2D"
+  },
+  "VeSDTDelegation": {
+    "proxy": "0x6037Bb1BBa598bf88D816cAD90A28cC00fE3ff64",
+    "implementation": "0xA5d31B528D2710af19E57fedA324483c14aE0F12"
+  },
+  "StakeDAOCRVVault": {
+    "proxy": "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6",
+    "implementation": "0xF29FAFCA79cAa5EA426b03014D653f2361d254C1"
+  },
+  "AladdinSdCRV": {
+    "proxy": "0x43E54C2E7b3e294De3A155785F52AB49d87B9922",
+    "implementation": "0x43E54C2E7b3e294De3A155785F52AB49d87B9922"
+  },
+  "ConcentratorVault": {
+    "proxy": "0x59866EC5650e9BA00c51f6D681762b48b0AdA3de",
+    "implementation": "0x0a6E1167c9b8599EE1decCB331AaC176E2aA0b97"
+  },
+  "SdCRVBribeBurner": "0x9D6Dc3dbC7Cc5e1d7241601473FD63d2bD1573f9"
+}

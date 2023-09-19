@@ -1,4 +1,5 @@
-import { Action, ADDRESS, encodePoolHintV2, PoolType } from ".";
+import { ADDRESS } from "./address";
+import { Action, encodePoolHintV2, PoolType } from "./codec";
 
 export interface IVaultConfig {
   token: string;

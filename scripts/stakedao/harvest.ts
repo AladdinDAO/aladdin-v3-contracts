@@ -1,10 +1,18 @@
-/* eslint-disable node/no-missing-import */
 import axios from "axios";
 import { Command } from "commander";
-import { BigNumber, constants } from "ethers";
+import { toBigInt } from "ethers";
 import * as hre from "hardhat";
-import "@nomiclabs/hardhat-ethers";
-import { DEPLOYED_CONTRACTS, TOKENS, ZAP_ROUTES } from "../utils";
+import "@nomicfoundation/hardhat-ethers";
+
+import { ConcentratorStakeDAODeployment } from "@/contracts/ConcentratorStakeDAO";
+import { MultisigDeployment } from "@/contracts/Multisig";
+import { abiDecode } from "@/contracts/helpers";
+
+import { same } from "@/utils/address";
+import { selectDeployments } from "@/utils/deploys";
+import { ZAP_ROUTES } from "@/utils/routes";
+import { TOKENS } from "@/utils/tokens";
+
 import { loadParams } from "./config";
 
 const ethers = hre.ethers;
@@ -12,7 +20,6 @@ const program = new Command();
 program.version("1.0.0");
 
 const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
-const BURNER = "0x9D6Dc3dbC7Cc5e1d7241601473FD63d2bD1573f9";
 const STASH = "0x03E34b085C52985F6a5D27243F20C84bDdc01Db4";
 
 interface ICoinGeckoResponse {
@@ -28,6 +35,9 @@ const symbol2ids: { [symbol: string]: string } = {
 };
 
 async function main(round: string) {
+  const multisig = selectDeployments("mainnet", "Multisig").toObject() as MultisigDeployment;
+  const deployment = selectDeployments("mainnet", "Concentrator.StakeDAO").toObject() as ConcentratorStakeDAODeployment;
+
   // fetch price
   const response = await axios.get<ICoinGeckoResponse>(
     `https://api.coingecko.com/api/v3/simple/price?ids=${Object.values(symbol2ids).join("%2C")}&vs_currencies=usd`
@@ -40,23 +50,10 @@ async function main(round: string) {
   }
 
   const [deployer] = await ethers.getSigners();
-  const delegation = await ethers.getContractAt(
-    "VeSDTDelegation",
-    DEPLOYED_CONTRACTS.Concentrator.StakeDAO.VeSDTDelegation,
-    deployer
-  );
-  const vault = await ethers.getContractAt(
-    "StakeDAOCRVVault",
-    DEPLOYED_CONTRACTS.Concentrator.StakeDAO.sdCRV.StakeDAOCRVVault,
-    deployer
-  );
-  const locker = await ethers.getContractAt(
-    "StakeDAOLockerProxy",
-    DEPLOYED_CONTRACTS.Concentrator.StakeDAO.StakeDAOLockerProxy,
-    deployer
-  );
+  const vault = await ethers.getContractAt("StakeDAOCRVVault", deployment.StakeDAOCRVVault.proxy, deployer);
+  const locker = await ethers.getContractAt("StakeDAOLockerProxy", deployment.StakeDAOLockerProxy.proxy, deployer);
   const stash = await ethers.getContractAt("IStakeDAOMultiMerkleStash", STASH, deployer);
-  const burner = await ethers.getContractAt("SdCRVBribeBurner", BURNER, deployer);
+  const burner = await ethers.getContractAt("SdCRVBribeBurner", deployment.SdCRVBribeBurner, deployer);
   const priceSDT = prices.SDT;
   const priceCRV = prices.CRV;
   const fee = await vault.feeInfo();
@@ -67,55 +64,53 @@ async function main(round: string) {
     const symbol: string = Object.entries(TOKENS).filter(
       ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
     )[0][0];
-    const tokenAmountStr = ethers.utils.formatUnits(item.amount, TOKENS[symbol].decimals);
+    const tokenAmountStr = ethers.formatUnits(item.amount, TOKENS[symbol].decimals);
     console.log(
       `+ token[${symbol}]: amount[${tokenAmountStr}] USD[~${(parseFloat(tokenAmountStr) * prices[symbol]).toFixed(2)}]`
     );
 
-    const amount = BigNumber.from(item.amount);
-    const platformFee = amount.mul(fee.platformPercentage).div(1e7);
-    const boostFee = amount.mul(fee.boostPercentage).div(1e7);
+    const amount = toBigInt(item.amount);
+    const platformFee = (amount * fee.platformPercentage) / toBigInt(1e7);
+    const boostFee = (amount * fee.boostPercentage) / toBigInt(1e7);
     if (symbol === "SDT") {
       console.log(
-        `  + treasury[${ethers.utils.formatEther(platformFee)} SDT]`,
-        `delegation[${ethers.utils.formatEther(boostFee)} SDT]`,
-        `staker[${ethers.utils.formatEther(amount.sub(platformFee).sub(boostFee))} SDT]`
+        `  + treasury[${ethers.formatEther(platformFee)} SDT]`,
+        `delegation[${ethers.formatEther(boostFee)} SDT]`,
+        `staker[${ethers.formatEther(amount - platformFee - boostFee)} SDT]`
       );
     } else {
-      const amountSDT = ethers.utils.parseEther(
-        ((parseFloat(ethers.utils.formatUnits(boostFee, TOKENS[symbol].decimals)) * prices[symbol]) / priceSDT).toFixed(
-          18
-        )
+      const amountSDT = ethers.parseEther(
+        ((parseFloat(ethers.formatUnits(boostFee, TOKENS[symbol].decimals)) * prices[symbol]) / priceSDT).toFixed(18)
       );
       if (symbol === "sdCRV") {
         console.log(
-          `  + treasury[${ethers.utils.formatEther(platformFee)} ${symbol}]`,
-          `delegation[~${ethers.utils.formatEther(amountSDT)} SDT]`,
-          `staker[${ethers.utils.formatEther(amount.sub(platformFee).sub(boostFee))} sdCRV]`
+          `  + treasury[${ethers.formatEther(platformFee)} ${symbol}]`,
+          `delegation[~${ethers.formatEther(amountSDT)} SDT]`,
+          `staker[${ethers.formatEther(amount - platformFee - boostFee)} sdCRV]`
         );
       } else {
-        const amountCRV = ethers.utils.parseEther(
+        const amountCRV = ethers.parseEther(
           (
-            (parseFloat(ethers.utils.formatUnits(amount.sub(platformFee).sub(boostFee), TOKENS[symbol].decimals)) *
+            (parseFloat(ethers.formatUnits(amount - platformFee - boostFee, TOKENS[symbol].decimals)) *
               prices[symbol]) /
             priceCRV
           ).toFixed(18)
         );
         console.log(
-          `  + treasury[${ethers.utils.formatEther(platformFee)} ${symbol}]`,
-          `delegation[~${ethers.utils.formatEther(amountSDT)} SDT]`,
-          `staker[~${ethers.utils.formatEther(amountCRV)} CRV]`
+          `  + treasury[${ethers.formatEther(platformFee)} ${symbol}]`,
+          `delegation[~${ethers.formatEther(amountSDT)} SDT]`,
+          `staker[~${ethers.formatEther(amountCRV)} CRV]`
         );
       }
     }
   }
 
-  const root = await stash.callStatic.merkleRoot(claimParams[0].token);
+  const root = await stash.merkleRoot.staticCall(claimParams[0].token);
   if (!(await locker.claimed(claimParams[0].token, root))) {
     console.log("data:", vault.interface.encodeFunctionData("harvestBribes", [claimParams]));
     const gasEstimate = await ethers.provider.estimateGas({
       from: KEEPER,
-      to: vault.address,
+      to: deployment.StakeDAOCRVVault.proxy,
       data: vault.interface.encodeFunctionData("harvestBribes", [claimParams]),
     });
     console.log("gas estimate:", gasEstimate.toString());
@@ -126,30 +121,31 @@ async function main(round: string) {
       const tx = await vault.harvestBribes(claimParams);
       console.log("waiting for tx:", tx.hash);
       const receipt = await tx.wait();
-      console.log("confirmed, gas used:", receipt.gasUsed.toString());
-      let delegateSDT = constants.Zero;
-      let treasurySDT = constants.Zero;
-      let totalSDT = constants.Zero;
-      for (const log of receipt.logs) {
+      console.log("confirmed, gas used:", receipt!.gasUsed.toString());
+      let delegateSDT = 0n;
+      let treasurySDT = 0n;
+      let totalSDT = 0n;
+      for (const log of receipt!.logs) {
         if (
           log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" &&
           log.address.toLowerCase() === TOKENS.SDT.address.toLowerCase()
         ) {
-          const [from] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[1]) as [string];
-          const [to] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[2]) as [string];
-          const [value] = ethers.utils.defaultAbiCoder.decode(["uint256"], log.data) as [BigNumber];
-          if (from === vault.address && to === DEPLOYED_CONTRACTS.Concentrator.Treasury) treasurySDT = value;
-          if (from === vault.address && to === delegation.address) delegateSDT = value;
-          if (to === vault.address) totalSDT = value;
+          const [from] = abiDecode(["address"], log.topics[1]);
+          const [to] = abiDecode(["address"], log.topics[2]);
+          const [value] = abiDecode(["uint256"], log.data);
+          if (same(from, deployment.StakeDAOCRVVault.proxy) && same(to, multisig.Concentrator)) treasurySDT = value;
+          if (same(from, deployment.StakeDAOCRVVault.proxy) && same(to, deployment.VeSDTDelegation.proxy))
+            delegateSDT = value;
+          if (same(to, deployment.StakeDAOCRVVault.proxy)) totalSDT = value;
         }
       }
       console.log(
         "actual reward SDT:",
-        ethers.utils.formatEther(totalSDT.sub(treasurySDT).sub(delegateSDT)),
+        ethers.formatEther(totalSDT - treasurySDT - delegateSDT),
         "treasury SDT:",
-        ethers.utils.formatEther(treasurySDT),
+        ethers.formatEther(treasurySDT),
         "delegation SDT:",
-        ethers.utils.formatEther(delegateSDT)
+        ethers.formatEther(delegateSDT)
       );
     }
 
@@ -158,19 +154,16 @@ async function main(round: string) {
         const symbol: string = Object.entries(TOKENS).filter(
           ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
         )[0][0];
-        const amount = BigNumber.from(item.amount);
-        const platformFee = amount.mul(fee.platformPercentage).div(1e7);
-        const boostFee = amount.mul(fee.boostPercentage).div(1e7);
+        const amount = toBigInt(item.amount);
+        const platformFee = (amount * fee.platformPercentage) / toBigInt(1e7);
+        const boostFee = (amount * fee.boostPercentage) / toBigInt(1e7);
 
-        const amountSDT = ethers.utils.parseEther(
-          (
-            (parseFloat(ethers.utils.formatUnits(boostFee, TOKENS[symbol].decimals)) * prices[symbol]) /
-            priceSDT
-          ).toFixed(18)
+        const amountSDT = ethers.parseEther(
+          ((parseFloat(ethers.formatUnits(boostFee, TOKENS[symbol].decimals)) * prices[symbol]) / priceSDT).toFixed(18)
         );
-        const amountCRV = ethers.utils.parseEther(
+        const amountCRV = ethers.parseEther(
           (
-            (parseFloat(ethers.utils.formatUnits(amount.sub(platformFee).sub(boostFee), TOKENS[symbol].decimals)) *
+            (parseFloat(ethers.formatUnits(amount - platformFee - boostFee, TOKENS[symbol].decimals)) *
               prices[symbol]) /
             priceCRV
           ).toFixed(18)
@@ -180,46 +173,46 @@ async function main(round: string) {
         const tx = await burner.burn(
           item.token,
           ZAP_ROUTES[symbol].SDT,
-          amountSDT.mul(99).div(100),
+          (amountSDT * 99n) / 100n,
           ZAP_ROUTES[symbol].CRV,
-          amountCRV.mul(99).div(100)
+          (amountCRV * 99n) / 100n
         );
         console.log("  waiting for tx:", tx.hash);
         const receipt = await tx.wait();
-        console.log("  confirmed, gas used:", receipt.gasUsed.toString());
-        let treasuryAmount = constants.Zero;
-        let delegationAmount = constants.Zero;
-        let stakerAmount = constants.Zero;
-        for (const log of receipt.logs) {
+        console.log("  confirmed, gas used:", receipt!.gasUsed.toString());
+        let treasuryAmount = 0n;
+        let delegationAmount = 0n;
+        let stakerAmount = 0n;
+        for (const log of receipt!.logs) {
           if (log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef") {
-            const [from] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[1]) as [string];
-            const [to] = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[2]) as [string];
-            const [value] = ethers.utils.defaultAbiCoder.decode(["uint256"], log.data) as [BigNumber];
+            const [from] = abiDecode(["address"], log.topics[1]);
+            const [to] = abiDecode(["address"], log.topics[2]);
+            const [value] = abiDecode(["uint256"], log.data);
             if (
-              log.address.toLowerCase() === item.token.toLowerCase() &&
-              from === burner.address &&
-              to === DEPLOYED_CONTRACTS.Concentrator.Treasury
+              same(log.address, item.token) &&
+              same(from, deployment.SdCRVBribeBurner) &&
+              same(to, multisig.Concentrator)
             ) {
               treasuryAmount = value;
             }
             if (
-              log.address.toLowerCase() === TOKENS.SDT.address.toLowerCase() &&
-              from === burner.address &&
-              to === delegation.address
+              same(log.address, TOKENS.SDT.address) &&
+              same(from, deployment.SdCRVBribeBurner) &&
+              same(to, deployment.VeSDTDelegation.proxy)
             ) {
               delegationAmount = value;
             }
             if (
-              log.address.toLowerCase() === TOKENS.CRV.address.toLowerCase() &&
-              from === burner.address &&
-              to === vault.address
+              same(log.address, TOKENS.CRV.address) &&
+              same(from, deployment.SdCRVBribeBurner) &&
+              same(to, deployment.StakeDAOCRVVault.proxy)
             ) {
               stakerAmount = value;
             }
             if (
-              log.address.toLowerCase() === TOKENS.sdCRV.address.toLowerCase() &&
-              from === burner.address &&
-              to === vault.address
+              same(log.address, TOKENS.sdCRV.address) &&
+              same(from, deployment.SdCRVBribeBurner) &&
+              same(to, deployment.StakeDAOCRVVault.proxy)
             ) {
               stakerAmount = value;
             }
@@ -227,11 +220,11 @@ async function main(round: string) {
         }
         console.log(
           "  actual reward CRV or sdCRV:",
-          ethers.utils.formatEther(stakerAmount),
+          ethers.formatEther(stakerAmount),
           `treasury ${symbol}:`,
-          ethers.utils.formatUnits(treasuryAmount, TOKENS[symbol].decimals),
+          ethers.formatUnits(treasuryAmount, TOKENS[symbol].decimals),
           "delegation SDT:",
-          ethers.utils.formatEther(delegationAmount)
+          ethers.formatEther(delegationAmount)
         );
       }
     }

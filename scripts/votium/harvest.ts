@@ -1,11 +1,17 @@
-/* eslint-disable node/no-missing-import */
 import axios from "axios";
 import { Command } from "commander";
 import * as hre from "hardhat";
-import "@nomicfoundation/hardhat-ethers";
-import { DEPLOYED_CONTRACTS, TOKENS, ZAP_ROUTES, same, selectDeployments } from "../utils";
-import { loadParams } from "./config";
 import { toBigInt } from "ethers";
+import "@nomicfoundation/hardhat-ethers";
+
+import { loadParams } from "./config";
+
+import { CLeverCVXDeployment } from "@/contracts/CLeverCVX";
+
+import { same } from "@/utils/address";
+import { DEPLOYED_CONTRACTS, selectDeployments } from "@/utils/deploys";
+import { ZAP_ROUTES } from "@/utils/routes";
+import { TOKENS } from "@/utils/tokens";
 
 const ethers = hre.ethers;
 const program = new Command();
@@ -39,7 +45,7 @@ const symbol2ids: { [symbol: string]: string } = {
 };
 
 async function main(round: number, manualStr: string) {
-  const deployment = selectDeployments("mainnet", "CLever.CVX");
+  const deployment = selectDeployments("mainnet", "CLever.CVX").toObject() as CLeverCVXDeployment;
 
   // fetch price
   const response = await axios.get<ICoinGeckoResponse>(
@@ -53,7 +59,7 @@ async function main(round: number, manualStr: string) {
   }
 
   const [deployer] = await ethers.getSigners();
-  const locker = await ethers.getContractAt("CLeverCVXLocker", deployment.get("CVXLocker"), deployer);
+  const locker = await ethers.getContractAt("CLeverCVXLocker", deployment.CVXLocker, deployer);
 
   const manualTokens = manualStr === "" ? [] : manualStr.split(",");
   console.log("Harvest Round:", round);
@@ -68,7 +74,7 @@ async function main(round: number, manualStr: string) {
     const estimate = toBigInt(
       await ethers.provider.call({
         from: KEEPER,
-        to: deployment.get("CVXLocker"),
+        to: deployment.CVXLocker,
         data: locker.interface.encodeFunctionData("harvestVotium", [[item], [routeToETH, routeToCVX], 0]),
       })
     );
@@ -120,9 +126,9 @@ async function main(round: number, manualStr: string) {
         const [from] = ethers.AbiCoder.defaultAbiCoder().decode(["address"], log.topics[1]);
         const [to] = ethers.AbiCoder.defaultAbiCoder().decode(["address"], log.topics[2]);
         const [value] = ethers.AbiCoder.defaultAbiCoder().decode(["uint256"], log.data);
-        if (same(from, deployment.get("CVXLocker"))) {
+        if (same(from, deployment.CVXLocker)) {
           if (same(to, DEPLOYED_CONTRACTS.CLever.PlatformFeeDistributor)) treasuryCVX = value;
-          if (same(to, deployment.get("Furnace"))) furnaceCVX = value;
+          if (same(to, deployment.Furnace)) furnaceCVX = value;
         }
       }
     }
@@ -135,7 +141,7 @@ async function main(round: number, manualStr: string) {
     for (const symbol of manualTokens) {
       const { address, decimals } = TOKENS[symbol];
       const token = await ethers.getContractAt("IERC20", address, deployer);
-      const balance = await token.balanceOf(deployment.get("CVXLocker"));
+      const balance = await token.balanceOf(deployment.CVXLocker);
       console.log(`harvested ${symbol}:`, ethers.formatUnits(balance, decimals));
     }
   }

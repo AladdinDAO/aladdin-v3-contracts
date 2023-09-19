@@ -1,7 +1,8 @@
-import { ethers } from "hardhat";
-import { ensureDeployer, selectDeployments } from "./utils";
-import { contractCall } from "./contracts";
 import { toBigInt } from "ethers";
+import { ethers } from "hardhat";
+
+import { contractCall, ensureDeployer } from "@/contracts/helpers";
+import { selectDeployments } from "@/utils/deploys";
 
 const lists = [
   ["0x48c6074ffcb8fb67d75ccd06571b42542ed82555", "4746466666666660000000", "1695906000", "1695906001"],

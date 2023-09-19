@@ -1,7 +1,9 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { selectDeployments } from "../utils";
 import { network } from "hardhat";
-import { contractDeploy } from ".";
+
+import { selectDeployments } from "@/utils/deploys";
+
+import { contractDeploy } from "./helpers";
 
 export interface CLeverCVXDeployment {
   clevCVX: string;

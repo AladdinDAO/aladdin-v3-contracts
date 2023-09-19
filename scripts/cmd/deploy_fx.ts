@@ -1,11 +1,11 @@
 import { network } from "hardhat";
 import { toBigInt } from "ethers";
 
-import { showConverterRoute } from "./utils";
+import { showConverterRoute } from "@/utils/routes";
 
-import * as FxGovernance from "./contracts/FxGovernance";
-import * as FxStETH from "./contracts/FxStETH";
-import { ensureDeployer } from "./contracts";
+import { ensureDeployer } from "@/contracts/helpers";
+import * as FxGovernance from "@/contracts/FxGovernance";
+import * as FxStETH from "@/contracts/FxStETH";
 
 const maxFeePerGas = 30e9;
 const maxPriorityFeePerGas = 1e9;
