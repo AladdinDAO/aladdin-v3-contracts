@@ -1,5 +1,3 @@
-/* eslint-disable node/no-missing-import */
-import { BigNumber } from "ethers";
 import { Action, ADDRESS, encodePoolHintV2, PoolType } from ".";
 
 export interface IVaultConfig {
@@ -11,10 +9,10 @@ export interface IVaultConfig {
   gauge?: string;
   rewards: string[];
   deposit: {
-    [token: string]: BigNumber[];
+    [token: string]: bigint[];
   };
   withdraw: {
-    [token: string]: BigNumber[];
+    [token: string]: bigint[];
   };
 }
 

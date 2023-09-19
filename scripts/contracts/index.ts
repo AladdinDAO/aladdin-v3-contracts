@@ -96,3 +96,20 @@ export async function ownerContractCall(
 export function abiEncode(types: Array<string>, args: Array<any>): string {
   return ethers.AbiCoder.defaultAbiCoder().encode(types, args);
 }
+
+export const ExpectedDeployers: { [network: string]: string } = {
+  mainnet: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
+  hermez: "0xa1d0a635f7b447b06836d9aC773b03f1F706bBC4",
+};
+
+export async function ensureDeployer(network: string): Promise<HardhatEthersSigner> {
+  const [deployer] = await ethers.getSigners();
+  if (deployer.address.toLowerCase() !== ExpectedDeployers[network]?.toLowerCase()) {
+    throw Error(`invalid deployer[${deployer.address}] expected[${ExpectedDeployers[network]}]`);
+  }
+  console.log(
+    `deployer[${deployer.address}]`,
+    `balance[${ethers.formatEther(await ethers.provider.getBalance(deployer.address))}]`
+  );
+  return deployer;
+}
