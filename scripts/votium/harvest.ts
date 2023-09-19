@@ -53,7 +53,7 @@ async function main(round: number, manualStr: string) {
   }
 
   const [deployer] = await ethers.getSigners();
-  const locker = await ethers.getContractAt("CLeverCVXLocker", deployment.get("CLeverForCVX"), deployer);
+  const locker = await ethers.getContractAt("CLeverCVXLocker", deployment.get("CVXLocker"), deployer);
 
   const manualTokens = manualStr === "" ? [] : manualStr.split(",");
   console.log("Harvest Round:", round);
@@ -63,12 +63,12 @@ async function main(round: number, manualStr: string) {
     const symbol: string = Object.entries(TOKENS).filter(
       ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
     )[0][0];
-    const routeToETH = ZAP_ROUTES[symbol].WETH;
+    const routeToETH = symbol === "WETH" ? [] : ZAP_ROUTES[symbol].WETH;
     const routeToCVX = ZAP_ROUTES.WETH.CVX;
     const estimate = toBigInt(
       await ethers.provider.call({
         from: KEEPER,
-        to: deployment.get("CLeverForCVX"),
+        to: deployment.get("CVXLocker"),
         data: locker.interface.encodeFunctionData("harvestVotium", [[item], [routeToETH, routeToCVX], 0]),
       })
     );
@@ -120,7 +120,7 @@ async function main(round: number, manualStr: string) {
         const [from] = ethers.AbiCoder.defaultAbiCoder().decode(["address"], log.topics[1]);
         const [to] = ethers.AbiCoder.defaultAbiCoder().decode(["address"], log.topics[2]);
         const [value] = ethers.AbiCoder.defaultAbiCoder().decode(["uint256"], log.data);
-        if (same(from, deployment.get("CLeverForCVX"))) {
+        if (same(from, deployment.get("CVXLocker"))) {
           if (same(to, DEPLOYED_CONTRACTS.CLever.PlatformFeeDistributor)) treasuryCVX = value;
           if (same(to, deployment.get("Furnace"))) furnaceCVX = value;
         }
@@ -135,7 +135,7 @@ async function main(round: number, manualStr: string) {
     for (const symbol of manualTokens) {
       const { address, decimals } = TOKENS[symbol];
       const token = await ethers.getContractAt("IERC20", address, deployer);
-      const balance = await token.balanceOf(deployment.get("CLeverForCVX"));
+      const balance = await token.balanceOf(deployment.get("CVXLocker"));
       console.log(`harvested ${symbol}:`, ethers.formatUnits(balance, decimals));
     }
   }
