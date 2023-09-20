@@ -119,6 +119,22 @@ const POOL_FORK_CONFIG: {
     amount: "1",
     harvest: true,
   },
+  "crvUSD/fETH": {
+    height: 18176980,
+    pid: 31,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+    amount: "1",
+    harvest: false,
+  },
+  "ETH/xETH": {
+    height: 18176980,
+    pid: 31,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+    amount: "10",
+    harvest: false,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
