@@ -35,6 +35,11 @@ interface ILiquidityGauge {
     uint256 workingSpply
   );
 
+  /// @notice Emitted when the address of liquidity manager is updated.
+  /// @param oldLiquidityManager The address of previous liquidity manager contract.
+  /// @param newLiquidityManager The address of current liquidity manager contract.
+  event UpdateLiquidityManager(address indexed oldLiquidityManager, address indexed newLiquidityManager);
+
   /**********
    * Errors *
    **********/
@@ -53,6 +58,12 @@ interface ILiquidityGauge {
 
   /// @dev Thrown when someone try to do unnecessary kick.
   error KickNotNeeded();
+
+  /// @dev Thrown when try to remove an active liquidity manager.
+  error LiquidityManagerIsActive();
+
+  /// @dev Thrown when try to add an unactive liquidity manager.
+  error LiquidityManagerIsNotActive();
 
   /*************************
    * Public View Functions *

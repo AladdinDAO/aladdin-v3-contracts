@@ -10,6 +10,7 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/
 import { IGaugeController } from "../../interfaces/IGaugeController.sol";
 import { IGovernanceToken } from "../../interfaces/IGovernanceToken.sol";
 import { ILiquidityGauge } from "../../interfaces/ILiquidityGauge.sol";
+import { ILiquidityManager } from "../../interfaces/ILiquidityManager.sol";
 import { ITokenMinter } from "../../interfaces/ITokenMinter.sol";
 import { IVotingEscrow } from "../../interfaces/IVotingEscrow.sol";
 
@@ -84,6 +85,9 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   ///
   /// @dev The integral is the value of `snapshot.integral` when the snapshot is taken.
   mapping(address => UserRewardSnapshot) public userSnapshot;
+
+  /// @notice The address of staking token manager.
+  address public manager;
 
   /// @dev reserved slots.
   uint256[44] private __gap;
@@ -175,6 +179,28 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
 
     _checkpoint(_account);
     _updateWorkingBalance(_account);
+  }
+
+  /************************
+   * Restricted Functions *
+   ************************/
+
+  /// @notice Update the address of liquidity manager contract.
+  ///
+  /// @dev Make sure the new manager is active and the old manager is inactive.
+  ///
+  /// @param _newManager The address of new liquidity manager contract.
+  function updateLiquidityManager(address _newManager) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    address _oldManager = manager;
+    if (_oldManager != address(0) && ILiquidityManager(_oldManager).isActive()) {
+      revert LiquidityManagerIsActive();
+    }
+    if (_newManager != address(0) && !ILiquidityManager(_newManager).isActive()) {
+      revert LiquidityManagerIsNotActive();
+    }
+    manager = _newManager;
+
+    emit UpdateLiquidityManager(_oldManager, _newManager);
   }
 
   /**********************
@@ -304,7 +330,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
     address _receiver
   ) internal nonReentrant {
     // transfer token
-    _transferStakingTokenIn(_owner, _amount);
+    _transferStakingTokenIn(_owner, _amount, _receiver);
 
     // checkpoint
     _checkpoint(_receiver);
@@ -351,14 +377,34 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   /// @dev Internal function to transfer staking token to this contract.
   /// @param _owner The address of the token owner.
   /// @param _amount The amount of token to transfer.
-  function _transferStakingTokenIn(address _owner, uint256 _amount) internal virtual returns (uint256) {
+  /// @param _receiver The address of pool share recipient.
+  function _transferStakingTokenIn(
+    address _owner,
+    uint256 _amount,
+    address _receiver
+  ) internal virtual returns (uint256) {
     // transfer token to this contract
     address _stakingToken = stakingToken;
     if (_amount == type(uint256).max) {
       _amount = IERC20Upgradeable(_stakingToken).balanceOf(_owner);
     }
     if (_amount == 0) revert DepositZeroAmount();
-    IERC20Upgradeable(_stakingToken).safeTransferFrom(_owner, address(this), _amount);
+
+    address _manager = manager;
+    if (_manager == address(0) || !ILiquidityManager(_manager).isActive()) _manager = address(this);
+    IERC20Upgradeable(_stakingToken).safeTransferFrom(_owner, _manager, _amount);
+
+    // We have an active manager, transfer all staking token to manager.
+    if (_manager != address(this)) {
+      ILiquidityManager(_manager).deposit(_receiver, _amount);
+
+      // try to manage pool balance
+      uint256 _balance = IERC20Upgradeable(_stakingToken).balanceOf(address(this));
+      if (_balance > 0) {
+        IERC20Upgradeable(_stakingToken).safeTransferFrom(address(this), _manager, _amount);
+        ILiquidityManager(_manager).deposit(address(0), _balance);
+      }
+    }
 
     return _amount;
   }
@@ -367,7 +413,18 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   /// @param _receiver The address of the token recipient.
   /// @param _amount The amount of token to transfer.
   function _transferStakingTokenOut(address _receiver, uint256 _amount) internal virtual {
-    IERC20Upgradeable(stakingToken).safeTransfer(_receiver, _amount);
+    address _stakingToken = stakingToken;
+    uint256 _balance = IERC20Upgradeable(_stakingToken).balanceOf(address(this));
+    if (_balance < _amount) {
+      // withdraw from manager
+      unchecked {
+        ILiquidityManager(manager).withdraw(_receiver, _amount - _balance);
+      }
+      _amount = _balance;
+    }
+    if (_amount > 0) {
+      IERC20Upgradeable(_stakingToken).safeTransfer(_receiver, _amount);
+    }
   }
 
   /// @dev Internal function to query the ve token balance of some user.
