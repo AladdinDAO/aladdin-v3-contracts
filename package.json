@@ -6,7 +6,8 @@
   "scripts": {
     "test": "npx hardhat test",
     "build": "npx hardhat compile",
-    "votium:vote": "yarn ts-node scripts/votium/optimal_vote.ts",
+    "votium:vote": "yarn ts-node scripts/votium/hermez_vote.ts",
+    "votium:snapshot_vote": "yarn ts-node scripts/votium/snapshot_vote.ts",
     "votium:proof": "yarn ts-node scripts/votium/get_proof.ts --round",
     "votium:harvest": "env HARDHAT_NETWORK=mainnet yarn ts-node scripts/votium/harvest.ts --round",
     "sdcrv:harvest": "env HARDHAT_NETWORK=mainnet yarn ts-node scripts/stakedao/harvest.ts --round",
@@ -56,6 +57,7 @@
     "solhint": "^3.3.6",
     "solidity-coverage": "^0.7.16",
     "ts-node": "^10.1.0",
+    "tsconfig-paths": "^4.2.0",
     "tty-table": "^4.1.6",
     "typechain": "^8.3.1",
     "typescript": "^5.2.2",

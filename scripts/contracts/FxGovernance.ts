@@ -1,13 +1,14 @@
 /* eslint-disable node/no-missing-import */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { ZeroAddress, Overrides, Contract } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { DEPLOYED_CONTRACTS, TOKENS, selectDeployments } from "../utils";
-import { contractCall, contractDeploy, minimalProxyDeploy, ownerContractCall } from ".";
+import { DEPLOYED_CONTRACTS, selectDeployments } from "@/utils/deploys";
+import { TOKENS } from "@/utils/tokens";
 
+import { contractCall, contractDeploy, minimalProxyDeploy, ownerContractCall } from "./helpers";
 import * as Multisig from "./Multisig";
 import * as VotingEscrow from "./VotingEscrow";
-import { ZeroAddress, Overrides, Contract } from "ethers";
 
 export interface FxGovernanceDeployment {
   TokenSale1: string;

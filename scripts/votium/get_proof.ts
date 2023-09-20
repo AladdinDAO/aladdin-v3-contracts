@@ -1,11 +1,11 @@
-/* eslint-disable node/no-missing-import */
 import { Command } from "commander";
 import fs from "fs";
 import path from "path";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { TOKENS } from "../utils";
 import { IClaimParam } from "./config";
+
+import { TOKENS } from "@/utils/tokens";
 
 const program = new Command();
 program.version("1.0.0");
@@ -114,6 +114,7 @@ const REWARDS: { [round: number]: string[] } = {
   50: ["ALCX", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "MET", "OGV", "SPELL", "TUSD", "USDC", "USDD", "sdFXS"],
   51: ["ALCX", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "MET", "OGV", "SPELL", "TUSD", "USDD", "sdFXS"],
   52: ["ALCX", "CNC", "CRV", "CVX", "FXS", "GNO", "GRAI", "INV", "MET", "SPELL", "TUSD", "USDD", "sdFXS"],
+  53: ["ALCX", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "OGV", "SPELL", "TUSD", "USDD", "WETH", "sdFXS"],
 };
 
 async function main(round: number) {

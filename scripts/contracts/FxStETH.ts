@@ -1,12 +1,13 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { network, ethers } from "hardhat";
 import { Contract, Overrides } from "ethers";
+import { network, ethers } from "hardhat";
 
-import { TOKENS, selectDeployments } from "../utils";
-import { contractDeploy, ownerContractCall } from ".";
+import { selectDeployments } from "@/utils/deploys";
+import { TOKENS } from "@/utils/tokens";
 
-import * as FxGovernance from "./FxGovernance";
+import { contractDeploy, ownerContractCall } from "./helpers";
 import * as ProxyAdmin from "./ProxyAdmin";
+import * as FxGovernance from "./FxGovernance";
 
 const ReservePoolBonusRatio = ethers.parseEther("0.05"); // 5%
 

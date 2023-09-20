@@ -2,6 +2,10 @@
 import { DEPLOYED_CONTRACTS } from "./deploys";
 import { TOKENS } from "./tokens";
 
+export function same(x: string, y: string): boolean {
+  return x.toLowerCase() === y.toLowerCase();
+}
+
 export const ADDRESS: { [name: string]: string } = {
   // Curve USDC/EURS
   CURVE_USDCEURS_POOL: "0x98a7F18d4E56Cfe84E3D081B40001B3d5bD3eB8B",
