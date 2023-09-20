@@ -1,6 +1,14 @@
+/* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
-/* eslint-disable node/no-missing-import */
-import { BigNumber } from "ethers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { assert } from "console";
+import { toBigInt } from "ethers";
+import { ethers } from "hardhat";
+
+export const ExpectedDeployers: { [network: string]: string } = {
+  mainnet: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
+  hermez: "0xa1d0a635f7b447b06836d9aC773b03f1F706bBC4",
+};
 
 export enum PoolType {
   UniswapV2, // with fee 0.3%, add/remove liquidity not supported
@@ -27,6 +35,19 @@ export enum PoolType {
   AladdinCompounder, // wrap/unrwap as aCRV/aFXS/...
 }
 
+export enum PoolTypeV3 {
+  UniswapV2,
+  UniswapV3,
+  BalancerV1,
+  BalancerV2,
+  CurvePlainPool,
+  CurveAPool,
+  CurveYPool,
+  CurveMetaPool,
+  CurveCryptoPool,
+  ERC4626,
+}
+
 export enum Action {
   Swap,
   Add,
@@ -34,10 +55,10 @@ export enum Action {
 }
 
 export function encodePoolHint(poolAddress: string, poolType: number, indexIn: number, indexOut: number) {
-  let encoding = BigNumber.from(poolAddress);
-  encoding = encoding.or(BigNumber.from(poolType).shl(160));
-  encoding = encoding.or(BigNumber.from(indexIn).shl(164));
-  encoding = encoding.or(BigNumber.from(indexOut).shl(166));
+  let encoding = toBigInt(poolAddress);
+  encoding |= toBigInt(poolType) << 160n;
+  encoding |= toBigInt(indexIn) << 164n;
+  encoding |= toBigInt(indexOut) << 166n;
   return encoding;
 }
 
@@ -49,13 +70,88 @@ export function encodePoolHintV2(
   indexOut: number,
   action: number
 ) {
-  let encoding = BigNumber.from(poolAddress);
-  encoding = encoding.or(BigNumber.from(poolType as number).shl(160));
-  encoding = encoding.or(BigNumber.from(tokens - 1).shl(168));
-  encoding = encoding.or(BigNumber.from(indexIn).shl(170));
-  encoding = encoding.or(BigNumber.from(indexOut).shl(172));
-  encoding = encoding.or(BigNumber.from(action).shl(174));
+  let encoding = toBigInt(poolAddress);
+  encoding |= toBigInt(poolType as number) << 160n;
+  encoding |= toBigInt(tokens - 1) << 168n;
+  encoding |= toBigInt(indexIn) << 170n;
+  encoding |= toBigInt(indexOut) << 172n;
+  encoding |= toBigInt(action) << 174n;
   return encoding;
+}
+
+export function encodePoolHintV3(
+  poolAddress: string,
+  poolType: PoolTypeV3,
+  tokens: number,
+  indexIn: number,
+  indexOut: number,
+  action: Action,
+  options?: {
+    fee_num?: number;
+    twamm?: boolean;
+    use_eth?: boolean;
+    use_underlying?: boolean;
+  }
+) {
+  let encoding = toBigInt(poolAddress);
+  switch (poolType) {
+    case PoolTypeV3.UniswapV2:
+      assert(options && options.fee_num, "no fee_num");
+      encoding |= toBigInt(options!.fee_num!) << 160n;
+      encoding |= toBigInt(indexIn < indexOut ? 1 : 0) << 184n;
+      if (options && options.twamm === true) {
+        encoding |= toBigInt(options.twamm === true ? 1 : 0) << 185n;
+      }
+      break;
+    case PoolTypeV3.UniswapV3:
+      assert(options && options.fee_num, "no fee_num");
+      encoding |= toBigInt(options!.fee_num!) << 160n;
+      encoding |= toBigInt(indexIn < indexOut ? 1 : 0) << 184n;
+      break;
+    case PoolTypeV3.BalancerV1:
+    case PoolTypeV3.BalancerV2:
+    case PoolTypeV3.CurveMetaPool:
+      encoding |= toBigInt(tokens - 1) << 160n;
+      encoding |= toBigInt(indexIn) << 163n;
+      encoding |= toBigInt(indexOut) << 166n;
+      break;
+    case PoolTypeV3.CurvePlainPool:
+    case PoolTypeV3.CurveCryptoPool:
+      encoding |= toBigInt(tokens - 1) << 160n;
+      encoding |= toBigInt(indexIn) << 163n;
+      encoding |= toBigInt(indexOut) << 166n;
+      if (options && options.use_eth === true) {
+        encoding |= toBigInt(options.use_eth === true ? 1 : 0) << 169n;
+      }
+      break;
+    case PoolTypeV3.CurveAPool:
+    case PoolTypeV3.CurveYPool:
+      encoding |= toBigInt(tokens - 1) << 160n;
+      encoding |= toBigInt(indexIn) << 163n;
+      encoding |= toBigInt(indexOut) << 166n;
+      if (options && options.use_underlying === true) {
+        encoding |= toBigInt(options.use_underlying === true ? 1 : 0) << 169n;
+      }
+      break;
+    case PoolTypeV3.ERC4626:
+      break;
+  }
+
+  encoding = (encoding << 2n) | toBigInt(action);
+  encoding = (encoding << 8n) | toBigInt(poolType);
+  return encoding;
+}
+
+export async function ensureDeployer(network: string): Promise<HardhatEthersSigner> {
+  const [deployer] = await ethers.getSigners();
+  if (deployer.address.toLowerCase() !== ExpectedDeployers[network]?.toLowerCase()) {
+    throw Error(`invalid deployer[${deployer.address}] expected[${ExpectedDeployers[network]}]`);
+  }
+  console.log(
+    `deployer[${deployer.address}]`,
+    `balance[${ethers.formatEther(await ethers.provider.getBalance(deployer.address))}]`
+  );
+  return deployer;
 }
 
 export * from "./deploys";

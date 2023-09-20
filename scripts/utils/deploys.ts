@@ -1,3 +1,9 @@
+import * as fs from "fs";
+import * as path from "path";
+import editJsonFile from "edit-json-file";
+
+const CONFIG_FILE_DIR = path.join(__dirname, "../../", "deployments");
+
 export const DEPLOYED_CONTRACTS = {
   CommunityMultisig: "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F",
   ManagementMultisig: "0x28c921adAC4c1072658eB01a28DA06b5F651eF62",
@@ -5,6 +11,10 @@ export const DEPLOYED_CONTRACTS = {
   TokenZapLogic: "0xEBdB538e339fB7523C52397087b8f2B06c1A718e",
   CurveGaugeFactory: "0x9098E25a09EfA247EeD07ced3b46546c5A6e58ad",
   AllInOneGateway: "0x6e513d492Ded19AD8211a57Cc6B4493C9E6C857B",
+  Converter: {
+    registry: "0xa617206663343b6353acF27566586eE9b53DFb2b",
+    GeneralTokenConverter: "0xAF345c813CE17Cc5837BfD14a910D365223F3B95", // 0-9
+  },
   Concentrator: {
     ProxyAdmin: "0x12b1326459d72F2Ab081116bf27ca46cD97762A0",
     Treasury: "0xA0FB1b11ccA5871fb0225B64308e249B97804E99",
@@ -17,6 +27,7 @@ export const DEPLOYED_CONTRACTS = {
     CTRVest: "0x8341889905BdEF85b87cb7644A93F7a482F28742",
     SmartWalletWhitelist: "0x3557bD058D674DD0981a3FF10515432159F63318",
     PlatformFeeDistributor: "0xd2791781C367B2F512396105c8aB26479876e973",
+    PlatformFeeSpliter: "0x32366846354DB5C08e92b4Ab0D2a510b2a2380C8",
     GaugeRewardDistributor: "0xF57b53df7326e2c6bCFA81b4A128A92E69Cb87B0",
     cvxCRV: {
       AladdinCRVConvexVault: "0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8",
@@ -57,6 +68,11 @@ export const DEPLOYED_CONTRACTS = {
     },
     ConcentratorGateway: "0xD069866AceD882582b88E327E9E79Da4c88292B1",
     CompounderGateway: "0x883Fd355deBF417F82Aa9a3E2936971487F7Df1F",
+    burners: {
+      PlatformFeeBurner: "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
+      ConvexFraxCompounderBurner: "0x789E729713ddC80cf2db4e59ca064D3770f1A034",
+      StakeDAOCompounderBurner: "0xf954200fD969443b8f853B4083B71cd073C05D5b",
+    },
   },
   CLever: {
     ProxyAdmin: "0x1F57286F7a8083fb363d87Bc8b1DCcD685dc87EE",
@@ -65,8 +81,8 @@ export const DEPLOYED_CONTRACTS = {
     veCLEV: "0x94be07d45d57c7973A535C1c517Bd79E602E051e",
     MultipleVestHelper: "0x572DeCa882f4C9ABCBDc6f020601A1b789D11983",
     FeeDistributor: {
-      CVX: "0x927ddC5A776F2bc225B9fb9ec16bDCEE09eB6C0D",
-      FRAX: "0xa47A8a0fA6Bd6a596D15E83C4a91c97305a75c5B",
+      CVX: "0x261E3aEB4cd1ebfD0Fa532d6AcDd4B21EbdCd2De",
+      FRAX: "0xb5e7F9cb9d3897808658F1991AD32912959b42E2",
     },
     GaugeController: "0xB992E8E1943f40f89301aB89A5C254F567aF5b63",
     CLEVMinter: "0x4aa2afd5616bEEC2321a9EfD7349400d4F18566A",
@@ -119,4 +135,27 @@ export const DEPLOYED_CONTRACTS = {
       },
     },
   },
+  Fx: {
+    ProxyAdmin: "0x9B54B7703551D9d0ced177A78367560a8B2eDDA4",
+    Treasury: "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+  },
 };
+
+export function selectDeployments(network: string, name: string): editJsonFile.JsonEditor {
+  if (!fs.existsSync(path.join(CONFIG_FILE_DIR, network))) {
+    fs.mkdirSync(path.join(CONFIG_FILE_DIR, network), { recursive: true });
+  }
+
+  const filename = path.join(CONFIG_FILE_DIR, network, `${name}.json`);
+
+  if (!fs.existsSync(filename)) {
+    fs.writeFileSync(filename, "{}");
+  }
+
+  const addressFile = editJsonFile(filename, {
+    stringify_eol: true,
+    autosave: true,
+  });
+
+  return addressFile;
+}

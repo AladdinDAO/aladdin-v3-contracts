@@ -168,7 +168,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
   /// @notice Return aggregated user information for single user.
   /// @param _user The address of user to query.
   /// @return _info The aggregated user information to return.
-  function getUserInfo(address _user) external view returns (UserRewards memory _info) {
+  function getUserInfo(address _user) external view virtual returns (UserRewards memory _info) {
     _info.balance = userInfo[_user].balance;
 
     uint256 _count = rewardTokens.length;
@@ -232,17 +232,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
 
     _checkpoint(_user);
 
-    UserInfo storage _info = userInfo[_user];
-    uint256 _count = rewardTokens.length;
-    _amounts = new uint256[](_count);
-    for (uint256 i = 0; i < _count; i++) {
-      address _token = rewardTokens[i];
-      _amounts[i] = _info.rewards[_token];
-      if (_amounts[i] > 0) {
-        IERC20Upgradeable(_token).safeTransfer(_recipient, _amounts[i]);
-        _info.rewards[_token] = 0;
-      }
-    }
+    _amounts = _claim(rewardTokens, _user, _recipient);
 
     emit Claim(_user, _recipient, _amounts);
   }
@@ -468,6 +458,24 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
       }
 
       rewardInfo[_tokens[i]] = _info;
+    }
+  }
+
+  function _claim(
+    address[] memory _tokens,
+    address _user,
+    address _recipient
+  ) internal virtual returns (uint256[] memory _amounts) {
+    UserInfo storage _info = userInfo[_user];
+    uint256 _count = _tokens.length;
+    _amounts = new uint256[](_count);
+    for (uint256 i = 0; i < _count; i++) {
+      address _token = _tokens[i];
+      _amounts[i] = _info.rewards[_token];
+      if (_amounts[i] > 0) {
+        IERC20Upgradeable(_token).safeTransfer(_recipient, _amounts[i]);
+        _info.rewards[_token] = 0;
+      }
     }
   }
 

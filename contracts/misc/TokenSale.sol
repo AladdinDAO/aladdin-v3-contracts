@@ -26,6 +26,7 @@ contract TokenSale is Ownable, ReentrancyGuard {
   event UpdateVesting(address _vesting, uint256 _vestRatio, uint256 _duration);
   event UpdateWhitelistCap(address indexed _whitelist, uint256 _cap);
   event UpdateSupportedToken(address indexed _token, bool _status);
+  event UpdateCap(uint128 _cap);
 
   uint256 private constant PRICE_PRECISION = 1e18;
   uint256 private constant RATIO_PRECISION = 1e9;
@@ -218,6 +219,12 @@ contract TokenSale is Ownable, ReentrancyGuard {
   }
 
   /********************************** Restricted Functions **********************************/
+
+  function updateCap(uint128 _cap) external onlyOwner {
+    cap = _cap;
+
+    emit UpdateCap(_cap);
+  }
 
   /// @notice Update supported tokens.
   /// @param _tokens The list of addresses of token to update.

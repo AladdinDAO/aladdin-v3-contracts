@@ -31,6 +31,12 @@ interface ICurveYPoolSwap {
     uint256 dx
   ) external view returns (uint256);
 
+  function add_liquidity(uint256[2] memory _amounts, uint256 _min_mint_amount) external;
+
+  function add_liquidity(uint256[3] memory _amounts, uint256 _min_mint_amount) external;
+
+  function add_liquidity(uint256[4] memory _amounts, uint256 _min_mint_amount) external;
+
   function coins(uint256 index) external view returns (address);
 
   function underlying_coins(uint256 index) external view returns (address);
@@ -45,6 +51,12 @@ interface ICurveYPoolDeposit {
   ) external;
 
   function calc_withdraw_one_coin(uint256 _token_amount, int128 i) external view returns (uint256);
+
+  function add_liquidity(uint256[2] memory _amounts, uint256 _min_mint_amount) external;
+
+  function add_liquidity(uint256[3] memory _amounts, uint256 _min_mint_amount) external;
+
+  function add_liquidity(uint256[4] memory _amounts, uint256 _min_mint_amount) external;
 
   function token() external view returns (address);
 
@@ -63,22 +75,18 @@ interface ICurveYPoolDeposit {
 /// @dev This is the interface of Curve yearn-style Pool with 2 tokens, examples:
 /// + compound: https://curve.fi/compound
 interface ICurveY2PoolDeposit is ICurveYPoolDeposit {
-  function add_liquidity(uint256[2] memory _amounts, uint256 _min_mint_amount) external;
+
 }
 
-interface ICurveY2PoolSwap is ICurveYPoolSwap {
-  function add_liquidity(uint256[2] memory _amounts, uint256 _min_mint_amount) external;
-}
+interface ICurveY2PoolSwap is ICurveYPoolSwap {}
 
 /// @dev This is the interface of Curve yearn-style Pool with 3 tokens, examples:
 /// usdt: https://curve.fi/usdt
 interface ICurveY3PoolDeposit is ICurveYPoolDeposit {
-  function add_liquidity(uint256[3] memory _amounts, uint256 _min_mint_amount) external;
+
 }
 
-interface ICurveY3PoolSwap is ICurveYPoolSwap {
-  function add_liquidity(uint256[3] memory _amounts, uint256 _min_mint_amount) external;
-}
+interface ICurveY3PoolSwap is ICurveYPoolSwap {}
 
 /// @dev This is the interface of Curve yearn-style Pool with 4 tokens, examples:
 /// + pax: https://curve.fi/pax
@@ -86,9 +94,7 @@ interface ICurveY3PoolSwap is ICurveYPoolSwap {
 /// + busd: https://curve.fi/busd
 /// + susd v2: https://curve.fi/susdv2
 interface ICurveY4PoolDeposit is ICurveYPoolDeposit {
-  function add_liquidity(uint256[4] memory _amounts, uint256 _min_mint_amount) external;
+
 }
 
-interface ICurveY4PoolSwap is ICurveYPoolSwap {
-  function add_liquidity(uint256[4] memory _amounts, uint256 _min_mint_amount) external;
-}
+interface ICurveY4PoolSwap is ICurveYPoolSwap {}

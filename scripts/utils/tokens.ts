@@ -14,6 +14,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   SPELL: { decimals: 18, address: "0x090185f2135308BaD17527004364eBcC2D37e5F6" },
   FRAX: { decimals: 18, address: "0x853d955aCEf822Db058eb8505911ED77F175b99e" },
   TRICRV: { decimals: 18, address: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490" },
+  "3CRV": { decimals: 18, address: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490" },
   DAI: { decimals: 18, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F" },
   USDC: { decimals: 6, address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   USDT: { decimals: 6, address: "0xdAC17F958D2ee523a2206206994597C13D831ec7" },
@@ -75,6 +76,8 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   T: { decimals: 18, address: "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5" },
   aCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV },
   aFXS: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxFXS.aFXS },
+  afrxETH: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.frxETH.afrxETH },
+  asdCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.StakeDAO.sdCRV.asdCRV },
   CTR: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.CTR },
   tBTC: { decimals: 18, address: "0x18084fba666a33d37592fa2633fd49a74dd93a88" },
   CLEV: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLEV },
@@ -103,4 +106,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   sdFXS: { decimals: 18, address: "0x402f878bdd1f5c66fdaf0fababcf74741b68ac36" },
   fETH: { decimals: 18, address: "0x53805a76e1f5ebbfe7115f16f9c87c2f7e633726" },
   xETH: { decimals: 18, address: "0xe063f04f280c60aeca68b38341c2eecbec703ae2" },
+  ALD: { decimals: 18, address: "0xb26c4b3ca601136daf98593feaeff9e0ca702a8d" },
+  GRAI: { decimals: 18, address: "0x15f74458aE0bFdAA1a96CA1aa779D715Cc1Eefe4" },
 };

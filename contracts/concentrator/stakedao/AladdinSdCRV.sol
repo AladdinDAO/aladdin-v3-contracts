@@ -130,10 +130,12 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
       uint256 _amountSDT = IERC20Upgradeable(SDT).balanceOf(address(this));
       uint256 _amountCRV = IERC20Upgradeable(CRV).balanceOf(address(this));
       uint256 _amount3CRV = IERC20Upgradeable(THREE_CRV).balanceOf(address(this));
+      uint256 _amountSdCRV = IERC20Upgradeable(sdCRV).balanceOf(address(this));
       IStakeDAOCRVVault(vault).claim(address(this), address(this));
       _amountSDT = IERC20Upgradeable(SDT).balanceOf(address(this)) - _amountSDT;
       _amountCRV = IERC20Upgradeable(CRV).balanceOf(address(this)) - _amountCRV;
       _amount3CRV = IERC20Upgradeable(THREE_CRV).balanceOf(address(this)) - _amount3CRV;
+      _amountSdCRV = IERC20Upgradeable(sdCRV).balanceOf(address(this)) - _amountSdCRV;
 
       // 1.2 sell SDT/3CRV to ETH
 
@@ -155,6 +157,12 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
 
       // 1.4 deposit CRV as sdCRV
       assets = IStakeDAOCRVVault(vault).depositWithCRV(_amountCRV, address(this), 0);
+
+      // 1.5 deposit sdCRV to vault
+      if (_amountSdCRV > 0) {
+        IStakeDAOCRVVault(vault).deposit(_amountSdCRV, address(this));
+        assets = assets + _amountSdCRV;
+      }
       require(assets >= _minAssets, "asdCRV: insufficient harvested sdCRV");
     }
 
