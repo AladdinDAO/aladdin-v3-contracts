@@ -1,9 +1,9 @@
-/* eslint-disable node/no-missing-import */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { network } from "hardhat";
 
-import { selectDeployments } from "../utils";
-import { contractDeploy } from ".";
+import { selectDeployments } from "@/utils/deploys";
+
+import { contractDeploy } from "./helpers";
 
 export interface ProxyAdminDeployment {
   Concentrator: string;

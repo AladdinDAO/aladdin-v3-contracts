@@ -83,7 +83,7 @@ const config: HardhatUserConfig = {
     },
   },
   typechain: {
-    outDir: "./typechain",
+    outDir: "./scripts/@types",
     target: "ethers-v6",
   },
   gasReporter: {

@@ -1,13 +1,14 @@
 /* eslint-disable node/no-missing-import */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { ZeroAddress, Overrides, Contract } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { DEPLOYED_CONTRACTS, TOKENS, selectDeployments } from "../utils";
-import { contractCall, contractDeploy, minimalProxyDeploy, ownerContractCall } from ".";
+import { DEPLOYED_CONTRACTS, selectDeployments } from "@/utils/deploys";
+import { TOKENS } from "@/utils/tokens";
 
+import { contractCall, contractDeploy, minimalProxyDeploy, ownerContractCall } from "./helpers";
 import * as Multisig from "./Multisig";
 import * as VotingEscrow from "./VotingEscrow";
-import { ZeroAddress, Overrides, Contract } from "ethers";
 
 export interface FxGovernanceDeployment {
   TokenSale1: string;
@@ -21,6 +22,7 @@ export interface FxGovernanceDeployment {
 
   SmartWalletWhitelist: string;
   PlatformFeeSpliter: string;
+  MultipleVestHelper: string;
   Vesting: string;
 }
 
@@ -129,6 +131,13 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     console.log(`Found SmartWalletWhitelist at:`, deployment.get("SmartWalletWhitelist"));
   }
 
+  if (!deployment.get("MultipleVestHelper")) {
+    const address = await contractDeploy(deployer, "FXN MultipleVestHelper", "MultipleVestHelper", [], overrides);
+    deployment.set("MultipleVestHelper", address);
+  } else {
+    console.log(`Found FXN MultipleVestHelper at:`, deployment.get("MultipleVestHelper"));
+  }
+
   if (!deployment.get("Vesting")) {
     const address = await contractDeploy(deployer, "FXN Vesting", "Vesting", [deployment.get("FXN")], overrides);
     deployment.set("Vesting", address);
@@ -204,12 +213,11 @@ export async function initialize(
   const minter = await ethers.getContractAt("TokenMinter", deployment.TokenMinter, deployer);
   const controller = await ethers.getContractAt("GaugeController", deployment.GaugeController, deployer);
   const distributor = await ethers.getContractAt("FeeDistributor", deployment.FeeDistributor, deployer);
-  // const whitelist = await ethers.getContractAt("SmartWalletWhitelist", deployment.SmartWalletWhitelist, deployer);
-  // const spliter = await ethers.getContractAt("PlatformFeeSpliter", deployment.PlatformFeeSpliter, deployer);
-  // const vesting = await ethers.getContractAt("Vesting", deployment.Vesting, deployer);
+  const whitelist = await ethers.getContractAt("SmartWalletWhitelist", deployment.SmartWalletWhitelist, deployer);
+  const vesting = await ethers.getContractAt("Vesting", deployment.Vesting, deployer);
 
   // initialize FXN
-  if ((await fxn.name()) === "") {
+  if ((await fxn.admin({ gasLimit: 1e6 })) === ZeroAddress) {
     await contractCall(
       fxn as unknown as Contract,
       "initialize FXN",
@@ -296,13 +304,52 @@ export async function initialize(
   }
 
   // initialize FeeDistributor
-  if ((await distributor.token({ gasLimit: 1e6 })) === ZeroAddress) {
-    // @todo
+  if ((await distributor.start_time({ gasLimit: 1e6 })) === 0n) {
+    await contractCall(
+      distributor as unknown as Contract,
+      "initialize FeeDistributor",
+      "initialize",
+      [deployment.veFXN, 1695859200n, TOKENS.stETH.address, deployer.address, multisig.Fx],
+      overrides
+    );
+  }
+  if (!(await distributor.can_checkpoint_token())) {
+    await ownerContractCall(
+      distributor as unknown as Contract,
+      "FeeDistributor allow checkpoint ",
+      "toggle_allow_checkpoint_token",
+      [],
+      overrides
+    );
   }
 
   // setup SmartWalletWhitelist
-
-  // setup PlatformFeeSpliter
+  for (const address of [multisig.AladdinDAO]) {
+    if (!(await whitelist.wallets(address))) {
+      await ownerContractCall(
+        whitelist as unknown as Contract,
+        `SmartWalletWhitelist approve ${address}`,
+        "approveWallet",
+        [address],
+        overrides
+      );
+    }
+  }
 
   // setup Vesting
+  const whitelists = [];
+  for (const address of [multisig.Fx, deployment.MultipleVestHelper]) {
+    if (!(await vesting.isWhitelist(address))) {
+      whitelists.push(address);
+    }
+  }
+  if (whitelists.length > 0) {
+    await ownerContractCall(
+      vesting as unknown as Contract,
+      `Vesting approve [${whitelists.join(",")}]`,
+      "updateWhitelist",
+      [whitelists, true],
+      overrides
+    );
+  }
 }

@@ -1,7 +1,6 @@
-/* eslint-disable node/no-missing-import */
-import { constants } from "ethers";
 import { ethers } from "hardhat";
 import { MultipleVestHelper } from "../typechain";
+import { toBigInt } from "ethers";
 
 // Final 5% Lock Airdrop
 const items0 = [
@@ -225,16 +224,16 @@ async function main() {
   const amounts = [];
   const startTimes = [];
   const endTimes = [];
-  let sum = constants.Zero;
+  let sum = 0n;
   for (const [recipient, , amount, startTime, endTime] of [...items0, ...items1, ...items2]) {
     recipients.push(recipient);
     amounts.push(amount);
     startTimes.push(startTime);
     endTimes.push(endTime);
-    sum = sum.add(amount);
+    sum += toBigInt(amount);
   }
-  console.log("total CLEV:", ethers.utils.formatEther(sum));
-  const estimateGas = await helper.estimateGas.call(
+  console.log("total CLEV:", ethers.formatEther(sum));
+  const estimateGas = await helper.call.estimateGas(
     "0x84C82d43f1Cc64730849f3E389fE3f6d776F7A4E",
     recipients,
     amounts,
@@ -248,11 +247,11 @@ async function main() {
     amounts,
     startTimes,
     endTimes,
-    { gasLimit: estimateGas.mul(11).div(10) }
+    { gasLimit: (estimateGas * 11n) / 10n }
   );
   console.log("run multiple vests, hash:", tx.hash);
   const receipt = await tx.wait();
-  console.log("✅ Done, gas used", receipt.gasUsed.toString());
+  console.log("✅ Done, gas used", receipt!.gasUsed.toString());
 }
 
 // We recommend this pattern to be able to use async/await everywhere

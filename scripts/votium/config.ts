@@ -1,4 +1,3 @@
-/* eslint-disable node/no-missing-import */
 import { BigNumberish } from "ethers";
 import fs from "fs";
 import path from "path";

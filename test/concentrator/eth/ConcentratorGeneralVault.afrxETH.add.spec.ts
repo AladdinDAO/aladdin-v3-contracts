@@ -111,6 +111,30 @@ const POOL_FORK_CONFIG: {
     amount: "0.01",
     harvest: true,
   },
+  "frxETH/CVX": {
+    height: 17604299,
+    pid: 30,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x5180db0237291A6449DdA9ed33aD90a38787621c",
+    amount: "1",
+    harvest: true,
+  },
+  "crvUSD/fETH": {
+    height: 18176980,
+    pid: 31,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+    amount: "1",
+    harvest: false,
+  },
+  "ETH/xETH": {
+    height: 18176980,
+    pid: 31,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+    amount: "10",
+    harvest: false,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
@@ -234,7 +258,8 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
           DEPLOYED_CONTRACTS.Concentrator.ConcentratorGateway,
           owner
         );
-        await gateway.updateLogic(logic.address);
+        const gatewayOwner = await ethers.getSigner(await gateway.owner());
+        await gateway.connect(gatewayOwner).updateLogic(logic.address);
 
         const strategyName = `ManualCompounding${strategy}Strategy`;
         const factory = await ethers.getContractAt("ConcentratorStrategyFactory", strategies.factory, deployer);

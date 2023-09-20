@@ -5,9 +5,9 @@ import axios from "axios";
 import * as fs from "fs";
 import assert from "assert";
 import Table from "tty-table";
-import { Wallet } from "ethers";
 import snapshot from "@snapshot-labs/snapshot.js";
 import { JsonRpcProvider } from "@ethersproject/providers";
+import { Wallet } from "@ethersproject/wallet";
 
 const directory = ".store/vlcvx";
 

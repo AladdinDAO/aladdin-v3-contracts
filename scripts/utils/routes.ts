@@ -1,4 +1,6 @@
-import { Action, ADDRESS, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3, TOKENS } from ".";
+import { ADDRESS } from "./address";
+import { Action, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3 } from "./codec";
+import { TOKENS } from "./tokens";
 
 export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
   ALCX: {

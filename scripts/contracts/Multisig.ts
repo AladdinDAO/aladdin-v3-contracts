@@ -1,6 +1,6 @@
-/* eslint-disable node/no-missing-import */
 import assert from "assert";
-import { selectDeployments } from "../utils";
+
+import { selectDeployments } from "@/utils/deploys";
 
 export interface MultisigDeployment {
   Management: string;

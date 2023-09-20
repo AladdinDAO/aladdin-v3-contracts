@@ -2,6 +2,10 @@
 import { DEPLOYED_CONTRACTS } from "./deploys";
 import { TOKENS } from "./tokens";
 
+export function same(x: string, y: string): boolean {
+  return x.toLowerCase() === y.toLowerCase();
+}
+
 export const ADDRESS: { [name: string]: string } = {
   // Curve USDC/EURS
   CURVE_USDCEURS_POOL: "0x98a7F18d4E56Cfe84E3D081B40001B3d5bD3eB8B",
@@ -263,6 +267,15 @@ export const ADDRESS: { [name: string]: string } = {
   // Curve crvUSD/ETH/CRV
   "CURVE_crvUSD/ETH/CRV_POOL": "0x4ebdf703948ddcea3b11f675b4d1fba9d2414a14",
   "CURVE_crvUSD/ETH/CRV_TOKEN": "0x4ebdf703948ddcea3b11f675b4d1fba9d2414a14",
+  // Curve frxETH/CVX
+  "CURVE_frxETH/CVX_POOL": "0x47d5e1679fe5f0d9f0a657c6715924e33ce05093",
+  "CURVE_frxETH/CVX_TOKEN": "0x6e52cce4eafdf77091dd1c82183b2d97b776b397",
+  // Curve crvUSD/fETH
+  "CURVE_crvUSD/fETH_POOL": "0xe7e86c6055b964c7894d33e037ead34f2b62795d",
+  "CURVE_crvUSD/fETH_TOKEN": "0x19033d99a7b7010157b81e5ee5a8e63a583fb735",
+  // Curve ETH/xETH
+  "CURVE_ETH/xETH_POOL": "0x053d5be7c653325b58d88b942fb2454f8ffd8673",
+  "CURVE_ETH/xETH_TOKEN": "0x16ead9a10b1a77007e6e329b076ad1fe97a6f7c0",
   // Uniswap V2 pool
   LDO_WETH_UNIV2: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
   FXS_WETH_UNIV2: "0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23",

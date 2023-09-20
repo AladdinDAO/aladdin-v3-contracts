@@ -2,8 +2,9 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
 import { network } from "hardhat";
 
-import { selectDeployments } from "../utils";
-import { contractDeploy } from ".";
+import { selectDeployments } from "@/utils/deploys";
+
+import { contractDeploy } from "./helpers";
 
 export interface VotingEscrowDeployment {
   GovernanceToken: string;

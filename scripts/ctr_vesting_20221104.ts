@@ -1,5 +1,3 @@
-/* eslint-disable node/no-missing-import */
-import { constants } from "ethers";
 import { ethers } from "hardhat";
 import { DEPLOYED_CONTRACTS } from "./utils";
 
@@ -595,14 +593,14 @@ async function main() {
   const amounts = [];
   const startTimes = [];
   const endTimes = [];
-  let sum = constants.Zero;
+  let sum = 0n;
   for (const [recipient, amountStr] of lists) {
-    const amount = ethers.utils.parseEther(amountStr);
+    const amount = ethers.parseEther(amountStr);
     recipients.push(`"${recipient}"`);
     amounts.push(amount);
     startTimes.push(1667829600);
     endTimes.push(1675778400);
-    sum = sum.add(amount);
+    sum += amount;
   }
   const step = lists.length / 3 + 1;
   for (let i = 0; i < 3; i++) {
@@ -611,7 +609,7 @@ async function main() {
     console.log("amounts:", amounts.slice(i * step, i * step + step).toString());
     console.log("startTimes:", startTimes.slice(i * step, i * step + step).toString());
     console.log("endTimes:", endTimes.slice(i * step, i * step + step).toString());
-    console.log("total CTR:", ethers.utils.formatEther(sum), "decimal:", sum.toString());
+    console.log("total CTR:", ethers.formatEther(sum), "decimal:", sum.toString());
   }
 }
 

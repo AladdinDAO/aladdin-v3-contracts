@@ -1,13 +1,13 @@
-/* eslint-disable node/no-missing-import */
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { FxVault, MockERC20, MockTokenWrapper } from "../../typechain";
-import { constants } from "ethers";
+
+import { FxVault, MockERC20, MockTokenWrapper } from "@/types/index";
+import { ZeroAddress } from "ethers";
 
 describe("FxVault.spec", async () => {
-  let deployer: SignerWithAddress;
-  let signer: SignerWithAddress;
+  let deployer: HardhatEthersSigner;
+  let signer: HardhatEthersSigner;
 
   let src: MockERC20;
   let dst: MockERC20;
@@ -15,8 +15,8 @@ describe("FxVault.spec", async () => {
   let vault: FxVault;
 
   for (const fxRatio of ["0", "20", "50", "80", "100"]) {
-    const expectedFxAmount = ethers.utils.parseEther(fxRatio);
-    const expectedLpAmount = ethers.utils.parseEther("100").sub(ethers.utils.parseEther(fxRatio));
+    const expectedFxAmount = ethers.parseEther(fxRatio);
+    const expectedLpAmount = ethers.parseEther("100") - ethers.parseEther(fxRatio);
     const expectedInitialShare = fxRatio === "0" ? expectedLpAmount : expectedFxAmount;
 
     context(`run with fxRatio = ${fxRatio}%`, async () => {
@@ -25,27 +25,29 @@ describe("FxVault.spec", async () => {
 
         const MockERC20 = await ethers.getContractFactory("MockERC20", deployer);
         src = await MockERC20.deploy("src", "src", 18);
-        await src.deployed();
         dst = await MockERC20.deploy("dst", "dst", 18);
-        await dst.deployed();
 
         const MockTokenWrapper = await ethers.getContractFactory("MockTokenWrapper", deployer);
         wrapper = await MockTokenWrapper.deploy();
-        await wrapper.deployed();
 
         const FxVault = await ethers.getContractFactory("FxVault", deployer);
         vault = await FxVault.deploy();
 
-        await src.mint(deployer.address, ethers.utils.parseEther("1000000"));
-        await dst.mint(deployer.address, ethers.utils.parseEther("1000000"));
-        await wrapper.set(src.address, dst.address);
+        await src.mint(deployer.address, ethers.parseEther("1000000"));
+        await dst.mint(deployer.address, ethers.parseEther("1000000"));
+        await wrapper.set(await src.getAddress(), await dst.getAddress());
         await expect(
-          vault.initialize(src.address, dst.address, wrapper.address, ethers.utils.parseEther(fxRatio).div(100))
+          vault.initialize(
+            await src.getAddress(),
+            await dst.getAddress(),
+            await wrapper.getAddress(),
+            ethers.parseEther(fxRatio) / 100n
+          )
         )
           .to.emit(vault, "UpdateWrapper")
-          .withArgs(constants.AddressZero, wrapper.address)
+          .withArgs(ZeroAddress, await wrapper.getAddress())
           .to.emit(vault, "UpdateFxRatio")
-          .withArgs(constants.Zero, ethers.utils.parseEther(fxRatio).div(100));
+          .withArgs(0n, ethers.parseEther(fxRatio) / 100n);
       });
 
       context("auth", async () => {
@@ -55,31 +57,30 @@ describe("FxVault.spec", async () => {
           beforeEach(async () => {
             const MockTokenWrapper = await ethers.getContractFactory("MockTokenWrapper", deployer);
             newWrapper = await MockTokenWrapper.deploy();
-            await newWrapper.deployed();
           });
 
           it("should revert, when non-owner call", async () => {
-            await expect(vault.connect(signer).updateWrapper(newWrapper.address)).to.revertedWith(
+            await expect(vault.connect(signer).updateWrapper(await newWrapper.getAddress())).to.revertedWith(
               "Ownable: caller is not the owner"
             );
           });
 
           it("should revert, when src mismatch", async () => {
-            await newWrapper.set(constants.AddressZero, dst.address);
-            await expect(vault.updateWrapper(newWrapper.address)).to.revertedWith("src mismatch");
+            await newWrapper.set(ZeroAddress, await dst.getAddress());
+            await expect(vault.updateWrapper(await newWrapper.getAddress())).to.revertedWith("src mismatch");
           });
 
           it("should revert, when dst mismatch", async () => {
-            await newWrapper.set(src.address, constants.AddressZero);
-            await expect(vault.updateWrapper(newWrapper.address)).to.revertedWith("dst mismatch");
+            await newWrapper.set(await src.getAddress(), ZeroAddress);
+            await expect(vault.updateWrapper(await newWrapper.getAddress())).to.revertedWith("dst mismatch");
           });
 
           it("should succeed", async () => {
-            await newWrapper.set(src.address, dst.address);
-            await expect(vault.updateWrapper(newWrapper.address))
+            await newWrapper.set(await src.getAddress(), await dst.getAddress());
+            await expect(vault.updateWrapper(await newWrapper.getAddress()))
               .to.emit(vault, "UpdateWrapper")
-              .withArgs(wrapper.address, newWrapper.address);
-            expect(await vault.wrapper()).to.eq(newWrapper.address);
+              .withArgs(await wrapper.getAddress(), await newWrapper.getAddress());
+            expect(await vault.wrapper()).to.eq(await newWrapper.getAddress());
           });
         });
       });
@@ -88,17 +89,15 @@ describe("FxVault.spec", async () => {
         expect(await vault.name()).to.eq("f(x) Balancer FX/ETH&FX");
         expect(await vault.symbol()).to.eq("FXVault");
         expect(await vault.owner()).to.eq(deployer.address);
-        expect(await vault.fxToken()).to.eq(src.address);
-        expect(await vault.lpToken()).to.eq(dst.address);
-        expect(await vault.wrapper()).to.eq(wrapper.address);
-        expect(await vault.fxRatio()).to.eq(ethers.utils.parseEther(fxRatio).div(100));
+        expect(await vault.fxToken()).to.eq(await src.getAddress());
+        expect(await vault.lpToken()).to.eq(await dst.getAddress());
+        expect(await vault.wrapper()).to.eq(await wrapper.getAddress());
+        expect(await vault.fxRatio()).to.eq(ethers.parseEther(fxRatio) / 100n);
       });
 
       context("deposit in the first time", async () => {
         it("should revert, when deposit zero amount", async () => {
-          await expect(vault.deposit(constants.Zero, constants.Zero, deployer.address)).to.revertedWith(
-            "deposit zero amount"
-          );
+          await expect(vault.deposit(0n, 0n, deployer.address)).to.revertedWith("deposit zero amount");
         });
 
         it("should revert, when mint zero share", async () => {
@@ -110,8 +109,8 @@ describe("FxVault.spec", async () => {
         });
 
         it("should succeed, when deposit with equal ratio", async () => {
-          await src.approve(vault.address, expectedFxAmount);
-          await dst.approve(vault.address, expectedLpAmount);
+          await src.approve(await vault.getAddress(), expectedFxAmount);
+          await dst.approve(await vault.getAddress(), expectedLpAmount);
 
           const fxBalanceBefore = await src.balanceOf(deployer.address);
           const lpBalanceBefore = await dst.balanceOf(deployer.address);
@@ -120,32 +119,32 @@ describe("FxVault.spec", async () => {
             .withArgs(deployer.address, signer.address, expectedFxAmount, expectedLpAmount, expectedInitialShare);
           const fxBalanceAfter = await src.balanceOf(deployer.address);
           const lpBalanceAfter = await dst.balanceOf(deployer.address);
-          expect(fxBalanceBefore.sub(fxBalanceAfter)).to.eq(expectedFxAmount);
-          expect(lpBalanceBefore.sub(lpBalanceAfter)).to.eq(expectedLpAmount);
+          expect(fxBalanceBefore - fxBalanceAfter).to.eq(expectedFxAmount);
+          expect(lpBalanceBefore - lpBalanceAfter).to.eq(expectedLpAmount);
           expect(await vault.totalSupply()).to.eq(expectedInitialShare);
           expect(await vault.balanceOf(signer.address)).to.eq(expectedInitialShare);
-          expect(await src.balanceOf(vault.address)).to.eq(expectedFxAmount);
-          expect(await dst.balanceOf(vault.address)).to.eq(expectedLpAmount);
+          expect(await src.balanceOf(await vault.getAddress())).to.eq(expectedFxAmount);
+          expect(await dst.balanceOf(await vault.getAddress())).to.eq(expectedLpAmount);
           expect(await vault.totalFxToken()).to.eq(expectedFxAmount);
           expect(await vault.totalLpToken()).to.eq(expectedLpAmount);
         });
 
         if (fxRatio !== "100") {
           it("should succeed, when deposit with more FX token", async () => {
-            await src.approve(vault.address, expectedFxAmount);
-            await dst.approve(vault.address, expectedLpAmount);
+            await src.approve(await vault.getAddress(), expectedFxAmount);
+            await dst.approve(await vault.getAddress(), expectedLpAmount);
 
             const fxBalanceBefore = await src.balanceOf(deployer.address);
             const lpBalanceBefore = await dst.balanceOf(deployer.address);
-            await vault.deposit(expectedFxAmount.add(ethers.utils.parseEther("1")), expectedLpAmount, signer.address);
+            await vault.deposit(expectedFxAmount + ethers.parseEther("1"), expectedLpAmount, signer.address);
             const fxBalanceAfter = await src.balanceOf(deployer.address);
             const lpBalanceAfter = await dst.balanceOf(deployer.address);
-            expect(fxBalanceBefore.sub(fxBalanceAfter)).to.eq(expectedFxAmount);
-            expect(lpBalanceBefore.sub(lpBalanceAfter)).to.eq(expectedLpAmount);
+            expect(fxBalanceBefore - fxBalanceAfter).to.eq(expectedFxAmount);
+            expect(lpBalanceBefore - lpBalanceAfter).to.eq(expectedLpAmount);
             expect(await vault.totalSupply()).to.eq(expectedInitialShare);
             expect(await vault.balanceOf(signer.address)).to.eq(expectedInitialShare);
-            expect(await src.balanceOf(vault.address)).to.eq(expectedFxAmount);
-            expect(await dst.balanceOf(vault.address)).to.eq(expectedLpAmount);
+            expect(await src.balanceOf(await vault.getAddress())).to.eq(expectedFxAmount);
+            expect(await dst.balanceOf(await vault.getAddress())).to.eq(expectedLpAmount);
             expect(await vault.totalFxToken()).to.eq(expectedFxAmount);
             expect(await vault.totalLpToken()).to.eq(expectedLpAmount);
           });
@@ -153,20 +152,20 @@ describe("FxVault.spec", async () => {
 
         if (fxRatio !== "0") {
           it("should succeed, when deposit with more LP token", async () => {
-            await src.approve(vault.address, expectedFxAmount);
-            await dst.approve(vault.address, expectedLpAmount);
+            await src.approve(await vault.getAddress(), expectedFxAmount);
+            await dst.approve(await vault.getAddress(), expectedLpAmount);
 
             const fxBalanceBefore = await src.balanceOf(deployer.address);
             const lpBalanceBefore = await dst.balanceOf(deployer.address);
-            await vault.deposit(expectedFxAmount, expectedLpAmount.add(ethers.utils.parseEther("1")), signer.address);
+            await vault.deposit(expectedFxAmount, expectedLpAmount + ethers.parseEther("1"), signer.address);
             const fxBalanceAfter = await src.balanceOf(deployer.address);
             const lpBalanceAfter = await dst.balanceOf(deployer.address);
-            expect(fxBalanceBefore.sub(fxBalanceAfter)).to.eq(expectedFxAmount);
-            expect(lpBalanceBefore.sub(lpBalanceAfter)).to.eq(expectedLpAmount);
+            expect(fxBalanceBefore - fxBalanceAfter).to.eq(expectedFxAmount);
+            expect(lpBalanceBefore - lpBalanceAfter).to.eq(expectedLpAmount);
             expect(await vault.totalSupply()).to.eq(expectedInitialShare);
             expect(await vault.balanceOf(signer.address)).to.eq(expectedInitialShare);
-            expect(await src.balanceOf(vault.address)).to.eq(expectedFxAmount);
-            expect(await dst.balanceOf(vault.address)).to.eq(expectedLpAmount);
+            expect(await src.balanceOf(await vault.getAddress())).to.eq(expectedFxAmount);
+            expect(await dst.balanceOf(await vault.getAddress())).to.eq(expectedLpAmount);
             expect(await vault.totalFxToken()).to.eq(expectedFxAmount);
             expect(await vault.totalLpToken()).to.eq(expectedLpAmount);
           });
@@ -175,116 +174,112 @@ describe("FxVault.spec", async () => {
 
       context("deposit multiple times", async () => {
         beforeEach(async () => {
-          await src.approve(vault.address, expectedFxAmount);
-          await dst.approve(vault.address, expectedLpAmount);
+          await src.approve(await vault.getAddress(), expectedFxAmount);
+          await dst.approve(await vault.getAddress(), expectedLpAmount);
 
           const fxBalanceBefore = await src.balanceOf(deployer.address);
           const lpBalanceBefore = await dst.balanceOf(deployer.address);
           await vault.deposit(expectedFxAmount, expectedLpAmount, deployer.address);
           const fxBalanceAfter = await src.balanceOf(deployer.address);
           const lpBalanceAfter = await dst.balanceOf(deployer.address);
-          expect(fxBalanceBefore.sub(fxBalanceAfter)).to.eq(expectedFxAmount);
-          expect(lpBalanceBefore.sub(lpBalanceAfter)).to.eq(expectedLpAmount);
+          expect(fxBalanceBefore - fxBalanceAfter).to.eq(expectedFxAmount);
+          expect(lpBalanceBefore - lpBalanceAfter).to.eq(expectedLpAmount);
           expect(await vault.totalSupply()).to.eq(expectedInitialShare);
           expect(await vault.balanceOf(deployer.address)).to.eq(expectedInitialShare);
-          expect(await src.balanceOf(vault.address)).to.eq(expectedFxAmount);
-          expect(await dst.balanceOf(vault.address)).to.eq(expectedLpAmount);
+          expect(await src.balanceOf(await vault.getAddress())).to.eq(expectedFxAmount);
+          expect(await dst.balanceOf(await vault.getAddress())).to.eq(expectedLpAmount);
           expect(await vault.totalFxToken()).to.eq(expectedFxAmount);
           expect(await vault.totalLpToken()).to.eq(expectedLpAmount);
         });
 
         it("should succeed, when deposit with equal ratio", async () => {
-          await src.approve(vault.address, expectedFxAmount);
-          await dst.approve(vault.address, expectedLpAmount);
+          await src.approve(await vault.getAddress(), expectedFxAmount);
+          await dst.approve(await vault.getAddress(), expectedLpAmount);
 
           const fxBalanceBefore = await src.balanceOf(deployer.address);
           const lpBalanceBefore = await dst.balanceOf(deployer.address);
           await vault.deposit(expectedFxAmount, expectedLpAmount, signer.address);
           const fxBalanceAfter = await src.balanceOf(deployer.address);
           const lpBalanceAfter = await dst.balanceOf(deployer.address);
-          expect(fxBalanceBefore.sub(fxBalanceAfter)).to.eq(expectedFxAmount);
-          expect(lpBalanceBefore.sub(lpBalanceAfter)).to.eq(expectedLpAmount);
-          expect(await vault.totalSupply()).to.eq(expectedInitialShare.mul(2));
+          expect(fxBalanceBefore - fxBalanceAfter).to.eq(expectedFxAmount);
+          expect(lpBalanceBefore - lpBalanceAfter).to.eq(expectedLpAmount);
+          expect(await vault.totalSupply()).to.eq(expectedInitialShare * 2n);
           expect(await vault.balanceOf(signer.address)).to.eq(expectedInitialShare);
-          expect(await src.balanceOf(vault.address)).to.eq(expectedFxAmount.mul(2));
-          expect(await dst.balanceOf(vault.address)).to.eq(expectedLpAmount.mul(2));
-          expect(await vault.totalFxToken()).to.eq(expectedFxAmount.mul(2));
-          expect(await vault.totalLpToken()).to.eq(expectedLpAmount.mul(2));
+          expect(await src.balanceOf(await vault.getAddress())).to.eq(expectedFxAmount * 2n);
+          expect(await dst.balanceOf(await vault.getAddress())).to.eq(expectedLpAmount * 2n);
+          expect(await vault.totalFxToken()).to.eq(expectedFxAmount * 2n);
+          expect(await vault.totalLpToken()).to.eq(expectedLpAmount * 2n);
         });
 
         if (fxRatio !== "100") {
           it("should succeed, when deposit with more FX token", async () => {
-            await src.approve(vault.address, expectedFxAmount);
-            await dst.approve(vault.address, expectedLpAmount);
+            await src.approve(await vault.getAddress(), expectedFxAmount);
+            await dst.approve(await vault.getAddress(), expectedLpAmount);
 
             const fxBalanceBefore = await src.balanceOf(deployer.address);
             const lpBalanceBefore = await dst.balanceOf(deployer.address);
-            await vault.deposit(expectedFxAmount.add(ethers.utils.parseEther("1")), expectedLpAmount, signer.address);
+            await vault.deposit(expectedFxAmount + ethers.parseEther("1"), expectedLpAmount, signer.address);
             const fxBalanceAfter = await src.balanceOf(deployer.address);
             const lpBalanceAfter = await dst.balanceOf(deployer.address);
-            expect(fxBalanceBefore.sub(fxBalanceAfter)).to.eq(expectedFxAmount);
-            expect(lpBalanceBefore.sub(lpBalanceAfter)).to.eq(expectedLpAmount);
-            expect(await vault.totalSupply()).to.eq(expectedInitialShare.mul(2));
+            expect(fxBalanceBefore - fxBalanceAfter).to.eq(expectedFxAmount);
+            expect(lpBalanceBefore - lpBalanceAfter).to.eq(expectedLpAmount);
+            expect(await vault.totalSupply()).to.eq(expectedInitialShare * 2n);
             expect(await vault.balanceOf(signer.address)).to.eq(expectedInitialShare);
-            expect(await src.balanceOf(vault.address)).to.eq(expectedFxAmount.mul(2));
-            expect(await dst.balanceOf(vault.address)).to.eq(expectedLpAmount.mul(2));
-            expect(await vault.totalFxToken()).to.eq(expectedFxAmount.mul(2));
-            expect(await vault.totalLpToken()).to.eq(expectedLpAmount.mul(2));
+            expect(await src.balanceOf(await vault.getAddress())).to.eq(expectedFxAmount * 2n);
+            expect(await dst.balanceOf(await vault.getAddress())).to.eq(expectedLpAmount * 2n);
+            expect(await vault.totalFxToken()).to.eq(expectedFxAmount * 2n);
+            expect(await vault.totalLpToken()).to.eq(expectedLpAmount * 2n);
           });
         }
 
         if (fxRatio !== "0") {
           it("should succeed, when deposit with more LP token", async () => {
-            await src.approve(vault.address, expectedFxAmount);
-            await dst.approve(vault.address, expectedLpAmount);
+            await src.approve(await vault.getAddress(), expectedFxAmount);
+            await dst.approve(await vault.getAddress(), expectedLpAmount);
 
             const fxBalanceBefore = await src.balanceOf(deployer.address);
             const lpBalanceBefore = await dst.balanceOf(deployer.address);
-            await vault.deposit(expectedFxAmount, expectedLpAmount.add(ethers.utils.parseEther("1")), signer.address);
+            await vault.deposit(expectedFxAmount, expectedLpAmount + ethers.parseEther("1"), signer.address);
             const fxBalanceAfter = await src.balanceOf(deployer.address);
             const lpBalanceAfter = await dst.balanceOf(deployer.address);
-            expect(fxBalanceBefore.sub(fxBalanceAfter)).to.eq(expectedFxAmount);
-            expect(lpBalanceBefore.sub(lpBalanceAfter)).to.eq(expectedLpAmount);
-            expect(await vault.totalSupply()).to.eq(expectedInitialShare.mul(2));
+            expect(fxBalanceBefore - fxBalanceAfter).to.eq(expectedFxAmount);
+            expect(lpBalanceBefore - lpBalanceAfter).to.eq(expectedLpAmount);
+            expect(await vault.totalSupply()).to.eq(expectedInitialShare * 2n);
             expect(await vault.balanceOf(signer.address)).to.eq(expectedInitialShare);
-            expect(await src.balanceOf(vault.address)).to.eq(expectedFxAmount.mul(2));
-            expect(await dst.balanceOf(vault.address)).to.eq(expectedLpAmount.mul(2));
-            expect(await vault.totalFxToken()).to.eq(expectedFxAmount.mul(2));
-            expect(await vault.totalLpToken()).to.eq(expectedLpAmount.mul(2));
+            expect(await src.balanceOf(await vault.getAddress())).to.eq(expectedFxAmount * 2n);
+            expect(await dst.balanceOf(await vault.getAddress())).to.eq(expectedLpAmount * 2n);
+            expect(await vault.totalFxToken()).to.eq(expectedFxAmount * 2n);
+            expect(await vault.totalLpToken()).to.eq(expectedLpAmount * 2n);
           });
         }
       });
 
       context("redeem", async () => {
         beforeEach(async () => {
-          await src.approve(vault.address, expectedFxAmount.mul(100));
-          await dst.approve(vault.address, expectedLpAmount.mul(100));
+          await src.approve(await vault.getAddress(), expectedFxAmount * 100n);
+          await dst.approve(await vault.getAddress(), expectedLpAmount * 100n);
 
           const fxBalanceBefore = await src.balanceOf(deployer.address);
           const lpBalanceBefore = await dst.balanceOf(deployer.address);
-          await vault.deposit(expectedFxAmount.mul(100), expectedLpAmount.mul(100), deployer.address);
+          await vault.deposit(expectedFxAmount * 100n, expectedLpAmount * 100n, deployer.address);
           const fxBalanceAfter = await src.balanceOf(deployer.address);
           const lpBalanceAfter = await dst.balanceOf(deployer.address);
-          expect(fxBalanceBefore.sub(fxBalanceAfter)).to.eq(expectedFxAmount.mul(100));
-          expect(lpBalanceBefore.sub(lpBalanceAfter)).to.eq(expectedLpAmount.mul(100));
-          expect(await vault.totalSupply()).to.eq(expectedInitialShare.mul(100));
-          expect(await vault.balanceOf(deployer.address)).to.eq(expectedInitialShare.mul(100));
-          expect(await src.balanceOf(vault.address)).to.eq(expectedFxAmount.mul(100));
-          expect(await dst.balanceOf(vault.address)).to.eq(expectedLpAmount.mul(100));
-          expect(await vault.totalFxToken()).to.eq(expectedFxAmount.mul(100));
-          expect(await vault.totalLpToken()).to.eq(expectedLpAmount.mul(100));
+          expect(fxBalanceBefore - fxBalanceAfter).to.eq(expectedFxAmount * 100n);
+          expect(lpBalanceBefore - lpBalanceAfter).to.eq(expectedLpAmount * 100n);
+          expect(await vault.totalSupply()).to.eq(expectedInitialShare * 100n);
+          expect(await vault.balanceOf(deployer.address)).to.eq(expectedInitialShare * 100n);
+          expect(await src.balanceOf(await vault.getAddress())).to.eq(expectedFxAmount * 100n);
+          expect(await dst.balanceOf(await vault.getAddress())).to.eq(expectedLpAmount * 100n);
+          expect(await vault.totalFxToken()).to.eq(expectedFxAmount * 100n);
+          expect(await vault.totalLpToken()).to.eq(expectedLpAmount * 100n);
         });
 
         it("should revert, when redeem zero share", async () => {
-          await expect(vault.redeem(constants.Zero, constants.AddressZero, constants.AddressZero)).to.revertedWith(
-            "redeem zero share"
-          );
+          await expect(vault.redeem(0n, ZeroAddress, ZeroAddress)).to.revertedWith("redeem zero share");
         });
 
         it("should revert, when redeem exceeds allowance", async () => {
-          await expect(vault.redeem(constants.One, constants.AddressZero, signer.address)).to.revertedWith(
-            "redeem exceeds allowance"
-          );
+          await expect(vault.redeem(1n, ZeroAddress, signer.address)).to.revertedWith("redeem exceeds allowance");
         });
 
         it("should succeed", async () => {
@@ -302,14 +297,14 @@ describe("FxVault.spec", async () => {
             );
           const fxBalanceAfter = await src.balanceOf(signer.address);
           const lpBalanceAfter = await dst.balanceOf(signer.address);
-          expect(fxBalanceAfter.sub(fxBalanceBefore)).to.eq(expectedFxAmount);
-          expect(lpBalanceAfter.sub(lpBalanceBefore)).to.eq(expectedLpAmount);
-          expect(await vault.totalSupply()).to.eq(expectedInitialShare.mul(99));
-          expect(await vault.balanceOf(deployer.address)).to.eq(expectedInitialShare.mul(99));
-          expect(await src.balanceOf(vault.address)).to.eq(expectedFxAmount.mul(99));
-          expect(await dst.balanceOf(vault.address)).to.eq(expectedLpAmount.mul(99));
-          expect(await vault.totalFxToken()).to.eq(expectedFxAmount.mul(99));
-          expect(await vault.totalLpToken()).to.eq(expectedLpAmount.mul(99));
+          expect(fxBalanceAfter - fxBalanceBefore).to.eq(expectedFxAmount);
+          expect(lpBalanceAfter - lpBalanceBefore).to.eq(expectedLpAmount);
+          expect(await vault.totalSupply()).to.eq(expectedInitialShare * 99n);
+          expect(await vault.balanceOf(deployer.address)).to.eq(expectedInitialShare * 99n);
+          expect(await src.balanceOf(await vault.getAddress())).to.eq(expectedFxAmount * 99n);
+          expect(await dst.balanceOf(await vault.getAddress())).to.eq(expectedLpAmount * 99n);
+          expect(await vault.totalFxToken()).to.eq(expectedFxAmount * 99n);
+          expect(await vault.totalLpToken()).to.eq(expectedLpAmount * 99n);
         });
       });
     });
@@ -321,109 +316,88 @@ describe("FxVault.spec", async () => {
 
       const MockERC20 = await ethers.getContractFactory("MockERC20", deployer);
       src = await MockERC20.deploy("src", "src", 18);
-      await src.deployed();
       dst = await MockERC20.deploy("dst", "dst", 18);
-      await dst.deployed();
 
       const MockTokenWrapper = await ethers.getContractFactory("MockTokenWrapper", deployer);
       wrapper = await MockTokenWrapper.deploy();
-      await wrapper.deployed();
 
       const FxVault = await ethers.getContractFactory("FxVault", deployer);
       vault = await FxVault.deploy();
 
-      await src.mint(deployer.address, ethers.utils.parseEther("1000000"));
-      await dst.mint(deployer.address, ethers.utils.parseEther("1000000"));
-      await wrapper.set(src.address, dst.address);
-      await vault.initialize(src.address, dst.address, wrapper.address, constants.Zero);
+      await src.mint(deployer.address, ethers.parseEther("1000000"));
+      await dst.mint(deployer.address, ethers.parseEther("1000000"));
+      await wrapper.set(await src.getAddress(), await dst.getAddress());
+      await vault.initialize(await src.getAddress(), await dst.getAddress(), await wrapper.getAddress(), 0n);
 
-      await dst.approve(vault.address, ethers.utils.parseEther("100"));
-      await vault.deposit(constants.Zero, ethers.utils.parseEther("100"), deployer.address);
+      await dst.approve(await vault.getAddress(), ethers.parseEther("100"));
+      await vault.deposit(0n, ethers.parseEther("100"), deployer.address);
     });
 
     it("should revert, when non-owner call", async () => {
-      await expect(vault.connect(signer).rebalance(constants.Zero, constants.Zero, constants.Zero)).to.revertedWith(
-        "Ownable: caller is not the owner"
-      );
+      await expect(vault.connect(signer).rebalance(0n, 0n, 0n)).to.revertedWith("Ownable: caller is not the owner");
     });
 
     it("should revert, when fxRatio out of bound", async () => {
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("1").add(1), constants.Zero, constants.Zero)
-      ).to.revertedWith("fxRatio out of bound");
+      await expect(vault.rebalance(ethers.parseEther("1") + 1n, 0n, 0n)).to.revertedWith("fxRatio out of bound");
     });
 
     it("should revert, when insufficient LP token", async () => {
-      await expect(vault.rebalance(1, ethers.utils.parseEther("100").add(1), constants.Zero)).to.revertedWith(
-        "insufficient LP token"
-      );
+      await expect(vault.rebalance(1, ethers.parseEther("100") + 1n, 0n)).to.revertedWith("insufficient LP token");
     });
 
     it("should revert, when insufficient output", async () => {
-      await wrapper.setSrcAmount(ethers.utils.parseEther("100"));
-      await src.mint(wrapper.address, ethers.utils.parseEther("100"));
+      await wrapper.setSrcAmount(ethers.parseEther("100"));
+      await src.mint(await wrapper.getAddress(), ethers.parseEther("100"));
       await expect(
-        vault.rebalance(
-          ethers.utils.parseEther("1"),
-          ethers.utils.parseEther("100"),
-          ethers.utils.parseEther("100").add(1)
-        )
+        vault.rebalance(ethers.parseEther("1"), ethers.parseEther("100"), ethers.parseEther("100") + 1n)
       ).to.revertedWith("insufficient output");
     });
 
     it("should succeed", async () => {
       // 0 => 20%
-      await wrapper.setSrcAmount(ethers.utils.parseEther("20"));
-      await src.mint(wrapper.address, ethers.utils.parseEther("20"));
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("0.2"), ethers.utils.parseEther("20"), ethers.utils.parseEther("20"))
-      )
+      await wrapper.setSrcAmount(ethers.parseEther("20"));
+      await src.mint(await wrapper.getAddress(), ethers.parseEther("20"));
+      await expect(vault.rebalance(ethers.parseEther("0.2"), ethers.parseEther("20"), ethers.parseEther("20")))
         .to.emit(vault, "Rebalance")
-        .withArgs(ethers.utils.parseEther("20"), ethers.utils.parseEther("80"))
+        .withArgs(ethers.parseEther("20"), ethers.parseEther("80"))
         .to.emit(vault, "UpdateFxRatio")
-        .withArgs(0, ethers.utils.parseEther("0.2"));
-      expect(await vault.totalFxToken()).to.eq(ethers.utils.parseEther("20"));
-      expect(await vault.totalLpToken()).to.eq(ethers.utils.parseEther("80"));
-      expect(await vault.fxRatio()).to.eq(ethers.utils.parseEther("0.2"));
+        .withArgs(0, ethers.parseEther("0.2"));
+      expect(await vault.totalFxToken()).to.eq(ethers.parseEther("20"));
+      expect(await vault.totalLpToken()).to.eq(ethers.parseEther("80"));
+      expect(await vault.fxRatio()).to.eq(ethers.parseEther("0.2"));
       // 20% => 50%
-      await wrapper.setSrcAmount(ethers.utils.parseEther("30"));
-      await src.mint(wrapper.address, ethers.utils.parseEther("30"));
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("0.5"), ethers.utils.parseEther("30"), ethers.utils.parseEther("30"))
-      )
+      await wrapper.setSrcAmount(ethers.parseEther("30"));
+      await src.mint(await wrapper.getAddress(), ethers.parseEther("30"));
+      await expect(vault.rebalance(ethers.parseEther("0.5"), ethers.parseEther("30"), ethers.parseEther("30")))
         .to.emit(vault, "Rebalance")
-        .withArgs(ethers.utils.parseEther("50"), ethers.utils.parseEther("50"))
+        .withArgs(ethers.parseEther("50"), ethers.parseEther("50"))
         .to.emit(vault, "UpdateFxRatio")
-        .withArgs(ethers.utils.parseEther("0.2"), ethers.utils.parseEther("0.5"));
-      expect(await vault.totalFxToken()).to.eq(ethers.utils.parseEther("50"));
-      expect(await vault.totalLpToken()).to.eq(ethers.utils.parseEther("50"));
-      expect(await vault.fxRatio()).to.eq(ethers.utils.parseEther("0.5"));
+        .withArgs(ethers.parseEther("0.2"), ethers.parseEther("0.5"));
+      expect(await vault.totalFxToken()).to.eq(ethers.parseEther("50"));
+      expect(await vault.totalLpToken()).to.eq(ethers.parseEther("50"));
+      expect(await vault.fxRatio()).to.eq(ethers.parseEther("0.5"));
       // 50% => 80%
-      await wrapper.setSrcAmount(ethers.utils.parseEther("30"));
-      await src.mint(wrapper.address, ethers.utils.parseEther("30"));
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("0.8"), ethers.utils.parseEther("30"), ethers.utils.parseEther("30"))
-      )
+      await wrapper.setSrcAmount(ethers.parseEther("30"));
+      await src.mint(await wrapper.getAddress(), ethers.parseEther("30"));
+      await expect(vault.rebalance(ethers.parseEther("0.8"), ethers.parseEther("30"), ethers.parseEther("30")))
         .to.emit(vault, "Rebalance")
-        .withArgs(ethers.utils.parseEther("80"), ethers.utils.parseEther("20"))
+        .withArgs(ethers.parseEther("80"), ethers.parseEther("20"))
         .to.emit(vault, "UpdateFxRatio")
-        .withArgs(ethers.utils.parseEther("0.5"), ethers.utils.parseEther("0.8"));
-      expect(await vault.totalFxToken()).to.eq(ethers.utils.parseEther("80"));
-      expect(await vault.totalLpToken()).to.eq(ethers.utils.parseEther("20"));
-      expect(await vault.fxRatio()).to.eq(ethers.utils.parseEther("0.8"));
+        .withArgs(ethers.parseEther("0.5"), ethers.parseEther("0.8"));
+      expect(await vault.totalFxToken()).to.eq(ethers.parseEther("80"));
+      expect(await vault.totalLpToken()).to.eq(ethers.parseEther("20"));
+      expect(await vault.fxRatio()).to.eq(ethers.parseEther("0.8"));
       // 80% => 100%
-      await wrapper.setSrcAmount(ethers.utils.parseEther("20"));
-      await src.mint(wrapper.address, ethers.utils.parseEther("20"));
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("1"), ethers.utils.parseEther("20"), ethers.utils.parseEther("20"))
-      )
+      await wrapper.setSrcAmount(ethers.parseEther("20"));
+      await src.mint(await wrapper.getAddress(), ethers.parseEther("20"));
+      await expect(vault.rebalance(ethers.parseEther("1"), ethers.parseEther("20"), ethers.parseEther("20")))
         .to.emit(vault, "Rebalance")
-        .withArgs(ethers.utils.parseEther("100"), ethers.utils.parseEther("0"))
+        .withArgs(ethers.parseEther("100"), ethers.parseEther("0"))
         .to.emit(vault, "UpdateFxRatio")
-        .withArgs(ethers.utils.parseEther("0.8"), ethers.utils.parseEther("1"));
-      expect(await vault.totalFxToken()).to.eq(ethers.utils.parseEther("100"));
-      expect(await vault.totalLpToken()).to.eq(ethers.utils.parseEther("0"));
-      expect(await vault.fxRatio()).to.eq(ethers.utils.parseEther("1"));
+        .withArgs(ethers.parseEther("0.8"), ethers.parseEther("1"));
+      expect(await vault.totalFxToken()).to.eq(ethers.parseEther("100"));
+      expect(await vault.totalLpToken()).to.eq(ethers.parseEther("0"));
+      expect(await vault.fxRatio()).to.eq(ethers.parseEther("1"));
     });
   });
 
@@ -433,105 +407,93 @@ describe("FxVault.spec", async () => {
 
       const MockERC20 = await ethers.getContractFactory("MockERC20", deployer);
       src = await MockERC20.deploy("src", "src", 18);
-      await src.deployed();
       dst = await MockERC20.deploy("dst", "dst", 18);
-      await dst.deployed();
 
       const MockTokenWrapper = await ethers.getContractFactory("MockTokenWrapper", deployer);
       wrapper = await MockTokenWrapper.deploy();
-      await wrapper.deployed();
 
       const FxVault = await ethers.getContractFactory("FxVault", deployer);
       vault = await FxVault.deploy();
 
-      await src.mint(deployer.address, ethers.utils.parseEther("1000000"));
-      await dst.mint(deployer.address, ethers.utils.parseEther("1000000"));
-      await wrapper.set(src.address, dst.address);
-      await vault.initialize(src.address, dst.address, wrapper.address, ethers.utils.parseEther("1"));
+      await src.mint(deployer.address, ethers.parseEther("1000000"));
+      await dst.mint(deployer.address, ethers.parseEther("1000000"));
+      await wrapper.set(await src.getAddress(), await dst.getAddress());
+      await vault.initialize(
+        await src.getAddress(),
+        await dst.getAddress(),
+        await wrapper.getAddress(),
+        ethers.parseEther("1")
+      );
 
-      await src.approve(vault.address, ethers.utils.parseEther("100"));
-      await vault.deposit(ethers.utils.parseEther("100"), constants.Zero, deployer.address);
+      await src.approve(await vault.getAddress(), ethers.parseEther("100"));
+      await vault.deposit(ethers.parseEther("100"), 0n, deployer.address);
     });
 
     it("should revert, when non-owner call", async () => {
-      await expect(vault.connect(signer).rebalance(constants.Zero, constants.Zero, constants.Zero)).to.revertedWith(
-        "Ownable: caller is not the owner"
-      );
+      await expect(vault.connect(signer).rebalance(0n, 0n, 0n)).to.revertedWith("Ownable: caller is not the owner");
     });
 
     it("should revert, when fxRatio out of bound", async () => {
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("1").add(1), constants.Zero, constants.Zero)
-      ).to.revertedWith("fxRatio out of bound");
+      await expect(vault.rebalance(ethers.parseEther("1") + 1n, 0n, 0n)).to.revertedWith("fxRatio out of bound");
     });
 
     it("should revert, when insufficient FX token", async () => {
-      await expect(vault.rebalance(0, ethers.utils.parseEther("100").add(1), constants.Zero)).to.revertedWith(
-        "insufficient FX token"
-      );
+      await expect(vault.rebalance(0, ethers.parseEther("100") + 1n, 0n)).to.revertedWith("insufficient FX token");
     });
 
     it("should revert, when insufficient output", async () => {
-      await wrapper.setDstAmount(ethers.utils.parseEther("100"));
-      await dst.mint(wrapper.address, ethers.utils.parseEther("100"));
-      await expect(
-        vault.rebalance(0, ethers.utils.parseEther("100"), ethers.utils.parseEther("100").add(1))
-      ).to.revertedWith("insufficient output");
+      await wrapper.setDstAmount(ethers.parseEther("100"));
+      await dst.mint(await wrapper.getAddress(), ethers.parseEther("100"));
+      await expect(vault.rebalance(0, ethers.parseEther("100"), ethers.parseEther("100") + 1n)).to.revertedWith(
+        "insufficient output"
+      );
     });
 
     it("should succeed", async () => {
       // 100% => 80%
-      await wrapper.setDstAmount(ethers.utils.parseEther("20"));
-      await dst.mint(wrapper.address, ethers.utils.parseEther("20"));
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("0.8"), ethers.utils.parseEther("20"), ethers.utils.parseEther("20"))
-      )
+      await wrapper.setDstAmount(ethers.parseEther("20"));
+      await dst.mint(await wrapper.getAddress(), ethers.parseEther("20"));
+      await expect(vault.rebalance(ethers.parseEther("0.8"), ethers.parseEther("20"), ethers.parseEther("20")))
         .to.emit(vault, "Rebalance")
-        .withArgs(ethers.utils.parseEther("80"), ethers.utils.parseEther("20"))
+        .withArgs(ethers.parseEther("80"), ethers.parseEther("20"))
         .to.emit(vault, "UpdateFxRatio")
-        .withArgs(ethers.utils.parseEther("1"), ethers.utils.parseEther("0.8"));
-      expect(await vault.totalFxToken()).to.eq(ethers.utils.parseEther("80"));
-      expect(await vault.totalLpToken()).to.eq(ethers.utils.parseEther("20"));
-      expect(await vault.fxRatio()).to.eq(ethers.utils.parseEther("0.8"));
+        .withArgs(ethers.parseEther("1"), ethers.parseEther("0.8"));
+      expect(await vault.totalFxToken()).to.eq(ethers.parseEther("80"));
+      expect(await vault.totalLpToken()).to.eq(ethers.parseEther("20"));
+      expect(await vault.fxRatio()).to.eq(ethers.parseEther("0.8"));
       // 80% => 50%
-      await wrapper.setDstAmount(ethers.utils.parseEther("30"));
-      await dst.mint(wrapper.address, ethers.utils.parseEther("30"));
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("0.5"), ethers.utils.parseEther("30"), ethers.utils.parseEther("30"))
-      )
+      await wrapper.setDstAmount(ethers.parseEther("30"));
+      await dst.mint(await wrapper.getAddress(), ethers.parseEther("30"));
+      await expect(vault.rebalance(ethers.parseEther("0.5"), ethers.parseEther("30"), ethers.parseEther("30")))
         .to.emit(vault, "Rebalance")
-        .withArgs(ethers.utils.parseEther("50"), ethers.utils.parseEther("50"))
+        .withArgs(ethers.parseEther("50"), ethers.parseEther("50"))
         .to.emit(vault, "UpdateFxRatio")
-        .withArgs(ethers.utils.parseEther("0.8"), ethers.utils.parseEther("0.5"));
-      expect(await vault.totalFxToken()).to.eq(ethers.utils.parseEther("50"));
-      expect(await vault.totalLpToken()).to.eq(ethers.utils.parseEther("50"));
-      expect(await vault.fxRatio()).to.eq(ethers.utils.parseEther("0.5"));
+        .withArgs(ethers.parseEther("0.8"), ethers.parseEther("0.5"));
+      expect(await vault.totalFxToken()).to.eq(ethers.parseEther("50"));
+      expect(await vault.totalLpToken()).to.eq(ethers.parseEther("50"));
+      expect(await vault.fxRatio()).to.eq(ethers.parseEther("0.5"));
       // 50% => 20%
-      await wrapper.setDstAmount(ethers.utils.parseEther("30"));
-      await dst.mint(wrapper.address, ethers.utils.parseEther("30"));
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("0.2"), ethers.utils.parseEther("30"), ethers.utils.parseEther("30"))
-      )
+      await wrapper.setDstAmount(ethers.parseEther("30"));
+      await dst.mint(await wrapper.getAddress(), ethers.parseEther("30"));
+      await expect(vault.rebalance(ethers.parseEther("0.2"), ethers.parseEther("30"), ethers.parseEther("30")))
         .to.emit(vault, "Rebalance")
-        .withArgs(ethers.utils.parseEther("20"), ethers.utils.parseEther("80"))
+        .withArgs(ethers.parseEther("20"), ethers.parseEther("80"))
         .to.emit(vault, "UpdateFxRatio")
-        .withArgs(ethers.utils.parseEther("0.5"), ethers.utils.parseEther("0.2"));
-      expect(await vault.totalFxToken()).to.eq(ethers.utils.parseEther("20"));
-      expect(await vault.totalLpToken()).to.eq(ethers.utils.parseEther("80"));
-      expect(await vault.fxRatio()).to.eq(ethers.utils.parseEther("0.2"));
+        .withArgs(ethers.parseEther("0.5"), ethers.parseEther("0.2"));
+      expect(await vault.totalFxToken()).to.eq(ethers.parseEther("20"));
+      expect(await vault.totalLpToken()).to.eq(ethers.parseEther("80"));
+      expect(await vault.fxRatio()).to.eq(ethers.parseEther("0.2"));
       // 20% => 0%
-      await wrapper.setDstAmount(ethers.utils.parseEther("20"));
-      await dst.mint(wrapper.address, ethers.utils.parseEther("20"));
-      await expect(
-        vault.rebalance(ethers.utils.parseEther("0"), ethers.utils.parseEther("20"), ethers.utils.parseEther("20"))
-      )
+      await wrapper.setDstAmount(ethers.parseEther("20"));
+      await dst.mint(await wrapper.getAddress(), ethers.parseEther("20"));
+      await expect(vault.rebalance(ethers.parseEther("0"), ethers.parseEther("20"), ethers.parseEther("20")))
         .to.emit(vault, "Rebalance")
-        .withArgs(ethers.utils.parseEther("0"), ethers.utils.parseEther("100"))
+        .withArgs(ethers.parseEther("0"), ethers.parseEther("100"))
         .to.emit(vault, "UpdateFxRatio")
-        .withArgs(ethers.utils.parseEther("0.2"), ethers.utils.parseEther("0"));
-      expect(await vault.totalFxToken()).to.eq(ethers.utils.parseEther("0"));
-      expect(await vault.totalLpToken()).to.eq(ethers.utils.parseEther("100"));
-      expect(await vault.fxRatio()).to.eq(ethers.utils.parseEther("0"));
+        .withArgs(ethers.parseEther("0.2"), ethers.parseEther("0"));
+      expect(await vault.totalFxToken()).to.eq(ethers.parseEther("0"));
+      expect(await vault.totalLpToken()).to.eq(ethers.parseEther("100"));
+      expect(await vault.fxRatio()).to.eq(ethers.parseEther("0"));
     });
   });
 });

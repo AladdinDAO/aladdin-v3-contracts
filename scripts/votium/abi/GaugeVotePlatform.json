@@ -1,0 +1,333 @@
+[
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_guageRegistry", "type": "address" },
+      { "internalType": "address", "name": "_surrogateRegistry", "type": "address" },
+      { "internalType": "address", "name": "_userManager", "type": "address" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [{ "indexed": false, "internalType": "address", "name": "newOwner", "type": "address" }],
+    "name": "AcceptedOwnership",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "eq", "type": "address" },
+      { "indexed": false, "internalType": "bool", "name": "active", "type": "bool" }
+    ],
+    "name": "EqualizerAccountSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [{ "indexed": true, "internalType": "uint256", "name": "id", "type": "uint256" }],
+    "name": "ForceEndProposal",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "pid", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "gauge", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "newWeight", "type": "uint256" }
+    ],
+    "name": "GaugeTotalChange",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "id", "type": "uint256" },
+      { "indexed": false, "internalType": "bytes32", "name": "merkle", "type": "bytes32" },
+      { "indexed": false, "internalType": "uint256", "name": "start", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "end", "type": "uint256" }
+    ],
+    "name": "NewProposal",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "op", "type": "address" },
+      { "indexed": false, "internalType": "bool", "name": "active", "type": "bool" }
+    ],
+    "name": "OperatorSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [{ "indexed": false, "internalType": "address", "name": "pendingOwner", "type": "address" }],
+    "name": "TransferOwnership",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "pid", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "baseWeight", "type": "uint256" },
+      { "indexed": false, "internalType": "int256", "name": "adjustedWeight", "type": "int256" }
+    ],
+    "name": "UserWeightChange",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "proposalId", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+      { "indexed": false, "internalType": "address[]", "name": "gauges", "type": "address[]" },
+      { "indexed": false, "internalType": "uint256[]", "name": "weights", "type": "uint256[]" }
+    ],
+    "name": "VoteCast",
+    "type": "event"
+  },
+  { "inputs": [], "name": "acceptOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "_baseWeightMerkleRoot", "type": "bytes32" },
+      { "internalType": "uint256", "name": "_startTime", "type": "uint256" },
+      { "internalType": "uint256", "name": "_endTime", "type": "uint256" }
+    ],
+    "name": "createProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  { "inputs": [], "name": "forceEndProposal", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  {
+    "inputs": [],
+    "name": "gaugeRegistry",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "gaugeTotals",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_proposalId", "type": "uint256" },
+      { "internalType": "address", "name": "_user", "type": "address" }
+    ],
+    "name": "getVote",
+    "outputs": [
+      { "internalType": "address[]", "name": "gauges", "type": "address[]" },
+      { "internalType": "uint256[]", "name": "weights", "type": "uint256[]" },
+      { "internalType": "bool", "name": "voted", "type": "bool" },
+      { "internalType": "uint256", "name": "baseWeight", "type": "uint256" },
+      { "internalType": "int256", "name": "adjustedWeight", "type": "int256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_proposalId", "type": "uint256" },
+      { "internalType": "uint256", "name": "_index", "type": "uint256" }
+    ],
+    "name": "getVoterAtIndex",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_proposalId", "type": "uint256" }],
+    "name": "getVoterCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_proposalId", "type": "uint256" },
+      { "internalType": "address", "name": "_account", "type": "address" }
+    ],
+    "name": "isProofSupplied",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "max_weight",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "operators",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "overtime",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pendingowner",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proposalCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "proposals",
+    "outputs": [
+      { "internalType": "bytes32", "name": "baseWeightMerkleRoot", "type": "bytes32" },
+      { "internalType": "uint256", "name": "startTime", "type": "uint256" },
+      { "internalType": "uint256", "name": "endTime", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_op", "type": "address" },
+      { "internalType": "bool", "name": "_active", "type": "bool" }
+    ],
+    "name": "setOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_eq", "type": "address" },
+      { "internalType": "bool", "name": "_active", "type": "bool" }
+    ],
+    "name": "setOvertimeAccount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_account", "type": "address" },
+      { "internalType": "bytes32[]", "name": "proofs", "type": "bytes32[]" },
+      { "internalType": "uint256", "name": "_baseWeight", "type": "uint256" },
+      { "internalType": "int256", "name": "_adjustedWeight", "type": "int256" },
+      { "internalType": "address", "name": "_delegate", "type": "address" }
+    ],
+    "name": "supplyProofs",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "surrogateRegistry",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "_owner", "type": "address" }],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_proposalId", "type": "uint256" },
+      { "internalType": "address", "name": "_user", "type": "address" },
+      { "internalType": "uint256", "name": "_newWeight", "type": "uint256" }
+    ],
+    "name": "updateUserWeight",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "userInfo",
+    "outputs": [
+      { "internalType": "uint256", "name": "baseWeight", "type": "uint256" },
+      { "internalType": "int256", "name": "adjustedWeight", "type": "int256" },
+      { "internalType": "uint256", "name": "pendingWeight", "type": "uint256" },
+      { "internalType": "address", "name": "delegate", "type": "address" },
+      { "internalType": "uint8", "name": "voteStatus", "type": "uint8" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "userManager",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_account", "type": "address" },
+      { "internalType": "address[]", "name": "_gauges", "type": "address[]" },
+      { "internalType": "uint256[]", "name": "_weights", "type": "uint256[]" }
+    ],
+    "name": "vote",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_account", "type": "address" },
+      { "internalType": "address[]", "name": "_gauges", "type": "address[]" },
+      { "internalType": "uint256[]", "name": "_weights", "type": "uint256[]" },
+      { "internalType": "bytes32[]", "name": "proofs", "type": "bytes32[]" },
+      { "internalType": "uint256", "name": "_baseWeight", "type": "uint256" },
+      { "internalType": "int256", "name": "_adjustedWeight", "type": "int256" },
+      { "internalType": "address", "name": "_delegate", "type": "address" }
+    ],
+    "name": "voteWithProofs",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "votedUsers",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
