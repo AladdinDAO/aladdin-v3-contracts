@@ -33,10 +33,11 @@ contract ConvexCurveManager is LiquidityManagerBase {
    ***************/
 
   constructor(
+    address _proxy,
     address _operator,
     address _token,
     address _rewarder
-  ) LiquidityManagerBase(_operator, _token) {
+  ) LiquidityManagerBase(_proxy, _operator, _token) {
     rewarder = _rewarder;
     pid = IConvexBaseRewardPool(_rewarder).pid();
 
@@ -49,6 +50,8 @@ contract ConvexCurveManager is LiquidityManagerBase {
 
   /// @inheritdoc ILiquidityManager
   function manage() external {
+    if (_msgSender() != proxy) revert CallerIsNotProxy();
+
     uint256 _balance = IERC20(token).balanceOf(address(this));
     IConvexBooster(BOOSTER).deposit(pid, _balance, true);
 
@@ -68,8 +71,14 @@ contract ConvexCurveManager is LiquidityManagerBase {
   }
 
   /// @inheritdoc LiquidityManagerBase
-  function _deposit(address, uint256 _amount) internal virtual override {
-    // do nothing
+  function _deposit(
+    address,
+    uint256 _amount,
+    bool _manage
+  ) internal virtual override {
+    if (_manage) {
+      // deposit to underlying strategy
+    }
   }
 
   /// @inheritdoc LiquidityManagerBase

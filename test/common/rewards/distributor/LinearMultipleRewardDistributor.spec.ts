@@ -1,5 +1,5 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { MockERC20, MockLinearMultipleRewardDistributor } from "@typechain/index";
+import { MockERC20, MockLinearMultipleRewardDistributor } from "@/types/index";
 import { expect } from "chai";
 import { MaxUint256, ZeroAddress, ZeroHash, toBigInt } from "ethers";
 import { ethers, network } from "hardhat";

@@ -58,6 +58,9 @@ abstract contract MultipleRewardAccumulator is
    * Variables *
    *************/
 
+  /// @inheritdoc IMultipleRewardAccumulator
+  mapping(address => address) public override rewardReceiver;
+
   /// @notice Mapping from reward token address to global reward snapshot.
   ///
   /// @dev The integral is defined as 1e18 * ∫(rate(t) / totalPoolShare(t) dt).
@@ -69,7 +72,7 @@ abstract contract MultipleRewardAccumulator is
   mapping(address => mapping(address => UserRewardSnapshot)) public userRewardSnapshot;
 
   /// @dev reserved slots.
-  uint256[48] private __gap;
+  uint256[47] private __gap;
 
   /***************
    * Constructor *
@@ -94,9 +97,23 @@ abstract contract MultipleRewardAccumulator is
       REWARD_PRECISION;
   }
 
+  /// @inheritdoc IMultipleRewardAccumulator
+  function claimed(address _account, address _token) external view returns (uint256) {
+    return userRewardSnapshot[_account][_token].rewards.claimed;
+  }
+
   /****************************
    * Public Mutated Functions *
    ****************************/
+
+  /// @inheritdoc IMultipleRewardAccumulator
+  function setRewardReceiver(address _newReceiver) external {
+    address _caller = _msgSender();
+    address _oldReceiver = rewardReceiver[_caller];
+    rewardReceiver[_caller] = _newReceiver;
+
+    emit UpdateRewardReceiver(_caller, _oldReceiver, _newReceiver);
+  }
 
   /// @inheritdoc IMultipleRewardAccumulator
   function checkpoint(address _account) external override nonReentrant {
@@ -106,17 +123,17 @@ abstract contract MultipleRewardAccumulator is
   /// @inheritdoc IMultipleRewardAccumulator
   function claim() external override {
     address _sender = _msgSender();
-    claim(_sender, _sender);
+    claim(_sender, address(0));
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
   function claim(address _account) external override {
-    claim(_account, _account);
+    claim(_account, address(0));
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
   function claim(address _account, address _receiver) public override nonReentrant {
-    if (_account != _msgSender() && _account != _receiver) {
+    if (_account != _msgSender() && _receiver != address(0) && _account != _receiver) {
       revert ClaimOthersRewardToAnother();
     }
 
@@ -129,8 +146,11 @@ abstract contract MultipleRewardAccumulator is
     address _sender = _msgSender();
     _checkpoint(_sender);
 
+    address _receiver = rewardReceiver[_sender];
+    if (_receiver == address(0)) _receiver = _sender;
+
     for (uint256 i = 0; i < _tokens.length; i++) {
-      _claimSingle(_sender, _tokens[i], _sender);
+      _claimSingle(_sender, _tokens[i], _receiver);
     }
   }
 
@@ -138,8 +158,11 @@ abstract contract MultipleRewardAccumulator is
   function claimHistorical(address _account, address[] memory _tokens) external nonReentrant {
     _checkpoint(_account);
 
+    address _receiver = rewardReceiver[_account];
+    if (_receiver == address(0)) _receiver = _account;
+
     for (uint256 i = 0; i < _tokens.length; i++) {
-      _claimSingle(_account, _tokens[i], _account);
+      _claimSingle(_account, _tokens[i], _receiver);
     }
   }
 
@@ -185,8 +208,13 @@ abstract contract MultipleRewardAccumulator is
   /// @param _account The address of user to claim.
   /// @param _receiver The address of recipient of the reward token.
   function _claim(address _account, address _receiver) internal virtual {
-    address[] memory _activeRewardTokens = getActiveRewardTokens();
+    address _receiverStored = rewardReceiver[_account];
+    if (_receiverStored != address(0) && _receiver == address(0)) {
+      _receiver = _receiverStored;
+    }
+    if (_receiver == address(0)) _receiver = _account;
 
+    address[] memory _activeRewardTokens = getActiveRewardTokens();
     for (uint256 i = 0; i < _activeRewardTokens.length; i++) {
       _claimSingle(_account, _activeRewardTokens[i], _receiver);
     }
@@ -212,7 +240,7 @@ abstract contract MultipleRewardAccumulator is
 
       IERC20Upgradeable(_token).safeTransfer(_receiver, _amount);
 
-      emit Claim(_account, _token, _amount);
+      emit Claim(_account, _token, _receiver, _amount);
     }
     return _amount;
   }

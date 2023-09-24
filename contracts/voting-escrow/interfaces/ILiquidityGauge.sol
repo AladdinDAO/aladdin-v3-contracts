@@ -69,6 +69,9 @@ interface ILiquidityGauge {
    * Public View Functions *
    *************************/
 
+  /// @notice Return whether the gauge is active.
+  function isActive() external view returns (bool);
+
   /// @notice Return the address of staking token.
   function stakingToken() external view returns (address);
 
@@ -104,6 +107,19 @@ interface ILiquidityGauge {
   /// @param amount The amount of staking token to deposit.
   /// @param receiver The address of the pool share recipient.
   function deposit(uint256 amount, address receiver) external;
+
+  /// @notice Deposit some staking token to this contract and transfer the share to others.
+  ///
+  /// @dev Use `amount = type(uint256).max`, if caller wants to deposit all held staking tokens.
+  ///
+  /// @param amount The amount of staking token to deposit.
+  /// @param receiver The address of the pool share recipient.
+  /// @param manage The parameter passed to possible `LiquidityManager`.
+  function deposit(
+    uint256 amount,
+    address receiver,
+    bool manage
+  ) external;
 
   /// @notice Withdraw some staking token from this contract.
   ///

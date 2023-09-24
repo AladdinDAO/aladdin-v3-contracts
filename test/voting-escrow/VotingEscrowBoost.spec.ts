@@ -1,5 +1,5 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { MockERC20, VotingEscrow, VotingEscrowBoost } from "@typechain/index";
+import { MockERC20, VotingEscrow, VotingEscrowBoost } from "@/types/index";
 import { expect } from "chai";
 import { BigNumberish, MaxUint256, Signature, ZeroAddress, ZeroHash, toBigInt } from "ethers";
 import { ethers, network } from "hardhat";

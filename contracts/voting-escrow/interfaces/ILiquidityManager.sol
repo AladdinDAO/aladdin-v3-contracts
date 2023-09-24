@@ -13,7 +13,12 @@ interface ILiquidityManager {
   ///
   /// @param receiver The address of recipient who will receive the share.
   /// @param amount The amount of token to deposit.
-  function deposit(address receiver, uint256 amount) external;
+  /// @param manage Whether to deposit the token to underlying strategy.
+  function deposit(
+    address receiver,
+    uint256 amount,
+    bool manage
+  ) external;
 
   /// @notice Withdraw underlying token from corresponding manager.
   /// @dev Requirements:

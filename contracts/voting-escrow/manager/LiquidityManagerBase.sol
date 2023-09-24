@@ -17,11 +17,17 @@ abstract contract LiquidityManagerBase is Ownable2Step, ILiquidityManager {
   /// @dev Thrown when the call is not operator.
   error CallerIsNotOperator();
 
+  /// @dev Thrown when the call is not proxy.
+  error CallerIsNotProxy();
+
   /*************
    * Constants *
    *************/
 
-  /// @notice The address of operator.
+  /// @notice The address of `LiquidityManagerProxy` contract.
+  address public immutable proxy;
+
+  /// @notice The address of operator, usually the `LiquidityGauge` contract.
   address public immutable operator;
 
   /// @notice The address of managed token.
@@ -49,7 +55,12 @@ abstract contract LiquidityManagerBase is Ownable2Step, ILiquidityManager {
    * Constructor *
    ***************/
 
-  constructor(address _operator, address _token) {
+  constructor(
+    address _proxy,
+    address _operator,
+    address _token
+  ) {
+    proxy = _proxy;
     operator = _operator;
     token = _token;
   }
@@ -59,8 +70,12 @@ abstract contract LiquidityManagerBase is Ownable2Step, ILiquidityManager {
    ****************************/
 
   /// @inheritdoc ILiquidityManager
-  function deposit(address _receiver, uint256 _amount) external onlyOperator {
-    _deposit(_receiver, _amount);
+  function deposit(
+    address _receiver,
+    uint256 _amount,
+    bool _manage
+  ) external onlyOperator {
+    _deposit(_receiver, _amount, _manage);
   }
 
   /// @inheritdoc ILiquidityManager
@@ -68,20 +83,20 @@ abstract contract LiquidityManagerBase is Ownable2Step, ILiquidityManager {
     _withdraw(_receiver, _amount);
   }
 
+  /************************
+   * Restricted Functions *
+   ************************/
+
   /// @inheritdoc ILiquidityManager
   function execute(
     address _to,
     uint256 _value,
     bytes calldata _data
-  ) external payable returns (bool, bytes memory) {
+  ) external payable onlyOwner returns (bool, bytes memory) {
     // solhint-disable-next-line avoid-low-level-calls
     (bool success, bytes memory result) = _to.call{ value: _value }(_data);
     return (success, result);
   }
-
-  /************************
-   * Restricted Functions *
-   ************************/
 
   /// @notice Kill the liquidity manager and withdraw all token back to operator.
   function kill() external onlyOwner {
@@ -105,7 +120,12 @@ abstract contract LiquidityManagerBase is Ownable2Step, ILiquidityManager {
   ///
   /// @param _receiver The address of recipient who will receive the share.
   /// @param _amount The amount of token to deposit.
-  function _deposit(address _receiver, uint256 _amount) internal virtual;
+  /// @param _manage Whether to deposit the token to underlying strategy.
+  function _deposit(
+    address _receiver,
+    uint256 _amount,
+    bool _manage
+  ) internal virtual;
 
   /// @dev Internal function to withdraw token.
   ///

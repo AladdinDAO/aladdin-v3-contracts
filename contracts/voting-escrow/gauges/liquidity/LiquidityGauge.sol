@@ -65,6 +65,9 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
    *************/
 
   /// @inheritdoc ILiquidityGauge
+  bool public override isActive;
+
+  /// @inheritdoc ILiquidityGauge
   address public override stakingToken;
 
   /// @inheritdoc ILiquidityGauge
@@ -90,7 +93,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   address public manager;
 
   /// @dev reserved slots.
-  uint256[44] private __gap;
+  uint256[42] private __gap;
 
   /***************
    * Constructor *
@@ -118,6 +121,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
     stakingToken = _stakingToken;
+    isActive = true;
   }
 
   /*************************
@@ -136,12 +140,21 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   /// @inheritdoc ILiquidityGauge
   function deposit(uint256 _amount) external override {
     address _sender = _msgSender();
-    _deposit(_sender, _amount, _sender);
+    _deposit(_sender, _amount, _sender, false);
   }
 
   /// @inheritdoc ILiquidityGauge
   function deposit(uint256 _amount, address _receiver) external override {
-    _deposit(_msgSender(), _amount, _receiver);
+    _deposit(_msgSender(), _amount, _receiver, false);
+  }
+
+  /// @inheritdoc ILiquidityGauge
+  function deposit(
+    uint256 _amount,
+    address _receiver,
+    bool _manage
+  ) external override {
+    _deposit(_msgSender(), _amount, _receiver, _manage);
   }
 
   /// @inheritdoc ILiquidityGauge
@@ -201,6 +214,22 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
     manager = _newManager;
 
     emit UpdateLiquidityManager(_oldManager, _newManager);
+
+    if (_newManager != address(0)) {
+      address _stakingToken = stakingToken;
+      // try to manage pool balance
+      uint256 _balance = IERC20Upgradeable(_stakingToken).balanceOf(address(this));
+      if (_balance > 0) {
+        IERC20Upgradeable(_stakingToken).safeTransferFrom(address(this), _newManager, _balance);
+        ILiquidityManager(_newManager).deposit(_msgSender(), _balance, true);
+      }
+    }
+  }
+
+  /// @notice Disable the gauge.
+  /// @dev When disabled, the gauge always yields a rate of 0 and so cannot mint governance token.
+  function disableGauge() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    isActive = false;
   }
 
   /**********************
@@ -239,6 +268,12 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
       _nextInflationParams.rate = uint192(IGovernanceToken(governanceToken).rate());
       _nextInflationParams.futureEpochTime = uint64(IGovernanceToken(governanceToken).future_epoch_time_write());
       inflationParams = _nextInflationParams;
+    }
+
+    if (!isActive) {
+      // Stop distributing inflation as soon as disabled
+      _prevInflationParams.rate = 0;
+      _nextInflationParams.rate = 0;
     }
 
     // update integral for global snapshot
@@ -324,13 +359,15 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   /// @param _owner The address of staking token owner.
   /// @param _amount The amount of staking token to deposit.
   /// @param _receiver The address of pool share recipient.
+  /// @param _manage The parameter passed to possible `LiquidityManager`.
   function _deposit(
     address _owner,
     uint256 _amount,
-    address _receiver
+    address _receiver,
+    bool _manage
   ) internal nonReentrant {
     // transfer token
-    _transferStakingTokenIn(_owner, _amount, _receiver);
+    _transferStakingTokenIn(_owner, _amount, _receiver, _manage);
 
     // checkpoint
     _checkpoint(_receiver);
@@ -378,10 +415,12 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   /// @param _owner The address of the token owner.
   /// @param _amount The amount of token to transfer.
   /// @param _receiver The address of pool share recipient.
+  /// @param _manage The parameter passed to possible `LiquidityManager`.
   function _transferStakingTokenIn(
     address _owner,
     uint256 _amount,
-    address _receiver
+    address _receiver,
+    bool _manage
   ) internal virtual returns (uint256) {
     // transfer token to this contract
     address _stakingToken = stakingToken;
@@ -396,14 +435,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
 
     // We have an active manager, transfer all staking token to manager.
     if (_manager != address(this)) {
-      ILiquidityManager(_manager).deposit(_receiver, _amount);
-
-      // try to manage pool balance
-      uint256 _balance = IERC20Upgradeable(_stakingToken).balanceOf(address(this));
-      if (_balance > 0) {
-        IERC20Upgradeable(_stakingToken).safeTransferFrom(address(this), _manager, _amount);
-        ILiquidityManager(_manager).deposit(address(0), _balance);
-      }
+      ILiquidityManager(_manager).deposit(_receiver, _amount, _manage);
     }
 
     return _amount;
