@@ -309,7 +309,7 @@ export async function initialize(
       distributor as unknown as Contract,
       "initialize FeeDistributor",
       "initialize",
-      [deployment.veFXN, 1695859200n, TOKENS.stETH.address, deployer.address, multisig.Fx],
+      [deployment.veFXN, 1695859200n, TOKENS.wstETH.address, deployer.address, multisig.Fx],
       overrides
     );
   }
