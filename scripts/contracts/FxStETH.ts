@@ -301,7 +301,22 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       spliter as unknown as Contract,
       "PlatformFeeSpliter add stETH",
       "addRewardToken",
-      [TOKENS.stETH.address, governance.FeeDistributor, 0n, ethers.parseUnits("0.25", 9), ethers.parseUnits("0.75", 9)],
+      [
+        TOKENS.stETH.address,
+        governance.FeeDistributor.stETH,
+        0n,
+        ethers.parseUnits("0.25", 9),
+        ethers.parseUnits("0.75", 9),
+      ],
+      overrides
+    );
+  }
+  if ((await spliter.burners(TOKENS.stETH.address)) !== governance.Burner.PlatformFeeBurner) {
+    await ownerContractCall(
+      spliter as unknown as Contract,
+      "PlatformFeeSpliter set burner for stETH",
+      "updateRewardTokenBurner",
+      [TOKENS.stETH.address, governance.Burner.PlatformFeeBurner],
       overrides
     );
   }

@@ -18,6 +18,8 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   if (!deployment.get("ConverterRegistry")) {
     const address = await contractDeploy(deployer, "ConverterRegistry", "ConverterRegistry", [], overrides);
     deployment.set("ConverterRegistry", address);
+  } else {
+    console.log("Found ConverterRegistry at:", deployment.get("ConverterRegistry"));
   }
 
   if (!deployment.get("GeneralTokenConverter")) {
@@ -29,6 +31,8 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
       overrides
     );
     deployment.set("GeneralTokenConverter", address);
+  } else {
+    console.log("Found GeneralTokenConverter at:", deployment.get("GeneralTokenConverter"));
   }
 
   if (!deployment.get("LidoConverter")) {
@@ -40,6 +44,8 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
       overrides
     );
     deployment.set("LidoConverter", address);
+  } else {
+    console.log("Found LidoConverter at:", deployment.get("LidoConverter"));
   }
 
   /*

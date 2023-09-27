@@ -1,11 +1,11 @@
 import { toBigInt } from "ethers";
-import { network } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import { ensureDeployer } from "@/contracts/helpers";
 import * as Converter from "@/contracts/Converter";
 
-const maxFeePerGas = 30e9;
-const maxPriorityFeePerGas = 1e7;
+const maxFeePerGas = ethers.parseUnits("10", "gwei");
+const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 async function main() {
   const overrides = {

@@ -112,4 +112,5 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   AAVE: { decimals: 18, address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9" },
   BAL: { decimals: 18, address: "0xba100000625a3754423978a60c9317c58a424e3D" },
   auraBAL: { decimals: 18, address: "0x616e8bfa43f920657b3497dbf40d6b1a02d4608d" },
+  FXN: { decimals: 18, address: "0x365AccFCa291e7D3914637ABf1F7635dB165Bb09" },
 };
