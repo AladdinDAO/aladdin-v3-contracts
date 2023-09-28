@@ -9,6 +9,7 @@ import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/tok
 import { IRewardDistributor } from "./IRewardDistributor.sol";
 import { LinearReward } from "./LinearReward.sol";
 
+// solhint-disable no-empty-blocks
 // solhint-disable not-rely-on-time
 
 abstract contract LinearRewardDistributor is AccessControlUpgradeable, IRewardDistributor {
@@ -61,7 +62,7 @@ abstract contract LinearRewardDistributor is AccessControlUpgradeable, IRewardDi
    *************************/
 
   /// @inheritdoc IRewardDistributor
-  function pendingRewards() external view override returns (uint256, uint256) {
+  function pendingRewards() public view override returns (uint256, uint256) {
     return rewardData.pending();
   }
 
@@ -78,6 +79,8 @@ abstract contract LinearRewardDistributor is AccessControlUpgradeable, IRewardDi
     _distributePendingReward();
 
     _notifyReward(_amount);
+
+    _afterRewardDeposit(_amount);
 
     emit DepositReward(_amount);
   }
@@ -115,4 +118,8 @@ abstract contract LinearRewardDistributor is AccessControlUpgradeable, IRewardDi
   ///
   /// @param _amount The amount of rewards to accumulate.
   function _accumulateReward(uint256 _amount) internal virtual;
+
+  /// @dev The hook for the deposited rewards.
+  /// @param _amount The amount of rewards deposited.
+  function _afterRewardDeposit(uint256 _amount) internal virtual {}
 }

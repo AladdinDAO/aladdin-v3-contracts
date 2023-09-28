@@ -16,7 +16,7 @@ import "../../interfaces/ICurveFactoryPlainPool.sol";
 import "../../interfaces/ICvxCrvStakingWrapper.sol";
 import "../../interfaces/IZap.sol";
 
-import "../../common/FeeCustomization.sol";
+import "../../common/fees/FeeCustomization.sol";
 import "../ConcentratorBase.sol";
 
 // solhint-disable no-empty-blocks, reason-string

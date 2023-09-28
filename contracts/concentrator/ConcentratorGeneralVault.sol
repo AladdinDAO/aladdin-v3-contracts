@@ -12,7 +12,7 @@ import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 import "./interfaces/IConcentratorGeneralVault.sol";
 import "./interfaces/IConcentratorStrategy.sol";
 
-import "../common/FeeCustomization.sol";
+import "../common/fees/FeeCustomization.sol";
 import "./ConcentratorBase.sol";
 
 // solhint-disable no-empty-blocks
