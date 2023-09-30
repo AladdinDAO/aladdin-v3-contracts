@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../interfaces/ICurveGauge.sol";
-import "../interfaces/ICurveMinter.sol";
-import "../interfaces/ICLeverAMOStrategy.sol";
-import "../../../interfaces/IZap.sol";
+import { ICurveGauge } from "../../../interfaces/ICurveGauge.sol";
+import { ICurveTokenMinter } from "../../../interfaces/ICurveTokenMinter.sol";
+import { IZap } from "../../../interfaces/IZap.sol";
+import { IConcentratorStrategy } from "../../interfaces/IConcentratorStrategy.sol";
+import { ICLeverAMOStrategy } from "../interfaces/ICLeverAMOStrategy.sol";
 
-import "../../strategies/ConcentratorStrategyBase.sol";
+import { ConcentratorStrategyBase } from "../../strategies/ConcentratorStrategyBase.sol";
 
 // solhint-disable no-empty-blocks
 // solhint-disable reason-string
@@ -41,9 +42,9 @@ contract CLeverGaugeStrategy is ConcentratorStrategyBase, ICLeverAMOStrategy {
     address[] memory _rewards
   ) external initializer {
     require(_rewards[0] == CLEV, "CLeverGaugeStrategy: first reward not CLEV");
-    ConcentratorStrategyBase._initialize(_operator, _rewards);
+    __ConcentratorStrategyBase_init(_operator, _rewards);
 
-    IERC20(_token).safeApprove(_gauge, uint256(-1));
+    IERC20(_token).safeApprove(_gauge, type(uint256).max);
 
     token = _token;
     gauge = _gauge;
@@ -92,7 +93,7 @@ contract CLeverGaugeStrategy is ConcentratorStrategyBase, ICLeverAMOStrategy {
       _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
     }
     address _gauge = gauge;
-    ICurveMinter(MINTER).mint(_gauge);
+    ICurveTokenMinter(MINTER).mint(_gauge);
     // some gauge has no extra rewards
     try ICurveGauge(_gauge).claim_rewards() {} catch {}
     for (uint256 i = 0; i < rewards.length; i++) {

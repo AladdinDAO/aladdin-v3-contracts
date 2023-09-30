@@ -29,8 +29,11 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
   /// @notice The address of strategy used.
   address public strategy;
 
+  /// @notice The address of rewards depositor.
+  address public depositor;
+
   /// @dev reserved slots.
-  uint256[48] private __gap;
+  uint256[47] private __gap;
 
   function _initialize(
     address _zap,
@@ -83,6 +86,16 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
     return _amountLP;
   }
 
+  function depositReward(uint256 _amount) external {
+    require(depositor == msg.sender, "only reward depositor");
+
+    address _strategy = strategy;
+    IERC20Upgradeable(asset()).safeTransferFrom(msg.sender, _strategy, _amount);
+    IConcentratorStrategy(_strategy).deposit(address(this), _amount);
+
+    _notifyHarvestedReward(_amount);
+  }
+
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update the list of reward tokens.
@@ -98,6 +111,10 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
     zap = _zap;
 
     emit UpdateZap(_zap);
+  }
+
+  function updateDepositor(address _depositor) external onlyOwner {
+    depositor = _depositor;
   }
 
   /// @notice Migrate pool assets to new strategy.

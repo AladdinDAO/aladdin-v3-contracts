@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/IZap.sol";
+import { IZap } from "../../interfaces/IZap.sol";
 
-import "./ConcentratorStrategyBase.sol";
+import { ConcentratorStrategyBase } from "./ConcentratorStrategyBase.sol";
 
 abstract contract AutoCompoundingStrategyBase is ConcentratorStrategyBase {
   using SafeERC20 for IERC20;

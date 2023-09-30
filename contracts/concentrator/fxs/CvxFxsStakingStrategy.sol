@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
 import { IConvexFXSDepositor } from "../../interfaces/convex/IConvexFXSDepositor.sol";
@@ -48,10 +48,10 @@ contract CvxFxsStakingStrategy is ConcentratorStrategyBase {
     _rewards[0] = 0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0; // FXS
     _rewards[1] = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B; // CVX
 
-    _initialize(_operator, _rewards);
+    __ConcentratorStrategyBase_init(_operator, _rewards);
 
-    IERC20(cvxFXS).safeApprove(staker, uint256(-1));
-    IERC20(FXS).safeApprove(FXS_DEPOSITOR, uint256(-1));
+    IERC20(cvxFXS).safeApprove(staker, type(uint256).max);
+    IERC20(FXS).safeApprove(FXS_DEPOSITOR, type(uint256).max);
   }
 
   /****************************
@@ -87,15 +87,15 @@ contract CvxFxsStakingStrategy is ConcentratorStrategyBase {
   function harvest(address _zapper, address _intermediate) external override onlyOperator returns (uint256 _harvested) {
     require(_intermediate == FXS, "intermediate not FXS");
 
-    // 1. claim rewards from staking contract.
+    // 0. sweep balances
     address[] memory _rewards = rewards;
+    _sweepToken(_rewards);
+
+    // 1. claim rewards from staking contract.
+    ICvxFxsStaking(staker).getReward(address(this));
     uint256[] memory _amounts = new uint256[](rewards.length);
     for (uint256 i = 0; i < rewards.length; i++) {
       _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
-    }
-    ICvxFxsStaking(staker).getReward(address(this));
-    for (uint256 i = 0; i < rewards.length; i++) {
-      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this)) - _amounts[i];
     }
 
     // 2. zap all rewards (except cvxFXS) to FXS

@@ -3,8 +3,6 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "../interfaces/ICurveGauge.sol";
-import "../interfaces/ICurveMinter.sol";
 import "../interfaces/ILegacyFurnace.sol";
 import "../interfaces/ILegacyFurnace.sol";
 import "../interfaces/ICLeverAMOStrategy.sol";
