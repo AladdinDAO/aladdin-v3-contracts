@@ -440,6 +440,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
       _wrapTokenIfNeeded(_tokenIn, _amountIn);
     }
 
+    uint256 _balanceBefore = IERC20(_tokenOut).balanceOf(address(this));
     if (_poolType == 0) {
       // Uniswap V2
       if (((_encoding >> 185) & 1) == 1) {
@@ -554,7 +555,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
       _wrapTokenIfNeeded(_tokenOut, address(this).balance);
     }
     if (_amountOut == 0) {
-      _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+      _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
     }
     if (_recipient != address(this)) {
       IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
@@ -664,6 +665,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
       _wrapTokenIfNeeded(_tokenIn, _amountIn);
     }
 
+    uint256 _balanceBefore = IERC20(_tokenOut).balanceOf(address(this));
     if (4 <= _poolType && _poolType <= 8) {
       _pool = _getTokenMinter(_pool);
       uint256 _tokens = ((_encoding >> 160) & 7) + 1;
@@ -733,7 +735,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
       revert("invalid poolType");
     }
 
-    _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+    _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
     if (_recipient != address(this)) {
       IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
     }
@@ -785,6 +787,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
     (address _tokenIn, address _tokenOut) = _getTokenPair(_poolType, 2, _encoding);
     address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
 
+    uint256 _balanceBefore = IERC20(_tokenOut).balanceOf(address(this));
     if (4 <= _poolType && _poolType <= 8) {
       if (_poolType != 6) {
         _pool = _getTokenMinter(_pool);
@@ -817,7 +820,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
       _wrapTokenIfNeeded(_tokenOut, address(this).balance);
     }
 
-    _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+    _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
     if (_recipient != address(this)) {
       IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
     }
