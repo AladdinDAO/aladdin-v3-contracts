@@ -1,5 +1,5 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { BaseContract, Contract, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
+import { BaseContract, BytesLike, Contract, Result, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
 import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
@@ -96,6 +96,10 @@ export async function ownerContractCall(
 
 export function abiEncode(types: Array<string>, args: Array<any>): string {
   return ethers.AbiCoder.defaultAbiCoder().encode(types, args);
+}
+
+export function abiDecode(types: Array<string>, data: BytesLike): Result {
+  return ethers.AbiCoder.defaultAbiCoder().decode(types, data);
 }
 
 export const ExpectedDeployers: { [network: string]: string } = {
