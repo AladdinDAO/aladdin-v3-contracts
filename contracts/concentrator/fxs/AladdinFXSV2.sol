@@ -71,6 +71,9 @@ contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
   /// @notice The address of auto-compounding strategy.
   address public strategy;
 
+  /// @notice The address of rewards depositor.
+  address public depositor;
+
   /***************
    * Constructor *
    ***************/
@@ -187,6 +190,18 @@ contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
     return _amountLP;
   }
 
+  /// @notice Deposit and notify new rewards.
+  /// @param _amount The amount of rewards to deposit.
+  function depositReward(uint256 _amount) external {
+    require(depositor == msg.sender, "only reward depositor");
+
+    address _strategy = strategy;
+    IERC20Upgradeable(asset()).safeTransferFrom(msg.sender, _strategy, _amount);
+    IConcentratorStrategy(_strategy).deposit(address(this), _amount);
+
+    _notifyHarvestedReward(_amount);
+  }
+
   /************************
    * Restricted Functions *
    ************************/
@@ -198,6 +213,12 @@ contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
     zap = _zap;
 
     emit UpdateZap(_zap);
+  }
+
+  /// @notice Update the address of reward depositor.
+  /// @param _depositor The address of reward depositor.
+  function updateDepositor(address _depositor) external onlyOwner {
+    depositor = _depositor;
   }
 
   /// @notice Migrate pool assets to new strategy.

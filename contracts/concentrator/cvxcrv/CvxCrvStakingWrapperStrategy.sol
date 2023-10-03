@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
 import { ICvxCrvStakingWrapper } from "../../interfaces/ICvxCrvStakingWrapper.sol";
@@ -12,7 +11,7 @@ import { IZap } from "../../interfaces/IZap.sol";
 
 import { ConcentratorStrategyBase } from "../strategies/ConcentratorStrategyBase.sol";
 
-contract CvxCrvStakingWrapperStrategy is ConcentratorStrategyBase, Ownable {
+contract CvxCrvStakingWrapperStrategy is ConcentratorStrategyBase {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc IConcentratorStrategy
@@ -42,9 +41,9 @@ contract CvxCrvStakingWrapperStrategy is ConcentratorStrategyBase, Ownable {
     _rewards[1] = CVX;
     _rewards[2] = THREE_CRV;
 
-    _initialize(_operator, _rewards);
+    __ConcentratorStrategyBase_init(_operator, _rewards);
 
-    IERC20(cvxCRV).safeApprove(_wrapper, uint256(-1));
+    IERC20(cvxCRV).safeApprove(_wrapper, type(uint256).max);
   }
 
   /// @inheritdoc IConcentratorStrategy
@@ -60,15 +59,15 @@ contract CvxCrvStakingWrapperStrategy is ConcentratorStrategyBase, Ownable {
 
   /// @inheritdoc IConcentratorStrategy
   function harvest(address _zapper, address _intermediate) external override onlyOperator returns (uint256 _harvested) {
-    // 1. claim rewards from staking wrapper contract.
+    // 0. sweep balances
     address[] memory _rewards = rewards;
+    _sweepToken(_rewards);
+
+    // 1. claim rewards from staking wrapper contract.
+    ICvxCrvStakingWrapper(wrapper).getReward(address(this));
     uint256[] memory _amounts = new uint256[](rewards.length);
     for (uint256 i = 0; i < rewards.length; i++) {
       _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
-    }
-    ICvxCrvStakingWrapper(wrapper).getReward(address(this));
-    for (uint256 i = 0; i < rewards.length; i++) {
-      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this)) - _amounts[i];
     }
 
     // 2. zap all rewards to intermediate token.
@@ -84,7 +83,7 @@ contract CvxCrvStakingWrapperStrategy is ConcentratorStrategyBase, Ownable {
     }
 
     // 3. transfer intermediate token back to operator.
-    _transferTokenBack(_intermediate, _harvested);
+    _transferToken(_intermediate, _msgSender(), _harvested);
   }
 
   /// @notice Set the reward weight for 3CRV group.

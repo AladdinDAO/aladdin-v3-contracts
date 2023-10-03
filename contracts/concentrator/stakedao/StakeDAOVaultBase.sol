@@ -12,7 +12,7 @@ import "./interfaces/IStakeDAOGauge.sol";
 import "./interfaces/IStakeDAOLockerProxy.sol";
 import "./interfaces/IStakeDAOVault.sol";
 
-import "../../common/FeeCustomization.sol";
+import "../../common/fees/FeeCustomization.sol";
 
 // solhint-disable not-rely-on-time
 

@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 
 import "./interfaces/IAladdinCompounder.sol";
 
-import "../common/FeeCustomization.sol";
+import "../common/fees/FeeCustomization.sol";
 import "./ConcentratorBase.sol";
 
 // solhint-disable no-empty-blocks
