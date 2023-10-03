@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.0 || ^0.8.0;
 
 interface ICvxRewardPool {
   function getReward(
@@ -24,6 +24,10 @@ interface ICvxRewardPool {
   function totalSupply() external view returns (uint256);
 
   function balanceOf(address account) external view returns (uint256);
+
+  function rewardToken() external view returns (address);
+
+  function extraRewards(uint256) external view returns (address);
 
   function extraRewardsLength() external view returns (uint256);
 }

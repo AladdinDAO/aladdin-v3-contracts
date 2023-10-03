@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "../interfaces/IAladdinCRV.sol";
 import "../../interfaces/IConvexBasicRewards.sol";
 import "../../interfaces/IConvexCRVDepositor.sol";
-import "../../interfaces/IConvexVirtualBalanceRewardPool.sol";
+import "../../interfaces/convex/IConvexVirtualBalanceRewardPool.sol";
 import "../../interfaces/ICVXMining.sol";
 import "../../interfaces/IEllipsisMerkleDistributor.sol";
 import "../../interfaces/IZap.sol";
