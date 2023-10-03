@@ -94,6 +94,9 @@ contract AladdinCRVV2 is
   /// @notice The address of strategy.
   address public strategy;
 
+  /// @notice The address of rewards depositor.
+  address public depositor;
+
   receive() external payable {}
 
   constructor(address _curveCvxCrvPool, address _wrapper) {
@@ -385,6 +388,18 @@ contract AladdinCRVV2 is
     return _harvest(_recipient, _minimumOut);
   }
 
+  /// @notice Deposit and notify new rewards.
+  /// @param _amount The amount of rewards to deposit.
+  function depositReward(uint256 _amount) external {
+    require(depositor == msg.sender, "only reward depositor");
+
+    address _strategy = strategy;
+    IERC20Upgradeable(CVXCRV).safeTransferFrom(msg.sender, _strategy, _amount);
+    IConcentratorStrategy(_strategy).deposit(address(this), _amount);
+
+    totalUnderlying += _amount;
+  }
+
   /********************************** Restricted Functions **********************************/
 
   /// @notice Update the withdraw fee percentage.
@@ -434,6 +449,12 @@ contract AladdinCRVV2 is
   /// @param _harvester The address of the harvester contract.
   function updateHarvester(address _harvester) external onlyOwner {
     _updateHarvester(_harvester);
+  }
+
+  /// @notice Update the address of reward depositor.
+  /// @param _depositor The address of reward depositor.
+  function updateDepositor(address _depositor) external onlyOwner {
+    depositor = _depositor;
   }
 
   /// @notice Migrate pool assets to new strategy.

@@ -86,6 +86,8 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
     return _amountLP;
   }
 
+  /// @notice Deposit and notify new rewards.
+  /// @param _amount The amount of rewards to deposit.
   function depositReward(uint256 _amount) external {
     require(depositor == msg.sender, "only reward depositor");
 
@@ -113,6 +115,8 @@ abstract contract AladdinCompounderWithStrategy is AladdinCompounder {
     emit UpdateZap(_zap);
   }
 
+  /// @notice Update the address of reward depositor.
+  /// @param _depositor The address of reward depositor.
   function updateDepositor(address _depositor) external onlyOwner {
     depositor = _depositor;
   }
