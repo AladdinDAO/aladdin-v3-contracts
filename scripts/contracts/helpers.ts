@@ -1,5 +1,5 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { BaseContract, Contract, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
+import { BaseContract, BytesLike, Contract, Result, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
 import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
@@ -21,10 +21,10 @@ export async function contractDeploy(
   console.log(`\nDeploying ${desc} ...`);
   console.log("  args:", JSON.stringify(args, replacer));
   const instance = overrides ? await contract.deploy(...args, overrides) : await contract.deploy(...args);
-  console.log("  transaction hash:", instance.deploymentTransaction()?.hash);
+  console.log(`  TransactionHash[${instance.deploymentTransaction()?.hash}]`);
   const receipt = await instance.deploymentTransaction()?.wait();
   const address = await instance.getAddress();
-  console.log("  ✅ Done, deployed at:", address, "gas used:", receipt!.gasUsed.toString());
+  console.log(`  ✅ Done,`, `DeployedAt[${address}]`, `GasUsed[${receipt!.gasUsed.toString()}]`);
 
   return address;
 }
@@ -43,9 +43,9 @@ export async function minimalProxyDeploy(
     maxPriorityFeePerGas: overrides?.maxPriorityFeePerGas,
     gasLimit: overrides?.gasLimit,
   });
-  console.log("  transaction hash:", tx.hash);
+  console.log(`  TransactionHash[${tx.hash}]`);
   const receipt = await tx.wait();
-  console.log("  ✅ Done, deployed at:", receipt!.contractAddress, "gas used:", receipt!.gasUsed.toString());
+  console.log(`  ✅ Done,`, `DeployedAt[${receipt!.contractAddress}]`, `GasUsed[${receipt!.gasUsed.toString()}]`);
 
   return receipt!.contractAddress!;
 }
@@ -69,7 +69,7 @@ export async function contractCall(
   const tx = overrides
     ? await contract.getFunction(method)(...args, overrides)
     : await contract.getFunction(method)(...args);
-  console.log(`  EstimatedGas[${estimated.toString()}] transaction hash[${tx.hash}]`);
+  console.log(`  EstimatedGas[${estimated.toString()}] TransactionHash[${tx.hash}]`);
   const receipt: TransactionReceipt = await tx.wait();
   console.log("  ✅ Done, gas used:", receipt.gasUsed.toString());
 
@@ -108,6 +108,10 @@ export async function ownerContractCall(
 
 export function abiEncode(types: Array<string>, args: Array<any>): string {
   return ethers.AbiCoder.defaultAbiCoder().encode(types, args);
+}
+
+export function abiDecode(types: Array<string>, data: BytesLike): Result {
+  return ethers.AbiCoder.defaultAbiCoder().decode(types, data);
 }
 
 export const ExpectedDeployers: { [network: string]: string } = {
