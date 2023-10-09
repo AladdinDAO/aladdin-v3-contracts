@@ -40,6 +40,10 @@ interface ICurveYPoolSwap {
   function coins(uint256 index) external view returns (address);
 
   function underlying_coins(uint256 index) external view returns (address);
+
+  function coins(int128 index) external view returns (address);
+
+  function underlying_coins(int128 index) external view returns (address);
 }
 
 interface ICurveYPoolDeposit {

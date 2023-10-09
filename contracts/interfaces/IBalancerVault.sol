@@ -81,4 +81,30 @@ interface IBalancerVault {
     address payable recipient,
     ExitPoolRequest memory request
   ) external;
+
+  /**
+   * @dev Data for each individual swap executed by `batchSwap`. The asset in and out fields are indexes into the
+   * `assets` array passed to that function, and ETH assets are converted to WETH.
+   *
+   * If `amount` is zero, the multihop mechanism is used to determine the actual amount based on the amount in/out
+   * from the previous swap, depending on the swap kind.
+   *
+   * The `userData` field is ignored by the Vault, but forwarded to the Pool in the `onSwap` hook, and may be
+   * used to extend swap behavior.
+   */
+  struct BatchSwapStep {
+    bytes32 poolId;
+    uint256 assetInIndex;
+    uint256 assetOutIndex;
+    uint256 amount;
+    bytes userData;
+  }
+
+  // This function is not marked as `nonReentrant` because the underlying mechanism relies on reentrancy
+  function queryBatchSwap(
+    SwapKind kind,
+    BatchSwapStep[] memory swaps,
+    address[] memory assets,
+    FundManagement memory funds
+  ) external returns (int256[] memory);
 }

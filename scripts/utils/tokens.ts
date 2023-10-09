@@ -52,6 +52,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   pETH: { decimals: 18, address: "0x836A808d4828586A69364065A1e064609F5078c7" },
   cbETH: { decimals: 18, address: "0xBe9895146f7AF43049ca1c1AE358B0541Ea49704" },
   frxETH: { decimals: 18, address: "0x5e8422345238f34275888049021821e8e08caa1f" },
+  sfrxETH: { decimals: 18, address: "0xac3e018457b222d93114458476f3e3416abbe38f" },
   MTA: { decimals: 18, address: "0xa3BeD4E1c75D00fa6f4E5E6922DB7261B5E9AcD2" },
   GNO: { decimals: 18, address: "0x6810e776880C02933D47DB1b9fc05908e5386b96" },
   sUSD: { decimals: 18, address: "0x57Ab1ec28D129707052df4dF418D58a2D46d5f51" },
@@ -108,4 +109,8 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   xETH: { decimals: 18, address: "0xe063f04f280c60aeca68b38341c2eecbec703ae2" },
   ALD: { decimals: 18, address: "0xb26c4b3ca601136daf98593feaeff9e0ca702a8d" },
   GRAI: { decimals: 18, address: "0x15f74458aE0bFdAA1a96CA1aa779D715Cc1Eefe4" },
+  AAVE: { decimals: 18, address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9" },
+  BAL: { decimals: 18, address: "0xba100000625a3754423978a60c9317c58a424e3D" },
+  auraBAL: { decimals: 18, address: "0x616e8bfa43f920657b3497dbf40d6b1a02d4608d" },
+  FXN: { decimals: 18, address: "0x365AccFCa291e7D3914637ABf1F7635dB165Bb09" },
 };

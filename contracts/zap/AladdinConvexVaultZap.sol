@@ -231,11 +231,14 @@ contract AladdinConvexVaultZap is Ownable, IZap {
     uint256 _amountIn
   ) internal returns (uint256) {
     address _tokenIn = ICurveCryptoPool(_pool).coins(_indexIn);
+    address _tokenOut = ICurveCryptoPool(_pool).coins(_indexOut);
 
     _wrapTokenIfNeeded(_tokenIn, _amountIn);
     _approve(_tokenIn, _pool, _amountIn);
 
-    return ICurveCryptoPool(_pool).exchange(_indexIn, _indexOut, _amountIn, 0);
+    uint256 _before = IERC20(_tokenOut).balanceOf(address(this));
+    ICurveCryptoPool(_pool).exchange(_indexIn, _indexOut, _amountIn, 0);
+    return IERC20(_tokenOut).balanceOf(address(this)) - _before;
   }
 
   function _swapCurveFactoryPool(

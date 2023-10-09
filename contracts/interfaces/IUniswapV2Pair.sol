@@ -7,8 +7,6 @@ interface IUniswapV2Pair {
 
   function token1() external view returns (address);
 
-  function executeVirtualOrders(uint256 blockTimestamp) external;
-
   function getReserves()
     external
     view
@@ -24,4 +22,10 @@ interface IUniswapV2Pair {
     address to,
     bytes calldata data
   ) external;
+
+  // fraxswap
+  function executeVirtualOrders(uint256 blockTimestamp) external;
+
+  // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+  function getAmountOut(uint256 amountIn, address tokenIn) external view returns (uint256);
 }
