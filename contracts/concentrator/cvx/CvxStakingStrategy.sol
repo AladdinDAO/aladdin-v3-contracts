@@ -40,7 +40,7 @@ contract CvxStakingStrategy is AutoCompoundingStrategyBaseV2 {
    * Constructor *
    ***************/
 
-  constructor(address _operator, address _staker) {
+  constructor(address _operator, address _staker) initializer {
     staker = _staker;
 
     address[] memory _rewards = new address[](1);
@@ -50,6 +50,10 @@ contract CvxStakingStrategy is AutoCompoundingStrategyBaseV2 {
 
     // approval
     IERC20(CVX).safeApprove(_staker, type(uint256).max);
+
+    // protect token
+    isTokenProtected[CVX] = true;
+    isTokenProtected[cvxCRV] = true;
   }
 
   /****************************

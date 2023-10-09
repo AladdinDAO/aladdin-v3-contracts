@@ -1,9 +1,19 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
+import { ZeroAddress } from "ethers";
 import { ethers, network } from "hardhat";
-import { TOKENS, ZAP_ROUTES } from "../../../../scripts/utils";
-import { CvxCompounder, AladdinZap, CvxStakingStrategy, ICvxRewardPool, MockERC20 } from "../../../../typechain";
+
+import {
+  CvxCompounder,
+  CvxStakingStrategy,
+  ICvxRewardPool,
+  MockERC20,
+  ConverterRegistry,
+  GeneralTokenConverter,
+} from "@/types/index";
+import { CONVERTER_ROUTRS, DEPLOYED_CONTRACTS, TOKENS } from "@/utils/index";
+
 import { request_fork } from "../../../utils";
 
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
@@ -17,7 +27,9 @@ describe("CvxCompounder.spec", async () => {
 
   let compounder: CvxCompounder;
 
-  let zap: AladdinZap;
+  let registry: ConverterRegistry;
+  let converter: GeneralTokenConverter;
+
   let strategy: CvxStakingStrategy;
   let staker: ICvxRewardPool;
 
@@ -30,17 +42,29 @@ describe("CvxCompounder.spec", async () => {
 
     staker = await ethers.getContractAt("ICvxRewardPool", CVX_REWARD_POOL, deployer);
 
-    const AladdinZap = await ethers.getContractFactory("AladdinZap", deployer);
-    zap = await AladdinZap.deploy();
-    await zap.initialize();
+    const ConverterRegistry = await ethers.getContractFactory("ConverterRegistry", deployer);
+    registry = await ConverterRegistry.deploy();
+
+    const GeneralTokenConverter = await ethers.getContractFactory("GeneralTokenConverter", deployer);
+    converter = await GeneralTokenConverter.deploy(registry.getAddress());
 
     const CvxCompounder = await ethers.getContractFactory("CvxCompounder", deployer);
-    compounder = await CvxCompounder.deploy();
+    compounder = await CvxCompounder.deploy(0);
 
     const CvxStakingStrategy = await ethers.getContractFactory("CvxStakingStrategy", deployer);
     strategy = await CvxStakingStrategy.deploy(await compounder.getAddress(), await staker.getAddress());
 
-    await compounder.initialize(await zap.getAddress(), await strategy.getAddress(), "aCVX", "aCVX");
+    await compounder.initialize(
+      "Aladdin CVX",
+      "aCVX",
+      DEPLOYED_CONTRACTS.Concentrator.PlatformFeeSpliter,
+      ZeroAddress,
+      converter.getAddress(),
+      strategy.getAddress()
+    );
+    await registry.updateRoute(TOKENS.cvxCRV.address, TOKENS.WETH.address, CONVERTER_ROUTRS.cvxCRV.WETH);
+    await registry.updateRoute(TOKENS.WETH.address, TOKENS.CVX.address, CONVERTER_ROUTRS.WETH.CVX);
+    await converter.updateSupportedPoolTypes(1023);
   });
 
   context("harvest", async () => {
@@ -55,9 +79,6 @@ describe("CvxCompounder.spec", async () => {
     });
 
     it(`should succeed`, async () => {
-      await zap.updateRoute(TOKENS.cvxCRV.address, TOKENS.WETH.address, ZAP_ROUTES.cvxCRV.WETH);
-      await zap.updateRoute(TOKENS.WETH.address, TOKENS.CVX.address, ZAP_ROUTES.WETH.CVX);
-
       const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
       // make sure 7 days passed, then the rewards will not increase anymore.
       await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);

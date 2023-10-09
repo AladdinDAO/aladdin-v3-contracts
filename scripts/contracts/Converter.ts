@@ -30,16 +30,5 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.set("GeneralTokenConverter", address);
   }
 
-  if (!deployment.get("MultiPathConverter")) {
-    const address = await contractDeploy(
-      deployer,
-      "MultiPathConverter",
-      "MultiPathConverter",
-      [deployment.get("GeneralTokenConverter")],
-      overrides
-    );
-    deployment.set("MultiPathConverter", address);
-  }
-
   return deployment.toObject() as ConverterDeployment;
 }
