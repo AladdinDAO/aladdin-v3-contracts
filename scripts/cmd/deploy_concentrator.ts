@@ -3,6 +3,7 @@ import { toBigInt } from "ethers";
 
 import { ensureDeployer } from "@/contracts/helpers";
 import * as ConcentratorCVX from "@/contracts/ConcentratorCVX";
+import * as ConcentratorFrxETH from "@/contracts/ConcentratorFrxETH";
 
 const maxFeePerGas = 30e9;
 const maxPriorityFeePerGas = 1e9;
@@ -18,6 +19,10 @@ async function main() {
   if (cmd === "cvx") {
     const cvx = await ConcentratorCVX.deploy(deployer, overrides);
     await ConcentratorCVX.initialize(deployer, cvx, overrides);
+  }
+  if (cmd === "frxeth") {
+    const frxeth = await ConcentratorFrxETH.deploy(deployer, overrides);
+    await ConcentratorFrxETH.initialize(deployer, frxeth, overrides);
   }
 }
 
