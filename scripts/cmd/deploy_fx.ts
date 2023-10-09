@@ -1,5 +1,5 @@
 import { network } from "hardhat";
-import { toBigInt } from "ethers";
+import { ethers, toBigInt } from "ethers";
 
 import { showConverterRoute } from "@/utils/routes";
 
@@ -7,8 +7,8 @@ import { ensureDeployer } from "@/contracts/helpers";
 import * as FxGovernance from "@/contracts/FxGovernance";
 import * as FxStETH from "@/contracts/FxStETH";
 
-const maxFeePerGas = 30e9;
-const maxPriorityFeePerGas = 1e9;
+const maxFeePerGas = ethers.parseUnits("10", "gwei");
+const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 async function main() {
   const overrides = {
@@ -21,6 +21,7 @@ async function main() {
     ["stETH", "WETH"],
     ["stETH", "USDC"],
     ["stETH", "USDT"],
+    ["stETH", "wstETH"],
   ]) {
     showConverterRoute(src, dst);
   }

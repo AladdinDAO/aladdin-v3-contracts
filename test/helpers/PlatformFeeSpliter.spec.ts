@@ -1,17 +1,18 @@
-/* eslint-disable node/no-missing-import */
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { constants } from "ethers";
+import { ZeroAddress, toBigInt } from "ethers";
 import { ethers } from "hardhat";
-import { MockERC20, PlatformFeeSpliter } from "../../typechain";
+
+import { MockERC20, PlatformFeeSpliter } from "@/types/index";
 
 describe("PlatformFeeSpliter.spec", async () => {
-  let deployer: SignerWithAddress;
-  let alice: SignerWithAddress;
-  let treasury: SignerWithAddress;
-  let ecosystem: SignerWithAddress;
-  let staker: SignerWithAddress;
-  let locker: SignerWithAddress;
+  let deployer: HardhatEthersSigner;
+  let alice: HardhatEthersSigner;
+  let treasury: HardhatEthersSigner;
+  let ecosystem: HardhatEthersSigner;
+  let staker: HardhatEthersSigner;
+  let locker: HardhatEthersSigner;
+
   let spliter: PlatformFeeSpliter;
 
   beforeEach(async () => {
@@ -19,7 +20,6 @@ describe("PlatformFeeSpliter.spec", async () => {
 
     const PlatformFeeSpliter = await ethers.getContractFactory("PlatformFeeSpliter", deployer);
     spliter = await PlatformFeeSpliter.deploy(treasury.address, ecosystem.address, staker.address);
-    await spliter.deployed();
 
     expect(await spliter.staker()).to.eq(staker.address);
     expect(await spliter.treasury()).to.eq(treasury.address);
@@ -28,15 +28,13 @@ describe("PlatformFeeSpliter.spec", async () => {
 
   context("#updateTreasury", async () => {
     it("should revert, when call updateTreasury and caller is not owner", async () => {
-      await expect(spliter.connect(alice).updateTreasury(constants.AddressZero)).to.revertedWith(
+      await expect(spliter.connect(alice).updateTreasury(ZeroAddress)).to.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
 
     it("should revert, when treasury is zero", async () => {
-      await expect(spliter.updateTreasury(constants.AddressZero)).to.revertedWith(
-        "treasury address should not be zero"
-      );
+      await expect(spliter.updateTreasury(ZeroAddress)).to.revertedWith("treasury address should not be zero");
     });
 
     it("should succeed", async () => {
@@ -48,15 +46,13 @@ describe("PlatformFeeSpliter.spec", async () => {
 
   context("#updateEcosystem", async () => {
     it("should revert, when call updateEcosystem and caller is not owner", async () => {
-      await expect(spliter.connect(alice).updateEcosystem(constants.AddressZero)).to.revertedWith(
+      await expect(spliter.connect(alice).updateEcosystem(ZeroAddress)).to.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
 
     it("should revert, when ecosystem is zero", async () => {
-      await expect(spliter.updateEcosystem(constants.AddressZero)).to.revertedWith(
-        "ecosystem address should not be zero"
-      );
+      await expect(spliter.updateEcosystem(ZeroAddress)).to.revertedWith("ecosystem address should not be zero");
     });
 
     it("should succeed", async () => {
@@ -68,13 +64,13 @@ describe("PlatformFeeSpliter.spec", async () => {
 
   context("#updateStaker", async () => {
     it("should revert, when call updateStaker and caller is not owner", async () => {
-      await expect(spliter.connect(alice).updateStaker(constants.AddressZero)).to.revertedWith(
+      await expect(spliter.connect(alice).updateStaker(ZeroAddress)).to.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
 
     it("should revert, when staker is zero", async () => {
-      await expect(spliter.updateStaker(constants.AddressZero)).to.revertedWith("staker address should not be zero");
+      await expect(spliter.updateStaker(ZeroAddress)).to.revertedWith("staker address should not be zero");
     });
 
     it("should succeed", async () => {
@@ -86,47 +82,47 @@ describe("PlatformFeeSpliter.spec", async () => {
 
   context("#addRewardToken", async () => {
     it("should revert, when call addRewardToken and caller is not owner", async () => {
-      await expect(
-        spliter.connect(alice).addRewardToken(constants.AddressZero, constants.AddressZero, 0, 0, 0)
-      ).to.revertedWith("Ownable: caller is not the owner");
+      await expect(spliter.connect(alice).addRewardToken(ZeroAddress, ZeroAddress, 0, 0, 0)).to.revertedWith(
+        "Ownable: caller is not the owner"
+      );
     });
 
     it("should revert, when fee too large", async () => {
-      await expect(spliter.addRewardToken(constants.AddressZero, constants.AddressZero, 1e9 + 1, 0, 0)).to.revertedWith(
+      await expect(spliter.addRewardToken(ZeroAddress, ZeroAddress, 1e9 + 1, 0, 0)).to.revertedWith(
         "staker ratio too large"
       );
-      await expect(spliter.addRewardToken(constants.AddressZero, constants.AddressZero, 0, 1e9 + 1, 0)).to.revertedWith(
+      await expect(spliter.addRewardToken(ZeroAddress, ZeroAddress, 0, 1e9 + 1, 0)).to.revertedWith(
         "treasury ratio too large"
       );
-      await expect(spliter.addRewardToken(constants.AddressZero, constants.AddressZero, 0, 0, 1e9 + 1)).to.revertedWith(
+      await expect(spliter.addRewardToken(ZeroAddress, ZeroAddress, 0, 0, 1e9 + 1)).to.revertedWith(
         "locker ratio too large"
       );
-      await expect(
-        spliter.addRewardToken(constants.AddressZero, constants.AddressZero, 5e8 + 1, 5e8, 0)
-      ).to.revertedWith("ecosystem ratio too small");
+      await expect(spliter.addRewardToken(ZeroAddress, ZeroAddress, 5e8 + 1, 5e8, 0)).to.revertedWith(
+        "ecosystem ratio too small"
+      );
     });
 
     it("should revert, when zero burner", async () => {
-      await expect(spliter.addRewardToken(constants.AddressZero, constants.AddressZero, 0, 0, 0)).to.revertedWith(
+      await expect(spliter.addRewardToken(ZeroAddress, ZeroAddress, 0, 0, 0)).to.revertedWith(
         "burner address should not be zero"
       );
     });
 
     it("should revert, when duplicated token", async () => {
-      await spliter.addRewardToken(constants.AddressZero, locker.address, 0, 0, 0);
-      await expect(spliter.addRewardToken(constants.AddressZero, locker.address, 0, 0, 0)).to.revertedWith(
+      await spliter.addRewardToken(ZeroAddress, locker.address, 0, 0, 0);
+      await expect(spliter.addRewardToken(ZeroAddress, locker.address, 0, 0, 0)).to.revertedWith(
         "duplicated reward token"
       );
     });
 
     it("should succeed", async () => {
-      expect(await spliter.getRewardCount()).to.eq(constants.Zero);
-      await expect(spliter.addRewardToken(constants.AddressZero, locker.address, 1, 2, 3))
+      expect(await spliter.getRewardCount()).to.eq(0n);
+      await expect(spliter.addRewardToken(ZeroAddress, locker.address, 1, 2, 3))
         .to.emit(spliter, "AddRewardToken")
-        .withArgs(constants.AddressZero, locker.address, 1, 2, 3);
+        .withArgs(ZeroAddress, locker.address, 1, 2, 3);
       expect(await spliter.getRewardCount()).to.eq(1);
-      expect(await spliter.rewards(0)).to.deep.eq([constants.AddressZero, 1, 2, 3]);
-      expect(await spliter.burners(constants.AddressZero)).to.eq(locker.address);
+      expect(await spliter.rewards(0)).to.deep.eq([ZeroAddress, 1, 2, 3]);
+      expect(await spliter.burners(ZeroAddress)).to.eq(locker.address);
       await expect(spliter.addRewardToken(alice.address, locker.address, 3, 4, 5))
         .to.emit(spliter, "AddRewardToken")
         .withArgs(alice.address, locker.address, 3, 4, 5);
@@ -138,7 +134,7 @@ describe("PlatformFeeSpliter.spec", async () => {
 
   context("removeRewardToken", async () => {
     beforeEach(async () => {
-      await spliter.addRewardToken(constants.AddressZero, locker.address, 1, 2, 3);
+      await spliter.addRewardToken(ZeroAddress, locker.address, 1, 2, 3);
       await spliter.addRewardToken(alice.address, locker.address, 3, 4, 5);
       await spliter.addRewardToken(staker.address, locker.address, 5, 6, 7);
     });
@@ -154,19 +150,19 @@ describe("PlatformFeeSpliter.spec", async () => {
     it("should succeed, remove from last", async () => {
       expect(await spliter.getRewardCount()).to.eq(3);
       await expect(spliter.removeRewardToken(2)).to.emit(spliter, "RemoveRewardToken").withArgs(staker.address);
-      expect(await spliter.rewards(0)).to.deep.eq([constants.AddressZero, 1, 2, 3]);
+      expect(await spliter.rewards(0)).to.deep.eq([ZeroAddress, 1, 2, 3]);
       expect(await spliter.rewards(1)).to.deep.eq([alice.address, 3, 4, 5]);
       expect(await spliter.getRewardCount()).to.eq(2);
       await expect(spliter.removeRewardToken(1)).to.emit(spliter, "RemoveRewardToken").withArgs(alice.address);
-      expect(await spliter.rewards(0)).to.deep.eq([constants.AddressZero, 1, 2, 3]);
+      expect(await spliter.rewards(0)).to.deep.eq([ZeroAddress, 1, 2, 3]);
       expect(await spliter.getRewardCount()).to.eq(1);
-      await expect(spliter.removeRewardToken(0)).to.emit(spliter, "RemoveRewardToken").withArgs(constants.AddressZero);
+      await expect(spliter.removeRewardToken(0)).to.emit(spliter, "RemoveRewardToken").withArgs(ZeroAddress);
       expect(await spliter.getRewardCount()).to.eq(0);
     });
 
     it("should succeed, remove from first", async () => {
       expect(await spliter.getRewardCount()).to.eq(3);
-      await expect(spliter.removeRewardToken(0)).to.emit(spliter, "RemoveRewardToken").withArgs(constants.AddressZero);
+      await expect(spliter.removeRewardToken(0)).to.emit(spliter, "RemoveRewardToken").withArgs(ZeroAddress);
       expect(await spliter.rewards(0)).to.deep.eq([staker.address, 5, 6, 7]);
       expect(await spliter.rewards(1)).to.deep.eq([alice.address, 3, 4, 5]);
       expect(await spliter.getRewardCount()).to.eq(2);
@@ -180,7 +176,7 @@ describe("PlatformFeeSpliter.spec", async () => {
 
   context("updateRewardTokenRatio", async () => {
     beforeEach(async () => {
-      await spliter.addRewardToken(constants.AddressZero, locker.address, 1, 2, 3);
+      await spliter.addRewardToken(ZeroAddress, locker.address, 1, 2, 3);
       await spliter.addRewardToken(alice.address, locker.address, 3, 4, 5);
       await spliter.addRewardToken(staker.address, locker.address, 5, 6, 7);
     });
@@ -203,11 +199,11 @@ describe("PlatformFeeSpliter.spec", async () => {
     });
 
     it("should succeed", async () => {
-      expect(await spliter.rewards(0)).to.deep.eq([constants.AddressZero, 1, 2, 3]);
+      expect(await spliter.rewards(0)).to.deep.eq([ZeroAddress, 1, 2, 3]);
       await expect(spliter.updateRewardTokenRatio(0, 7, 8, 9))
         .to.emit(spliter, "UpdateRewardTokenRatio")
-        .withArgs(constants.AddressZero, 7, 8, 9);
-      expect(await spliter.rewards(0)).to.deep.eq([constants.AddressZero, 7, 8, 9]);
+        .withArgs(ZeroAddress, 7, 8, 9);
+      expect(await spliter.rewards(0)).to.deep.eq([ZeroAddress, 7, 8, 9]);
 
       expect(await spliter.rewards(1)).to.deep.eq([alice.address, 3, 4, 5]);
       await expect(spliter.updateRewardTokenRatio(1, 9, 10, 11))
@@ -229,19 +225,19 @@ describe("PlatformFeeSpliter.spec", async () => {
     });
 
     it("should revert, when call updateRewardTokenBurner and caller is not owner", async () => {
-      await expect(
-        spliter.connect(alice).updateRewardTokenBurner(alice.address, constants.AddressZero)
-      ).to.revertedWith("Ownable: caller is not the owner");
+      await expect(spliter.connect(alice).updateRewardTokenBurner(alice.address, ZeroAddress)).to.revertedWith(
+        "Ownable: caller is not the owner"
+      );
     });
 
     it("should revert, when new burner is zero", async () => {
-      await expect(spliter.updateRewardTokenBurner(alice.address, constants.AddressZero)).to.revertedWith(
+      await expect(spliter.updateRewardTokenBurner(alice.address, ZeroAddress)).to.revertedWith(
         "new burner address should not be zero"
       );
     });
 
     it("should revert, when old burner is zero", async () => {
-      await expect(spliter.updateRewardTokenBurner(constants.AddressZero, locker.address)).to.revertedWith(
+      await expect(spliter.updateRewardTokenBurner(ZeroAddress, locker.address)).to.revertedWith(
         "old burner address should not be zero"
       );
     });
@@ -256,22 +252,20 @@ describe("PlatformFeeSpliter.spec", async () => {
   });
 
   context("claim", async () => {
-    const amount1 = ethers.utils.parseEther("10000");
-    const amount2 = ethers.utils.parseEther("90000");
+    const amount1 = ethers.parseEther("10000");
+    const amount2 = ethers.parseEther("90000");
     let token1: MockERC20;
     let token2: MockERC20;
 
     beforeEach(async () => {
       const MockERC20 = await ethers.getContractFactory("MockERC20", deployer);
       token1 = await MockERC20.deploy("X", "Y", 18);
-      await token1.deployed();
       token2 = await MockERC20.deploy("XX", "YY", 18);
-      await token2.deployed();
 
       await token1.mint(deployer.address, amount1);
       await token2.mint(deployer.address, amount2);
 
-      await spliter.addRewardToken(token1.address, locker.address, 1e8, 2e8, 3e8);
+      await spliter.addRewardToken(token1.getAddress(), locker.address, 1e8, 2e8, 3e8);
     });
 
     it("should revert, when call claim and caller is not staker", async () => {
@@ -279,29 +273,29 @@ describe("PlatformFeeSpliter.spec", async () => {
     });
 
     it("should succeed, when reward is single token", async () => {
-      await token1.transfer(spliter.address, amount1);
+      await token1.transfer(spliter.getAddress(), amount1);
       await spliter.connect(staker).claim();
-      expect(await token1.balanceOf(staker.address)).to.eq(amount1.mul(1e8).div(1e9));
-      expect(await token1.balanceOf(treasury.address)).to.eq(amount1.mul(2e8).div(1e9));
-      expect(await token1.balanceOf(locker.address)).to.eq(amount1.mul(3e8).div(1e9));
-      expect(await token1.balanceOf(ecosystem.address)).to.eq(amount1.mul(4e8).div(1e9));
+      expect(await token1.balanceOf(staker.address)).to.eq((amount1 * toBigInt(1e8)) / toBigInt(1e9));
+      expect(await token1.balanceOf(treasury.address)).to.eq((amount1 * toBigInt(2e8)) / toBigInt(1e9));
+      expect(await token1.balanceOf(locker.address)).to.eq((amount1 * toBigInt(3e8)) / toBigInt(1e9));
+      expect(await token1.balanceOf(ecosystem.address)).to.eq((amount1 * toBigInt(4e8)) / toBigInt(1e9));
     });
 
     it("should succeed, when reward is multiple tokens", async () => {
-      await spliter.addRewardToken(token2.address, locker.address, 2e8, 3e8, 4e8);
+      await spliter.addRewardToken(token2.getAddress(), locker.address, 2e8, 3e8, 4e8);
 
-      await token1.transfer(spliter.address, amount1);
-      await token2.transfer(spliter.address, amount2);
+      await token1.transfer(spliter.getAddress(), amount1);
+      await token2.transfer(spliter.getAddress(), amount2);
       await spliter.connect(staker).claim();
-      expect(await token1.balanceOf(staker.address)).to.eq(amount1.mul(1e8).div(1e9));
-      expect(await token1.balanceOf(treasury.address)).to.eq(amount1.mul(2e8).div(1e9));
-      expect(await token1.balanceOf(locker.address)).to.eq(amount1.mul(3e8).div(1e9));
-      expect(await token1.balanceOf(ecosystem.address)).to.eq(amount1.mul(4e8).div(1e9));
+      expect(await token1.balanceOf(staker.address)).to.eq((amount1 * toBigInt(1e8)) / toBigInt(1e9));
+      expect(await token1.balanceOf(treasury.address)).to.eq((amount1 * toBigInt(2e8)) / toBigInt(1e9));
+      expect(await token1.balanceOf(locker.address)).to.eq((amount1 * toBigInt(3e8)) / toBigInt(1e9));
+      expect(await token1.balanceOf(ecosystem.address)).to.eq((amount1 * toBigInt(4e8)) / toBigInt(1e9));
 
-      expect(await token2.balanceOf(staker.address)).to.eq(amount2.mul(2e8).div(1e9));
-      expect(await token2.balanceOf(treasury.address)).to.eq(amount2.mul(3e8).div(1e9));
-      expect(await token2.balanceOf(locker.address)).to.eq(amount2.mul(4e8).div(1e9));
-      expect(await token2.balanceOf(ecosystem.address)).to.eq(amount2.mul(1e8).div(1e9));
+      expect(await token2.balanceOf(staker.address)).to.eq((amount2 * toBigInt(2e8)) / toBigInt(1e9));
+      expect(await token2.balanceOf(treasury.address)).to.eq((amount2 * toBigInt(3e8)) / toBigInt(1e9));
+      expect(await token2.balanceOf(locker.address)).to.eq((amount2 * toBigInt(4e8)) / toBigInt(1e9));
+      expect(await token2.balanceOf(ecosystem.address)).to.eq((amount2 * toBigInt(1e8)) / toBigInt(1e9));
     });
   });
 });

@@ -1,0 +1,6 @@
+{
+  "ConcentratorVault": {
+    "proxy": "0x50B47c4A642231dbe0B411a0B2FBC1EBD129346D",
+    "implementation": "0x1af1639f02E03107d95c6d1670adE9E7262C9fA5"
+  }
+}
