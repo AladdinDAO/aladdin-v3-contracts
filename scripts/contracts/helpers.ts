@@ -4,6 +4,11 @@ import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
 
+function replacer(key, value) {
+  if (typeof value === "bigint") return value.toString();
+  return value;
+}
+
 export async function contractDeploy(
   deployer: HardhatEthersSigner,
   desc: string,
@@ -14,11 +19,12 @@ export async function contractDeploy(
   const contract = await ethers.getContractFactory(name, deployer);
 
   console.log(`\nDeploying ${desc} ...`);
+  console.log("  args:", JSON.stringify(args, replacer));
   const instance = overrides ? await contract.deploy(...args, overrides) : await contract.deploy(...args);
-  console.log("  transaction hash:", instance.deploymentTransaction()?.hash);
+  console.log(`  TransactionHash[${instance.deploymentTransaction()?.hash}]`);
   const receipt = await instance.deploymentTransaction()?.wait();
   const address = await instance.getAddress();
-  console.log("  ✅ Done, deployed at:", address, "gas used:", receipt!.gasUsed.toString());
+  console.log(`  ✅ Done,`, `DeployedAt[${address}]`, `GasUsed[${receipt!.gasUsed.toString()}]`);
 
   return address;
 }
@@ -37,9 +43,9 @@ export async function minimalProxyDeploy(
     maxPriorityFeePerGas: overrides?.maxPriorityFeePerGas,
     gasLimit: overrides?.gasLimit,
   });
-  console.log("  transaction hash:", tx.hash);
+  console.log(`  TransactionHash[${tx.hash}]`);
   const receipt = await tx.wait();
-  console.log("  ✅ Done, deployed at:", receipt!.contractAddress, "gas used:", receipt!.gasUsed.toString());
+  console.log(`  ✅ Done,`, `DeployedAt[${receipt!.contractAddress}]`, `GasUsed[${receipt!.gasUsed.toString()}]`);
 
   return receipt!.contractAddress!;
 }
@@ -52,6 +58,10 @@ export async function contractCall(
   overrides?: PayableOverrides
 ): Promise<TransactionReceipt> {
   console.log(`\n${desc}`);
+  console.log("  target:", await contract.getAddress());
+  console.log("  method:", method);
+  console.log("  args:", JSON.stringify(args, replacer));
+  console.log("  raw:", contract.interface.encodeFunctionData(method, args));
   const estimated = await contract.getFunction(method).estimateGas(...args);
   if (overrides) {
     overrides.gasLimit = (estimated * 12n) / 10n;
@@ -59,7 +69,7 @@ export async function contractCall(
   const tx = overrides
     ? await contract.getFunction(method)(...args, overrides)
     : await contract.getFunction(method)(...args);
-  console.log(`  EstimatedGas[${estimated.toString()}] transaction hash[${tx.hash}]`);
+  console.log(`  EstimatedGas[${estimated.toString()}] TransactionHash[${tx.hash}]`);
   const receipt: TransactionReceipt = await tx.wait();
   console.log("  ✅ Done, gas used:", receipt.gasUsed.toString());
 
@@ -87,9 +97,11 @@ export async function ownerContractCall(
     return contractCall(contract, desc, method, args, overrides);
   } else {
     console.log(`\n${desc}:`);
+    console.log("  owner/admin:", owner);
     console.log("  target:", await contract.getAddress());
     console.log("  method:", method);
-    console.log("  args:", args.map((x) => x.toString()).join(", "));
+    console.log("  args:", JSON.stringify(args, replacer));
+    console.log("  raw:", contract.interface.encodeFunctionData(method, args));
     return undefined;
   }
 }
@@ -105,6 +117,7 @@ export function abiDecode(types: Array<string>, data: BytesLike): Result {
 export const ExpectedDeployers: { [network: string]: string } = {
   mainnet: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
   hermez: "0xa1d0a635f7b447b06836d9aC773b03f1F706bBC4",
+  fork_mainnet_10548: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
 };
 
 export async function ensureDeployer(network: string): Promise<HardhatEthersSigner> {

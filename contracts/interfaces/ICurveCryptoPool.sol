@@ -25,6 +25,12 @@ interface ICurveCryptoPool {
 
   function add_liquidity(uint256[2] memory amounts, uint256 min_mint_amount) external payable returns (uint256);
 
+  function add_liquidity(
+    uint256[2] memory amounts,
+    uint256 min_mint_amount,
+    bool use_eth
+  ) external payable returns (uint256);
+
   function calc_token_amount(uint256[2] memory amounts) external view returns (uint256);
 
   function remove_liquidity_one_coin(
@@ -40,7 +46,7 @@ interface ICurveCryptoPool {
     uint256 j,
     uint256 dx,
     uint256 min_dy
-  ) external payable returns (uint256);
+  ) external payable;
 
   function exchange(
     uint256 i,
@@ -48,7 +54,7 @@ interface ICurveCryptoPool {
     uint256 dx,
     uint256 min_dy,
     bool use_eth
-  ) external payable returns (uint256);
+  ) external payable;
 
   function exchange(
     uint256 i,
@@ -57,7 +63,7 @@ interface ICurveCryptoPool {
     uint256 min_dy,
     bool use_eth,
     address receiver
-  ) external payable returns (uint256);
+  ) external payable;
 
   function exchange_underlying(
     uint256 i,
@@ -129,7 +135,13 @@ interface IZapCurveMetaCryptoPool {
 /// + tricrypto2: https://curve.fi/tricrypto2
 /// + tricrypto: https://curve.fi/tricrypto
 interface ICurveTriCryptoPool {
-  function add_liquidity(uint256[3] memory amounts, uint256 min_mint_amount) external;
+  function add_liquidity(uint256[3] memory amounts, uint256 min_mint_amount) external payable;
+
+  function add_liquidity(
+    uint256[3] memory amounts,
+    uint256 min_mint_amount,
+    bool use_eth
+  ) external payable;
 
   function calc_token_amount(uint256[3] memory amounts, bool deposit) external view returns (uint256);
 
