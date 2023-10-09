@@ -39,6 +39,7 @@ export enum PoolTypeV3 {
   CurveMetaPool,
   CurveCryptoPool,
   ERC4626,
+  Lido,
 }
 
 export enum Action {
@@ -127,6 +128,8 @@ export function encodePoolHintV3(
       }
       break;
     case PoolTypeV3.ERC4626:
+      break;
+    case PoolTypeV3.Lido:
       break;
   }
 

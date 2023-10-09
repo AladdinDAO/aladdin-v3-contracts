@@ -6,19 +6,31 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import { IWETH } from "../../interfaces/IWETH.sol";
+import { ITokenConverter } from "./ITokenConverter.sol";
 
-abstract contract ConverterBase {
+abstract contract ConverterBase is ITokenConverter {
   using SafeERC20 for IERC20;
 
   /*************
    * Constants *
    *************/
 
+  /// @inheritdoc ITokenConverter
+  address public immutable override registry;
+
   /// @dev The address of ETH which is commonly used.
   address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   /// @dev The address of WETH token.
   address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+
+  /***************
+   * Constructor *
+   ***************/
+
+  constructor(address _registry) {
+    registry = _registry;
+  }
 
   /****************************
    * Public Mutated Functions *
@@ -27,9 +39,37 @@ abstract contract ConverterBase {
   // solhint-disable-next-line no-empty-blocks
   receive() external payable {}
 
+  /****************************
+   * Public Mutated Functions *
+   ****************************/
+
+  /// @inheritdoc ITokenConverter
+  function withdrawFund(address _token, address _recipient) external override {
+    require(msg.sender == registry, "only registry");
+
+    if (_token == address(0)) {
+      (bool success, ) = _recipient.call{ value: address(this).balance }("");
+      require(success, "withdraw ETH failed");
+    } else {
+      IERC20(_token).safeTransfer(_recipient, IERC20(_token).balanceOf(address(this)));
+    }
+  }
+
   /**********************
    * Internal Functions *
    **********************/
+
+  /// @dev Internal function to get the pool type of the route.
+  /// @param encoding The route encoding.
+  function _getPoolType(uint256 encoding) internal pure returns (uint256) {
+    return encoding & 255;
+  }
+
+  /// @dev Internal function to get the action of the route.
+  /// @param encoding The route encoding.
+  function _getAction(uint256 encoding) internal pure returns (uint256) {
+    return (encoding >> 8) & 3;
+  }
 
   function _isETH(address _token) internal pure returns (bool) {
     return _token == ETH || _token == address(0);
