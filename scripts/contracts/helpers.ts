@@ -117,6 +117,7 @@ export function abiDecode(types: Array<string>, data: BytesLike): Result {
 export const ExpectedDeployers: { [network: string]: string } = {
   mainnet: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
   hermez: "0xa1d0a635f7b447b06836d9aC773b03f1F706bBC4",
+  fork_mainnet_10548: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
 };
 
 export async function ensureDeployer(network: string): Promise<HardhatEthersSigner> {

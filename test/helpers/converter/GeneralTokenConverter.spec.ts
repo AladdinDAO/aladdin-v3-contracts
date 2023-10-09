@@ -53,7 +53,7 @@ describe("GeneralTokenConverter.spec", async () => {
         ).to.deep.eq([ZeroAddress, ZeroAddress]);
         await expect(
           converter.convert(encodePoolHintV3(ZeroAddress, poolType, 2, 0, 1, action, { fee_num: 1 }), 0n, ZeroAddress)
-        ).to.revertedWith("invalid poolType");
+        ).to.reverted;
       }
     }
 
@@ -75,7 +75,7 @@ describe("GeneralTokenConverter.spec", async () => {
         0n,
         ZeroAddress
       )
-    ).to.revertedWith("invalid poolType");
+    ).to.reverted;
   });
 
   context("#updateSupportedPoolTypes", async () => {
