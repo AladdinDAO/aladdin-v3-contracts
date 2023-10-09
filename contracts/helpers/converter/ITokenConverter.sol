@@ -23,7 +23,7 @@ interface ITokenConverter {
   /// @param encoding The encoding used to convert.
   /// @param amountIn The amount of input token.
   /// @param amountOut The amount of output token received.
-  function queryConvert(uint256 encoding, uint256 amountIn) external view returns (uint256 amountOut);
+  function queryConvert(uint256 encoding, uint256 amountIn) external returns (uint256 amountOut);
 
   /****************************
    * Public Mutated Functions *
@@ -63,7 +63,10 @@ interface ITokenConverter {
   /// + pool_type = 8: CurveCryptoPool or CurveFactoryCryptoPool
   ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  |  1 bit  | ... |
   ///                | pool address | tokens | index in | index out | use_eth | ... |
-  /// + pool_type = 9: ERC4626
+  /// + pool_type = 9: ERC4626, no action 0
+  ///   customized = |   160 bits   | ... |
+  ///                | pool address | ... |
+  /// + pool_type = 10: Lido, no action 0
   ///   customized = |   160 bits   | ... |
   ///                | pool address | ... |
   ///

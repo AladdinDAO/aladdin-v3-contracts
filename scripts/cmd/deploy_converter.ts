@@ -1,11 +1,11 @@
 import { toBigInt } from "ethers";
-import { network } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import { ensureDeployer } from "@/contracts/helpers";
 import * as Converter from "@/contracts/Converter";
 
-const maxFeePerGas = 20e9;
-const maxPriorityFeePerGas = 1e9;
+const maxFeePerGas = ethers.parseUnits("10", "gwei");
+const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 async function main() {
   const overrides = {
@@ -15,7 +15,8 @@ async function main() {
 
   const deployer = await ensureDeployer(network.name);
 
-  await Converter.deploy(deployer, overrides);
+  const converter = await Converter.deploy(deployer, overrides);
+  await Converter.initialize(deployer, converter, overrides);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
