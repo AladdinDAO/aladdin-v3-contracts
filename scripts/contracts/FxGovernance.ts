@@ -7,6 +7,7 @@ import { DEPLOYED_CONTRACTS, selectDeployments } from "@/utils/deploys";
 import { TOKENS } from "@/utils/tokens";
 
 import { contractCall, contractDeploy, minimalProxyDeploy, ownerContractCall } from "./helpers";
+import * as Converter from "./Converter";
 import * as Multisig from "./Multisig";
 import * as VotingEscrow from "./VotingEscrow";
 
@@ -18,12 +19,15 @@ export interface FxGovernanceDeployment {
   veFXN: string;
   TokenMinter: string;
   GaugeController: string;
-  FeeDistributor: string;
+  FeeDistributor: { [symbol: string]: string };
 
   SmartWalletWhitelist: string;
   PlatformFeeSpliter: string;
   MultipleVestHelper: string;
-  Vesting: string;
+  Vesting: { [symbol: string]: string };
+  Burner: {
+    PlatformFeeBurner: string;
+  };
 }
 
 const SaleConfig: {
@@ -62,6 +66,7 @@ const SaleConfig: {
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxGovernanceDeployment> {
   const multisig = Multisig.deploy(network.name);
+  const converter = await Converter.deploy(deployer, overrides);
   const implementationDeployment = await VotingEscrow.deploy(deployer, overrides);
   const deployment = selectDeployments(network.name, "Fx.Governance");
 
@@ -112,16 +117,19 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     console.log(`Found GaugeController at:`, deployment.get("GaugeController"));
   }
 
-  if (!deployment.get("FeeDistributor")) {
-    const address = await minimalProxyDeploy(
-      deployer,
-      "FeeDistributor",
-      implementationDeployment.FeeDistributor,
-      overrides
-    );
-    deployment.set("FeeDistributor", address);
-  } else {
-    console.log(`Found FeeDistributor at:`, deployment.get("FeeDistributor"));
+  for (const token of ["stETH", "wstETH"]) {
+    const selector = `FeeDistributor.${token}`;
+    if (!deployment.get(selector)) {
+      const address = await minimalProxyDeploy(
+        deployer,
+        `FeeDistributor ${token}`,
+        implementationDeployment.FeeDistributor,
+        overrides
+      );
+      deployment.set(selector, address);
+    } else {
+      console.log(`Found FeeDistributor ${token} at:`, deployment.get(selector));
+    }
   }
 
   if (!deployment.get("SmartWalletWhitelist")) {
@@ -138,11 +146,14 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     console.log(`Found FXN MultipleVestHelper at:`, deployment.get("MultipleVestHelper"));
   }
 
-  if (!deployment.get("Vesting")) {
-    const address = await contractDeploy(deployer, "FXN Vesting", "Vesting", [deployment.get("FXN")], overrides);
-    deployment.set("Vesting", address);
-  } else {
-    console.log(`Found FXN Vesting at:`, deployment.get("Vesting"));
+  for (const token of ["FXN", "fETH"]) {
+    const selector = `Vesting.${token}`;
+    if (!deployment.get(selector)) {
+      const address = await contractDeploy(deployer, `${token} Vesting`, "Vesting", [TOKENS[token].address], overrides);
+      deployment.set(selector, address);
+    } else {
+      console.log(`Found ${token} Vesting at:`, deployment.get(selector));
+    }
   }
 
   if (!deployment.get("PlatformFeeSpliter")) {
@@ -156,6 +167,19 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.set("PlatformFeeSpliter", address);
   } else {
     console.log(`Found PlatformFeeSpliter at:`, deployment.get("PlatformFeeSpliter"));
+  }
+
+  if (!deployment.get("Burner.PlatformFeeBurner")) {
+    const address = await contractDeploy(
+      deployer,
+      "PlatformFeeBurner",
+      "PlatformFeeBurner",
+      [converter.GeneralTokenConverter, deployment.get("FeeDistributor.wstETH")],
+      overrides
+    );
+    deployment.set("Burner.PlatformFeeBurner", address);
+  } else {
+    console.log(`Found PlatformFeeBurner at:`, deployment.get("Burner.PlatformFeeBurner"));
   }
 
   return deployment.toObject() as FxGovernanceDeployment;
@@ -212,9 +236,11 @@ export async function initialize(
   const ve = await ethers.getContractAt("VotingEscrow", deployment.veFXN, deployer);
   const minter = await ethers.getContractAt("TokenMinter", deployment.TokenMinter, deployer);
   const controller = await ethers.getContractAt("GaugeController", deployment.GaugeController, deployer);
-  const distributor = await ethers.getContractAt("FeeDistributor", deployment.FeeDistributor, deployer);
+  const distributor = await ethers.getContractAt("FeeDistributor", deployment.FeeDistributor.wstETH, deployer);
   const whitelist = await ethers.getContractAt("SmartWalletWhitelist", deployment.SmartWalletWhitelist, deployer);
-  const vesting = await ethers.getContractAt("Vesting", deployment.Vesting, deployer);
+  const fnxVesting = await ethers.getContractAt("Vesting", deployment.Vesting.FXN, deployer);
+  const fethVesting = await ethers.getContractAt("Vesting", deployment.Vesting.fETH, deployer);
+  const burner = await ethers.getContractAt("PlatformFeeBurner", deployment.Burner.PlatformFeeBurner, deployer);
 
   // initialize FXN
   if ((await fxn.admin({ gasLimit: 1e6 })) === ZeroAddress) {
@@ -309,7 +335,7 @@ export async function initialize(
       distributor as unknown as Contract,
       "initialize FeeDistributor",
       "initialize",
-      [deployment.veFXN, 1695859200n, TOKENS.stETH.address, deployer.address, multisig.Fx],
+      [deployment.veFXN, 1695859200n, TOKENS.wstETH.address, deployer.address, multisig.Fx],
       overrides
     );
   }
@@ -336,19 +362,32 @@ export async function initialize(
     }
   }
 
-  // setup Vesting
-  const whitelists = [];
-  for (const address of [multisig.Fx, deployment.MultipleVestHelper]) {
-    if (!(await vesting.isWhitelist(address))) {
-      whitelists.push(address);
+  for (const vesting of [fnxVesting, fethVesting]) {
+    // setup Vesting
+    const whitelists = [];
+    for (const address of [multisig.Fx, deployment.MultipleVestHelper]) {
+      if (!(await vesting.isWhitelist(address))) {
+        whitelists.push(address);
+      }
+    }
+    if (whitelists.length > 0) {
+      await ownerContractCall(
+        vesting as unknown as Contract,
+        `Vesting add whitelist [${whitelists.join(",")}]`,
+        "updateWhitelist",
+        [whitelists, true],
+        overrides
+      );
     }
   }
-  if (whitelists.length > 0) {
+
+  // setup PlatformFeeBurner
+  if (!(await burner.isKeeper("0x11E91BB6d1334585AA37D8F4fde3932C7960B938"))) {
     await ownerContractCall(
-      vesting as unknown as Contract,
-      `Vesting approve [${whitelists.join(",")}]`,
-      "updateWhitelist",
-      [whitelists, true],
+      burner as unknown as Contract,
+      "PlatformFeeBurner add keeper",
+      "updateKeeperStatus",
+      ["0x11E91BB6d1334585AA37D8F4fde3932C7960B938", true],
       overrides
     );
   }

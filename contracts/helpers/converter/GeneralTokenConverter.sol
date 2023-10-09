@@ -19,35 +19,42 @@ import { ICurvePlainPool } from "../../interfaces/ICurvePlainPool.sol";
 import { ICurveYPoolSwap, ICurveYPoolDeposit } from "../../interfaces/ICurveYPool.sol";
 import { ICurveMetaPoolSwap } from "../../interfaces/ICurveMetaPool.sol";
 import { ICurveCryptoPool } from "../../interfaces/ICurveCryptoPool.sol";
+import { ICurveTriCryptoPool } from "../../interfaces/ICurveCryptoPool.sol";
 import { IUniswapV2Pair } from "../../interfaces/IUniswapV2Pair.sol";
 import { IUniswapV3Pool } from "../../interfaces/IUniswapV3Pool.sol";
 import { IUniswapV3Router } from "../../interfaces/IUniswapV3Router.sol";
+import { IUniswapV3Quoter } from "../../interfaces/IUniswapV3Quoter.sol";
 import { IWETH } from "../../interfaces/IWETH.sol";
 
 import { ConverterBase } from "./ConverterBase.sol";
 
-// solhint-disable var-name-mixedcase
+// solhint-disable no-empty-blocks
+// solhint-disable no-inline-assembly
 // solhint-disable not-rely-on-time
+// solhint-disable var-name-mixedcase
 
 /// @title GeneralTokenConverter
-/// @notice This implements token converting for `pool_type` from 0 to 14.
+/// @notice This implements token converting for `pool_type` from 0 to 9 (both inclusive).
 /// For other types, it will retrieve the implementation from
 /// `ConverterRegistry` contract and delegate call.
-contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
+contract GeneralTokenConverter is Ownable, ConverterBase {
   using SafeERC20 for IERC20;
 
   /*************
    * Constants *
    *************/
 
-  /// @inheritdoc ITokenConverter
-  address public immutable override registry;
-
   /// @dev The address of Balancer V2 Vault
   address private constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
   /// @dev The address of Uniswap V3 Router
   address private constant UNISWAP_V3_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+
+  /// @dev The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
+  uint160 private constant MIN_SQRT_RATIO = 4295128739;
+
+  /// @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
+  uint160 private constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
 
   /*************
    * Variables *
@@ -57,12 +64,24 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
   /// @dev If the `i`-th bit is `1`, the `i`-th pool type is supported in this contract.
   uint256 public supportedPoolTypes;
 
+  /// @notice Mapping from token address to token minter.
+  /// @dev It is used to determine the pool address for lp token address.
+  mapping(address => address) public tokenMinter;
+
+  /// @dev Execution context used in fallback function.
+  uint256 private context;
+
   /***************
    * Constructor *
    ***************/
 
-  constructor(address _registry) {
-    registry = _registry;
+  constructor(address _registry) ConverterBase(_registry) {
+    supportedPoolTypes = 1023;
+
+    // setup 3pool, compound, susd
+    tokenMinter[0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490] = 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7;
+    tokenMinter[0x845838DF265Dcd2c412A1Dc9e959c7d08537f8a2] = 0xA2B47E3D5c44877cca798226B7B8118F9BFb7A56;
+    tokenMinter[0xC25a3A3b969415c80451098fa907EC722572917F] = 0xA5407eAE9Ba41422680e2e00537571bcC53efBfD;
   }
 
   /*************************
@@ -78,7 +97,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
   }
 
   /// @inheritdoc ITokenConverter
-  function queryConvert(uint256 _encoding, uint256 _amountIn) external view override returns (uint256 _amountOut) {
+  function queryConvert(uint256 _encoding, uint256 _amountIn) external override returns (uint256 _amountOut) {
     uint256 _poolType = _encoding & 255;
     uint256 _action = (_encoding >> 8) & 3;
 
@@ -97,6 +116,38 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
   /****************************
    * Public Mutated Functions *
    ****************************/
+
+  // solhint-disable-next-line no-complex-fallback
+  fallback() external payable {
+    uint256 _context = context;
+    if (address(_context) == _msgSender() || _context == 1) {
+      // handle uniswap v3 swap callback or uniswap v3 quote callback
+      // | 4 bytes |   32 bytes   |   32 bytes   |   32 bytes  |   32 bytes  | 32 bytes |
+      // |   sig   | amount0Delta | amount1Delta | data.offset | data.length |  tokenIn |
+      int256 amount0Delta;
+      int256 amount1Delta;
+      address tokenIn;
+      assembly {
+        amount0Delta := calldataload(4)
+        amount1Delta := calldataload(36)
+        tokenIn := calldataload(132)
+      }
+      (uint256 amountToPay, uint256 amountReceived) = amount0Delta > 0
+        ? (uint256(amount0Delta), uint256(-amount1Delta))
+        : (uint256(amount1Delta), uint256(-amount0Delta));
+      if (_context == 1) {
+        assembly {
+          let ptr := mload(0x40)
+          mstore(ptr, amountReceived)
+          revert(ptr, 32)
+        }
+      } else {
+        IERC20(tokenIn).safeTransfer(address(_context), amountToPay);
+      }
+    } else {
+      revert("invalid call");
+    }
+  }
 
   /// @inheritdoc ITokenConverter
   function convert(
@@ -117,7 +168,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       address _converter = IConverterRegistry(registry).getConverter(_poolType);
       // solhint-disable-next-line avoid-low-level-calls
       (bool _success, bytes memory _result) = _converter.delegatecall(
-        abi.encodeWithSelector(ITokenConverter.convert.selector, _recipient, _encoding, _amountIn)
+        abi.encodeWithSelector(ITokenConverter.convert.selector, _encoding, _amountIn, _recipient)
       );
       // below lines will propagate inner error up
       if (!_success) {
@@ -133,18 +184,6 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     }
   }
 
-  /// @inheritdoc ITokenConverter
-  function withdrawFund(address _token, address _recipient) external override {
-    require(msg.sender == registry, "only registry");
-
-    if (_token == address(0)) {
-      (bool success, ) = _recipient.call{ value: address(this).balance }("");
-      require(success, "withdraw ETH failed");
-    } else {
-      IERC20(_token).safeTransfer(_recipient, IERC20(_token).balanceOf(address(this)));
-    }
-  }
-
   /*******************************
    * Public Restricted Functions *
    *******************************/
@@ -153,6 +192,15 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
   /// @param _supportedPoolTypes The mask of pool types supported.
   function updateSupportedPoolTypes(uint256 _supportedPoolTypes) external onlyOwner {
     supportedPoolTypes = _supportedPoolTypes;
+  }
+
+  /// @notice Update the token minter mapping.
+  /// @param _tokens The address list of tokens to update.
+  /// @param _minters The address list of corresponding minters.
+  function updateTokenMinter(address[] memory _tokens, address[] memory _minters) external onlyOwner {
+    for (uint256 i = 0; i < _tokens.length; i++) {
+      tokenMinter[_tokens[i]] = _minters[i];
+    }
   }
 
   /**********************
@@ -186,7 +234,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
         // BalancerV1
         address[] memory _tokens = IBalancerV1Pool(_pool).getCurrentTokens();
         _tokenIn = _tokens[(_encoding >> 163) & 7];
-        _tokenIn = _tokens[(_encoding >> 166) & 7];
+        _tokenOut = _tokens[(_encoding >> 166) & 7];
       } else if (_poolType == 3) {
         // BalancerV2
         bytes32 _poolId = IBalancerPool(_pool).getPoolId();
@@ -201,7 +249,11 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     } else if (_action == 1) {
       _tokenOut = _pool;
       if (4 <= _poolType && _poolType <= 8) {
-        _pool = _getTokenMinter(_pool);
+        if (_poolType == 6 && (((_encoding >> 169) & 1) == 1)) {
+          _tokenOut = ICurveYPoolDeposit(_pool).token();
+        } else {
+          _pool = _getTokenMinter(_pool);
+        }
         _tokenIn = _getCurveTokenByIndex(_pool, _poolType, (_encoding >> 163) & 7, _encoding);
       } else if (_poolType == 9) {
         _tokenIn = IERC4626(_pool).asset();
@@ -211,7 +263,11 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     } else if (_action == 2) {
       _tokenIn = _pool;
       if (4 <= _poolType && _poolType <= 8) {
-        _pool = _getTokenMinter(_pool);
+        if (_poolType == 6 && (((_encoding >> 169) & 1) == 1)) {
+          _tokenIn = ICurveYPoolDeposit(_pool).token();
+        } else {
+          _pool = _getTokenMinter(_pool);
+        }
         _tokenOut = _getCurveTokenByIndex(_pool, _poolType, (_encoding >> 166) & 7, _encoding);
       } else if (_poolType == 9) {
         _tokenOut = IERC4626(_pool).asset();
@@ -227,16 +283,19 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
   /// @param _token The address of token.
   /// @return _minter The address of minter for the token.
   function _getTokenMinter(address _token) internal view returns (address _minter) {
-    // solhint-disable-next-line no-inline-assembly
-    assembly {
-      // keccack("minter()")
-      mstore(0x00, 0x0754617200000000000000000000000000000000000000000000000000000000)
-      let success := staticcall(gas(), _token, 0x00, 0x04, 0x00, 0x20)
-      if success {
-        _minter := mload(0x00)
-      }
-      if iszero(_minter) {
-        _minter := _token
+    _minter = tokenMinter[_token];
+    if (_minter == address(0)) {
+      // solhint-disable-next-line no-inline-assembly
+      assembly {
+        // keccack("minter()")
+        mstore(0x00, 0x0754617200000000000000000000000000000000000000000000000000000000)
+        let success := staticcall(gas(), _token, 0x00, 0x04, 0x00, 0x20)
+        if success {
+          _minter := and(mload(0x00), 0xffffffffffffffffffffffffffffffffffffffff)
+        }
+        if iszero(_minter) {
+          _minter := _token
+        }
       }
     }
   }
@@ -253,7 +312,11 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     uint256 _encoding
   ) internal view returns (address _token) {
     if ((_poolType == 5 || _poolType == 6) && (((_encoding >> 169) & 1) == 1)) {
-      _token = ICurveAPool(_pool).underlying_coins(_index);
+      if (_poolType == 5) {
+        _token = ICurveAPool(_pool).underlying_coins(_index);
+      } else {
+        _token = ICurveYPoolSwap(_pool).underlying_coins(int128(_index));
+      }
     } else {
       try ICurvePlainPool(_pool).coins(_index) returns (address result) {
         _token = result;
@@ -276,11 +339,70 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     uint256 _poolType,
     uint256 _encoding,
     uint256 _amountIn
-  ) internal view returns (uint256 _amountOut) {
+  ) internal returns (uint256 _amountOut) {
+    (address _tokenIn, address _tokenOut) = _getTokenPair(_poolType, 0, _encoding);
     address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
-    if (_poolType == 0) {} else if (_poolType == 1) {} else if (_poolType == 2) {} else if (_poolType == 3) {} else if (
-      _poolType <= 8
-    ) {
+    if (_poolType == 0) {
+      if (((_encoding >> 185) & 1) == 1) {
+        IUniswapV2Pair(_pool).executeVirtualOrders(block.timestamp);
+      }
+      uint256 zero_for_one = (_encoding >> 184) & 1;
+      (uint256 rIn, uint256 rOut, ) = IUniswapV2Pair(_pool).getReserves();
+      if (zero_for_one == 0) {
+        (rIn, rOut) = (rOut, rIn);
+      }
+      // We won't handle fee on transfer token here.
+      _amountOut = _amountIn * ((_encoding >> 160) & 16777215);
+      _amountOut = (_amountOut * rOut) / (rIn * 1000000 + _amountOut);
+    } else if (_poolType == 1) {
+      bool zeroForOne = _tokenIn < _tokenOut;
+      context = 1;
+      try
+        IUniswapV3Pool(_pool).swap(
+          address(this),
+          zeroForOne,
+          int256(_amountIn),
+          (zeroForOne ? MIN_SQRT_RATIO + 1 : MAX_SQRT_RATIO - 1),
+          new bytes(0)
+        )
+      {} catch (bytes memory reason) {
+        _amountOut = abi.decode(reason, (uint256));
+      }
+      context = 0;
+    } else if (_poolType == 2) {
+      _amountOut = IBalancerV1Pool(_pool).calcOutGivenIn(
+        IBalancerV1Pool(_pool).getBalance(_tokenIn),
+        IBalancerV1Pool(_pool).getDenormalizedWeight(_tokenIn),
+        IBalancerV1Pool(_pool).getBalance(_tokenOut),
+        IBalancerV1Pool(_pool).getDenormalizedWeight(_tokenOut),
+        _amountIn,
+        IBalancerV1Pool(_pool).getSwapFee()
+      );
+    } else if (_poolType == 3) {
+      address[] memory _assets = new address[](2);
+      _assets[0] = _tokenIn;
+      _assets[1] = _tokenOut;
+      IBalancerVault.BatchSwapStep[] memory _swaps = new IBalancerVault.BatchSwapStep[](1);
+      _swaps[0] = IBalancerVault.BatchSwapStep({
+        poolId: IBalancerPool(_pool).getPoolId(),
+        assetInIndex: 0,
+        assetOutIndex: 1,
+        amount: _amountIn,
+        userData: new bytes(0)
+      });
+      int256[] memory _deltas = IBalancerVault(BALANCER_VAULT).queryBatchSwap(
+        IBalancerVault.SwapKind.GIVEN_IN,
+        _swaps,
+        _assets,
+        IBalancerVault.FundManagement({
+          sender: address(this),
+          fromInternalBalance: false,
+          recipient: payable(address(this)),
+          toInternalBalance: false
+        })
+      );
+      _amountOut = uint256(-_deltas[1]);
+    } else if (_poolType <= 8) {
       uint256 indexIn = (_encoding >> 163) & 7;
       uint256 indexOut = (_encoding >> 166) & 7;
       if (_poolType == 8) {
@@ -288,6 +410,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       } else if (_poolType == 5 && ((_encoding >> 169) & 1) == 1) {
         _amountOut = ICurveAPool(_pool).get_dy_underlying(int128(indexIn), int128(indexOut), _amountIn);
       } else if (_poolType == 6 && ((_encoding >> 169) & 1) == 1) {
+        _pool = ICurveYPoolDeposit(_pool).curve();
         _amountOut = ICurveYPoolSwap(_pool).get_dy_underlying(int128(indexIn), int128(indexOut), _amountIn);
       } else {
         _amountOut = ICurvePlainPool(_pool).get_dy(int128(indexIn), int128(indexOut), _amountIn);
@@ -317,6 +440,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       _wrapTokenIfNeeded(_tokenIn, _amountIn);
     }
 
+    uint256 _balanceBefore = IERC20(_tokenOut).balanceOf(address(this));
     if (_poolType == 0) {
       // Uniswap V2
       if (((_encoding >> 185) & 1) == 1) {
@@ -341,24 +465,25 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       return _amountOut;
     } else if (_poolType == 1) {
       // UniswapV3
-      uint24 _fee = uint24((_encoding >> 160) & 16777215);
-      _approve(_tokenIn, UNISWAP_V3_ROUTER, _amountIn);
-      IUniswapV3Router.ExactInputSingleParams memory _params = IUniswapV3Router.ExactInputSingleParams(
-        _tokenIn,
-        _tokenOut,
-        _fee,
+      bool zeroForOne = _tokenIn < _tokenOut;
+      bytes memory _data = new bytes(32);
+      assembly {
+        mstore(add(_data, 0x20), _tokenIn)
+      }
+      context = uint256(_pool);
+      (int256 amount0, int256 amount1) = IUniswapV3Pool(_pool).swap(
         _recipient,
-        // solhint-disable-next-line not-rely-on-time
-        block.timestamp + 1,
-        _amountIn,
-        1,
-        0
+        zeroForOne,
+        int256(_amountIn),
+        (zeroForOne ? MIN_SQRT_RATIO + 1 : MAX_SQRT_RATIO - 1),
+        _data
       );
-      return IUniswapV3Router(UNISWAP_V3_ROUTER).exactInputSingle(_params);
+      context = 0;
+      return zeroForOne ? uint256(-amount1) : uint256(amount0);
     } else if (_poolType == 2) {
       // BalancerV1
       _approve(_tokenIn, _pool, _amountIn);
-      IBalancerV1Pool(_pool).swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, 0, uint256(-1));
+      (_amountOut, ) = IBalancerV1Pool(_pool).swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, 0, uint256(-1));
     } else if (_poolType == 3) {
       bytes32 _poolId = IBalancerPool(_pool).getPoolId();
       _wrapTokenIfNeeded(_tokenIn, _amountIn);
@@ -419,7 +544,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
           _approve(_tokenIn, _pool, _amountIn);
           ICurveCryptoPool(_pool).exchange(indexIn, indexOut, _amountIn, 0);
         } else {
-          ICurveCryptoPool(_pool).exchange{ value: _amountIn }(indexIn, indexOut, _amountIn, 0);
+          ICurveCryptoPool(_pool).exchange{ value: _amountIn }(indexIn, indexOut, _amountIn, 0, true);
         }
       }
     } else {
@@ -429,8 +554,9 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     if (_tokenOut == WETH) {
       _wrapTokenIfNeeded(_tokenOut, address(this).balance);
     }
-
-    _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+    if (_amountOut == 0) {
+      _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
+    }
     if (_recipient != address(this)) {
       IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
     }
@@ -454,11 +580,55 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     if (4 <= _poolType && _poolType <= 8) {
       uint256 _tokens = ((_encoding >> 160) & 7) + 1;
       uint256 _indexIn = (_encoding >> 166) & 7;
+      require(2 <= _tokens && _tokens <= 4, "invalid tokens");
+
+      // compute actual token amount and actual pool
+      if (_poolType == 6 && ((_encoding >> 169) & 1) == 1) {
+        address _token = ICurveYPoolDeposit(_pool).coins(int128(_indexIn));
+        address _underlying = ICurveYPoolDeposit(_pool).underlying_coins(int128(_indexIn));
+        if (_token != _underlying) {
+          assembly {
+            // keccack("exchangeRateStored()")
+            mstore(0x00, 0x182df0f500000000000000000000000000000000000000000000000000000000)
+            let success := staticcall(gas(), _token, 0x00, 0x04, 0x00, 0x20)
+            if success {
+              _amountIn := div(mul(_amountIn, 1000000000000000000), mload(0x00))
+            }
+          }
+        }
+        _pool = ICurveYPoolDeposit(_pool).curve();
+      } else {
+        _pool = _getTokenMinter(_pool);
+      }
 
       if (_tokens == 2) {
         uint256[2] memory _amounts;
         _amounts[_indexIn] = _amountIn;
-        _amountOut = ICurvePlainPool(_pool).calc_token_amount(_amounts, true);
+        // some old pools are using `calc_token_amount(uint256[2])`
+        // we use `calc_token_amount(uint256[2],bool)` first and then try `calc_token_amount(uint256[2])`
+        assembly {
+          // keccack("calc_token_amount(uint256[2],bool)")
+          let p := mload(0x40)
+          mstore(p, 0xed8e84f300000000000000000000000000000000000000000000000000000000)
+          switch _indexIn
+          case 0 {
+            mstore(add(p, 0x04), _amountIn)
+            mstore(add(p, 0x24), 0)
+          }
+          default {
+            mstore(add(p, 0x04), 0)
+            mstore(add(p, 0x24), _amountIn)
+          }
+          mstore(add(p, 0x44), 1)
+          mstore(0x00, 0)
+          let success := staticcall(gas(), _pool, p, 0x64, 0x00, 0x20)
+          if success {
+            _amountOut := mload(0x00)
+          }
+        }
+        if (_amountOut == 0) {
+          _amountOut = ICurvePlainPool(_pool).calc_token_amount(_amounts);
+        }
       } else if (_tokens == 3) {
         uint256[3] memory _amounts;
         _amounts[_indexIn] = _amountIn;
@@ -495,6 +665,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       _wrapTokenIfNeeded(_tokenIn, _amountIn);
     }
 
+    uint256 _balanceBefore = IERC20(_tokenOut).balanceOf(address(this));
     if (4 <= _poolType && _poolType <= 8) {
       _pool = _getTokenMinter(_pool);
       uint256 _tokens = ((_encoding >> 160) & 7) + 1;
@@ -526,7 +697,11 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
           uint256[2] memory _amounts;
           _amounts[_indexIn] = _amountIn;
           if (_use_eth) {
-            ICurvePlainPool(_pool).add_liquidity{ value: _amountIn }(_amounts, 0);
+            if (_poolType == 8) {
+              ICurveCryptoPool(_pool).add_liquidity{ value: _amountIn }(_amounts, 0, true);
+            } else {
+              ICurvePlainPool(_pool).add_liquidity{ value: _amountIn }(_amounts, 0);
+            }
           } else {
             ICurvePlainPool(_pool).add_liquidity(_amounts, 0);
           }
@@ -534,7 +709,11 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
           uint256[3] memory _amounts;
           _amounts[_indexIn] = _amountIn;
           if (_use_eth) {
-            ICurvePlainPool(_pool).add_liquidity{ value: _amountIn }(_amounts, 0);
+            if (_poolType == 8) {
+              ICurveTriCryptoPool(_pool).add_liquidity{ value: _amountIn }(_amounts, 0, true);
+            } else {
+              ICurvePlainPool(_pool).add_liquidity{ value: _amountIn }(_amounts, 0);
+            }
           } else {
             ICurvePlainPool(_pool).add_liquidity(_amounts, 0);
           }
@@ -556,7 +735,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       revert("invalid poolType");
     }
 
-    _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+    _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
     if (_recipient != address(this)) {
       IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
     }
@@ -579,7 +758,9 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
 
     if (4 <= _poolType && _poolType <= 8) {
-      _pool = _getTokenMinter(_pool);
+      if (_poolType != 6) {
+        _pool = _getTokenMinter(_pool);
+      }
       uint256 _indexOut = (_encoding >> 166) & 7;
       if (_poolType == 8) {
         _amountOut = ICurveCryptoPool(_pool).calc_withdraw_one_coin(_amountIn, _indexOut);
@@ -603,11 +784,14 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
     uint256 _amountIn,
     address _recipient
   ) internal returns (uint256 _amountOut) {
-    (, address _tokenOut) = _getTokenPair(_poolType, 2, _encoding);
+    (address _tokenIn, address _tokenOut) = _getTokenPair(_poolType, 2, _encoding);
     address _pool = address(_encoding & 1461501637330902918203684832716283019655932542975);
 
+    uint256 _balanceBefore = IERC20(_tokenOut).balanceOf(address(this));
     if (4 <= _poolType && _poolType <= 8) {
-      _pool = _getTokenMinter(_pool);
+      if (_poolType != 6) {
+        _pool = _getTokenMinter(_pool);
+      }
       uint256 _tokens = ((_encoding >> 160) & 7) + 1;
       uint256 _indexOut = (_encoding >> 166) & 7;
       require(2 <= _tokens && _tokens <= 4, "invalid tokens");
@@ -618,6 +802,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
         bool _use_underlying = ((_encoding >> 169) & 1) == 1;
         ICurveAPool(_pool).remove_liquidity_one_coin(_amountIn, int128(_indexOut), 0, _use_underlying);
       } else if (_poolType == 6) {
+        _approve(_tokenIn, _pool, _amountIn);
         ICurveYPoolDeposit(_pool).remove_liquidity_one_coin(_amountIn, int128(_indexOut), 0, true);
       } else if (_poolType == 7) {
         ICurveMetaPoolSwap(_pool).remove_liquidity_one_coin(_amountIn, int128(_indexOut), 0);
@@ -635,7 +820,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase, ITokenConverter {
       _wrapTokenIfNeeded(_tokenOut, address(this).balance);
     }
 
-    _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+    _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
     if (_recipient != address(this)) {
       IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
     }
