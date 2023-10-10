@@ -3,8 +3,49 @@
 pragma solidity ^0.8.0;
 
 interface ILiquidityManager {
+  /**********
+   * Events *
+   **********/
+
+  /// @notice Emitted when the ratio for manager is updated.
+  /// @param oldRatio The value of the previous ratio, multipled by 1e9.
+  /// @param newRatio The value of the current ratio, multipled by 1e9.
+  event UpdateManagerRatio(uint256 oldRatio, uint256 newRatio);
+
+  /// @notice Emitted when the ratio for harvester is updated.
+  /// @param oldRatio The value of the previous ratio, multipled by 1e9.
+  /// @param newRatio The value of the current ratio, multipled by 1e9.
+  event UpdateHarvesterRatio(uint256 oldRatio, uint256 newRatio);
+
+  /**********
+   * Errors *
+   **********/
+
+  /// @dev Thrown when the manager ratio exceeds `MAX_MANAGER_RATIO`.
+  error ManagerRatioTooLarge();
+
+  /// @dev Thrown when the harvester ratio exceeds `MAX_HARVESTER_RATIO`.
+  error HarvesterRatioTooLarge();
+
+  /*************************
+   * Public View Functions *
+   *************************/
+
   /// @notice Return whether the manager is active.
   function isActive() external view returns (bool);
+
+  /// @notice Return the list of reward tokens.
+  function getRewardTokens() external view returns (address[] memory);
+
+  /// @notice Return the fee ratio distributed to treasury, multipled by 1e9.
+  function getManagerRatio() external view returns (uint256);
+
+  /// @notice Return the fee ratio distributed to harvester, multipled by 1e9.
+  function getHarvesterRatio() external view returns (uint256);
+
+  /****************************
+   * Public Mutated Functions *
+   ****************************/
 
   /// @notice Deposit token to corresponding manager.
   /// @dev Requirements:
@@ -43,5 +84,10 @@ interface ILiquidityManager {
 
   /// @notice Manage the deposited token. Usually the token will be
   /// deposited to another protocol which could generate more yields.
-  function manage() external;
+  /// @param receiver The address of the recipient for manage incentive.
+  function manage(address receiver) external;
+
+  /// @notice Harvest pending rewards from underlying protocol.
+  /// @param receiver The address of the recipient for harvest incentive.
+  function harvest(address receiver) external;
 }

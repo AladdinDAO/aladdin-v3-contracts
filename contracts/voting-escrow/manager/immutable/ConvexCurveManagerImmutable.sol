@@ -6,18 +6,18 @@ import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol
 import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import { IMultipleRewardDistributor } from "../../common/rewards/distributor/IMultipleRewardDistributor.sol";
-import { IConvexVirtualBalanceRewardPool } from "../../interfaces/convex/IConvexVirtualBalanceRewardPool.sol";
-import { IStashTokenWrapper } from "../../interfaces/convex/IStashTokenWrapper.sol";
-import { IConvexBasicRewards } from "../../interfaces/IConvexBasicRewards.sol";
-import { IConvexBooster } from "../../interfaces/IConvexBooster.sol";
-import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { IMultipleRewardDistributor } from "../../../common/rewards/distributor/IMultipleRewardDistributor.sol";
+import { IConvexVirtualBalanceRewardPool } from "../../../interfaces/convex/IConvexVirtualBalanceRewardPool.sol";
+import { IStashTokenWrapper } from "../../../interfaces/convex/IStashTokenWrapper.sol";
+import { IConvexBasicRewards } from "../../../interfaces/IConvexBasicRewards.sol";
+import { IConvexBooster } from "../../../interfaces/IConvexBooster.sol";
+import { ILiquidityManager } from "../../interfaces/ILiquidityManager.sol";
 
-import { WordCodec } from "../../common/codec/WordCodec.sol";
+import { WordCodec } from "../../../common/codec/WordCodec.sol";
 
-import { LiquidityManagerBase } from "./LiquidityManagerBase.sol";
+import { LiquidityManagerBaseImmutable } from "./LiquidityManagerBaseImmutable.sol";
 
-contract ConvexCurveManager is LiquidityManagerBase {
+contract ConvexCurveManagerImmutable is LiquidityManagerBaseImmutable {
   using SafeERC20 for IERC20;
   using WordCodec for bytes32;
 
@@ -34,6 +34,12 @@ contract ConvexCurveManager is LiquidityManagerBase {
   /// @dev The rewarder of pid in `_miscData`.
   uint256 private constant REWARDER_OFFSET = 77;
 
+  /// @notice The pid in Convex Booster.
+  uint256 public immutable pid;
+
+  /// @notice The address of rewarder.
+  address public immutable rewarder;
+
   /*************
    * Variables *
    *************/
@@ -45,19 +51,13 @@ contract ConvexCurveManager is LiquidityManagerBase {
    * Constructor *
    ***************/
 
-  function initialize(
+  constructor(
     address _operator,
     address _token,
     address _rewarder
-  ) external initializer {
-    __LiquidityManagerBase_init(_operator, _token);
-
-    uint256 _pid = IConvexBasicRewards(_rewarder).pid();
-
-    bytes32 _data = _miscData;
-    _data = _data.insertUint(_pid, PID_OFFSET, 16);
-    _data = _data.insertUint(uint256(uint160(_rewarder)), REWARDER_OFFSET, 160);
-    _miscData = _data;
+  ) LiquidityManagerBaseImmutable(_operator, _token) {
+    pid = IConvexBasicRewards(_rewarder).pid();
+    rewarder = _rewarder;
 
     IERC20(_token).safeApprove(BOOSTER, type(uint256).max);
     syncRewardToken();
@@ -72,16 +72,6 @@ contract ConvexCurveManager is LiquidityManagerBase {
     return rewards;
   }
 
-  /// @notice Return the pid in Convex Booster.
-  function pid() public view returns (uint256) {
-    return _miscData.decodeUint(PID_OFFSET, 16);
-  }
-
-  /// @notice Return the address of rewarder.
-  function rewarder() public view returns (address) {
-    return address(uint160(_miscData.decodeUint(REWARDER_OFFSET, 160)));
-  }
-
   /****************************
    * Public Mutated Functions *
    ****************************/
@@ -90,12 +80,11 @@ contract ConvexCurveManager is LiquidityManagerBase {
   function syncRewardToken() public {
     delete rewards;
 
-    address staker = rewarder();
-    rewards.push(IConvexBasicRewards(staker).rewardToken());
+    rewards.push(IConvexBasicRewards(rewarder).rewardToken());
 
-    uint256 _length = IConvexBasicRewards(staker).extraRewardsLength();
+    uint256 _length = IConvexBasicRewards(rewarder).extraRewardsLength();
     for (uint256 i = 0; i < _length; i++) {
-      address _rewarder = IConvexBasicRewards(staker).extraRewards(i);
+      address _rewarder = IConvexBasicRewards(rewarder).extraRewards(i);
       address _wrapper = IConvexVirtualBalanceRewardPool(_rewarder).rewardToken();
       rewards.push(IStashTokenWrapper(_wrapper).token());
     }
@@ -107,7 +96,7 @@ contract ConvexCurveManager is LiquidityManagerBase {
     if (_balance == 0) return;
 
     // deposit to booster
-    IConvexBooster(BOOSTER).deposit(pid(), _balance, true);
+    IConvexBooster(BOOSTER).deposit(pid, _balance, true);
 
     // send incentive
     uint256 _length = rewards.length;
@@ -126,17 +115,16 @@ contract ConvexCurveManager is LiquidityManagerBase {
     // try to deposit first
     uint256 _balance = IERC20(token).balanceOf(address(this));
     if (_balance > 0) {
-      IConvexBooster(BOOSTER).deposit(pid(), _balance, true);
+      IConvexBooster(BOOSTER).deposit(pid, _balance, true);
     }
 
     // harvest
-    IConvexBasicRewards(rewarder()).getReward();
+    IConvexBasicRewards(rewarder).getReward();
 
     // distribute rewards
     uint256 _harvesterRatio = getHarvesterRatio();
     uint256 _managerRatio = getManagerRatio();
     uint256 _length = rewards.length;
-    address _operator = operator;
     for (uint256 i = 0; i < _length; ++i) {
       address _rewardToken = rewards[i];
       uint256 _rewardAmount = IERC20(_rewardToken).balanceOf(address(this));
@@ -151,7 +139,7 @@ contract ConvexCurveManager is LiquidityManagerBase {
           IERC20(_rewardToken).safeTransfer(_receiver, _bounty);
         }
 
-        IMultipleRewardDistributor(_operator).depositReward(_rewardToken, _rewardAmount - _incentive - _bounty);
+        IMultipleRewardDistributor(operator).depositReward(_rewardToken, _rewardAmount - _incentive - _bounty);
       }
     }
   }
@@ -160,14 +148,14 @@ contract ConvexCurveManager is LiquidityManagerBase {
    * Internal Functions *
    **********************/
 
-  /// @inheritdoc LiquidityManagerBase
+  /// @inheritdoc LiquidityManagerBaseImmutable
   function _managedBalance() internal view virtual override returns (uint256) {
     unchecked {
-      return IERC20(token).balanceOf(address(this)) + IConvexBasicRewards(rewarder()).balanceOf(address(this));
+      return IERC20(token).balanceOf(address(this)) + IConvexBasicRewards(rewarder).balanceOf(address(this));
     }
   }
 
-  /// @inheritdoc LiquidityManagerBase
+  /// @inheritdoc LiquidityManagerBaseImmutable
   function _deposit(
     address,
     uint256,
@@ -177,18 +165,18 @@ contract ConvexCurveManager is LiquidityManagerBase {
       // deposit to underlying strategy
       uint256 _balance = IERC20(token).balanceOf(address(this));
       if (_balance > 0) {
-        IConvexBooster(BOOSTER).deposit(pid(), _balance, true);
+        IConvexBooster(BOOSTER).deposit(pid, _balance, true);
       }
     }
   }
 
-  /// @inheritdoc LiquidityManagerBase
+  /// @inheritdoc LiquidityManagerBaseImmutable
   function _withdraw(address _receiver, uint256 _amount) internal virtual override {
     if (_amount > 0) {
       uint256 _balance = IERC20(token).balanceOf(address(this));
       if (_amount > _balance) {
         unchecked {
-          IConvexBasicRewards(rewarder()).withdrawAndUnwrap(_amount - _balance, false);
+          IConvexBasicRewards(rewarder).withdrawAndUnwrap(_amount - _balance, false);
         }
       }
       IERC20(token).safeTransfer(_receiver, _amount);

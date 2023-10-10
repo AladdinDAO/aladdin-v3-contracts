@@ -3,15 +3,12 @@
 pragma solidity ^0.8.0;
 
 import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol";
-import { Initializable } from "@openzeppelin/contracts-v4/proxy/utils/Initializable.sol";
 
-import { WordCodec } from "../../common/codec/WordCodec.sol";
+import { WordCodec } from "../../../common/codec/WordCodec.sol";
 
-import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { ILiquidityManager } from "../../interfaces/ILiquidityManager.sol";
 
-// solhint-disable func-name-mixedcase
-
-abstract contract LiquidityManagerBase is Initializable, Ownable2Step, ILiquidityManager {
+abstract contract LiquidityManagerBaseImmutable is Ownable2Step, ILiquidityManager {
   using WordCodec for bytes32;
 
   /**********
@@ -46,15 +43,15 @@ abstract contract LiquidityManagerBase is Initializable, Ownable2Step, ILiquidit
   /// @dev The fee denominator used for rate calculation.
   uint256 internal constant FEE_PRECISION = 1e9;
 
+  /// @notice The address of operator, usually the `LiquidityGauge` contract.
+  address public immutable operator;
+
+  /// @notice The address of managed token.
+  address public immutable token;
+
   /*************
    * Variables *
    *************/
-
-  /// @notice The address of operator, usually the `LiquidityGauge` contract.
-  address public operator;
-
-  /// @notice The address of managed token.
-  address public token;
 
   /// @notice Mapping from reward token address to the amount of incentive for manager.
   mapping(address => uint256) public incentive;
@@ -93,9 +90,7 @@ abstract contract LiquidityManagerBase is Initializable, Ownable2Step, ILiquidit
    * Constructor *
    ***************/
 
-  function __LiquidityManagerBase_init(address _operator, address _token) internal onlyInitializing {
-    _transferOwnership(_msgSender());
-
+  constructor(address _operator, address _token) {
     operator = _operator;
     token = _token;
 
