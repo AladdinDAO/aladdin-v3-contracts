@@ -37,17 +37,20 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
    * Errors *
    **********/
 
+  /// @dev Thrown when vesting amount is zero.
+  error ErrorVestZeroAmount();
+
   /// @dev Thrown when the vesting timestamp is invalid.
-  error InvalidTimestamp();
+  error ErrorInvalidTimestamp();
 
   /// @dev Thrown when cancel/manage a cancelled vesting.
-  error VestingAlreadyCancelled();
+  error ErrorVestingAlreadyCancelled();
 
   /// @dev Thrown when a vesting is already managed by manager.
-  error VesingAlreadyManaged();
+  error ErrorVesingAlreadyManaged();
 
   /// @dev Thrown when the manager index is invalid.
-  error InvalidManagerIndex();
+  error ErrorInvalidManagerIndex();
 
   /*************
    * Constants *
@@ -58,6 +61,12 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
 
   /// @notice The address of token to vest.
   address public immutable token;
+
+  /// @notice The address of VestingManagerProxy implementation.
+  address public immutable implementation;
+
+  /// @dev The address of PlainVestingManager contract.
+  address public immutable plainVestingManager;
 
   /***********
    * Structs *
@@ -89,9 +98,6 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
   /// @notice Mapping from user address to active index in the vesting list.
   mapping(address => uint256) public activeVestingIndex;
 
-  /// @notice The address of VestingManagerProxy implementation.
-  address public proxyImpl;
-
   /// @notice Mapping from user address to VestingManagerProxy contract.
   mapping(address => address) public proxy;
 
@@ -104,8 +110,11 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
 
   constructor(address _token) {
     token = _token;
-    proxyImpl = address(new VestingManagerProxy(address(this)));
-    managers.push(address(new PlainVestingManager(_token)));
+    implementation = address(new VestingManagerProxy(address(this)));
+    plainVestingManager = address(new PlainVestingManager(_token));
+
+    managers.push(plainVestingManager);
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
   }
 
   /*************************
@@ -175,52 +184,18 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
     activeVestingIndex[_sender] = _activeIndex;
 
     VestingManagerProxy(proxy[_sender]).execute(
-      managers[_managerIndex],
+      _managerIndex == 0 ? plainVestingManager : managers[_managerIndex],
       abi.encodeCall(IVestingManager.withdraw, (_claimable, _msgSender()))
     );
 
     emit Claim(_sender, _claimable);
   }
 
-  /// @inheritdoc IVesting
-  function newVesting(
-    address _recipient,
-    uint96 _amount,
-    uint32 _startTime,
-    uint32 _finishTime
-  ) external override onlyRole(VESTING_CREATOR_ROLE) {
-    if (_startTime >= _finishTime) revert InvalidTimestamp();
-
-    // create proxy if not exists
-    address _proxy = proxy[_recipient];
-    if (_proxy == address(0)) {
-      _proxy = Clones.clone(proxyImpl);
-      proxy[_recipient] = _proxy;
-    }
-
-    // token is transfered to proxy directly
-    IERC20(token).safeTransferFrom(_msgSender(), _proxy, _amount);
-
-    uint256 _index = vesting[_recipient].length;
-    vesting[_recipient].push(
-      VestState({
-        vestingAmount: _amount,
-        startTime: _startTime,
-        finishTime: _finishTime,
-        cancelTime: 0,
-        lastClaimTime: 0,
-        managerIndex: 0
-      })
-    );
-
-    emit Vest(_recipient, _index, _amount, _startTime, _finishTime);
-  }
-
   /// @notice Manage a list of vestings
   /// @param _indices The list of vesting indices.
   /// @param _managerIndex The index of VestingManager.
   function manage(uint256[] memory _indices, uint256 _managerIndex) external {
-    if (_managerIndex == 0 || _managerIndex >= managers.length) revert InvalidManagerIndex();
+    if (_managerIndex == 0 || _managerIndex >= managers.length) revert ErrorInvalidManagerIndex();
 
     address _sender = _msgSender();
     VestState[] storage lists = vesting[_sender];
@@ -228,7 +203,7 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
     uint256 _amount;
     for (uint256 i = 0; i < _indices.length; i++) {
       VestState memory _state = lists[_indices[i]];
-      if (_state.managerIndex != 0) revert VesingAlreadyManaged();
+      if (_state.managerIndex != 0) revert ErrorVesingAlreadyManaged();
       _state.managerIndex = uint32(_managerIndex);
       lists[_indices[i]] = _state;
 
@@ -260,9 +235,44 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
    ************************/
 
   /// @inheritdoc IVesting
+  function newVesting(
+    address _recipient,
+    uint96 _amount,
+    uint32 _startTime,
+    uint32 _finishTime
+  ) external override onlyRole(VESTING_CREATOR_ROLE) {
+    if (_amount == 0) revert ErrorVestZeroAmount();
+    if (_startTime >= _finishTime) revert ErrorInvalidTimestamp();
+
+    // create proxy if not exists
+    address _proxy = proxy[_recipient];
+    if (_proxy == address(0)) {
+      _proxy = Clones.clone(implementation);
+      proxy[_recipient] = _proxy;
+    }
+
+    // token is transfered to proxy directly
+    IERC20(token).safeTransferFrom(_msgSender(), _proxy, _amount);
+
+    uint256 _index = vesting[_recipient].length;
+    vesting[_recipient].push(
+      VestState({
+        vestingAmount: _amount,
+        startTime: _startTime,
+        finishTime: _finishTime,
+        cancelTime: 0,
+        lastClaimTime: 0,
+        managerIndex: 0
+      })
+    );
+
+    emit Vest(_recipient, _index, _amount, _startTime, _finishTime);
+  }
+
+  /// @inheritdoc IVesting
   function cancle(address _user, uint256 _index) external override onlyRole(DEFAULT_ADMIN_ROLE) {
     VestState memory _state = vesting[_user][_index];
-    if (_state.cancelTime > 0) revert VestingAlreadyCancelled();
+    if (_state.cancelTime > 0) revert ErrorVestingAlreadyCancelled();
 
     uint32 _nowTime = uint32(block.timestamp);
     uint256 _vestedAmount = _getVested(_state, _nowTime);
@@ -292,7 +302,7 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
   /// @param _managerIndex The index of the manager to update.
   /// @param _newManager The address of the new VestingManager contract.
   function updateVestingManager(uint256 _managerIndex, address _newManager) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    if (_managerIndex == 0 || _managerIndex >= managers.length) revert InvalidManagerIndex();
+    if (_managerIndex == 0 || _managerIndex >= managers.length) revert ErrorInvalidManagerIndex();
 
     address _oldManager = managers[_managerIndex];
     managers[_managerIndex] = _newManager;

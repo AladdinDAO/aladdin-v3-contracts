@@ -8,6 +8,7 @@ import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC2
 import { IVestingManager } from "../IVestingManager.sol";
 
 // solhint-disable const-name-snakecase
+// solhint-disable no-empty-blocks
 
 contract PlainVestingManager is IVestingManager {
   using SafeERC20 for IERC20;
@@ -17,7 +18,7 @@ contract PlainVestingManager is IVestingManager {
    *************/
 
   /// @notice The address of token to vest.
-  address public immutable token;
+  address private immutable token;
 
   /***************
    * Constructor *
