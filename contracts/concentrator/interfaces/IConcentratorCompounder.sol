@@ -36,6 +36,12 @@ interface IConcentratorCompounder is IERC4626Upgradeable, IConcentratorBase, IRe
    * Errors *
    **********/
 
+  /// @dev Thrown when deposit amount is zero.
+  error DepositZeroAmount();
+
+  /// @dev Thrown when withdraw share is zero.
+  error WithdrawZeroShare();
+
   /// @dev Thrown when user try to withdraw assets more than the total assets.
   error WithdrawExceedTotalAssets();
 

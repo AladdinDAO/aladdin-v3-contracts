@@ -32,6 +32,9 @@ contract CvxFxnStakingStrategy is ConcentratorStrategyBaseV2 {
   // solhint-disable const-name-snakecase
   string public constant override name = "CvxFxnStaking";
 
+  /// @dev The address of WETH token.
+  address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+
   /// @dev The address of FXN token.
   address private constant FXN = 0x365AccFCa291e7D3914637ABf1F7635dB165Bb09;
 
@@ -51,7 +54,7 @@ contract CvxFxnStakingStrategy is ConcentratorStrategyBaseV2 {
    * Constructor *
    ***************/
 
-  constructor(address _operator) {
+  constructor(address _operator) initializer {
     address[] memory _rewards = new address[](3);
     _rewards[0] = FXN; // FXN
     _rewards[1] = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B; // CVX
@@ -63,6 +66,12 @@ contract CvxFxnStakingStrategy is ConcentratorStrategyBaseV2 {
     IERC20(cvxFXN).safeApprove(staker, type(uint256).max);
     IERC20(FXN).safeApprove(FXN_DEPOSITOR, type(uint256).max);
     IERC20(FXN).safeApprove(CURVE_POOL, type(uint256).max);
+
+    // protect token
+    isTokenProtected[cvxFXN] = true;
+    isTokenProtected[FXN] = true;
+    isTokenProtected[0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B] = true; // CVX
+    isTokenProtected[0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0] = true; // wstETH
   }
 
   /****************************
@@ -115,8 +124,9 @@ contract CvxFxnStakingStrategy is ConcentratorStrategyBaseV2 {
     }
 
     address _registry = ITokenConverter(_converter).registry();
-    // 2. convert all rewards (except cvxFXN) to FXN
+    // 2. convert all rewards (except FNX and cvxFXN) to WETH
     uint256 _amountFXN;
+    uint256 _amountWETH;
     for (uint256 i = 0; i < rewards.length; i++) {
       address _rewardToken = _rewards[i];
       uint256 _amount = _amounts[i];
@@ -126,21 +136,32 @@ contract CvxFxnStakingStrategy is ConcentratorStrategyBaseV2 {
         _harvested += _amount;
       } else if (_amount > 0) {
         _transferToken(_rewardToken, _converter, _amount);
-        _amountFXN += _convert(
+        _amountWETH += _convert(
           _converter,
           _amount,
-          IConverterRegistry(_registry).getRoutes(_rewardToken, FXN),
+          IConverterRegistry(_registry).getRoutes(_rewardToken, WETH),
           address(this)
         );
       }
     }
 
-    // 3. swap FXN to cvxFXN
+    // 3. convert all WETH to FXN
+    if (_amountWETH > 0) {
+      _transferToken(WETH, _converter, _amountWETH);
+      _amountFXN += _convert(
+        _converter,
+        _amountWETH,
+        IConverterRegistry(_registry).getRoutes(WETH, FXN),
+        address(this)
+      );
+    }
+
+    // 4. swap FXN to cvxFXN
     if (_amountFXN > 0) {
       _harvested += _swapFxnToCvxFxn(_amountFXN, address(this));
     }
 
-    // 4. deposit
+    // 5. deposit
     if (_harvested > 0) {
       ICvxFxnStaking(staker).stake(_harvested);
     }

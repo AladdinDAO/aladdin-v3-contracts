@@ -15,6 +15,8 @@ import { ConcentratorBaseV2 } from "./ConcentratorBaseV2.sol";
 import { IConcentratorCompounder } from "./interfaces/IConcentratorCompounder.sol";
 import { IConcentratorStrategy } from "./interfaces/IConcentratorStrategy.sol";
 
+import "hardhat/console.sol";
+
 // solhint-disable func-name-mixedcase
 // solhint-disable no-empty-blocks
 
@@ -268,6 +270,7 @@ abstract contract ConcentratorCompounderBase is
     emit Harvest(_msgSender(), _receiver, _assets, _performanceFee, _harvesterBounty);
 
     unchecked {
+      totalAssets = _totalAssets + _performanceFee + _harvesterBounty;
       _notifyReward(_assets - _performanceFee - _harvesterBounty);
     }
   }
@@ -282,7 +285,7 @@ abstract contract ConcentratorCompounderBase is
 
     // This is the actual assets deposited into strategy.
     (uint256 _distributable, uint256 _undistributed) = pendingRewards();
-    uint256 _totalAssets = totalAssets + _distributable + _undistributed;
+    uint256 _totalAssets = totalAssets + _distributable + _undistributed + rewardData.queued;
 
     address _oldStrategy = strategy;
     strategy = _newStrategy;
@@ -398,6 +401,8 @@ abstract contract ConcentratorCompounderBase is
     address _receiver,
     address _owner
   ) internal virtual returns (uint256 _shares) {
+    if (_assets == 0) revert DepositZeroAmount();
+
     if (_owner != address(0)) {
       address _strategy = strategy;
       if (_owner == address(this)) {
@@ -424,6 +429,8 @@ abstract contract ConcentratorCompounderBase is
     address _receiver,
     address _owner
   ) internal virtual returns (uint256 _assets) {
+    if (_shares == 0) revert WithdrawZeroShare();
+
     _assets = _burnShare(_owner, _shares);
 
     IConcentratorStrategy(strategy).withdraw(_receiver, _assets);

@@ -52,6 +52,8 @@ contract CvxFxnCompounder is ConcentratorCompounderBase, ICvxFxnCompounder {
     address _converter,
     address _strategy
   ) external initializer {
+    __Context_init(); // from ContextUpgradeable
+    __ERC165_init(); // from ERC165Upgradeable
     __AccessControl_init(); // from AccessControlUpgradeable
     __ReentrancyGuard_init(); // from ReentrancyGuardUpgradeable
     __ERC20_init(_name, _symbol); // from ERC20Upgradeable
@@ -127,7 +129,7 @@ contract CvxFxnCompounder is ConcentratorCompounderBase, ICvxFxnCompounder {
 
   /// @inheritdoc ConcentratorCompounderBase
   function _getIntermediateToken() internal view virtual override returns (address) {
-    return address(0);
+    return FXN;
   }
 
   /// @dev Internal function to swap FXN to cvxFXN
