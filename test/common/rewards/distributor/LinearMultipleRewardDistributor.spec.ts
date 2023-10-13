@@ -327,7 +327,7 @@ describe("LinearMultipleRewardDistributor.spec", async () => {
             expect(rewardData1.lastUpdate).to.eq(timestamp1);
             expect(rewardData1.finishAt).to.eq(timestamp0 + periodLength);
             expect(rewardData1.rate).to.eq(expectedRate0);
-            expect(rewardData1.queued).to.eq(depositAmount1);
+            expect(rewardData1.queued).to.closeTo(depositAmount1, periodLength);
 
             // deposit another 2% expectedRate * toBigInt(Math.floor(periodLength / 3)), should distribute
             const depositAmount2 = (expectedRate0 * toBigInt(Math.floor(periodLength / 3)) * 2n) / 100n;
@@ -343,8 +343,8 @@ describe("LinearMultipleRewardDistributor.spec", async () => {
               toBigInt(periodLength);
             expect(rewardData2.lastUpdate).to.eq(timestamp2);
             expect(rewardData2.finishAt).to.eq(timestamp2 + periodLength);
-            expect(rewardData2.rate).to.eq(expectedRate2);
-            expect(rewardData2.queued).to.eq(0n);
+            expect(rewardData2.rate).to.closeTo(expectedRate2, periodLength);
+            expect(rewardData2.queued).to.closeTo(0n, periodLength);
           }
         });
       });

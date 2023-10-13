@@ -27,6 +27,15 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
   /// @dev The maximum withdraw fee percentage.
   uint256 private constant MAX_WITHDRAW_FEE_PERCENTAGE = 1e8; // 10%
 
+  /// @dev The offset of expense ratio in `_miscData`.
+  uint256 private constant EXPENSE_RATIO_OFFSET = 0;
+
+  /// @dev The offset of harvester ratio in `_miscData`.
+  uint256 private constant HARVESTER_RATIO_OFFSET = 30;
+
+  /// @dev The offset of withdraw fee percentage in `_miscData`.
+  uint256 private constant WITHDRAW_FEE_PERCENTAGE_OFFSET = 60;
+
   /*************
    * Variables *
    *************/
@@ -53,7 +62,7 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
   /// - The *withdraw fee percentage* is charged each time when user try to withdraw assets from the pool.
   ///
   /// [ expense ratio | harvester ratio | withdraw fee | available ]
-  /// [    32 bits    |     32 bits     |   32  bits   |  160 bits ]
+  /// [    30 bits    |     30 bits     |   30  bits   |  166 bits ]
   /// [ MSB                                                    LSB ]
   bytes32 private _miscData;
 
@@ -92,17 +101,17 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
 
   /// @inheritdoc IConcentratorBase
   function getExpenseRatio() public view override returns (uint256) {
-    return _miscData.decodeUint(0, 32);
+    return _miscData.decodeUint(EXPENSE_RATIO_OFFSET, 30);
   }
 
   /// @inheritdoc IConcentratorBase
   function getHarvesterRatio() public view override returns (uint256) {
-    return _miscData.decodeUint(32, 32);
+    return _miscData.decodeUint(HARVESTER_RATIO_OFFSET, 30);
   }
 
   /// @inheritdoc IConcentratorBase
   function getWithdrawFeePercentage() public view override returns (uint256) {
-    return _miscData.decodeUint(64, 32);
+    return _miscData.decodeUint(WITHDRAW_FEE_PERCENTAGE_OFFSET, 30);
   }
 
   /************************
@@ -138,10 +147,10 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
     }
 
     bytes32 _data = _miscData;
-    uint256 _oldRatio = _miscData.decodeUint(0, 32);
-    _miscData = _data.insertUint(_newRatio, 0, 32);
+    uint256 _oldRatio = _miscData.decodeUint(EXPENSE_RATIO_OFFSET, 30);
+    _miscData = _data.insertUint(_newRatio, EXPENSE_RATIO_OFFSET, 30);
 
-    emit UpdateRevenueRatio(_oldRatio, _newRatio);
+    emit UpdateExpenseRatio(_oldRatio, _newRatio);
   }
 
   /// @notice Update the fee ratio distributed to harvester.
@@ -152,8 +161,8 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
     }
 
     bytes32 _data = _miscData;
-    uint256 _oldRatio = _miscData.decodeUint(32, 32);
-    _miscData = _data.insertUint(_newRatio, 32, 32);
+    uint256 _oldRatio = _miscData.decodeUint(HARVESTER_RATIO_OFFSET, 30);
+    _miscData = _data.insertUint(_newRatio, HARVESTER_RATIO_OFFSET, 30);
 
     emit UpdateHarvesterRatio(_oldRatio, _newRatio);
   }
@@ -166,8 +175,8 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
     }
 
     bytes32 _data = _miscData;
-    uint256 _oldPercentage = _miscData.decodeUint(64, 32);
-    _miscData = _data.insertUint(_newPercentage, 64, 32);
+    uint256 _oldPercentage = _miscData.decodeUint(WITHDRAW_FEE_PERCENTAGE_OFFSET, 30);
+    _miscData = _data.insertUint(_newPercentage, WITHDRAW_FEE_PERCENTAGE_OFFSET, 30);
 
     emit UpdateWithdrawFeePercentage(_oldPercentage, _newPercentage);
   }

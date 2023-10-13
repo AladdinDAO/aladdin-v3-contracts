@@ -28,7 +28,7 @@ interface IConcentratorBase {
   /// @notice Emitted when the ratio for treasury is updated.
   /// @param oldRatio The value of the previous ratio, multipled by 1e9.
   /// @param newRatio The value of the current ratio, multipled by 1e9.
-  event UpdateRevenueRatio(uint256 oldRatio, uint256 newRatio);
+  event UpdateExpenseRatio(uint256 oldRatio, uint256 newRatio);
 
   /// @notice Emitted when the ratio for harvester is updated.
   /// @param oldRatio The value of the previous ratio, multipled by 1e9.

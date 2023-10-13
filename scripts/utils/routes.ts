@@ -545,6 +545,9 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
 };
 
 export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = {
+  CVX: {
+    WETH: [encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap)],
+  },
   stETH: {
     WETH: [
       encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, { use_eth: false }),
@@ -562,6 +565,9 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
       }),
     ],
     wstETH: [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
+  },
+  WETH: {
+    FXN: [encodePoolHintV3(ADDRESS["CURVE_ETH/FXN_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
   },
 };
 
