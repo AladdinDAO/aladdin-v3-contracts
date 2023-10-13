@@ -11,16 +11,6 @@ import { ILiquidityManager } from "../../interfaces/ILiquidityManager.sol";
 abstract contract LiquidityManagerBaseImmutable is Ownable2Step, ILiquidityManager {
   using WordCodec for bytes32;
 
-  /**********
-   * Errors *
-   **********/
-
-  /// @dev Thrown when try to kill the manager more than once.
-  error AlreadyKilled();
-
-  /// @dev Thrown when the call is not operator.
-  error CallerIsNotOperator();
-
   /*************
    * Constants *
    *************/
@@ -64,16 +54,12 @@ abstract contract LiquidityManagerBaseImmutable is Ownable2Step, ILiquidityManag
   /// significant 30 bits, and the *harvester ratio* is stored in the next most significant 30 bits,
   /// leaving the remaining 195 bits free to store any other information derived pools might need.
   ///
-  /// - The *expense ratio* and *harvester ratio* are charged each time when harvester harvest the pool revenue.
-  /// - The *withdraw fee percentage* is charged each time when user try to withdraw assets from the pool.
+  /// - The *manager ratio* and *harvester ratio* are charged each time when harvester harvest the pool revenue.
   ///
   /// [ active flag | manager ratio | harvester ratio | available ]
   /// [    1 bit    |    30 bits    |     30 bits     |  195 bits ]
   /// [ MSB                                                   LSB ]
   bytes32 internal _miscData;
-
-  /// @dev reserved slots.
-  uint256[46] private __gap;
 
   /*************
    * Modifiers *
@@ -83,6 +69,11 @@ abstract contract LiquidityManagerBaseImmutable is Ownable2Step, ILiquidityManag
     if (_msgSender() != operator) {
       revert CallerIsNotOperator();
     }
+    _;
+  }
+
+  modifier whenNotKilled() {
+    if (!isActive()) revert AlreadyKilled();
     _;
   }
 
@@ -126,12 +117,12 @@ abstract contract LiquidityManagerBaseImmutable is Ownable2Step, ILiquidityManag
     address _receiver,
     uint256 _amount,
     bool _manage
-  ) external onlyOperator {
+  ) external onlyOperator whenNotKilled {
     _deposit(_receiver, _amount, _manage);
   }
 
   /// @inheritdoc ILiquidityManager
-  function withdraw(address _receiver, uint256 _amount) external onlyOperator {
+  function withdraw(address _receiver, uint256 _amount) external onlyOperator whenNotKilled {
     _withdraw(_receiver, _amount);
   }
 
@@ -151,10 +142,7 @@ abstract contract LiquidityManagerBaseImmutable is Ownable2Step, ILiquidityManag
   }
 
   /// @notice Kill the liquidity manager and withdraw all token back to operator.
-  function kill() external onlyOwner {
-    if (!isActive()) {
-      revert AlreadyKilled();
-    }
+  function kill() external onlyOwner whenNotKilled {
     _miscData = _miscData.insertBool(false, ACTIVE_FLAG_OFFSET);
 
     // Send all funds back to operator
@@ -162,9 +150,9 @@ abstract contract LiquidityManagerBaseImmutable is Ownable2Step, ILiquidityManag
     _withdraw(operator, _balance);
   }
 
-  /// @notice Update the fee ratio distributed to treasury.
+  /// @notice Update the fee ratio distributed to manager.
   /// @param _newRatio The new ratio to update, multipled by 1e9.
-  function updateExpenseRatio(uint32 _newRatio) external onlyOwner {
+  function updateManagerRatio(uint32 _newRatio) external onlyOwner {
     if (uint256(_newRatio) > MAX_MANAGER_RATIO) {
       revert ManagerRatioTooLarge();
     }

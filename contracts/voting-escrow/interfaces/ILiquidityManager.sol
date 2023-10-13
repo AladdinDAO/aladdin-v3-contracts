@@ -21,6 +21,12 @@ interface ILiquidityManager {
    * Errors *
    **********/
 
+  /// @dev Thrown when try to kill the manager more than once.
+  error AlreadyKilled();
+
+  /// @dev Thrown when the call is not operator.
+  error CallerIsNotOperator();
+
   /// @dev Thrown when the manager ratio exceeds `MAX_MANAGER_RATIO`.
   error ManagerRatioTooLarge();
 

@@ -2,7 +2,6 @@
 
 pragma solidity =0.8.20;
 
-import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol";
 import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
@@ -24,6 +23,9 @@ contract ConvexCurveManager is LiquidityManagerBase {
   /*************
    * Constants *
    *************/
+
+  /// @dev The address of Convex CVX token.
+  address private constant CVX = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
 
   /// @dev The address of Convex Booster.
   address private constant BOOSTER = 0xF403C135812408BFbE8713b5A23a04b3D48AAE31;
@@ -94,10 +96,26 @@ contract ConvexCurveManager is LiquidityManagerBase {
     rewards.push(IConvexBasicRewards(staker).rewardToken());
 
     uint256 _length = IConvexBasicRewards(staker).extraRewardsLength();
+    bool _hasCVX = false;
     for (uint256 i = 0; i < _length; i++) {
       address _rewarder = IConvexBasicRewards(staker).extraRewards(i);
       address _wrapper = IConvexVirtualBalanceRewardPool(_rewarder).rewardToken();
-      rewards.push(IStashTokenWrapper(_wrapper).token());
+      // old rewarders didn't use token wrapper
+      try IStashTokenWrapper(_wrapper).token() returns (address _token) {
+        if (_token == CVX) _hasCVX = true;
+        rewards.push(_token);
+      } catch {
+        if (_wrapper == CVX) _hasCVX = true;
+        rewards.push(_wrapper);
+      }
+    }
+    if (!_hasCVX) rewards.push(CVX);
+
+    _length = rewards.length;
+    for (uint256 i = 0; i < _length; ++i) {
+      address _token = rewards[i];
+      IERC20(_token).safeApprove(operator, 0);
+      IERC20(_token).safeApprove(operator, type(uint256).max);
     }
   }
 
@@ -106,19 +124,7 @@ contract ConvexCurveManager is LiquidityManagerBase {
     uint256 _balance = IERC20(token).balanceOf(address(this));
     if (_balance == 0) return;
 
-    // deposit to booster
-    IConvexBooster(BOOSTER).deposit(pid(), _balance, true);
-
-    // send incentive
-    uint256 _length = rewards.length;
-    for (uint256 i = 0; i < _length; ++i) {
-      address _rewardToken = rewards[i];
-      uint256 _incentive = incentive[_rewardToken];
-      if (_incentive > 0) {
-        IERC20(_rewardToken).safeTransfer(_receiver, _incentive);
-        incentive[_rewardToken] = 0;
-      }
-    }
+    _manageUnderlying(_receiver, _balance);
   }
 
   /// @inheritdoc ILiquidityManager
@@ -169,7 +175,7 @@ contract ConvexCurveManager is LiquidityManagerBase {
 
   /// @inheritdoc LiquidityManagerBase
   function _deposit(
-    address,
+    address _receiver,
     uint256,
     bool _manage
   ) internal virtual override {
@@ -177,7 +183,7 @@ contract ConvexCurveManager is LiquidityManagerBase {
       // deposit to underlying strategy
       uint256 _balance = IERC20(token).balanceOf(address(this));
       if (_balance > 0) {
-        IConvexBooster(BOOSTER).deposit(pid(), _balance, true);
+        _manageUnderlying(_receiver, _balance);
       }
     }
   }
@@ -192,6 +198,23 @@ contract ConvexCurveManager is LiquidityManagerBase {
         }
       }
       IERC20(token).safeTransfer(_receiver, _amount);
+    }
+  }
+
+  /// @dev Internal function to manage underlying assets
+  function _manageUnderlying(address _receiver, uint256 _balance) internal {
+    // deposit to booster
+    IConvexBooster(BOOSTER).deposit(pid(), _balance, true);
+
+    // send incentive
+    uint256 _length = rewards.length;
+    for (uint256 i = 0; i < _length; ++i) {
+      address _rewardToken = rewards[i];
+      uint256 _incentive = incentive[_rewardToken];
+      if (_incentive > 0) {
+        IERC20(_rewardToken).safeTransfer(_receiver, _incentive);
+        incentive[_rewardToken] = 0;
+      }
     }
   }
 }
