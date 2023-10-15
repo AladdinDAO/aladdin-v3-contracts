@@ -15,8 +15,6 @@ import { ConcentratorBaseV2 } from "./ConcentratorBaseV2.sol";
 import { IConcentratorCompounder } from "./interfaces/IConcentratorCompounder.sol";
 import { IConcentratorStrategy } from "./interfaces/IConcentratorStrategy.sol";
 
-import "hardhat/console.sol";
-
 // solhint-disable func-name-mixedcase
 // solhint-disable no-empty-blocks
 
