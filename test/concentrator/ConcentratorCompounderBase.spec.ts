@@ -1159,7 +1159,8 @@ describe("ConcentratorCompounderBase.spec", async () => {
       });
 
       context("#harvest", async () => {
-        const initialSupply = ethers.parseEther("1");
+        const initialSupply = ethers.parseEther("123456");
+        const initialAssets = (initialSupply * 11234n) / 10000n;
 
         beforeEach(async () => {
           await token.mint(deployer.address, initialSupply);
@@ -1167,6 +1168,7 @@ describe("ConcentratorCompounderBase.spec", async () => {
           await compounder.deposit(initialSupply, deployer.address);
 
           await token.mint(signer.address, ethers.parseEther("123456"));
+          await doHarvest((initialSupply * 1234n) / 10000n);
         });
 
         it("should revert, when reentrant", async () => {
@@ -1201,7 +1203,7 @@ describe("ConcentratorCompounderBase.spec", async () => {
               await compounder.updateExpenseRatio(expenseRatio);
               await compounder.updateHarvesterRatio(harvesterRatio);
 
-              const harvested = 12345678987654n;
+              const harvested = ethers.parseEther("1.234567890123456789");
               await token.mint(deployer.address, harvested);
               await token.approve(strategy.getAddress(), harvested);
               await strategy.setHarvested(harvested);
@@ -1212,10 +1214,22 @@ describe("ConcentratorCompounderBase.spec", async () => {
               await expect(compounder.connect(harvester).harvest(signer.address, 0))
                 .to.emit(compounder, "Harvest")
                 .withArgs(harvester.address, signer.address, harvested, performanceFee, harvesterBounty);
+              const shareSigner = (harvesterBounty * initialSupply) / initialAssets;
+              const shareTreasury = (performanceFee * initialSupply) / initialAssets;
+              expect(await compounder.balanceOf(signer.address)).to.eq(shareSigner);
+              expect(await compounder.balanceOf(treasury.address)).to.eq(shareTreasury);
 
               if (periodLength === 0) {
-                expect(await compounder.totalAssets()).to.eq(initialSupply + harvested);
+                expect(await compounder.totalAssets()).to.eq(initialAssets + harvested);
               } else {
+                expect(await compounder.convertToAssets(shareSigner)).to.closeTo(
+                  harvesterBounty,
+                  harvesterBounty / 1000000n
+                );
+                expect(await compounder.convertToAssets(shareTreasury)).to.closeTo(
+                  performanceFee,
+                  performanceFee / 1000000n
+                );
                 expect((await compounder.rewardData()).rate).to.eq(
                   (harvested - performanceFee - harvesterBounty) / toBigInt(periodLength)
                 );
