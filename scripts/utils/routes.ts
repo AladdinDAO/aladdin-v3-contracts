@@ -497,9 +497,15 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
     CRV: [encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap)],
     // sdCRV ==(Curve)==> CRV ==(CurveV2)==> WETH ==(CurveV2)==> SDT
     SDT: [
+      /* // sdCRV ==(Curve)==> CRV ==(CurveV2)==> WETH ==(CurveV2)==> SDT
       encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
       encodePoolHintV2(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
       encodePoolHintV2(ADDRESS["CURVE_ETH/SDT_POOL"], PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      */
+      // sdCRV ==(Curve)==> CRV ==(CurveV2)==> crvUSD ==(CurveV2)==> SDT
+      encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolType.CurveTriCryptoPool, 3, 2, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_crvUSD/frxETH/SDT_POOL"], PoolType.CurveTriCryptoPool, 3, 0, 2, Action.Swap),
     ],
   },
   eCFX: {
