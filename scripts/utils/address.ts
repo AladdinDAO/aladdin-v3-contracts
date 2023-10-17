@@ -267,6 +267,9 @@ export const ADDRESS: { [name: string]: string } = {
   // Curve crvUSD/ETH/CRV
   "CURVE_crvUSD/ETH/CRV_POOL": "0x4ebdf703948ddcea3b11f675b4d1fba9d2414a14",
   "CURVE_crvUSD/ETH/CRV_TOKEN": "0x4ebdf703948ddcea3b11f675b4d1fba9d2414a14",
+  // Curve crvUSD/frxETH/SDT
+  "CURVE_crvUSD/frxETH/SDT_POOL": "0x954313005c56b555bdc41b84d6c63b69049d7847",
+  "CURVE_crvUSD/frxETH/SDT_TOKEN": "0x954313005c56b555bdc41b84d6c63b69049d7847",
   // Curve frxETH/CVX
   "CURVE_frxETH/CVX_POOL": "0x47d5e1679fe5f0d9f0a657c6715924e33ce05093",
   "CURVE_frxETH/CVX_TOKEN": "0x6e52cce4eafdf77091dd1c82183b2d97b776b397",
