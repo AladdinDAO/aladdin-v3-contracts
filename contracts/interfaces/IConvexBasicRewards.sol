@@ -28,4 +28,10 @@ interface IConvexBasicRewards {
   function getReward() external returns (bool);
 
   function stake(uint256) external returns (bool);
+
+  function rewardToken() external view returns (address);
+
+  function extraRewards(uint256) external view returns (address);
+
+  function extraRewardsLength() external view returns (uint256);
 }

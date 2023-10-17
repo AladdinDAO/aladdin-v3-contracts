@@ -241,9 +241,12 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
     address _from,
     address _to,
     uint256 _amount
-  ) internal virtual override nonReentrant {
+  ) internal virtual override {
     // no need to checkpoint on mint or burn
     if (_from == address(0) || _to == address(0)) return;
+
+    // check reentrancy on transfer or transferFrom
+    require(!_reentrancyGuardEntered(), "ReentrancyGuard: reentrant call");
 
     _checkpoint(_from);
     _checkpoint(_to);
