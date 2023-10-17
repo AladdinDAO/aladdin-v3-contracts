@@ -21,7 +21,7 @@ const FxnHolder = "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF";
 const StkCvxFxnHolder = "0xAAc0aa431c237C2C0B5f041c8e59B3f1a43aC78F";
 const FORK_HEIGHT = 18343180;
 
-describe("CvxFxnStakingStrategy.spec", async () => {
+describe("CvxFxnCompounder.spec", async () => {
   let deployer: HardhatEthersSigner;
   let holder: HardhatEthersSigner;
   let holderStkCvxFxn: HardhatEthersSigner;
