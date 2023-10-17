@@ -41,6 +41,31 @@ library WordCodec {
     }
   }
 
+  /// @dev Decodes and returns a boolean shifted by an offset from a 256 bit word.
+  function decodeBool(bytes32 word, uint256 offset) internal pure returns (bool result) {
+    // Equivalent to:
+    // result = (uint256(word >> offset) & 1) == 1;
+    assembly {
+      result := and(shr(offset, word), 1)
+    }
+  }
+
+  /// @dev Inserts a boolean value shifted by an offset into a 256 bit word, replacing the old value. Returns the new
+  /// word.
+  function insertBool(
+    bytes32 word,
+    bool value,
+    uint256 offset
+  ) internal pure returns (bytes32 result) {
+    // Equivalent to:
+    // bytes32 clearedWord = bytes32(uint256(word) & ~(1 << offset));
+    // bytes32 referenceInsertBool = clearedWord | bytes32(uint256(value ? 1 : 0) << offset);
+    assembly {
+      let clearedWord := and(word, not(shl(offset, 1)))
+      result := or(clearedWord, shl(offset, value))
+    }
+  }
+
   function clearWordAtPosition(
     bytes32 word,
     uint256 offset,
