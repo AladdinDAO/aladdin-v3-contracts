@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-import "../../concentrator/clever/interfaces/ICLeverAMO.sol";
+import "../../interfaces/concentrator/ICLeverAMO.sol";
 
 import "../libraries/LibConcentratorHarvester.sol";
 

@@ -3,7 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "./IStakeDAOMultiMerkleStash.sol";
+import "../../concentrator/stakedao/interfaces/IStakeDAOMultiMerkleStash.sol";
 
 interface IStakeDAOLockerProxy {
   /// @notice Deposit staked token to StakeDAO gauge.

@@ -5,11 +5,11 @@ pragma solidity =0.8.20;
 import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
+import { ICLeverAMOStrategy } from "../../../interfaces/concentrator/ICLeverAMOStrategy.sol";
+import { IConcentratorStrategy } from "../../../interfaces/concentrator/IConcentratorStrategy.sol";
 import { ICurveGauge } from "../../../interfaces/ICurveGauge.sol";
 import { ICurveTokenMinter } from "../../../interfaces/ICurveTokenMinter.sol";
 import { IZap } from "../../../interfaces/IZap.sol";
-import { IConcentratorStrategy } from "../../interfaces/IConcentratorStrategy.sol";
-import { ICLeverAMOStrategy } from "../interfaces/ICLeverAMOStrategy.sol";
 
 import { ConcentratorStrategyBase } from "../../strategies/ConcentratorStrategyBase.sol";
 

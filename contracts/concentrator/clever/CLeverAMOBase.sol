@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "./interfaces/ICLeverAMO.sol";
+import "../../interfaces/concentrator/ICLeverAMO.sol";
 
 import "../ConcentratorBase.sol";
 import "./RewardClaimable.sol";

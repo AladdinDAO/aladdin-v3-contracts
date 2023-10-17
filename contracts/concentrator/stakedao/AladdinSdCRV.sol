@@ -3,7 +3,7 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "./interfaces/IStakeDAOCRVVault.sol";
+import "../../interfaces/concentrator/IStakeDAOCRVVault.sol";
 import "../../interfaces/IZap.sol";
 
 import "../AladdinCompounder.sol";

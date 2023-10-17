@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 
 import "../YieldStrategyBase.sol";
 import "../../../common/fees/FeeCustomization.sol";
-import "../../../concentrator/stakedao/interfaces/IStakeDAOCRVVault.sol";
+import "../../../interfaces/concentrator/IStakeDAOCRVVault.sol";
 import "../../../concentrator/stakedao/SdCRVLocker.sol";
 import "../../../interfaces/IZap.sol";
 

@@ -8,7 +8,7 @@ import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import { Address } from "@openzeppelin/contracts-v4/utils/Address.sol";
 
-import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
+import { IConcentratorStrategy } from "../../interfaces/concentrator/IConcentratorStrategy.sol";
 
 // solhint-disable func-name-mixedcase
 // solhint-disable no-empty-blocks

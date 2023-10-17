@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./YieldStrategyBase.sol";
-import "../../concentrator/interfaces/IAladdinCRV.sol";
+import "../../interfaces/concentrator/IAladdinCRV.sol";
 
 // solhint-disable no-empty-blocks
 

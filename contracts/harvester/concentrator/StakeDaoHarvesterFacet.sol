@@ -2,8 +2,8 @@
 
 pragma solidity ^0.7.6;
 
-import "../../concentrator/interfaces/IAladdinCompounder.sol";
-import "../../concentrator/stakedao/interfaces/IStakeDAOVault.sol";
+import "../../interfaces/concentrator/IAladdinCompounder.sol";
+import "../../interfaces/concentrator/IStakeDAOVault.sol";
 
 import "../libraries/LibConcentratorHarvester.sol";
 

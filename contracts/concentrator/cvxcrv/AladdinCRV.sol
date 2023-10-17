@@ -13,7 +13,7 @@ import "../../interfaces/IConvexCRVDepositor.sol";
 import "../../interfaces/ICVXMining.sol";
 import "../../interfaces/IEllipsisMerkleDistributor.sol";
 import "../../interfaces/IZap.sol";
-import "../interfaces/IAladdinCRV.sol";
+import "../../interfaces/concentrator/IAladdinCRV.sol";
 
 import "../ConcentratorBase.sol";
 

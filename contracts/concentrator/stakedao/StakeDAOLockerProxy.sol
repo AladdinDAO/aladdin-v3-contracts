@@ -8,11 +8,11 @@ import "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "./interfaces/IStakeDAOGauge.sol";
-import "./interfaces/IStakeDAOLockerProxy.sol";
-import "./interfaces/IStakeDAOMultiMerkleStash.sol";
+import "../../interfaces/concentrator/IStakeDAOLockerProxy.sol";
 import "../../interfaces/ISnapshotDelegateRegistry.sol";
 import "../../voting/ISignatureVerifier.sol";
+import "./interfaces/IStakeDAOGauge.sol";
+import "./interfaces/IStakeDAOMultiMerkleStash.sol";
 
 /// @title StakeDaoLockerProxy
 /// @notice This contract is the main entry for stake tokens in StakeDAO.

@@ -9,9 +9,9 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/
 import { LinearRewardDistributor } from "../../common/rewards/distributor/LinearRewardDistributor.sol";
 import { ConcentratorCompounderBase } from "../ConcentratorCompounderBase.sol";
 
+import { ICvxFxnCompounder } from "../../interfaces/concentrator/ICvxFxnCompounder.sol";
 import { IConvexFXNDepositor } from "../../interfaces/convex/IConvexFXNDepositor.sol";
 import { ICurveFactoryPlainPool } from "../../interfaces/ICurveFactoryPlainPool.sol";
-import { ICvxFxnCompounder } from "../interfaces/ICvxFxnCompounder.sol";
 
 // solhint-disable const-name-snakecase
 // solhint-disable no-empty-blocks

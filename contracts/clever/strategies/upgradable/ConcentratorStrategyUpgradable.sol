@@ -9,8 +9,8 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "../YieldStrategyBase.sol";
 import "../../interfaces/ICurveSwapPool.sol";
-import "../../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
-import "../../../concentrator/interfaces/IAladdinCRV.sol";
+import "../../../interfaces/concentrator/IAladdinCRVConvexVault.sol";
+import "../../../interfaces/concentrator/IAladdinCRV.sol";
 import "../../../interfaces/IZap.sol";
 import "../../../misc/checker/IPriceChecker.sol";
 
