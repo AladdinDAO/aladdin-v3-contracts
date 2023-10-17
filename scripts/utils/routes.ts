@@ -149,9 +149,12 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
   FXS: {
     // FXS ==(UniV2)==> FRAX ==(Curve)==> USDC ==(UniV3)==> WETH
     WETH: [
+      /*
       encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      */
+      encodePoolHintV2(ADDRESS.FXS_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
     ],
     // FXS ==(UniV2)==> FRAX ==(Curve)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CRV
     CRV: [
