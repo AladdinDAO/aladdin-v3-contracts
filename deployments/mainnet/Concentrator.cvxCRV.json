@@ -1,0 +1,15 @@
+{
+  "CvxCrvCompounder": {
+    "proxy": "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
+    "implementation": "0xAF3406D5b9C8D921042a30713aA3f72FEa89E35B"
+  },
+  "LegacyConcentratorVault": {
+    "proxy": "0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8",
+    "implementation": "0xBAb0eE407c0eA76d4087c6A69deddf3050d5C8DD"
+  },
+  "ConcentratorVault": {
+    "proxy": "0x3Cf54F3A1969be9916DAD548f3C084331C4450b5",
+    "implementation": "0x4657e91f056a77493B7E47D4CCD8c8AFAfC84283"
+  },
+  "CvxCrvStakingWrapperStrategy": "0x94cC627Db80253056B2130aAC39abB252A75F345"
+}
