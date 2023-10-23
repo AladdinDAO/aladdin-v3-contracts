@@ -146,6 +146,14 @@ const POOL_FORK_CONFIG: {
     amount: "100",
     harvest: false,
   },
+  "FXN/sdFXN": {
+    height: 18412110,
+    pid: 36,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+    amount: "100",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
