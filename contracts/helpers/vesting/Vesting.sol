@@ -22,7 +22,7 @@ contract Vesting is Ownable, IVesting {
     uint128 claimedAmount;
     uint64 startTime;
     uint64 endTime;
-    uint64 cancleTime;
+    uint64 cancelTime;
   }
 
   /// @notice Mapping from user address to vesting list.
@@ -92,24 +92,24 @@ contract Vesting is Ownable, IVesting {
 
     uint256 _index = vesting[_recipient].length;
     vesting[_recipient].push(
-      VestState({ vestingAmount: _amount, claimedAmount: 0, startTime: _startTime, endTime: _endTime, cancleTime: 0 })
+      VestState({ vestingAmount: _amount, claimedAmount: 0, startTime: _startTime, endTime: _endTime, cancelTime: 0 })
     );
 
     emit Vest(_recipient, _index, _amount, _startTime, _endTime);
   }
 
   /// @inheritdoc IVesting
-  function cancle(address _user, uint256 _index) external override onlyOwner {
+  function cancel(address _user, uint256 _index) external override onlyOwner {
     VestState memory _state = vesting[_user][_index];
-    require(_state.cancleTime == 0, "already cancled");
+    require(_state.cancelTime == 0, "already canceld");
 
     uint256 _vestedAmount = _getVested(_state, block.timestamp);
     uint256 _unvested = _state.vestingAmount - _vestedAmount;
     IERC20(token).safeTransfer(msg.sender, _unvested);
 
-    vesting[_user][_index].cancleTime = uint64(block.timestamp);
+    vesting[_user][_index].cancelTime = uint64(block.timestamp);
 
-    emit Cancle(_user, _index, _unvested, block.timestamp);
+    emit Cancel(_user, _index, _unvested, block.timestamp);
   }
 
   /// @notice Update the whitelist status of given accounts.
@@ -125,9 +125,9 @@ contract Vesting is Ownable, IVesting {
   /// @param _state The vest state.
   /// @param _claimTime The timestamp in second when someone claim vested token.
   function _getVested(VestState memory _state, uint256 _claimTime) internal pure returns (uint256) {
-    // This vest is cancled before, so we take minimum between claimTime and cancleTime.
-    if (_state.cancleTime != 0 && _state.cancleTime < _claimTime) {
-      _claimTime = _state.cancleTime;
+    // This vest is canceld before, so we take minimum between claimTime and cancelTime.
+    if (_state.cancelTime != 0 && _state.cancelTime < _claimTime) {
+      _claimTime = _state.cancelTime;
     }
 
     if (_claimTime < _state.startTime) {

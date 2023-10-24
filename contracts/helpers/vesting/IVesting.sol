@@ -15,12 +15,12 @@ interface IVesting {
   /// @param _endTime The timestamp in second when the vest ends.
   event Vest(address indexed _recipient, uint256 indexed _index, uint256 _amount, uint256 _startTime, uint256 _endTime);
 
-  /// @notice Emitted when a vest is cancled.
+  /// @notice Emitted when a vest is canceld.
   /// @param _recipient The address of recipient who will receive the vest.
   /// @param _index The index of the vesting list.
   /// @param _unvested The amount of unvested token.
-  /// @param _cancleTime The timestamp in second when the vest is cancled.
-  event Cancle(address indexed _recipient, uint256 indexed _index, uint256 _unvested, uint256 _cancleTime);
+  /// @param _cancelTime The timestamp in second when the vest is canceld.
+  event Cancel(address indexed _recipient, uint256 indexed _index, uint256 _unvested, uint256 _cancelTime);
 
   /// @notice Emitted when a user claim his vest.
   /// @param _recipient The address of recipient who will receive the token.
@@ -59,8 +59,8 @@ interface IVesting {
     uint32 _endTime
   ) external;
 
-  /// @notice Cancle a vest for some user. The unvested tokens will be transfered to owner.
-  /// @param _user The address of the user to cancle.
-  /// @param _index The index of the vest to cancle.
-  function cancle(address _user, uint256 _index) external;
+  /// @notice Cancel a vest for some user. The unvested tokens will be transfered to owner.
+  /// @param _user The address of the user to cancel.
+  /// @param _index The index of the vest to cancel.
+  function cancel(address _user, uint256 _index) external;
 }

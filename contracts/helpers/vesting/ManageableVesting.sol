@@ -270,13 +270,15 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
   }
 
   /// @inheritdoc IVesting
-  function cancle(address _user, uint256 _index) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+  function cancel(address _user, uint256 _index) external override onlyRole(DEFAULT_ADMIN_ROLE) {
     VestState memory _state = vesting[_user][_index];
     if (_state.cancelTime > 0) revert ErrorVestingAlreadyCancelled();
 
     uint32 _nowTime = uint32(block.timestamp);
     uint256 _vestedAmount = _getVested(_state, _nowTime);
     uint256 _unvested = _state.vestingAmount - _vestedAmount;
+    if (_unvested == 0) return; // no need to cancel
+
     _state.cancelTime = _nowTime;
     vesting[_user][_index] = _state;
 
@@ -286,7 +288,7 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
       abi.encodeCall(IVestingManager.withdraw, (_unvested, _msgSender()))
     );
 
-    emit Cancle(_user, _index, _unvested, block.timestamp);
+    emit Cancel(_user, _index, _unvested, block.timestamp);
   }
 
   /// @notice Add a new VestingManager contract.
@@ -318,7 +320,7 @@ contract ManageableVesting is AccessControlEnumerable, IVesting {
   /// @param _state The vest state.
   /// @param _claimTime The timestamp in second when someone claim vested token.
   function _getVested(VestState memory _state, uint32 _claimTime) internal pure returns (uint256) {
-    // This vest is cancled before, so we take minimum between claimTime and cancelTime.
+    // This vest is canceld before, so we take minimum between claimTime and cancelTime.
     if (_state.cancelTime != 0 && _state.cancelTime < _claimTime) {
       _claimTime = _state.cancelTime;
     }

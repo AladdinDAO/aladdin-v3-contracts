@@ -111,9 +111,9 @@ describe("ManageableVesting.spec", async () => {
       });
     });
 
-    context("#cancle", async () => {
+    context("#cancel", async () => {
       it("should revert, when no access", async () => {
-        await expect(vesting.connect(signer).cancle(signer.address, 0)).to.revertedWith(
+        await expect(vesting.connect(signer).cancel(signer.address, 0)).to.revertedWith(
           "AccessControl: account " +
             signer.address.toLowerCase() +
             " is missing role " +
@@ -129,8 +129,8 @@ describe("ManageableVesting.spec", async () => {
         await vesting.newVesting(signer.address, ethers.parseEther("1000"), timestamp + 1000, timestamp + 100000);
         await vesting.newVesting(signer.address, ethers.parseEther("2000"), timestamp + 10000, timestamp + 200000);
 
-        await vesting.cancle(signer.address, 0);
-        await expect(vesting.cancle(signer.address, 0)).to.revertedWithCustomError(
+        await vesting.cancel(signer.address, 0);
+        await expect(vesting.cancel(signer.address, 0)).to.revertedWithCustomError(
           vesting,
           "ErrorVestingAlreadyCancelled"
         );
@@ -147,14 +147,14 @@ describe("ManageableVesting.spec", async () => {
 
           const vested0 = (toBigInt(Math.max(0, delta - 1000)) * ethers.parseEther("1000")) / (100000n - 1000n);
           await network.provider.send("evm_setNextBlockTimestamp", [timestamp + delta]);
-          await expect(vesting.cancle(signer.address, 0))
-            .to.emit(vesting, "Cancle")
+          await expect(vesting.cancel(signer.address, 0))
+            .to.emit(vesting, "Cancel")
             .withArgs(signer.address, 0, ethers.parseEther("1000") - vested0, timestamp + delta);
           expect(await token.balanceOf(deployer.address)).to.eq(ethers.parseEther("1000") - vested0);
           await network.provider.send("evm_setNextBlockTimestamp", [timestamp + delta + 1]);
           const vested1 = (toBigInt(Math.max(0, delta + 1 - 10000)) * ethers.parseEther("2000")) / (200000n - 10000n);
-          await expect(vesting.cancle(signer.address, 1))
-            .to.emit(vesting, "Cancle")
+          await expect(vesting.cancel(signer.address, 1))
+            .to.emit(vesting, "Cancel")
             .withArgs(signer.address, 1, ethers.parseEther("2000") - vested1, timestamp + delta + 1);
           expect(await token.balanceOf(deployer.address)).to.eq(ethers.parseEther("3000") - vested0 - vested1);
         });
@@ -288,9 +288,9 @@ describe("ManageableVesting.spec", async () => {
 
     it("should succeed when claim canceled", async () => {
       await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 50000]);
-      await vesting.cancle(signer.address, 0);
+      await vesting.cancel(signer.address, 0);
       await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 50001]);
-      await vesting.cancle(signer.address, 1);
+      await vesting.cancel(signer.address, 1);
       const vested0 = (toBigInt(Math.max(0, 50000 - 1000)) * ethers.parseEther("1000")) / (100000n - 1000n);
       const vested1 = (toBigInt(Math.max(0, 50001 - 10000)) * ethers.parseEther("2000")) / (200000n - 10000n);
       await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 60000]);

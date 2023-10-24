@@ -99,7 +99,7 @@ describe("SdFxnVestingManager.spec", async () => {
 
         const vested = (toBigInt(delta - 1000) * amount) / toBigInt(86400 * 7);
         await network.provider.send("evm_setNextBlockTimestamp", [timestamp + delta]);
-        await vesting.connect(signer).cancle(deployer.address, 0);
+        await vesting.connect(signer).cancel(deployer.address, 0);
         expect(await manager.balanceOf(await vesting.proxy(deployer.address))).to.eq(vested);
         expect(await staker.balanceOf(await vesting.proxy(deployer.address))).to.eq(vested);
         expect(await staker.balanceOf(signer.address)).to.eq(amount - vested);
