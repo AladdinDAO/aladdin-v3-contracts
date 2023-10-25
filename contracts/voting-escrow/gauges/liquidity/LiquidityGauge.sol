@@ -240,7 +240,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   function _beforeTokenTransfer(
     address _from,
     address _to,
-    uint256 _amount
+    uint256
   ) internal virtual override {
     // no need to checkpoint on mint or burn
     if (_from == address(0) || _to == address(0)) return;
@@ -250,7 +250,16 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
 
     _checkpoint(_from);
     _checkpoint(_to);
+  }
 
+  /// @inheritdoc ERC20Upgradeable
+  function _afterTokenTransfer(
+    address _from,
+    address _to,
+    uint256 _amount
+  ) internal virtual override {
+    // no need to checkpoint on mint or burn
+    if (_from == address(0) || _to == address(0)) return;
     if (_amount > 0) {
       _updateWorkingBalance(_from);
       _updateWorkingBalance(_to);
@@ -345,6 +354,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
       );
       _cachedUserSnapshot.checkpoint.integral = _cachedSnapshot.integral;
       _cachedUserSnapshot.checkpoint.timestamp = uint64(block.timestamp);
+      userSnapshot[_account] = _cachedUserSnapshot;
     }
   }
 
