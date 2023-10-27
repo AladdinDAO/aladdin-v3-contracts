@@ -1,0 +1,11 @@
+{
+  "FrxETHCompounder": {
+    "proxy": "0xb15Ad6113264094Fd9BF2238729410A07EBE5ABa",
+    "beacon": "0xC999894424b281cE8602B50DF5F2D57F91e852f7"
+  },
+  "ConcentratorVault": {
+    "proxy": "0x50B47c4A642231dbe0B411a0B2FBC1EBD129346D",
+    "implementation": "0x1af1639f02E03107d95c6d1670adE9E7262C9fA5"
+  },
+  "AutoCompoundingConvexFraxStrategy": "0xc9cfD6205914AB1E209FfE70326d8dd15fc58187"
+}

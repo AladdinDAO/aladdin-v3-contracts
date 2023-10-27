@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
 
-function replacer(key, value) {
+function replacer(key: any, value: any) {
   if (typeof value === "bigint") return value.toString();
   return value;
 }
