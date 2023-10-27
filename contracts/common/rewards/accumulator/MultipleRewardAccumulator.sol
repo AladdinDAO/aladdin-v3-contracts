@@ -116,7 +116,7 @@ abstract contract MultipleRewardAccumulator is
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
-  function checkpoint(address _account) external override nonReentrant {
+  function checkpoint(address _account) external virtual override nonReentrant {
     _checkpoint(_account);
   }
 

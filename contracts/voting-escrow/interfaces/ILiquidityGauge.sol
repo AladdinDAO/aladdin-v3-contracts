@@ -141,7 +141,7 @@ interface ILiquidityGauge {
   /// @dev This is used in TokenMinter.
   ///
   /// @param account The address of user to update.
-  function user_checkpoint(address account) external;
+  function user_checkpoint(address account) external returns (bool);
 
   /// @notice Kick some user for abusing their boost.
   ///
