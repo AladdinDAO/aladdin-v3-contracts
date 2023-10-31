@@ -10,7 +10,13 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
     // ALCX ==(UniV2)==> WETH
-    WETH: [encodePoolHintV2(ADDRESS.WETH_ALCX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap)],
+    WETH: [
+      /* // ALCX ==(UniV2)==> WETH
+      encodePoolHintV2(ADDRESS.WETH_ALCX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+      */
+      // ALCX ==(BalancerV2) ==> WETH
+      encodePoolHintV2(ADDRESS.WETH_ALCX_BalancerV2, PoolType.BalancerV2, 2, 1, 0, Action.Swap),
+    ],
   },
   APEFI: {
     // APEFI ==(UniV2)==> WETH ==(CurveV2)==> CVX
