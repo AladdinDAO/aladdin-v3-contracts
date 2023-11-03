@@ -113,6 +113,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   BAL: { decimals: 18, address: "0xba100000625a3754423978a60c9317c58a424e3D" },
   auraBAL: { decimals: 18, address: "0x616e8bfa43f920657b3497dbf40d6b1a02d4608d" },
   FXN: { decimals: 18, address: "0x365AccFCa291e7D3914637ABf1F7635dB165Bb09" },
-  cvxFXN: { decimals: 18, address: "0x183395dbd0b5e93323a7286d1973150697fffcb3" },
+  cvxFXN: { decimals: 18, address: "0x183395DbD0B5e93323a7286D1973150697FFFCB3" },
   sdFXN: { decimals: 18, address: "0xe19d1c837B8A1C83A56cD9165b2c0256D39653aD" },
 };

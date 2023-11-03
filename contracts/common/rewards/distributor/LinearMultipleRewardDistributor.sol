@@ -156,6 +156,7 @@ abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, I
     LinearReward.RewardData memory _data = rewardData[_token];
     unchecked {
       (uint256 _distributable, uint256 _undistributed) = _data.pending();
+      if (_data.queued < periodLength) _data.queued = 0; // ignore round error
       if (_data.queued + _distributable + _undistributed > 0) revert RewardDistributionNotFinished();
     }
 

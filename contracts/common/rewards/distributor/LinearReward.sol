@@ -42,6 +42,7 @@ library LinearReward {
     if (block.timestamp >= _data.finishAt) {
       // period finished, distribute to next period
       _data.rate = (_amount / _periodLength).toUint80();
+      _data.queued = uint96(_amount - (_data.rate * _periodLength)); // keep rounding error
       _data.lastUpdate = uint40(block.timestamp);
       _data.finishAt = uint40(block.timestamp + _periodLength);
     } else {
@@ -51,6 +52,7 @@ library LinearReward {
         // APR increase or drop no more than 10%, distribute
         _amount = _amount + uint256(_data.rate) * (_data.finishAt - _data.lastUpdate);
         _data.rate = (_amount / _periodLength).toUint80();
+        _data.queued = uint96(_amount - (_data.rate * _periodLength)); // keep rounding error
         _data.lastUpdate = uint40(block.timestamp);
         _data.finishAt = uint40(block.timestamp + _periodLength);
         _data.lastUpdate = uint40(block.timestamp);

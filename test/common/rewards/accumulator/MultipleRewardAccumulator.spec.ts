@@ -225,7 +225,7 @@ describe("MultipleRewardAccumulator.spec", async () => {
                 const rate = depositedAmount / toBigInt(periodLength);
                 expect(snapshot.integral).to.closeTo(
                   ((rate * toBigInt(periodLength) * 10n ** 18n) / TotalPoolShare) * 2n,
-                  100n
+                  1000n
                 );
                 expect(snapshot.timestamp).to.eq(timestamp + periodLength);
 

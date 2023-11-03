@@ -8,8 +8,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 
 import "./interfaces/IStakeDAOBoostDelegation.sol";
 
-import "hardhat/console.sol";
-
 // solhint-disable not-rely-on-time
 
 contract VeSDTDelegation is OwnableUpgradeable {
