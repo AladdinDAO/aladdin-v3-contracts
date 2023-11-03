@@ -154,6 +154,14 @@ const POOL_FORK_CONFIG: {
     amount: "100",
     harvest: true,
   },
+  "wstETH/rETH/sfrxETH": {
+    height: 18484370,
+    pid: 37,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x559524b8d5aF5292E4CA30B30eA3DC8261e1DeA4",
+    amount: "1",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
