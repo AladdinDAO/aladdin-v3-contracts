@@ -294,6 +294,9 @@ export const ADDRESS: { [name: string]: string } = {
   // Curve FXN/sdFXN
   "CURVE_FXN/sdFXN_POOL": "0x28ca243dc0ac075dd012fcf9375c25d18a844d96",
   "CURVE_FXN/sdFXN_TOKEN": "0x28ca243dc0ac075dd012fcf9375c25d18a844d96",
+  // Curve wstETH/rETH/sfrxETH
+  "CURVE_wstETH/rETH/sfrxETH_POOL": "0x2570f1bd5d2735314fc102eb12fc1afe9e6e7193",
+  "CURVE_wstETH/rETH/sfrxETH_TOKEN": "0x2570f1bd5d2735314fc102eb12fc1afe9e6e7193",
   // Uniswap V2 pool
   LDO_WETH_UNIV2: "0xC558F600B34A5f69dD2f0D06Cb8A88d829B7420a",
   FXS_WETH_UNIV2: "0x61eB53ee427aB4E007d78A9134AaCb3101A2DC23",
@@ -335,6 +338,7 @@ export const ADDRESS: { [name: string]: string } = {
   FEI_WETH_BalancerV2: "0x90291319F1D4eA3ad4dB0Dd8fe9E12BAF749E845",
   WETH_ALCX_BalancerV2: "0xf16aEe6a71aF1A9Bc8F56975A4c2705ca7A782Bc",
   BAL80_WETH20_BalancerV2: "0x5c6ee304399dbdb9c8ef030ab642b10820db8f56",
+  Stable_wstETH_WETH_BalancerV2: "0x93d199263632a4EF4Bb438F1feB99e57b4b5f0BD",
   Stable_rETH_WETH_BalancerV2: "0x1e19cf2d73a72ef1332c882f20534b6519be0276",
   Stable_wstETH_sfrxETH_rETH_BalancerV2: "0x42ED016F826165C2e5976fe5bC3df540C5aD0Af7",
   // FraxSwap
