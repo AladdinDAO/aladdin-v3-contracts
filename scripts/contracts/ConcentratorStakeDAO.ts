@@ -11,7 +11,7 @@ export interface ConcentratorStakeDAODeployment {
     proxy: string;
     implementation: string;
   };
-  AladdinSdCRV: {
+  SdCRVCompounder: {
     proxy: string;
     implementation: string;
   };

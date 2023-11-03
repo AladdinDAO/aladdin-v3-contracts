@@ -1,4 +1,3 @@
-/* eslint-disable node/no-missing-import */
 import { DEPLOYED_CONTRACTS } from "./deploys";
 
 export const TOKENS: { [symbol: string]: { address: string; decimals: number } } = {
@@ -76,6 +75,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   LUSD: { decimals: 18, address: "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0" },
   T: { decimals: 18, address: "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5" },
   aCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV },
+  aCVX: { decimals: 18, address: "0xb0903Ab70a7467eE5756074b31ac88aEBb8fB777" },
   aFXS: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxFXS.aFXS },
   afrxETH: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.frxETH.afrxETH },
   asdCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.StakeDAO.sdCRV.asdCRV },
@@ -116,3 +116,6 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   cvxFXN: { decimals: 18, address: "0x183395DbD0B5e93323a7286D1973150697FFFCB3" },
   sdFXN: { decimals: 18, address: "0xe19d1c837B8A1C83A56cD9165b2c0256D39653aD" },
 };
+
+// Curve LP
+TOKENS["CURVE_ETH/frxETH"] = { decimals: 18, address: "0xf43211935C781D5ca1a41d2041F397B8A7366C7A" };
