@@ -17,9 +17,9 @@ contract MultipleVestHelper is Ownable {
   function call(
     Vesting _vesting,
     address[] memory _recipients,
-    uint128[] memory _amounts,
-    uint64[] memory _startTimes,
-    uint64[] memory _endTimes
+    uint96[] memory _amounts,
+    uint32[] memory _startTimes,
+    uint32[] memory _endTimes
   ) external onlyOwner {
     address _token = _vesting.token();
     uint256 _total = 0;

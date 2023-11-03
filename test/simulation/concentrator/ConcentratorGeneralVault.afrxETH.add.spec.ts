@@ -130,6 +130,38 @@ const POOL_FORK_CONFIG: {
     amount: "1000",
     harvest: false,
   },
+  "ETH/FXN": {
+    height: 18363950,
+    pid: 34,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
+    amount: "5",
+    harvest: false,
+  },
+  "FXN/cvxFXN": {
+    height: 18363835,
+    pid: 34,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x3acc2BffA4a5e75Fd4B7709a6fa2C3EEd94F664C",
+    amount: "100",
+    harvest: false,
+  },
+  "FXN/sdFXN": {
+    height: 18412110,
+    pid: 36,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+    amount: "100",
+    harvest: true,
+  },
+  "wstETH/rETH/sfrxETH": {
+    height: 18484370,
+    pid: 37,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x559524b8d5aF5292E4CA30B30eA3DC8261e1DeA4",
+    amount: "1",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";

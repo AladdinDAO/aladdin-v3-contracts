@@ -11,7 +11,7 @@
     "proxy": "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6",
     "implementation": "0xF29FAFCA79cAa5EA426b03014D653f2361d254C1"
   },
-  "AladdinSdCRV": {
+  "SdCRVCompounder": {
     "proxy": "0x43E54C2E7b3e294De3A155785F52AB49d87B9922",
     "implementation": "0x43E54C2E7b3e294De3A155785F52AB49d87B9922"
   },

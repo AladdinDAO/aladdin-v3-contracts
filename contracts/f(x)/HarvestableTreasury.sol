@@ -23,22 +23,22 @@ abstract contract HarvestableTreasury is Treasury {
   /// @notice Emitted when someone harvest pending stETH rewards.
   /// @param caller The address of caller.
   /// @param totalRewards The amount of total harvested rewards.
-  /// @param stabilityPoolRewards The amount of harvested rewards distributed to stability pool.
+  /// @param rebalancePoolRewards The amount of harvested rewards distributed to stability pool.
   /// @param harvestBounty The amount of harvested rewards distributed to caller as harvest bounty.
-  event Harvest(address indexed caller, uint256 totalRewards, uint256 stabilityPoolRewards, uint256 harvestBounty);
+  event Harvest(address indexed caller, uint256 totalRewards, uint256 rebalancePoolRewards, uint256 harvestBounty);
 
   /// @notice Emitted when the reward distribute ratio is updated.
-  /// @param stabilityPoolRatio The new ratio of rewards given to stability pool.
+  /// @param rebalancePoolRatio The new ratio of rewards given to stability pool.
   /// @param harvestBountyRatio The new ratio of rewards given to harvester.
-  event UpdateRewardRatio(uint256 stabilityPoolRatio, uint256 harvestBountyRatio);
+  event UpdateRewardRatio(uint256 rebalancePoolRatio, uint256 harvestBountyRatio);
 
   /// @notice Emitted when the address of platform contract is updated.
   /// @param platform The new address of platform contract.
   event UpdatePlatform(address platform);
 
   /// @notice Emitted when the address of stability pool contract is updated.
-  /// @param stabilityPool The new address of stability pool contract.
-  event UpdateStabilityPool(address stabilityPool);
+  /// @param rebalancePool The new address of stability pool contract.
+  event UpdateRebalancePool(address rebalancePool);
 
   /*************
    * Constants *
@@ -54,14 +54,14 @@ abstract contract HarvestableTreasury is Treasury {
   /// @notice The address platform contract.
   address public platform;
 
-  /// @notice The address of StabilityPool contract.
-  address public stabilityPool;
+  /// @notice The address of RebalancePool contract.
+  address public rebalancePool;
 
   /// @notice The ratio of rewards given to harvester.
   uint128 public harvestBountyRatio;
 
   /// @notice The ratio of rewards given to stability pool.
-  uint128 public stabilityPoolRatio;
+  uint128 public rebalancePoolRatio;
 
   /// @dev Slots for future use.
   uint256[46] private _gap;
@@ -84,9 +84,9 @@ abstract contract HarvestableTreasury is Treasury {
       convertToWrapped(totalBaseToken)
     );
     uint256 _harvestBounty = (harvestBountyRatio * _totalRewards) / PRECISION;
-    uint256 _stabilityPoolRewards = (stabilityPoolRatio * _totalRewards) / PRECISION;
+    uint256 _rebalancePoolRewards = (rebalancePoolRatio * _totalRewards) / PRECISION;
 
-    emit Harvest(msg.sender, _totalRewards, _stabilityPoolRewards, _harvestBounty);
+    emit Harvest(msg.sender, _totalRewards, _rebalancePoolRewards, _harvestBounty);
 
     if (_harvestBounty > 0) {
       _totalRewards = _totalRewards - _harvestBounty;
@@ -94,10 +94,10 @@ abstract contract HarvestableTreasury is Treasury {
       IERC20Upgradeable(_baseToken).safeTransfer(msg.sender, _harvestBounty);
     }
 
-    if (_stabilityPoolRewards > 0) {
-      _totalRewards = _totalRewards - _stabilityPoolRewards;
+    if (_rebalancePoolRewards > 0) {
+      _totalRewards = _totalRewards - _rebalancePoolRewards;
 
-      _distributeStabilityPoolRewards(_baseToken, _stabilityPoolRewards);
+      _distributeRebalancePoolRewards(_baseToken, _rebalancePoolRewards);
     }
 
     if (_totalRewards > 0) {
@@ -110,12 +110,12 @@ abstract contract HarvestableTreasury is Treasury {
    ************************/
 
   /// @notice Update the address of stability pool.
-  /// @param _stabilityPool The address of new stability pool.
-  function updateStabilityPool(address _stabilityPool) external onlyOwner {
-    require(_stabilityPool != address(0), "zero stability pool");
-    stabilityPool = _stabilityPool;
+  /// @param _rebalancePool The address of new stability pool.
+  function updateRebalancePool(address _rebalancePool) external onlyOwner {
+    require(_rebalancePool != address(0), "zero stability pool");
+    rebalancePool = _rebalancePool;
 
-    emit UpdateStabilityPool(_stabilityPool);
+    emit UpdateRebalancePool(_rebalancePool);
   }
 
   /// @notice Update the address of platform contract.
@@ -128,23 +128,23 @@ abstract contract HarvestableTreasury is Treasury {
   }
 
   /// @notice Update the reward distribution ratio.
-  /// @param _stabilityPoolRatio The new stability pool ratio.
+  /// @param _rebalancePoolRatio The new stability pool ratio.
   /// @param _harvestBountyRatio The new harvest bounty ratio.
-  function updateRewardRatio(uint128 _stabilityPoolRatio, uint128 _harvestBountyRatio) external onlyOwner {
-    require(_harvestBountyRatio + _stabilityPoolRatio <= PRECISION, "ratio sum too large");
+  function updateRewardRatio(uint128 _rebalancePoolRatio, uint128 _harvestBountyRatio) external onlyOwner {
+    require(_harvestBountyRatio + _rebalancePoolRatio <= PRECISION, "ratio sum too large");
     require(_harvestBountyRatio <= MAX_HARVEST_BOUNTY, "ratio too large");
 
     harvestBountyRatio = _harvestBountyRatio;
-    stabilityPoolRatio = _stabilityPoolRatio;
+    rebalancePoolRatio = _rebalancePoolRatio;
 
-    emit UpdateRewardRatio(_stabilityPoolRatio, _harvestBountyRatio);
+    emit UpdateRewardRatio(_rebalancePoolRatio, _harvestBountyRatio);
   }
 
   /**********************
    * Internal Functions *
    **********************/
 
-  function _distributeStabilityPoolRewards(address _token, uint256 _amount) internal virtual;
+  function _distributeRebalancePoolRewards(address _token, uint256 _amount) internal virtual;
 
   function _approve(
     address _token,

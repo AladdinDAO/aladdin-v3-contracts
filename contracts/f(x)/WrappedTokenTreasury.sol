@@ -22,10 +22,10 @@ contract WrappedTokenTreasury is HarvestableTreasury {
    **********************/
 
   /// @inheritdoc HarvestableTreasury
-  function _distributeStabilityPoolRewards(address _token, uint256 _amount) internal override {
-    address _stabilityPool = stabilityPool;
+  function _distributeRebalancePoolRewards(address _token, uint256 _amount) internal override {
+    address _rebalancePool = rebalancePool;
     // deposit rewards to stability pool
-    _approve(_token, _stabilityPool, _amount);
-    IRebalancePool(_stabilityPool).depositReward(_token, _amount);
+    _approve(_token, _rebalancePool, _amount);
+    IRebalancePool(_rebalancePool).depositReward(_token, _amount);
   }
 }

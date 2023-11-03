@@ -2,7 +2,10 @@
 
 pragma solidity ^0.7.6;
 
-import { IRebalancePool } from "../interfaces/IRebalancePool.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+
+import { IRebalancePoolSplitter } from "../interfaces/IRebalancePoolSplitter.sol";
 import { ILidoWstETH } from "../../interfaces/ILidoWstETH.sol";
 
 import { HarvestableTreasury } from "../HarvestableTreasury.sol";
@@ -11,6 +14,8 @@ import { HarvestableTreasury } from "../HarvestableTreasury.sol";
 // solhint-disable contract-name-camelcase
 
 contract stETHTreasury is HarvestableTreasury {
+  using SafeERC20Upgradeable for IERC20Upgradeable;
+
   /*************
    * Constants *
    *************/
@@ -32,15 +37,15 @@ contract stETHTreasury is HarvestableTreasury {
    **********************/
 
   /// @inheritdoc HarvestableTreasury
-  function _distributeStabilityPoolRewards(address _token, uint256 _amount) internal override {
+  function _distributeRebalancePoolRewards(address _token, uint256 _amount) internal override {
     require(_token == stETH, "base token not stETH");
 
     _approve(stETH, wstETH, _amount);
     _amount = ILidoWstETH(wstETH).wrap(_amount);
 
-    address _stabilityPool = stabilityPool;
+    address _rebalancePool = rebalancePool;
     // deposit rewards to stability pool
-    _approve(wstETH, _stabilityPool, _amount);
-    IRebalancePool(_stabilityPool).depositReward(wstETH, _amount);
+    IERC20Upgradeable(wstETH).safeTransfer(_rebalancePool, _amount);
+    IRebalancePoolSplitter(_rebalancePool).split(wstETH);
   }
 }
