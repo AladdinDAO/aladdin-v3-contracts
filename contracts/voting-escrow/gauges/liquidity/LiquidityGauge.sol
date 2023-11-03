@@ -14,6 +14,7 @@ import { ILiquidityManager } from "../../interfaces/ILiquidityManager.sol";
 import { ITokenMinter } from "../../interfaces/ITokenMinter.sol";
 import { IVotingEscrow } from "../../interfaces/IVotingEscrow.sol";
 
+import { IMultipleRewardAccumulator } from "../../../common/rewards/accumulator/IMultipleRewardAccumulator.sol";
 import { MultipleRewardAccumulator } from "../../../common/rewards/accumulator/MultipleRewardAccumulator.sol";
 import { LinearMultipleRewardDistributor } from "../../../common/rewards/distributor/LinearMultipleRewardDistributor.sol";
 
@@ -108,20 +109,38 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
     controller = _controller;
   }
 
+  /// @notice Initialize the state of LiquidityGauge.
+  ///
+  /// @dev The caller should make sure the decimal of `_stakingToken` is `18`.
+  ///
+  /// @param _stakingToken The address of staking token.
   function initialize(address _stakingToken) external initializer {
-    string memory _name = string(abi.encodePacked(ERC20PermitUpgradeable(_stakingToken).name(), " Gauge Deposit"));
+    string memory _name = string(abi.encodePacked(ERC20PermitUpgradeable(_stakingToken).name(), " Gauge"));
     string memory _symbol = string(abi.encodePacked(ERC20PermitUpgradeable(_stakingToken).symbol(), "-gauge"));
 
-    __ReentrancyGuard_init();
-    __ERC20_init(_name, _symbol);
-    __ERC20Permit_init(_name);
+    __Context_init(); // from ContextUpgradeable
+    __ERC20_init(_name, _symbol); // from ERC20Upgradeable
+    __ERC20Permit_init(_name); // from ERC20PermitUpgradeable
+    __ReentrancyGuard_init(); // from ReentrancyGuardUpgradeable
+    __ERC165_init(); // from ERC165Upgradeable
+    __AccessControl_init(); // from AccessControlUpgradeable
 
-    __MultipleRewardAccumulator_init();
+    __LinearMultipleRewardDistributor_init(); // from LinearMultipleRewardDistributor
+    __MultipleRewardAccumulator_init(); // from MultipleRewardAccumulator
 
+    // grant access
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
-    stakingToken = _stakingToken;
+    // initialize variables
     isActive = true;
+    stakingToken = _stakingToken;
+
+    InflationParams memory _cachedInflationParams;
+    _cachedInflationParams.rate = uint192(IGovernanceToken(governanceToken).rate());
+    _cachedInflationParams.futureEpochTime = uint64(IGovernanceToken(governanceToken).future_epoch_time_write());
+    inflationParams = _cachedInflationParams;
+
+    snapshot.timestamp = uint64(block.timestamp);
   }
 
   /*************************
@@ -168,18 +187,24 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
     _withdraw(_msgSender(), _amount, _receiver);
   }
 
+  /// @inheritdoc IMultipleRewardAccumulator
+  function checkpoint(address _account) external virtual override {
+    user_checkpoint(_account);
+  }
+
   /// @inheritdoc ILiquidityGauge
-  function user_checkpoint(address _account) external override nonReentrant {
-    if (_account != minter && _account != _msgSender()) {
+  function user_checkpoint(address _account) public override nonReentrant returns (bool) {
+    if (_msgSender() != minter && _account != _msgSender()) {
       revert UnauthorizedCaller();
     }
 
     _checkpoint(_account);
     _updateWorkingBalance(_account);
+    return true;
   }
 
   /// @inheritdoc ILiquidityGauge
-  function kick(address _account) external override {
+  function kick(address _account) external override nonReentrant {
     uint256 _snapshotTs = userSnapshot[_account].checkpoint.timestamp;
     uint256 _veTs = IVotingEscrow(ve).user_point_history__ts(_account, IVotingEscrow(ve).user_point_epoch(_account));
     if (IVotingEscrow(ve).balanceOf(_account) > 0 && _veTs <= _snapshotTs) {
@@ -220,7 +245,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
       // try to manage pool balance
       uint256 _balance = IERC20Upgradeable(_stakingToken).balanceOf(address(this));
       if (_balance > 0) {
-        IERC20Upgradeable(_stakingToken).safeTransferFrom(address(this), _newManager, _balance);
+        IERC20Upgradeable(_stakingToken).safeTransfer(_newManager, _balance);
         ILiquidityManager(_newManager).deposit(_msgSender(), _balance, true);
       }
     }
@@ -240,7 +265,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
   function _beforeTokenTransfer(
     address _from,
     address _to,
-    uint256 _amount
+    uint256
   ) internal virtual override {
     // no need to checkpoint on mint or burn
     if (_from == address(0) || _to == address(0)) return;
@@ -250,7 +275,16 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
 
     _checkpoint(_from);
     _checkpoint(_to);
+  }
 
+  /// @inheritdoc ERC20Upgradeable
+  function _afterTokenTransfer(
+    address _from,
+    address _to,
+    uint256 _amount
+  ) internal virtual override {
+    // no need to checkpoint on mint or burn
+    if (_from == address(0) || _to == address(0)) return;
     if (_amount > 0) {
       _updateWorkingBalance(_from);
       _updateWorkingBalance(_to);
@@ -264,19 +298,21 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
 
     RewardSnapshot memory _cachedSnapshot = snapshot;
     InflationParams memory _prevInflationParams = inflationParams;
-    InflationParams memory _nextInflationParams = _prevInflationParams;
+    uint256 _nextRate = _prevInflationParams.rate;
 
     // update inflation rate if changed
-    if (_nextInflationParams.futureEpochTime >= _cachedSnapshot.timestamp) {
-      _nextInflationParams.rate = uint192(IGovernanceToken(governanceToken).rate());
+    if (_prevInflationParams.futureEpochTime < block.timestamp) {
+      InflationParams memory _nextInflationParams;
       _nextInflationParams.futureEpochTime = uint64(IGovernanceToken(governanceToken).future_epoch_time_write());
+      _nextInflationParams.rate = uint192(IGovernanceToken(governanceToken).rate());
+      _nextRate = _nextInflationParams.rate;
       inflationParams = _nextInflationParams;
     }
 
     if (!isActive) {
       // Stop distributing inflation as soon as disabled
       _prevInflationParams.rate = 0;
-      _nextInflationParams.rate = 0;
+      _nextRate = 0;
     }
 
     // update integral for global snapshot
@@ -306,7 +342,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
             _cachedSnapshot.integral += uint192(
               (_rate * w * (_prevInflationParams.futureEpochTime - _prevWeekTime)) / _workingSupply
             );
-            _rate = _nextInflationParams.rate;
+            _rate = _nextRate;
             _cachedSnapshot.integral += uint192(
               (_rate * w * (_weekTime - _prevInflationParams.futureEpochTime)) / _workingSupply
             );
@@ -345,6 +381,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
       );
       _cachedUserSnapshot.checkpoint.integral = _cachedSnapshot.integral;
       _cachedUserSnapshot.checkpoint.timestamp = uint64(block.timestamp);
+      userSnapshot[_account] = _cachedUserSnapshot;
     }
   }
 
@@ -370,7 +407,7 @@ contract LiquidityGauge is ERC20PermitUpgradeable, MultipleRewardAccumulator, IL
     bool _manage
   ) internal nonReentrant {
     // transfer token
-    _transferStakingTokenIn(_owner, _amount, _receiver, _manage);
+    _amount = _transferStakingTokenIn(_owner, _amount, _receiver, _manage);
 
     // checkpoint
     _checkpoint(_receiver);

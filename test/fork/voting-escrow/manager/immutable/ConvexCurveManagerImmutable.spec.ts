@@ -250,7 +250,7 @@ describe("ConvexCurveManagerImmutable.spec", async () => {
           await token.connect(holder).approve(gauge.getAddress(), testcase.amount);
           expect(await token.balanceOf(manager.getAddress())).to.eq(0n);
           expect(await rewarder.balanceOf(manager.getAddress())).to.eq(testcase.amount);
-          await manager.manage(deployer.address);
+          await manager.manage();
           let crvAfter = await crv.balanceOf(deployer.address);
           let cvxAfter = await cvx.balanceOf(deployer.address);
           expect(await token.balanceOf(manager.getAddress())).to.eq(0n);
@@ -267,18 +267,18 @@ describe("ConvexCurveManagerImmutable.spec", async () => {
           expect(await token.balanceOf(manager.getAddress())).to.eq(testcase.amount);
           expect(await rewarder.balanceOf(manager.getAddress())).to.eq(testcase.amount);
 
-          // manage, with incentive
+          // manage, without incentive
           crvBefore = await crv.balanceOf(deployer.address);
           cvxBefore = await cvx.balanceOf(deployer.address);
-          await manager.manage(deployer.address);
+          await manager.manage();
           crvAfter = await crv.balanceOf(deployer.address);
           cvxAfter = await cvx.balanceOf(deployer.address);
           expect(await token.balanceOf(manager.getAddress())).to.eq(0n);
           expect(await rewarder.balanceOf(manager.getAddress())).to.eq(testcase.amount * 2n);
-          expect(crvAfter - crvBefore).to.eq(crvIncentive);
-          expect(cvxAfter - cvxBefore).to.eq(cvxIncentive);
-          expect(await manager.incentive(TOKENS.CRV.address)).to.eq(0n);
-          expect(await manager.incentive(TOKENS.CVX.address)).to.eq(0n);
+          expect(crvAfter - crvBefore).to.eq(0n);
+          expect(cvxAfter - cvxBefore).to.eq(0n);
+          expect(await manager.incentive(TOKENS.CRV.address)).to.eq(crvIncentive);
+          expect(await manager.incentive(TOKENS.CVX.address)).to.eq(cvxIncentive);
         });
       });
 

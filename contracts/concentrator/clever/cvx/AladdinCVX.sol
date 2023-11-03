@@ -4,9 +4,9 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import "../interfaces/ILegacyFurnace.sol";
-import "../interfaces/ILegacyFurnace.sol";
 import "../interfaces/ICLeverAMOStrategy.sol";
 import "../../../interfaces/ICurveFactoryPlainPool.sol";
+import "../../../interfaces/ICurveGauge.sol";
 
 import "../CLeverAMOBase.sol";
 import "../math/AMOMath.sol";

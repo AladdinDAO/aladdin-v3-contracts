@@ -45,9 +45,16 @@ contract SharedLiquidityGauge is LiquidityGauge, ISharedLiquidityGauge {
     return _stakerVoteOwner[_account];
   }
 
+  /****************************
+   * Public Mutated Functions *
+   ****************************/
+
   /// @inheritdoc ISharedLiquidityGauge
   function toggleVoteSharing(address _staker) external override {
     address _owner = _msgSender();
+    if (_staker == _owner) {
+      revert SelfSharingIsNotAllowed();
+    }
     if (_stakerVoteOwner[_owner] != address(0)) {
       revert CascadedSharingIsNotAllowed();
     }
@@ -109,6 +116,7 @@ contract SharedLiquidityGauge is LiquidityGauge, ISharedLiquidityGauge {
 
     unchecked {
       sharedBalanceOf[_owner] -= balanceOf(_staker);
+      numAcceptedStakers[_owner] -= 1;
     }
     _stakerVoteOwner[_staker] = address(0);
 
@@ -124,7 +132,7 @@ contract SharedLiquidityGauge is LiquidityGauge, ISharedLiquidityGauge {
     address _from,
     address _to,
     uint256 _amount
-  ) internal virtual override nonReentrant {
+  ) internal virtual override {
     if (_from != address(0) && _amount > 0) {
       address _ownerFrom = _stakerVoteOwner[_from];
       if (_ownerFrom != address(0)) {
@@ -146,11 +154,11 @@ contract SharedLiquidityGauge is LiquidityGauge, ISharedLiquidityGauge {
     // no need to checkpoint on mint or burn or transfer to self
     if (_from == address(0) || _to == address(0) || _from == _to || _amount == 0) return;
 
+    // check reentrancy on transfer or transferFrom
+    require(!_reentrancyGuardEntered(), "ReentrancyGuard: reentrant call");
+
     _checkpoint(_from);
     _checkpoint(_to);
-
-    _updateWorkingBalance(_from);
-    _updateWorkingBalance(_to);
   }
 
   /// @inheritdoc LiquidityGauge
@@ -173,7 +181,9 @@ contract SharedLiquidityGauge is LiquidityGauge, ISharedLiquidityGauge {
     if (_veSupply > 0) {
       _workingBalance += (((_supply * _veBalance) / _veSupply) * (100 - TOKENLESS_PRODUCTION)) / 100;
     }
-    _workingBalance = (_workingBalance * _balance) / _combinedBalance;
+    if (_combinedBalance > 0) {
+      _workingBalance = (_workingBalance * _balance) / _combinedBalance;
+    }
     if (_workingBalance > _balance) {
       _workingBalance = _balance;
     }

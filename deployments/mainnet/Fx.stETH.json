@@ -27,5 +27,6 @@
   },
   "FxETHTwapOracle": "0xa84360896cE9152d1780c546305BB54125F962d9",
   "FxGateway": "0x49e51067E695bd79d6275eCaB6E9E527a72AbdE4",
-  "ReservePool": "0x5d0Aacf75116d1645Db2B3d1Ca4b303ef0CA3752"
+  "ReservePool": "0x5d0Aacf75116d1645Db2B3d1Ca4b303ef0CA3752",
+  "RebalanceWithBonusToken": "0x17f21f468d77E6e35702a9Ae7a9da50Db7F6a4f4"
 }

@@ -2,16 +2,16 @@
 
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "../interfaces/IWETH.sol";
-import "../interfaces/IZap.sol";
+import { IWETH } from "../interfaces/IWETH.sol";
+import { IZap } from "../interfaces/IZap.sol";
 
-import "./Vesting.sol";
+import { IVesting } from "./vesting/IVesting.sol";
 
 // solhint-disable reason-string, not-rely-on-time
 
@@ -201,11 +201,11 @@ contract TokenSale is Ownable, ReentrancyGuard {
     if (_vestingAmount > 0) {
       IERC20(_quota).safeApprove(_vesting.vesting, 0);
       IERC20(_quota).safeApprove(_vesting.vesting, _vestingAmount);
-      Vesting(_vesting.vesting).newVesting(
+      IVesting(_vesting.vesting).newVesting(
         msg.sender,
-        uint128(_vestingAmount),
-        uint64(block.timestamp),
-        uint64(block.timestamp + _vesting.duration)
+        uint96(_vestingAmount),
+        uint32(block.timestamp),
+        uint32(block.timestamp + _vesting.duration)
       );
     }
 

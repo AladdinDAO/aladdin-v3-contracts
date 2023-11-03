@@ -116,7 +116,7 @@ abstract contract MultipleRewardAccumulator is
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
-  function checkpoint(address _account) external override nonReentrant {
+  function checkpoint(address _account) external virtual override nonReentrant {
     _checkpoint(_account);
   }
 
@@ -133,7 +133,7 @@ abstract contract MultipleRewardAccumulator is
 
   /// @inheritdoc IMultipleRewardAccumulator
   function claim(address _account, address _receiver) public override nonReentrant {
-    if (_account != _msgSender() && _receiver != address(0) && _account != _receiver) {
+    if (_account != _msgSender() && _receiver != address(0)) {
       revert ClaimOthersRewardToAnother();
     }
 

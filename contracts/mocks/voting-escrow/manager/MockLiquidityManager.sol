@@ -13,7 +13,7 @@ contract MockLiquidityManager is LiquidityManagerBase {
 
   function getRewardTokens() external view override returns (address[] memory) {}
 
-  function manage(address receiver) external override {}
+  function manage() external override {}
 
   function harvest(address receiver) external override {}
 

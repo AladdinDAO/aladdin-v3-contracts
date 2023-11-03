@@ -9,6 +9,7 @@ import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 import { IMarket } from "./interfaces/IMarket.sol";
+import { IRebalancePoolRegistry } from "./interfaces/IRebalancePoolRegistry.sol";
 import { IReservePool } from "./interfaces/IReservePool.sol";
 import { ITreasury } from "./interfaces/ITreasury.sol";
 
@@ -76,6 +77,10 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   /// @notice Emitted when the  reserve pool contract is changed.
   /// @param reservePool The address of new reserve pool.
   event UpdateReservePool(address reservePool);
+
+  /// @notice Emitted when the RebalancePoolRegistry contract is updated.
+  /// @param registry The address of new RebalancePoolRegistry pool.
+  event UpdateRebalancePoolRegistry(address registry);
 
   /// @notice Pause or unpause mint.
   /// @param status The new status for mint.
@@ -189,7 +194,11 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   /// @notice Whether to pause xToken redeem in system stability mode
   bool public xTokenRedeemInSystemStabilityModePaused;
 
+  /// @notice The address of ReservePool contract.
   address public reservePool;
+
+  /// @notice The address of RebalancePoolRegistry contract.
+  address public registry;
 
   /************
    * Modifier *
@@ -326,9 +335,14 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
 
     // give bnous
     if (_amountWithoutFee < _maxBaseInBeforeSystemStabilityMode) {
-      _bonus = IReservePool(reservePool).requestBonus(baseToken, _recipient, _amountWithoutFee);
-    } else if (_maxBaseInBeforeSystemStabilityMode > 0) {
-      _bonus = IReservePool(reservePool).requestBonus(baseToken, _recipient, _maxBaseInBeforeSystemStabilityMode);
+      _bonus = _amountWithoutFee;
+    } else {
+      _bonus = _maxBaseInBeforeSystemStabilityMode;
+    }
+    if (_bonus > 0 && IRebalancePoolRegistry(registry).totalSupply() == 0) {
+      _bonus = IReservePool(reservePool).requestBonus(baseToken, _recipient, _bonus);
+    } else {
+      _bonus = 0;
     }
 
     emit Mint(msg.sender, _recipient, _baseIn, 0, _xTokenMinted, _baseIn - _amountWithoutFee);
@@ -404,8 +418,9 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     MarketConfig memory _marketConfig = marketConfig;
 
     uint256 _feeRatio;
+    uint256 _maxFTokenInBeforeSystemStabilityMode;
     if (_fTokenIn > 0) {
-      (, uint256 _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
+      (, _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
       _feeRatio = _computeFTokenRedeemFeeRatio(_fTokenIn, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
     } else {
       (, uint256 _maxXTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableXToken(_marketConfig.stabilityRatio);
@@ -424,6 +439,25 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     }
 
     _baseOut = _treasury.redeem(_fTokenIn, _xTokenIn, msg.sender);
+    if (_fTokenIn > 0) {
+      // give bonus when redeem fToken
+      uint256 _bonus;
+      if (_baseOut < _maxFTokenInBeforeSystemStabilityMode) {
+        _bonus = _baseOut;
+      } else {
+        _bonus = _maxFTokenInBeforeSystemStabilityMode;
+      }
+      // deduct fee
+      {
+        FeeRatio memory _ratio = fTokenRedeemFeeRatio;
+        _bonus -= (_bonus * uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio)) / PRECISION;
+      }
+      // request bonus
+      if (_bonus > 0 && IRebalancePoolRegistry(registry).totalSupply() == 0) {
+        IReservePool(reservePool).requestBonus(baseToken, _recipient, _bonus);
+      }
+    }
+
     _baseOut = _treasury.convertToWrapped(_baseOut);
     uint256 _balance = IERC20Upgradeable(baseToken).balanceOf(address(this));
     // consider possible slippage
@@ -609,6 +643,14 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     reservePool = _reservePool;
 
     emit UpdateReservePool(_reservePool);
+  }
+
+  /// @notice Change address of RebalancePoolRegistry contract.
+  /// @param _registry The new address of RebalancePoolRegistry contract.
+  function updateRebalancePoolRegistry(address _registry) external onlyAdmin {
+    registry = _registry;
+
+    emit UpdateRebalancePoolRegistry(_registry);
   }
 
   /// @notice Update the whitelist status for self liquidation account.
