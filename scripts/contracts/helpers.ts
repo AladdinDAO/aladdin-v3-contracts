@@ -1,5 +1,5 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { BaseContract, BytesLike, Contract, Result, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
+import { BaseContract, BytesLike, Result, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
 import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
@@ -77,7 +77,7 @@ export async function contractCall(
 }
 
 export async function ownerContractCall(
-  contract: Contract,
+  contract: BaseContract,
   desc: string,
   method: string,
   args: Array<any>,
@@ -85,12 +85,12 @@ export async function ownerContractCall(
 ): Promise<TransactionReceipt | undefined> {
   const signer = contract.runner! as HardhatEthersSigner;
   let owner: string = ZeroAddress;
-  if (contract.owner) {
-    owner = await contract.owner.staticCall({ gasLimit: 1e6 });
-  } else if (contract.admin) {
-    owner = await contract.admin.staticCall({ gasLimit: 1e6 });
-  } else if (contract.hasRole) {
-    const isAdmin = await contract.hasRole.staticCall(ZeroHash, await signer.getAddress());
+  if (contract.getFunction("owner")) {
+    owner = await contract.getFunction("owner").staticCall({ gasLimit: 1e6 });
+  } else if (contract.getFunction("admin")) {
+    owner = await contract.getFunction("admin").staticCall({ gasLimit: 1e6 });
+  } else if (contract.getFunction("hasRole")) {
+    const isAdmin = await contract.getFunction("hasRole").staticCall(ZeroHash, await signer.getAddress());
     if (isAdmin) owner = await signer.getAddress();
   }
   if (owner.toLowerCase() === (await signer.getAddress()).toLowerCase()) {
