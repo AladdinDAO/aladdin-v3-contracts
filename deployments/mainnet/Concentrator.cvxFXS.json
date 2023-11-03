@@ -1,0 +1,11 @@
+{
+  "CvxFxsCompounder": {
+    "proxy": "0xDAF03D70Fe637b91bA6E521A32E1Fb39256d3EC9",
+    "implementation": "0xD9cC44C567b1effdDDe8461AcD6c67028af99258"
+  },
+  "ConcentratorVault": {
+    "proxy": "0xD6E3BB7b1D6Fa75A71d48CFB10096d59ABbf99E1",
+    "implementation": "0x7fBa1017c09C38B9Da13460f5bC4Dc4a2c0c1806"
+  },
+  "CvxFxsStakingStrategy": "0x36925622dc537c65cd6433703f7aEdA5929b1CBf"
+}

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.0 || ^0.8.0;
 
 interface IConvexBasicRewards {
   function pid() external view returns (uint256);
@@ -28,4 +28,10 @@ interface IConvexBasicRewards {
   function getReward() external returns (bool);
 
   function stake(uint256) external returns (bool);
+
+  function rewardToken() external view returns (address);
+
+  function extraRewards(uint256) external view returns (address);
+
+  function extraRewardsLength() external view returns (uint256);
 }

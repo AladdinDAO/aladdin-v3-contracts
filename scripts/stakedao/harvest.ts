@@ -170,13 +170,18 @@ async function main(round: string) {
         );
 
         console.log(`Burn token[${symbol}] address[${item.token}] to SDT`);
-        const tx = await burner.burn(
+        const minSDT = (amountSDT * 99n) / 100n;
+        const minCRV = (amountCRV * 99n) / 100n;
+        const gas = await burner.burn.estimateGas(
           item.token,
           ZAP_ROUTES[symbol].SDT,
-          (amountSDT * 99n) / 100n,
+          minSDT,
           ZAP_ROUTES[symbol].CRV,
-          (amountCRV * 99n) / 100n
+          minCRV
         );
+        const tx = await burner.burn(item.token, ZAP_ROUTES[symbol].SDT, minSDT, ZAP_ROUTES[symbol].CRV, minCRV, {
+          gasLimit: (gas * 12n) / 10n,
+        });
         console.log("  waiting for tx:", tx.hash);
         const receipt = await tx.wait();
         console.log("  confirmed, gas used:", receipt!.gasUsed.toString());

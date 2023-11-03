@@ -56,7 +56,7 @@ export async function initialize(
         strategy,
         `Initialize ${strategyName} for pool[${pool.name}]`,
         "initialize",
-        [vault.getAddress(), underlying, vaultConfig.rewarder!, vaultConfig.rewards],
+        [await vault.getAddress(), underlying, vaultConfig.rewarder!, vaultConfig.rewards],
         overrides
       );
     } else if (strategyName === "ManualCompoundingCurveGaugeStrategy") {
@@ -64,7 +64,7 @@ export async function initialize(
         strategy,
         `Initialize ${strategyName} for pool[${pool.name}]`,
         "initialize",
-        [vault.getAddress(), underlying, vaultConfig.gauge!, vaultConfig.rewards],
+        [await vault.getAddress(), underlying, vaultConfig.gauge!, vaultConfig.rewards],
         overrides
       );
     } else {
