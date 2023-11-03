@@ -25,6 +25,13 @@ export interface FxGovernanceDeployment {
   PlatformFeeSpliter: string;
   MultipleVestHelper: string;
   Vesting: { [symbol: string]: string };
+  ManageableVesting: {
+    vesting: { [symbol: string]: string };
+    manager: {
+      CvxFxnVestingManager: string;
+      SdFxnVestingManager: string;
+    };
+  };
   Burner: {
     PlatformFeeBurner: string;
   };
@@ -156,6 +163,36 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     }
   }
 
+  for (const token of ["FXN"]) {
+    const selector = `ManageableVesting.vesting.${token}`;
+    if (!deployment.get(selector)) {
+      const address = await contractDeploy(
+        deployer,
+        `${token} ManageableVesting`,
+        "ManageableVesting",
+        [TOKENS[token].address],
+        overrides
+      );
+      deployment.set(selector, address);
+    } else {
+      console.log(`Found ${token} ManageableVesting at:`, deployment.get(selector));
+    }
+  }
+
+  if (!deployment.get("ManageableVesting.manager.CvxFxnVestingManager")) {
+    const address = await contractDeploy(deployer, "CvxFxnVestingManager", "CvxFxnVestingManager", [], overrides);
+    deployment.set("ManageableVesting.manager.CvxFxnVestingManager", address);
+  } else {
+    console.log(`Found CvxFxnVestingManager at:`, deployment.get("ManageableVesting.manager.CvxFxnVestingManager"));
+  }
+
+  if (!deployment.get("ManageableVesting.manager.SdFxnVestingManager")) {
+    const address = await contractDeploy(deployer, "SdFxnVestingManager", "SdFxnVestingManager", [], overrides);
+    deployment.set("ManageableVesting.manager.SdFxnVestingManager", address);
+  } else {
+    console.log(`Found SdFxnVestingManager at:`, deployment.get("ManageableVesting.manager.SdFxnVestingManager"));
+  }
+
   if (!deployment.get("PlatformFeeSpliter")) {
     const address = await contractDeploy(
       deployer,
@@ -241,6 +278,11 @@ export async function initialize(
   const fnxVesting = await ethers.getContractAt("Vesting", deployment.Vesting.FXN, deployer);
   const fethVesting = await ethers.getContractAt("Vesting", deployment.Vesting.fETH, deployer);
   const burner = await ethers.getContractAt("PlatformFeeBurner", deployment.Burner.PlatformFeeBurner, deployer);
+  const fnxManageableVesting = await ethers.getContractAt(
+    "ManageableVesting",
+    deployment.ManageableVesting.vesting.FXN,
+    deployer
+  );
 
   // initialize FXN
   if ((await fxn.admin({ gasLimit: 1e6 })) === ZeroAddress) {
@@ -389,6 +431,46 @@ export async function initialize(
       "updateKeeperStatus",
       ["0x11E91BB6d1334585AA37D8F4fde3932C7960B938", true],
       overrides
+    );
+  }
+
+  // add CvxFxnVestingManager
+  try {
+    const manager = await fnxManageableVesting.managers(1);
+    if (manager !== deployment.ManageableVesting.manager.CvxFxnVestingManager) {
+      await ownerContractCall(
+        fnxManageableVesting as unknown as Contract,
+        "update CvxFxnVestingManager",
+        "updateVestingManager",
+        [1, deployment.ManageableVesting.manager.CvxFxnVestingManager]
+      );
+    }
+  } catch {
+    await ownerContractCall(
+      fnxManageableVesting as unknown as Contract,
+      "add CvxFxnVestingManager",
+      "addVestingManager",
+      [deployment.ManageableVesting.manager.CvxFxnVestingManager]
+    );
+  }
+
+  // add SdFxnVestingManager
+  try {
+    const manager = await fnxManageableVesting.managers(2);
+    if (manager !== deployment.ManageableVesting.manager.SdFxnVestingManager) {
+      await ownerContractCall(
+        fnxManageableVesting as unknown as Contract,
+        "update SdFxnVestingManager",
+        "updateVestingManager",
+        [2, deployment.ManageableVesting.manager.SdFxnVestingManager]
+      );
+    }
+  } catch {
+    await ownerContractCall(
+      fnxManageableVesting as unknown as Contract,
+      "add SdFxnVestingManager",
+      "addVestingManager",
+      [deployment.ManageableVesting.manager.SdFxnVestingManager]
     );
   }
 }
