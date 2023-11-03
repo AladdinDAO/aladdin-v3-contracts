@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "test": "npx hardhat test",
-    "build": "npx hardhat compile",
+    "build": "npx hardhat compile --no-typechain && npx hardhat typechain",
     "votium:vote": "yarn ts-node scripts/votium/hermez_vote.ts",
     "votium:snapshot_vote": "yarn ts-node scripts/votium/snapshot_vote.ts",
     "votium:proof": "yarn ts-node scripts/votium/get_proof.ts --round",
@@ -55,7 +55,7 @@
     "prettier": "^2.3.2",
     "prettier-plugin-solidity": "^1.0.0-beta.13",
     "solhint": "^3.3.6",
-    "solidity-coverage": "^0.7.16",
+    "solidity-coverage": "^0.8.4",
     "ts-node": "^10.1.0",
     "tsconfig-paths": "^4.2.0",
     "tty-table": "^4.1.6",
@@ -65,7 +65,9 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "3.4.1-solc-0.7-2",
-    "@openzeppelin/contracts-upgradeable": "3.4.1-solc-0.7-2"
+    "@openzeppelin/contracts-upgradeable": "3.4.1-solc-0.7-2",
+    "@openzeppelin/contracts-upgradeable-v4": "npm:@openzeppelin/contracts-upgradeable@4.9.3",
+    "@openzeppelin/contracts-v4": "npm:@openzeppelin/contracts@4.9.3"
   },
   "lint-staged": {
     "*.{js,ts}": "npx eslint --cache --fix",
