@@ -90,8 +90,7 @@ interface ILiquidityManager {
 
   /// @notice Manage the deposited token. Usually the token will be
   /// deposited to another protocol which could generate more yields.
-  /// @param receiver The address of the recipient for manage incentive.
-  function manage(address receiver) external;
+  function manage() external;
 
   /// @notice Harvest pending rewards from underlying protocol.
   /// @param receiver The address of the recipient for harvest incentive.

@@ -7,5 +7,10 @@
   "Vesting": "0x8341889905bdef85b87cb7644a93f7a482f28742",
   "PlatformFeeSpliter": "0x32366846354DB5C08e92b4Ab0D2a510b2a2380C8",
   "MultipleVestHelper": "0xD479C1e6702Db01B27255361908Fc7B083Ef3195",
-  "FeeDistributor": "0xA5D9358c60fC9Bd2b508eDa17c78C67A43A4458C"
+  "FeeDistributor": "0xA5D9358c60fC9Bd2b508eDa17c78C67A43A4458C",
+  "Burners": {
+    "PlatformFeeBurner": "0x695EB50A92AD2AEBB89C6dD1f3c7546A28411403",
+    "ConvexFraxCompounderBurner": "0x789E729713ddC80cf2db4e59ca064D3770f1A034",
+    "StakeDAOCompounderBurner": "0xf954200fD969443b8f853B4083B71cd073C05D5b"
+  }
 }

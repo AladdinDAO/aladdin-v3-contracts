@@ -29,6 +29,9 @@ interface ISharedLiquidityGauge is ILiquidityGauge {
    * Errors *
    **********/
 
+  /// @dev Thrown when caller shares votes to self.
+  error SelfSharingIsNotAllowed();
+
   /// @dev Thrown when a staker with shared votes try to share its votes to others.
   error CascadedSharingIsNotAllowed();
 

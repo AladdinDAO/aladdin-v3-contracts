@@ -3,34 +3,16 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+
+import { IVesting } from "./IVesting.sol";
 
 // solhint-disable not-rely-on-time
 
-contract Vesting is Ownable {
+contract Vesting is Ownable, IVesting {
   using SafeERC20 for IERC20;
-
-  /// @notice Emitted when a token vest is added.
-  /// @param _recipient The address of recipient who will receive the vest.
-  /// @param _index The index of the vesting list.
-  /// @param _amount The amount of token to vest.
-  /// @param _startTime The timestamp in second when the vest starts.
-  /// @param _endTime The timestamp in second when the vest ends.
-  event Vest(address indexed _recipient, uint256 indexed _index, uint256 _amount, uint256 _startTime, uint256 _endTime);
-
-  /// @notice Emitted when a vest is cancled.
-  /// @param _recipient The address of recipient who will receive the vest.
-  /// @param _index The index of the vesting list.
-  /// @param _unvested The amount of unvested token.
-  /// @param _cancleTime The timestamp in second when the vest is cancled.
-  event Cancle(address indexed _recipient, uint256 indexed _index, uint256 _unvested, uint256 _cancleTime);
-
-  /// @notice Emitted when a user claim his vest.
-  /// @param _recipient The address of recipient who will receive the token.
-  /// @param _amount The amount of token claimed.
-  event Claim(address indexed _recipient, uint256 _amount);
 
   /// @notice The address of token to vest.
   address public immutable token;
@@ -40,7 +22,7 @@ contract Vesting is Ownable {
     uint128 claimedAmount;
     uint64 startTime;
     uint64 endTime;
-    uint64 cancleTime;
+    uint64 cancelTime;
   }
 
   /// @notice Mapping from user address to vesting list.
@@ -61,9 +43,8 @@ contract Vesting is Ownable {
     return vesting[_recipient];
   }
 
-  /// @notice Return the total amount of vested tokens.
-  /// @param _recipient The address of user to query.
-  function vested(address _recipient) external view returns (uint256 _vested) {
+  /// @inheritdoc IVesting
+  function vested(address _recipient) external view override returns (uint256 _vested) {
     uint256 _length = vesting[_recipient].length;
     for (uint256 i = 0; i < _length; i++) {
       _vested += _getVested(vesting[_recipient][i], block.timestamp);
@@ -71,9 +52,8 @@ contract Vesting is Ownable {
     return _vested;
   }
 
-  /// @notice Return the total amount of unvested tokens.
-  /// @param _recipient The address of user to query.
-  function locked(address _recipient) external view returns (uint256 _unvested) {
+  /// @inheritdoc IVesting
+  function locked(address _recipient) external view override returns (uint256 _unvested) {
     uint256 _length = vesting[_recipient].length;
     for (uint256 i = 0; i < _length; i++) {
       VestState memory _state = vesting[_recipient][i];
@@ -81,9 +61,8 @@ contract Vesting is Ownable {
     }
   }
 
-  /// @notice Claim pending tokens
-  /// @return _claimable The amount of token will receive in this claim.
-  function claim() external returns (uint256 _claimable) {
+  /// @inheritdoc IVesting
+  function claim() external override returns (uint256 _claimable) {
     uint256 _length = vesting[msg.sender].length;
     for (uint256 i = 0; i < _length; i++) {
       VestState memory _state = vesting[msg.sender][i];
@@ -99,17 +78,13 @@ contract Vesting is Ownable {
     emit Claim(msg.sender, _claimable);
   }
 
-  /// @notice Add a new token vesting
-  /// @param _recipient The address of user who will receive the vesting.
-  /// @param _amount The amount of token to vest.
-  /// @param _startTime The timestamp in second when the vest starts.
-  /// @param _endTime The timestamp in second when the vest ends.
+  /// @inheritdoc IVesting
   function newVesting(
     address _recipient,
-    uint128 _amount,
-    uint64 _startTime,
-    uint64 _endTime
-  ) external {
+    uint96 _amount,
+    uint32 _startTime,
+    uint32 _endTime
+  ) external override {
     require(_startTime < _endTime, "Vesting: invalid timestamp");
     require(isWhitelist[msg.sender], "Vesting: caller not whitelisted");
 
@@ -117,26 +92,24 @@ contract Vesting is Ownable {
 
     uint256 _index = vesting[_recipient].length;
     vesting[_recipient].push(
-      VestState({ vestingAmount: _amount, claimedAmount: 0, startTime: _startTime, endTime: _endTime, cancleTime: 0 })
+      VestState({ vestingAmount: _amount, claimedAmount: 0, startTime: _startTime, endTime: _endTime, cancelTime: 0 })
     );
 
     emit Vest(_recipient, _index, _amount, _startTime, _endTime);
   }
 
-  /// @notice Cancle a vest for some user. The unvested tokens will be transfered to owner.
-  /// @param _user The address of the user to cancle.
-  /// @param _index The index of the vest to cancle.
-  function cancle(address _user, uint256 _index) external onlyOwner {
+  /// @inheritdoc IVesting
+  function cancel(address _user, uint256 _index) external override onlyOwner {
     VestState memory _state = vesting[_user][_index];
-    require(_state.cancleTime == 0, "already cancled");
+    require(_state.cancelTime == 0, "already canceld");
 
     uint256 _vestedAmount = _getVested(_state, block.timestamp);
     uint256 _unvested = _state.vestingAmount - _vestedAmount;
     IERC20(token).safeTransfer(msg.sender, _unvested);
 
-    vesting[_user][_index].cancleTime = uint64(block.timestamp);
+    vesting[_user][_index].cancelTime = uint64(block.timestamp);
 
-    emit Cancle(_user, _index, _unvested, block.timestamp);
+    emit Cancel(_user, _index, _unvested, block.timestamp);
   }
 
   /// @notice Update the whitelist status of given accounts.
@@ -152,9 +125,9 @@ contract Vesting is Ownable {
   /// @param _state The vest state.
   /// @param _claimTime The timestamp in second when someone claim vested token.
   function _getVested(VestState memory _state, uint256 _claimTime) internal pure returns (uint256) {
-    // This vest is cancled before, so we take minimum between claimTime and cancleTime.
-    if (_state.cancleTime != 0 && _state.cancleTime < _claimTime) {
-      _claimTime = _state.cancleTime;
+    // This vest is canceld before, so we take minimum between claimTime and cancelTime.
+    if (_state.cancelTime != 0 && _state.cancelTime < _claimTime) {
+      _claimTime = _state.cancelTime;
     }
 
     if (_claimTime < _state.startTime) {

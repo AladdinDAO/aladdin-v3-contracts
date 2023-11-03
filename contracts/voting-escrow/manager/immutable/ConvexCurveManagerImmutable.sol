@@ -109,11 +109,11 @@ contract ConvexCurveManagerImmutable is LiquidityManagerBaseImmutable {
   }
 
   /// @inheritdoc ILiquidityManager
-  function manage(address _receiver) public override {
+  function manage() public override {
     uint256 _balance = IERC20(token).balanceOf(address(this));
     if (_balance == 0) return;
 
-    _manageUnderlying(_receiver, _balance);
+    _manageUnderlying(address(0), _balance, false);
   }
 
   /// @inheritdoc ILiquidityManager
@@ -133,7 +133,7 @@ contract ConvexCurveManagerImmutable is LiquidityManagerBaseImmutable {
     uint256 _length = rewards.length;
     for (uint256 i = 0; i < _length; ++i) {
       address _rewardToken = rewards[i];
-      uint256 _rewardAmount = IERC20(_rewardToken).balanceOf(address(this));
+      uint256 _rewardAmount = IERC20(_rewardToken).balanceOf(address(this)) - incentive[_rewardToken];
       if (_rewardAmount == 0) continue;
 
       unchecked {
@@ -171,7 +171,7 @@ contract ConvexCurveManagerImmutable is LiquidityManagerBaseImmutable {
       // deposit to underlying strategy
       uint256 _balance = IERC20(token).balanceOf(address(this));
       if (_balance > 0) {
-        _manageUnderlying(_receiver, _balance);
+        _manageUnderlying(_receiver, _balance, true);
       }
     }
   }
@@ -190,18 +190,24 @@ contract ConvexCurveManagerImmutable is LiquidityManagerBaseImmutable {
   }
 
   /// @dev Internal function to manage underlying assets
-  function _manageUnderlying(address _receiver, uint256 _balance) internal {
+  function _manageUnderlying(
+    address _receiver,
+    uint256 _balance,
+    bool _incentived
+  ) internal {
     // deposit to booster
     IConvexBooster(BOOSTER).deposit(pid, _balance, true);
 
     // send incentive
-    uint256 _length = rewards.length;
-    for (uint256 i = 0; i < _length; ++i) {
-      address _rewardToken = rewards[i];
-      uint256 _incentive = incentive[_rewardToken];
-      if (_incentive > 0) {
-        IERC20(_rewardToken).safeTransfer(_receiver, _incentive);
-        incentive[_rewardToken] = 0;
+    if (_incentived) {
+      uint256 _length = rewards.length;
+      for (uint256 i = 0; i < _length; ++i) {
+        address _rewardToken = rewards[i];
+        uint256 _incentive = incentive[_rewardToken];
+        if (_incentive > 0) {
+          IERC20(_rewardToken).safeTransfer(_receiver, _incentive);
+          incentive[_rewardToken] = 0;
+        }
       }
     }
   }

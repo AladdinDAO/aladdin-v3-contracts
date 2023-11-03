@@ -1,5 +1,5 @@
 {
-  "CvxCRVCompounder": {
+  "CvxCrvCompounder": {
     "proxy": "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
     "implementation": "0xAF3406D5b9C8D921042a30713aA3f72FEa89E35B"
   },

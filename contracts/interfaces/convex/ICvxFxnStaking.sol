@@ -17,6 +17,8 @@ interface ICvxFxnStaking {
 
   function rewardPerToken(address _rewardsToken) external view returns (uint256);
 
+  function rewardRedirect(address _account) external view returns (address);
+
   // Address and claimable amount of all reward tokens for the given account
   function claimableRewards(address _account) external view returns (EarnedData[] memory userRewards);
 

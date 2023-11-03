@@ -7,7 +7,7 @@ import * as ConcentratorFrxETH from "@/contracts/ConcentratorFrxETH";
 import { showConverterRoute } from "../utils";
 
 const maxFeePerGas = 30e9;
-const maxPriorityFeePerGas = 1e9;
+const maxPriorityFeePerGas = 0.1e9;
 
 async function main() {
   const overrides = {
