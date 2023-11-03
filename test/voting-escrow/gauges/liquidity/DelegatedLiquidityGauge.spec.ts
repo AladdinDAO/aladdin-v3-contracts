@@ -210,8 +210,8 @@ describe("DelegatedLiquidityGauge.spec", async () => {
               expect(await token.balanceOf(gauge.getAddress())).to.eq(prevSupply + delta);
             }
             expect(await gauge.balanceOf(account)).to.eq(prevBalance + delta);
-            const veBalance = await ve["balanceOf(address)"](account);
-            const veSupply = await ve["totalSupply()"]();
+            const veBalance = await boost.balanceOf(account);
+            const veSupply = await boost.totalSupply();
             const balance = prevBalance + delta;
             let workingBalance = (balance * 4n) / 10n;
             if (veSupply > 0) {

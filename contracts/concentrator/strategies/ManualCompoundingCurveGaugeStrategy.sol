@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/ICurveGauge.sol";
-import "../../interfaces/ICurveTokenMinter.sol";
-import "../../interfaces/IZap.sol";
+import { ICurveGauge } from "../../interfaces/ICurveGauge.sol";
+import { ICurveTokenMinter } from "../../interfaces/ICurveTokenMinter.sol";
+import { IZap } from "../../interfaces/IZap.sol";
+import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
 
-import "./ManualCompoundingStrategyBase.sol";
+import { ManualCompoundingStrategyBase } from "./ManualCompoundingStrategyBase.sol";
 
 // solhint-disable no-empty-blocks
 // solhint-disable reason-string
@@ -39,9 +40,9 @@ contract ManualCompoundingCurveGaugeStrategy is ManualCompoundingStrategyBase {
     address _gauge,
     address[] memory _rewards
   ) external initializer {
-    ConcentratorStrategyBase._initialize(_operator, _rewards);
+    __ConcentratorStrategyBase_init(_operator, _rewards);
 
-    IERC20(_token).safeApprove(_gauge, uint256(-1));
+    IERC20(_token).safeApprove(_gauge, type(uint256).max);
 
     token = _token;
     gauge = _gauge;
@@ -64,19 +65,19 @@ contract ManualCompoundingCurveGaugeStrategy is ManualCompoundingStrategyBase {
 
   /// @inheritdoc IConcentratorStrategy
   function harvest(address _zapper, address _intermediate) external override onlyOperator returns (uint256 _amount) {
-    // 1. claim rewards from Convex rewards contract.
+    // 0. sweep balances
     address[] memory _rewards = rewards;
-    uint256[] memory _amounts = new uint256[](rewards.length);
-    for (uint256 i = 0; i < rewards.length; i++) {
-      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
-    }
+    _sweepToken(_rewards);
+
+    // 1. claim rewards from Convex rewards contract.
     address _gauge = gauge;
     try ICurveTokenMinter(MINTER).mint(_gauge) {} catch {}
 
     // some gauge has no extra rewards
     try ICurveGauge(_gauge).claim_rewards() {} catch {}
+    uint256[] memory _amounts = new uint256[](rewards.length);
     for (uint256 i = 0; i < rewards.length; i++) {
-      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this)) - _amounts[i];
+      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
     }
 
     // 2. zap to intermediate token and transfer to caller.

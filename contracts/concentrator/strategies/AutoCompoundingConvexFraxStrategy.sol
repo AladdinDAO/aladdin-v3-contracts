@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
+import { Pausable } from "@openzeppelin/contracts-v4/security/Pausable.sol";
 
-import "../../interfaces/IConvexFraxBooster.sol";
-import "../../interfaces/IFraxUnifiedFarm.sol";
-import "../../interfaces/IStakingProxyConvex.sol";
-import "../../interfaces/IZap.sol";
+import { IConvexFraxBooster } from "../../interfaces/IConvexFraxBooster.sol";
+import { IFraxUnifiedFarm } from "../../interfaces/IFraxUnifiedFarm.sol";
+import { IStakingProxyConvex } from "../../interfaces/IStakingProxyConvex.sol";
+import { IZap } from "../../interfaces/IZap.sol";
+import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
 
-import "./AutoCompoundingStrategyBase.sol";
+import { AutoCompoundingStrategyBase } from "./AutoCompoundingStrategyBase.sol";
 
 // solhint-disable reason-string
 // solhint-disable not-rely-on-time
 // solhint-disable no-empty-blocks
 
-contract AutoCompoundingConvexFraxStrategy is OwnableUpgradeable, PausableUpgradeable, AutoCompoundingStrategyBase {
+contract AutoCompoundingConvexFraxStrategy is Pausable, AutoCompoundingStrategyBase {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc IConcentratorStrategy
@@ -77,12 +77,10 @@ contract AutoCompoundingConvexFraxStrategy is OwnableUpgradeable, PausableUpgrad
     uint256 _pid,
     address[] memory _rewards
   ) external initializer {
-    OwnableUpgradeable.__Ownable_init();
-    PausableUpgradeable.__Pausable_init();
-    ConcentratorStrategyBase._initialize(_operator, _rewards);
+    __ConcentratorStrategyBase_init(_operator, _rewards);
 
     address _vault = IConvexFraxBooster(BOOSTER).createVault(_pid);
-    IERC20(_token).safeApprove(_vault, uint256(-1));
+    IERC20(_token).safeApprove(_vault, type(uint256).max);
 
     pid = _pid;
     token = _token;
@@ -140,15 +138,15 @@ contract AutoCompoundingConvexFraxStrategy is OwnableUpgradeable, PausableUpgrad
   function harvest(address _zapper, address _intermediate) external override onlyOperator returns (uint256 _amount) {
     address _vault = vault;
 
-    // 1. claim rewards from Convex rewards contract.
+    // 0. sweep balances
     address[] memory _rewards = rewards;
+    _sweepToken(_rewards);
+
+    // 1. claim rewards from Convex rewards contract.
+    IStakingProxyConvex(_vault).getReward(true, _rewards);
     uint256[] memory _amounts = new uint256[](rewards.length);
     for (uint256 i = 0; i < rewards.length; i++) {
       _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
-    }
-    IStakingProxyConvex(_vault).getReward(true, _rewards);
-    for (uint256 i = 0; i < rewards.length; i++) {
-      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this)) - _amounts[i];
     }
 
     // 2. zap all rewards to staking token.

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/IZap.sol";
+import { IZap } from "../../interfaces/IZap.sol";
 
-import "./ConcentratorStrategyBase.sol";
+import { ConcentratorStrategyBase } from "./ConcentratorStrategyBase.sol";
 
 // solhint-disable reason-string
 
@@ -33,12 +33,6 @@ abstract contract ManualCompoundingStrategyBase is ConcentratorStrategyBase {
     }
 
     // 2. transfer intermediate token back to operator.
-    if (_intermediate == address(0)) {
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool _success, ) = msg.sender.call{ value: _harvested }("");
-      require(_success, "ConcentratorStrategy: transfer ETH failed");
-    } else {
-      IERC20(_intermediate).safeTransfer(msg.sender, _harvested);
-    }
+    _transferToken(_intermediate, _msgSender(), _harvested);
   }
 }

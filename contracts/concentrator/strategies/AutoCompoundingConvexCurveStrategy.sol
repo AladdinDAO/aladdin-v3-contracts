@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/IConvexBasicRewards.sol";
-import "../../interfaces/IConvexBooster.sol";
-import "../../interfaces/IZap.sol";
+import { IConvexBasicRewards } from "../../interfaces/IConvexBasicRewards.sol";
+import { IConvexBooster } from "../../interfaces/IConvexBooster.sol";
+import { IZap } from "../../interfaces/IZap.sol";
+import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
 
-import "./AutoCompoundingStrategyBase.sol";
+import { AutoCompoundingStrategyBase } from "./AutoCompoundingStrategyBase.sol";
 
 // solhint-disable no-empty-blocks
 
@@ -38,9 +39,9 @@ contract AutoCompoundingConvexCurveStrategy is AutoCompoundingStrategyBase {
     address _rewarder,
     address[] memory _rewards
   ) external initializer {
-    ConcentratorStrategyBase._initialize(_operator, _rewards);
+    __ConcentratorStrategyBase_init(_operator, _rewards);
 
-    IERC20(_token).safeApprove(BOOSTER, uint256(-1));
+    IERC20(_token).safeApprove(BOOSTER, type(uint256).max);
 
     pid = IConvexBasicRewards(_rewarder).pid();
     token = _token;
@@ -64,15 +65,15 @@ contract AutoCompoundingConvexCurveStrategy is AutoCompoundingStrategyBase {
 
   /// @inheritdoc IConcentratorStrategy
   function harvest(address _zapper, address _intermediate) external override onlyOperator returns (uint256 _amount) {
-    // 1. claim rewards from Convex rewards contract.
+    // 0. sweep balances
     address[] memory _rewards = rewards;
+    _sweepToken(_rewards);
+
+    // 1. claim rewards from Convex rewards contract.
+    IConvexBasicRewards(rewarder).getReward();
     uint256[] memory _amounts = new uint256[](rewards.length);
     for (uint256 i = 0; i < rewards.length; i++) {
       _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this));
-    }
-    IConvexBasicRewards(rewarder).getReward();
-    for (uint256 i = 0; i < rewards.length; i++) {
-      _amounts[i] = IERC20(_rewards[i]).balanceOf(address(this)) - _amounts[i];
     }
 
     // 2. zap all rewards to staking token.
