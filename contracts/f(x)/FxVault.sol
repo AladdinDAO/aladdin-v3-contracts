@@ -8,7 +8,7 @@ import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC2
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import { ITokenWrapper } from "./interfaces/ITokenWrapper.sol";
+import { IFxTokenWrapper } from "../interfaces/f(x)/IFxTokenWrapper.sol";
 
 contract FxVault is ERC20Upgradeable, OwnableUpgradeable {
   using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -267,7 +267,7 @@ contract FxVault is ERC20Upgradeable, OwnableUpgradeable {
       // we need to unwrap some LP token
       require(_amount <= _lpBalance, "insufficient LP token");
       _withdrawLpToken(_amount, _wrapper);
-      _amountOut = ITokenWrapper(_wrapper).unwrap(_amount);
+      _amountOut = IFxTokenWrapper(_wrapper).unwrap(_amount);
       _depositFxToken(address(this), _amountOut);
 
       _fxBalance = _fxBalance.add(_amountOut);
@@ -276,7 +276,7 @@ contract FxVault is ERC20Upgradeable, OwnableUpgradeable {
       // we need to wrap some FX token
       require(_amount <= _fxBalance, "insufficient FX token");
       _withdrawFxToken(_amount, _wrapper);
-      _amountOut = ITokenWrapper(_wrapper).wrap(_amount);
+      _amountOut = IFxTokenWrapper(_wrapper).wrap(_amount);
       _depositLpToken(address(this), _amountOut);
 
       _fxBalance = _fxBalance - _amount;
@@ -308,8 +308,8 @@ contract FxVault is ERC20Upgradeable, OwnableUpgradeable {
   /// @dev Internal function to update the wrapper contract.
   /// @param _newWrapper The address of new token wrapper contract.
   function _updateWrapper(address _newWrapper) internal {
-    require(fxToken == ITokenWrapper(_newWrapper).src(), "src mismatch");
-    require(lpToken == ITokenWrapper(_newWrapper).dst(), "dst mismatch");
+    require(fxToken == IFxTokenWrapper(_newWrapper).src(), "src mismatch");
+    require(lpToken == IFxTokenWrapper(_newWrapper).dst(), "dst mismatch");
 
     address _oldWrapper = wrapper;
     wrapper = _newWrapper;

@@ -5,13 +5,13 @@ pragma solidity ^0.7.6;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import { ITokenWrapper } from "../interfaces/ITokenWrapper.sol";
-import { IMarket } from "../interfaces/IMarket.sol";
+import { IFxTokenWrapper } from "../../interfaces/f(x)/IFxTokenWrapper.sol";
+import { IFxMarket } from "../../interfaces/f(x)/IFxMarket.sol";
 
 // solhint-disable const-name-snakecase
 // solhint-disable contract-name-camelcase
 
-contract StETHAndxETHWrapper is ITokenWrapper {
+contract StETHAndxETHWrapper is IFxTokenWrapper {
   using SafeERC20 for IERC20;
 
   /*************
@@ -50,10 +50,10 @@ contract StETHAndxETHWrapper is ITokenWrapper {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc ITokenWrapper
+  /// @inheritdoc IFxTokenWrapper
   function wrap(uint256 _amount) external override returns (uint256) {
     uint256 _bonus;
-    (_amount, _bonus) = IMarket(market).mintXToken(_amount, address(this), 0);
+    (_amount, _bonus) = IFxMarket(market).mintXToken(_amount, address(this), 0);
     IERC20(dst).safeTransfer(msg.sender, _amount);
 
     // transfer bonus to platform
@@ -63,8 +63,8 @@ contract StETHAndxETHWrapper is ITokenWrapper {
     return _amount;
   }
 
-  /// @inheritdoc ITokenWrapper
+  /// @inheritdoc IFxTokenWrapper
   function unwrap(uint256 _amount) external override returns (uint256) {
-    return IMarket(market).redeem(0, _amount, msg.sender, 0);
+    return IFxMarket(market).redeem(0, _amount, msg.sender, 0);
   }
 }

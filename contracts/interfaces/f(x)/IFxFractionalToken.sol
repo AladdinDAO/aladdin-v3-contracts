@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface IFractionalToken {
+interface IFxFractionalToken {
   /*************************
    * Public View Functions *
    *************************/

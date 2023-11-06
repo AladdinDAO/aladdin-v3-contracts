@@ -8,9 +8,9 @@ import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC2
 import { IMultipleRewardDistributor } from "../../../common/rewards/distributor/IMultipleRewardDistributor.sol";
 import { IConvexVirtualBalanceRewardPool } from "../../../interfaces/convex/IConvexVirtualBalanceRewardPool.sol";
 import { IStashTokenWrapper } from "../../../interfaces/convex/IStashTokenWrapper.sol";
+import { ILiquidityManager } from "../../../interfaces/voting-escrow/ILiquidityManager.sol";
 import { IConvexBasicRewards } from "../../../interfaces/IConvexBasicRewards.sol";
 import { IConvexBooster } from "../../../interfaces/IConvexBooster.sol";
-import { ILiquidityManager } from "../../interfaces/ILiquidityManager.sol";
 
 import { WordCodec } from "../../../common/codec/WordCodec.sol";
 

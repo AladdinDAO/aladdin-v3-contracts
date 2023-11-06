@@ -9,24 +9,27 @@ import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/m
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { IFxPriceOracle } from "./interfaces/IFxPriceOracle.sol";
-import { IAssetStrategy } from "./interfaces/IAssetStrategy.sol";
-import { IFractionalToken } from "./interfaces/IFractionalToken.sol";
-import { ILeveragedToken } from "./interfaces/ILeveragedToken.sol";
-import { IMarket } from "./interfaces/IMarket.sol";
-import { IRateProvider } from "./interfaces/IRateProvider.sol";
-import { ITreasury } from "./interfaces/ITreasury.sol";
+import { ExponentialMovingAverage } from "../common/math/ExponentialMovingAverage.sol";
+
+import { IFxPriceOracle } from "../interfaces/f(x)/IFxPriceOracle.sol";
+import { IAssetStrategy } from "../interfaces/f(x)/IAssetStrategy.sol";
+import { IFxFractionalToken } from "../interfaces/f(x)/IFxFractionalToken.sol";
+import { IFxLeveragedToken } from "../interfaces/f(x)/IFxLeveragedToken.sol";
+import { IFxMarket } from "../interfaces/f(x)/IFxMarket.sol";
+import { IFxRateProvider } from "../interfaces/f(x)/IFxRateProvider.sol";
+import { IFxTreasury } from "../interfaces/f(x)/IFxTreasury.sol";
 
 import { StableCoinMath } from "./StableCoinMath.sol";
 
 // solhint-disable no-empty-blocks
 // solhint-disable not-rely-on-time
 
-contract Treasury is OwnableUpgradeable, ITreasury {
+contract Treasury is OwnableUpgradeable, IFxTreasury {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
   using SignedSafeMathUpgradeable for int256;
   using StableCoinMath for StableCoinMath.SwapState;
+  using ExponentialMovingAverage for ExponentialMovingAverage.EMAStorage;
 
   /**********
    * Events *
@@ -89,13 +92,13 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @notice The address of market contract.
   address public market;
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   address public override baseToken;
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   address public override fToken;
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   address public override xToken;
 
   /// @notice The address of price oracle contract.
@@ -104,19 +107,19 @@ contract Treasury is OwnableUpgradeable, ITreasury {
   /// @notice The volitality multiple of fToken compare to base token.
   uint256 public beta;
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   uint256 public override lastPermissionedPrice;
 
   /// @notice The maximum amount of base token can be deposited.
   uint256 public baseTokenCap;
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   uint256 public override totalBaseToken;
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   address public override strategy;
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   uint256 public override strategyUnderlying;
 
   /// @notice Whether the sender is allowed to do settlement.
@@ -124,6 +127,9 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
   /// @notice The address of rate provider contract.
   address public rateProvider;
+
+  /// @notice The ema storage of the leverage ratio.
+  ExponentialMovingAverage.EMAStorage public emaLeverageRatio;
 
   /// @dev Slots for future use.
   uint256[37] private _gap;
@@ -176,11 +182,23 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     }
   }
 
+  function initializeV2(uint24 sampleInterval) external {
+    ExponentialMovingAverage.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
+    require(cachedEmaLeverageRatio.lastTime == 0, "v2 initialized");
+
+    cachedEmaLeverageRatio.lastTime = uint40(block.timestamp);
+    cachedEmaLeverageRatio.sampleInterval = sampleInterval;
+    cachedEmaLeverageRatio.lastValue = uint96(PRECISION);
+    cachedEmaLeverageRatio.lastEmaValue = uint96(PRECISION);
+
+    emaLeverageRatio = cachedEmaLeverageRatio;
+  }
+
   /*************************
    * Public View Functions *
    *************************/
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function collateralRatio() external view override returns (uint256) {
     StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
 
@@ -190,7 +208,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     return _state.baseSupply.mul(_state.baseNav).mul(PRECISION).div(_state.fSupply.mul(_state.fNav));
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function getCurrentNav()
     external
     view
@@ -208,7 +226,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     _xNav = _state.xNav;
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   /// @dev If the current collateral ratio <= new collateral ratio, we should return 0.
   function maxMintableFToken(uint256 _newCollateralRatio)
     external
@@ -222,7 +240,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     (_maxBaseIn, _maxFTokenMintable) = _state.maxMintableFToken(_newCollateralRatio);
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
   function maxMintableXToken(uint256 _newCollateralRatio)
     external
@@ -236,7 +254,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     (_maxBaseIn, _maxXTokenMintable) = _state.maxMintableXToken(_newCollateralRatio);
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
   function maxMintableXTokenWithIncentive(uint256 _newCollateralRatio, uint256 _incentiveRatio)
     external
@@ -250,7 +268,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     (_maxBaseIn, _maxXTokenMintable) = _state.maxMintableXTokenWithIncentive(_newCollateralRatio, _incentiveRatio);
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
   function maxRedeemableFToken(uint256 _newCollateralRatio)
     external
@@ -264,7 +282,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     (_maxBaseOut, _maxFTokenRedeemable) = _state.maxRedeemableFToken(_newCollateralRatio);
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   /// @dev If the current collateral ratio <= new collateral ratio, we should return 0.
   function maxRedeemableXToken(uint256 _newCollateralRatio)
     external
@@ -278,7 +296,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     (_maxBaseOut, _maxXTokenRedeemable) = _state.maxRedeemableXToken(_newCollateralRatio);
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   /// @dev If the current collateral ratio >= new collateral ratio, we should return 0.
   function maxLiquidatable(uint256 _newCollateralRatio, uint256 _incentiveRatio)
     external
@@ -292,29 +310,34 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     (_maxBaseOut, _maxFTokenLiquidatable) = _state.maxLiquidatable(_newCollateralRatio, _incentiveRatio);
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function convertToWrapped(uint256 _amount) public view override returns (uint256) {
     address _rateProvider = rateProvider;
     if (_rateProvider != address(0)) {
-      _amount = _amount.mul(PRECISION).div(IRateProvider(_rateProvider).getRate());
+      _amount = _amount.mul(PRECISION).div(IFxRateProvider(_rateProvider).getRate());
     }
     return _amount;
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function convertToUnwrapped(uint256 _amount) external view override returns (uint256) {
     address _rateProvider = rateProvider;
     if (_rateProvider != address(0)) {
-      _amount = _amount.mul(IRateProvider(_rateProvider).getRate()).div(PRECISION);
+      _amount = _amount.mul(IFxRateProvider(_rateProvider).getRate()).div(PRECISION);
     }
     return _amount;
+  }
+
+  /// @inheritdoc IFxTreasury
+  function leverageRatio() external view override returns (uint256) {
+    return emaLeverageRatio.emaValue();
   }
 
   /****************************
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function mint(
     uint256 _baseIn,
     address _recipient,
@@ -348,14 +371,14 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     totalBaseToken = _state.baseSupply + _baseIn;
 
     if (_fTokenOut > 0) {
-      IFractionalToken(fToken).mint(_recipient, _fTokenOut);
+      IFxFractionalToken(fToken).mint(_recipient, _fTokenOut);
     }
     if (_xTokenOut > 0) {
-      ILeveragedToken(xToken).mint(_recipient, _xTokenOut);
+      IFxLeveragedToken(xToken).mint(_recipient, _xTokenOut);
     }
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function redeem(
     uint256 _fTokenIn,
     uint256 _xTokenIn,
@@ -372,11 +395,11 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     _baseOut = _state.redeem(_fTokenIn, _xTokenIn);
 
     if (_fTokenIn > 0) {
-      IFractionalToken(fToken).burn(_owner, _fTokenIn);
+      IFxFractionalToken(fToken).burn(_owner, _fTokenIn);
     }
 
     if (_xTokenIn > 0) {
-      ILeveragedToken(xToken).burn(_owner, _xTokenIn);
+      IFxLeveragedToken(xToken).burn(_owner, _xTokenIn);
     }
 
     totalBaseToken = _state.baseSupply.sub(_baseOut);
@@ -384,7 +407,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     _transferBaseToken(_baseOut, msg.sender);
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function addBaseToken(
     uint256 _baseIn,
     uint256 _incentiveRatio,
@@ -398,16 +421,16 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     require(_state.baseSupply + _baseIn <= baseTokenCap, "Exceed total cap");
     totalBaseToken = _state.baseSupply + _baseIn;
 
-    IFractionalToken(fToken).setNav(
+    IFxFractionalToken(fToken).setNav(
       _state.fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_state.fMultiple)))
     );
 
     if (_xTokenOut > 0) {
-      ILeveragedToken(xToken).mint(_recipient, _xTokenOut);
+      IFxLeveragedToken(xToken).mint(_recipient, _xTokenOut);
     }
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function liquidate(
     uint256 _fTokenIn,
     uint256 _incentiveRatio,
@@ -421,8 +444,8 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     totalBaseToken = _state.baseSupply.sub(_baseOut);
 
     address _fToken = fToken;
-    IFractionalToken(_fToken).burn(_owner, _fTokenIn);
-    IFractionalToken(_fToken).setNav(
+    IFxFractionalToken(_fToken).burn(_owner, _fTokenIn);
+    IFxFractionalToken(_fToken).setNav(
       _state.fNav.sub(_fDeltaNav).mul(PRECISION).div(uint256(PRECISION_I256.add(_state.fMultiple)))
     );
 
@@ -431,27 +454,27 @@ contract Treasury is OwnableUpgradeable, ITreasury {
     }
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function protocolSettle() external override {
     require(settleWhitelist[msg.sender], "only settle whitelist");
     if (totalBaseToken == 0) return;
 
     uint256 _newPrice = _fetchTwapPrice(SwapKind.None);
     int256 _fMultiple = _computeMultiple(_newPrice);
-    uint256 _fNav = IFractionalToken(fToken).updateNav(_fMultiple);
+    uint256 _fNav = IFxFractionalToken(fToken).updateNav(_fMultiple);
 
     emit ProtocolSettle(_newPrice, _fNav);
 
     lastPermissionedPrice = _newPrice;
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   function transferToStrategy(uint256 _amount) external override onlyStrategy {
     IERC20Upgradeable(baseToken).safeTransfer(strategy, _amount);
     strategyUnderlying += _amount;
   }
 
-  /// @inheritdoc ITreasury
+  /// @inheritdoc IFxTreasury
   /// @dev For future use.
   function notifyStrategyProfit(uint256 _amount) external override onlyStrategy {}
 
@@ -465,7 +488,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
 
     lastPermissionedPrice = _price;
 
-    IFractionalToken(fToken).setNav(PRECISION);
+    IFxFractionalToken(fToken).setNav(PRECISION);
 
     emit ProtocolSettle(_price, PRECISION);
   }
@@ -560,7 +583,7 @@ contract Treasury is OwnableUpgradeable, ITreasury {
       _state.fMultiple = _computeMultiple(_state.baseNav);
       address _fToken = fToken;
       _state.fSupply = IERC20Upgradeable(_fToken).totalSupply();
-      _state.fNav = IFractionalToken(_fToken).getNav(_state.fMultiple);
+      _state.fNav = IFxFractionalToken(_fToken).getNav(_state.fMultiple);
 
       _state.xSupply = IERC20Upgradeable(xToken).totalSupply();
       if (_state.xSupply == 0) {

@@ -5,13 +5,13 @@ pragma solidity ^0.7.6;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import { ITokenWrapper } from "../interfaces/ITokenWrapper.sol";
+import { IFxTokenWrapper } from "../../interfaces/f(x)/IFxTokenWrapper.sol";
 import { ILidoWstETH } from "../../interfaces/ILidoWstETH.sol";
 
 // solhint-disable const-name-snakecase
 // solhint-disable contract-name-camelcase
 
-contract wstETHWrapper is ITokenWrapper {
+contract wstETHWrapper is IFxTokenWrapper {
   using SafeERC20 for IERC20;
 
   /*************
@@ -36,7 +36,7 @@ contract wstETHWrapper is ITokenWrapper {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc ITokenWrapper
+  /// @inheritdoc IFxTokenWrapper
   function wrap(uint256 _amount) external override returns (uint256) {
     _amount = ILidoWstETH(dst).wrap(_amount);
 
@@ -44,7 +44,7 @@ contract wstETHWrapper is ITokenWrapper {
     return _amount;
   }
 
-  /// @inheritdoc ITokenWrapper
+  /// @inheritdoc IFxTokenWrapper
   function unwrap(uint256 _amount) external override returns (uint256) {
     _amount = ILidoWstETH(dst).unwrap(_amount);
 

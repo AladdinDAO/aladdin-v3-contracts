@@ -5,16 +5,16 @@ pragma solidity ^0.7.6;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/EnumerableSet.sol";
 
-import { IRebalancePool } from "./interfaces/IRebalancePool.sol";
-import { IRebalancePoolRegistry } from "./interfaces/IRebalancePoolRegistry.sol";
+import { IFxRebalancePool } from "../../interfaces/f(x)/IFxRebalancePool.sol";
+import { IFxRebalancePoolRegistry } from "../../interfaces/f(x)/IFxRebalancePoolRegistry.sol";
 
-contract RebalancePoolRegistry is Ownable, IRebalancePoolRegistry {
+contract RebalancePoolRegistry is Ownable, IFxRebalancePoolRegistry {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   /// @dev The list of registered RebalancePool.
   EnumerableSet.AddressSet private pools;
 
-  /// @inheritdoc IRebalancePoolRegistry
+  /// @inheritdoc IFxRebalancePoolRegistry
   function getPools() external view override returns (address[] memory _pools) {
     uint256 _length = pools.length();
     _pools = new address[](_length);
@@ -23,13 +23,13 @@ contract RebalancePoolRegistry is Ownable, IRebalancePoolRegistry {
     }
   }
 
-  /// @inheritdoc IRebalancePoolRegistry
+  /// @inheritdoc IFxRebalancePoolRegistry
   function totalSupply() external view override returns (uint256) {
     uint256 _length = pools.length();
     uint256 _totalSupply;
     for (uint256 i = 0; i < _length; i++) {
       address _pool = pools.at(i);
-      _totalSupply += IRebalancePool(_pool).totalSupply();
+      _totalSupply += IFxRebalancePool(_pool).totalSupply();
     }
     return _totalSupply;
   }

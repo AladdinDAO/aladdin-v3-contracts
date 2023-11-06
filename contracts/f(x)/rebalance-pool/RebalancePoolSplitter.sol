@@ -7,10 +7,10 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/EnumerableSet.sol";
 
-import { IRebalancePool } from "./interfaces/IRebalancePool.sol";
-import { IRebalancePoolSplitter } from "./interfaces/IRebalancePoolSplitter.sol";
+import { IFxRebalancePool } from "../../interfaces/f(x)/IFxRebalancePool.sol";
+import { IFxRebalancePoolSplitter } from "../../interfaces/f(x)/IFxRebalancePoolSplitter.sol";
 
-contract RebalancePoolSplitter is Ownable, IRebalancePoolSplitter {
+contract RebalancePoolSplitter is Ownable, IFxRebalancePoolSplitter {
   using SafeERC20 for IERC20;
   using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -25,7 +25,7 @@ contract RebalancePoolSplitter is Ownable, IRebalancePoolSplitter {
    * Variables *
    *************/
 
-  /// @inheritdoc IRebalancePoolSplitter
+  /// @inheritdoc IFxRebalancePoolSplitter
   mapping(address => address) public override splitter;
 
   /// @dev Mapping from token address to a list of receivers.
@@ -40,7 +40,7 @@ contract RebalancePoolSplitter is Ownable, IRebalancePoolSplitter {
    * Public View Functions *
    *************************/
 
-  /// @inheritdoc IRebalancePoolSplitter
+  /// @inheritdoc IFxRebalancePoolSplitter
   function getReceivers(address _token)
     external
     view
@@ -64,7 +64,7 @@ contract RebalancePoolSplitter is Ownable, IRebalancePoolSplitter {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc IRebalancePoolSplitter
+  /// @inheritdoc IFxRebalancePoolSplitter
   function split(address _token) external override {
     require(splitter[_token] == msg.sender, "caller is not splitter");
 
@@ -80,7 +80,7 @@ contract RebalancePoolSplitter is Ownable, IRebalancePoolSplitter {
 
       IERC20(_token).safeApprove(_receiver, 0);
       IERC20(_token).safeApprove(_receiver, _amount);
-      IRebalancePool(_receiver).depositReward(_token, _amount);
+      IFxRebalancePool(_receiver).depositReward(_token, _amount);
 
       _encoding = _encoding >> 32;
     }

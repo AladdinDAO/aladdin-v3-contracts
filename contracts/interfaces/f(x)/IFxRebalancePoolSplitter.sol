@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface IRebalancePoolSplitter {
+interface IFxRebalancePoolSplitter {
   /**********
    * Events *
    **********/

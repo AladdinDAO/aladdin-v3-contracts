@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface ITreasury {
+interface IFxTreasury {
   /**********
    * Events *
    **********/
@@ -126,6 +126,9 @@ interface ITreasury {
     external
     view
     returns (uint256 maxBaseOut, uint256 maxFTokenLiquidatable);
+
+  /// @notice Return the exponential moving average of the leverage ratio.
+  function leverageRatio() external view returns (uint256);
 
   /****************************
    * Public Mutated Functions *

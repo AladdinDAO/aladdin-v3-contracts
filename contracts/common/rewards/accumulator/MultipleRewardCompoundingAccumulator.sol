@@ -8,53 +8,83 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable-
 
 import { IMultipleRewardAccumulator } from "./IMultipleRewardAccumulator.sol";
 
+import { DecrementalFloatingPoint } from "../../math/DecrementalFloatingPoint.sol";
 import { LinearMultipleRewardDistributor } from "../distributor/LinearMultipleRewardDistributor.sol";
 
 // solhint-disable not-rely-on-time
 
-/// @title MultipleRewardAccumulator
-/// @notice `MultipleRewardAccumulator` is a reward accumulator for reward distribution in a staking pool.
-/// In the staking pool, the staker’s share won't change, unless the staker manually stakes or unstakes.
-/// The contract will distribute rewards in proportion to a staker’s share of total stakes with only
-/// O(1) complexity.
+/// @title MultipleRewardCompoundingAccumulator
+/// @notice `MultipleRewardCompoundingAccumulator` is a reward accumulator for reward distribution in a staking pool.
+/// In the staking pool, the total stakes will decrease unexpectedly and the user stakes will also decrease proportionally.
+/// The contract will distribute rewards in proportion to a staker’s share of total stakes with only O(1) complexity.
 ///
 /// Assume that there are n events e[1], e[2], ..., and e[n]. The types of events are user stake,
-/// user unstake and reward distribution.
+/// user unstake, total stakes decrease and reward distribution.
 /// Right after event e[i], let the total pool stakes be s[i], the user pool stakes be u[i],
-/// and the rewards distributed be r[i].
+/// the total stake decrease is d[i], and the rewards distributed be r[i].
 ///
 /// The basic assumptions are, if
 ///   + e[i] is user stake, r[i] = 0, u[i] > u[i-1] and s[i] - s[i-1] = u[i] - u[i-1].
 ///   + e[i] is user unstake, r[i] = 0, u[i] < u[i-1] and s[i] - s[i-1] = u[i] - u[i-1].
+///   + e[i] is total stakes decrease, r[i] = 0, d[i] > 0, s[i] = s[i-1] - d[i] and u[i] = u[i-1] * (1 - d[i] / s[i-1])
 ///   + e[i] is reward distribution, r[i] > 0, u[i] = u[i-1] and s[i] = s[i-1].
 ///
-/// So under the assumptions, we can maintain s[i] and u[i] easily.
+/// So under the assumptions, if
+///  + e[i] is user stake/unstake, we can maintain the value of u[i] and s[i] easily.
+///  + e[i] is total stakes decrease, we can only maintain the value of s[i] easily.
 ///
-/// Then, the total amount of rewards for the user after n events is:
+/// To compute the value of u[i], assuming the only events are total stakes decrease. Then after n events,
+///   u[n] = u[0] * (1 - d[1]/s[0]) * (1 - d[2]/s[1]) * ... * (1 - d[n]/s[n-1])
+///
+/// To compute the user stakes correctly, we can maintain the value of
+///   p[n] = (1 - d[1]/s[0]) * (1 - d[2]/s[1]) * ... * (1 - d[n]/s[n-1])
+///
+/// Then the user stakes from event x to event y is u[y] = u[x] * p[y] / p[x]
+///
+/// As for the accumutated rewards, the total amount of rewards for the user is:
 ///                 u[0]          u[1]                u[n-1]
 ///   g[n] = r[1] * ---- + r[2] * ---- + ... + r[n] * ------
 ///                 s[0]          s[1]                s[n-1]
 ///
+/// Also, u[n] = u[0] * p[n], we have
+///                         p[0]          p[1]                p[n-1]
+///   g[n] = u[0] * (r[1] * ---- + r[2] * ---- + ... + r[n] * ------)
+///                         s[0]          s[1]                s[n-1]
+///
 /// And, the rewards from event x to event y (both inclusive) for the user is:
-///                    u[x-1]            u[x]                u[y-1]
-///   g[x->y] = r[x] * ------ + r[x+1] * ---- + ... + r[y] * ------
-///                    s[x-1]            s[x]                s[y-1]
+///                            p[x-1]            p[x]                p[y-1]
+///   g[x->y] = u[x] * (r[x] * ------ + r[x+1] * ---- + ... + r[y] * ------)
+///                            s[x-1]            s[x]                s[y-1]
 ///
 /// To check the accumulated total user rewards, we can maintain the value of
-///         r[1]   r[2]          r[n]
-///   acc = ---- + ---- + ... + ------
-///         s[0]   s[1]         s[n-1]
+///                p[0]          p[1]                p[n-1]
+///   acc = r[1] * ---- + r[2] * ---- + ... + r[n] * ------
+///                s[0]          s[1]                s[n-1]
 ///
 /// For each event, if
-///   + e[i] is user stake or unstake, new accumulated rewards is `gain += u[i-1] * (cur_acc - last_user_recorded_acc)`
-//      and update `last_user_recorded_acc` to `cur_acc`.
-///   + e[i] is reward distribution, update `cur_acc` to `cur_acc + r[i] / s[i-1]`.
-abstract contract MultipleRewardAccumulator is
+///   + e[i] is user stake or unstake, new accumulated rewards is
+///      gain += u[i-1] * (acc - last_user_acc) / last_user_prod,
+///      and update `last_user_acc` to `acc`
+///      and update `last_user_prod` to p[i].
+///   + e[i] is total stakes decrease, p[i] *= (1 - d[i] / s[i-1])
+///   + e[i] is reward distribution, acc += r[i] * p[i-1] / s[i-1].
+///
+/// Notice that total stakes decrease event will possible make s[i] be zero. We introduce epoch to handle this problem.
+/// When the total supply reduces to zero, we start a new epoch.
+///
+/// Another problem is precision loss in solidity, the p[i] will eventually become a very small nonzero value. To solve
+/// the problem, we treat p[i] as m[i] * 10^{-18 - 9 * e[i]}, where m[i] is the magnitude and e[i] is the exponent.
+/// When the value of m[i] is smaller than 10^9, we will multiply m[i] by 1e9 and then increase e[i] by one.
+///
+/// @dev The method comes from liquity's StabilityPool, the paper is in
+/// https://github.com/liquity/dev/blob/main/papers/Scalable_Reward_Distribution_with_Compounding_Stakes.pdf
+abstract contract MultipleRewardCompoundingAccumulator is
   ReentrancyGuardUpgradeable,
   LinearMultipleRewardDistributor,
   IMultipleRewardAccumulator
 {
   using SafeERC20Upgradeable for IERC20Upgradeable;
+  using DecrementalFloatingPoint for uint128;
 
   /*************
    * Constants *
@@ -62,10 +92,6 @@ abstract contract MultipleRewardAccumulator is
 
   /// @dev The precision used to calculate accumulated rewards.
   uint256 internal constant REWARD_PRECISION = 1e18;
-
-  /***********
-   * Structs *
-   ***********/
 
   /// @dev Compiler will pack this into single `uint256`.
   struct RewardSnapshot {
@@ -100,8 +126,11 @@ abstract contract MultipleRewardAccumulator is
 
   /// @notice Mapping from reward token address to global reward snapshot.
   ///
-  /// @dev The integral is defined as 1e18 * ∫(rate(t) / totalPoolShare(t) dt).
-  mapping(address => RewardSnapshot) public rewardSnapshot;
+  /// - The inner mapping records the `acc` at different `(epoch, exponent)`
+  /// - The outer mapping records the ((epoch, exponent) => acc) mappings, for different tokens.
+  ///
+  /// @dev The integral is defined as 1e18 * ∫(rate(t) * prod(t) / totalPoolShare(t) dt).
+  mapping(address => mapping(uint256 => RewardSnapshot)) public epochToExponentToRewardSnapshot;
 
   /// @notice Mapping from user address to reward token address to user reward snapshot.
   ///
@@ -116,7 +145,7 @@ abstract contract MultipleRewardAccumulator is
    ***************/
 
   // solhint-disable-next-line func-name-mixedcase
-  function __MultipleRewardAccumulator_init() internal onlyInitializing {
+  function __MultipleRewardCompoundingAccumulator_init() internal onlyInitializing {
     __LinearMultipleRewardDistributor_init();
   }
 
@@ -125,13 +154,24 @@ abstract contract MultipleRewardAccumulator is
    *************************/
 
   /// @inheritdoc IMultipleRewardAccumulator
-  function claimable(address _account, address _token) public view override returns (uint256) {
+  function claimable(address _account, address _token) public view virtual override returns (uint256) {
     UserRewardSnapshot memory _userSnapshot = userRewardSnapshot[_account][_token];
-    uint256 _shares = _getUserPoolShare(_account);
+    (uint128 previousProd, uint256 shares) = _getUserPoolShare(_account);
+    uint256 epochExponent = previousProd.epochAndExponent();
+    uint256 magnitude = previousProd.magnitude();
+
+    // Grab the sum 'S' from the epoch at which the stake was made. The gain may span up to one scale change.
+    // If it does, the second portion of the gain is scaled by 1e9.
+    // If the gain spans no scale change, the second portion will be 0.
+    uint256 firstPortion = epochToExponentToRewardSnapshot[_token][epochExponent].integral -
+      _userSnapshot.checkpoint.integral;
+    uint256 secondPortion = epochToExponentToRewardSnapshot[_token][epochExponent + 1].integral /
+      uint256(DecrementalFloatingPoint.HALF_PRECISION);
+
     return
       uint256(_userSnapshot.rewards.pending) +
-      ((rewardSnapshot[_token].integral - _userSnapshot.checkpoint.integral) * _shares) /
-      REWARD_PRECISION;
+      (shares * (firstPortion + secondPortion)) /
+      (magnitude * REWARD_PRECISION);
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
@@ -234,8 +274,11 @@ abstract contract MultipleRewardAccumulator is
   /// @param _token The address of token to update.
   function _updateSnapshot(address _account, address _token) internal {
     UserRewardSnapshot memory _snapshot = userRewardSnapshot[_account][_token];
+    (uint128 currentProd, ) = _getTotalPoolShare();
+    uint256 epochExponent = currentProd.epochAndExponent();
+
     _snapshot.rewards.pending = uint128(claimable(_account, _token));
-    _snapshot.checkpoint = rewardSnapshot[_token];
+    _snapshot.checkpoint = epochToExponentToRewardSnapshot[_token][epochExponent];
     _snapshot.checkpoint.timestamp = uint64(block.timestamp);
     userRewardSnapshot[_account][_token] = _snapshot;
   }
@@ -286,17 +329,30 @@ abstract contract MultipleRewardAccumulator is
   function _accumulateReward(address _token, uint256 _amount) internal virtual override {
     if (_amount == 0) return;
 
-    RewardSnapshot memory _snapshot = rewardSnapshot[_token];
+    (uint128 currentProd, uint256 totalShare) = _getTotalPoolShare();
+    if (totalShare == 0) {
+      // no deposits, queue rewards
+      rewardData[_token].queued += uint96(_amount);
+      return;
+    }
+
+    uint256 epochExponent = currentProd.epochAndExponent();
+    uint256 magnitude = currentProd.magnitude();
+
+    RewardSnapshot memory _snapshot = epochToExponentToRewardSnapshot[_token][epochExponent];
     _snapshot.timestamp = uint64(block.timestamp);
-    _snapshot.integral = uint192(uint256(_snapshot.integral) + (_amount * REWARD_PRECISION) / _getTotalPoolShare());
-    rewardSnapshot[_token] = _snapshot;
+    // @note usually `_amount <= 10^6 * 10^18` and `magnitude <= 10^18`,
+    // so the value of `_amount * REWARD_PRECISION` won't exceed type(uint192).max.
+    // For the other parts, we rely on the overflow check provided by solc 0.8.
+    _snapshot.integral += uint192((_amount * REWARD_PRECISION) / totalShare) * uint192(magnitude);
+    epochToExponentToRewardSnapshot[_token][epochExponent] = _snapshot;
   }
 
   /// @dev Internal function to get the total pool shares.
-  function _getTotalPoolShare() internal view virtual returns (uint256);
+  function _getTotalPoolShare() internal view virtual returns (uint128 currentProd, uint256 totalShare);
 
   /// @dev Internal function to get the amount of user shares.
   ///
   /// @param _account The address of user to query.
-  function _getUserPoolShare(address _account) internal view virtual returns (uint256);
+  function _getUserPoolShare(address _account) internal view virtual returns (uint128 previousProd, uint256 share);
 }

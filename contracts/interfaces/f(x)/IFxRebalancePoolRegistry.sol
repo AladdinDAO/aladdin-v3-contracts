@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface IRebalancePoolRegistry {
+interface IFxRebalancePoolRegistry {
   /// @notice Return the address list of all registered RebalancePool.
   function getPools() external view returns (address[] memory pools);
 

@@ -6,7 +6,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import { IRebalancePool } from "../interfaces/IRebalancePool.sol";
+import { IFxRebalancePool } from "../../interfaces/f(x)/IFxRebalancePool.sol";
 
 contract RebalanceWithBonusToken is Ownable {
   using SafeERC20 for IERC20;
@@ -23,7 +23,7 @@ contract RebalanceWithBonusToken is Ownable {
   }
 
   function liquidate(uint256 _minBaseOut) external {
-    IRebalancePool(stabilityPool).liquidate(uint256(-1), _minBaseOut);
+    IFxRebalancePool(stabilityPool).liquidate(uint256(-1), _minBaseOut);
 
     IERC20(bonusToken).safeTransfer(msg.sender, bonus);
   }

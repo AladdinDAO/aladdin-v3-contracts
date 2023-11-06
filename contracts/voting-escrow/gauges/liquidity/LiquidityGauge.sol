@@ -7,12 +7,12 @@ import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/tok
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/ERC20Upgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
 
-import { IGaugeController } from "../../interfaces/IGaugeController.sol";
-import { IGovernanceToken } from "../../interfaces/IGovernanceToken.sol";
-import { ILiquidityGauge } from "../../interfaces/ILiquidityGauge.sol";
-import { ILiquidityManager } from "../../interfaces/ILiquidityManager.sol";
-import { ITokenMinter } from "../../interfaces/ITokenMinter.sol";
-import { IVotingEscrow } from "../../interfaces/IVotingEscrow.sol";
+import { ITokenMinter } from "../../../interfaces/voting-escrow/ITokenMinter.sol";
+import { IGaugeController } from "../../../interfaces/voting-escrow/IGaugeController.sol";
+import { IGovernanceToken } from "../../../interfaces/voting-escrow/IGovernanceToken.sol";
+import { ILiquidityGauge } from "../../../interfaces/voting-escrow/ILiquidityGauge.sol";
+import { ILiquidityManager } from "../../../interfaces/voting-escrow/ILiquidityManager.sol";
+import { IVotingEscrow } from "../../../interfaces/voting-escrow/IVotingEscrow.sol";
 
 import { IMultipleRewardAccumulator } from "../../../common/rewards/accumulator/IMultipleRewardAccumulator.sol";
 import { MultipleRewardAccumulator } from "../../../common/rewards/accumulator/MultipleRewardAccumulator.sol";

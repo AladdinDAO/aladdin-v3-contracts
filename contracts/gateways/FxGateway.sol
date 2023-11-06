@@ -7,7 +7,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import { IMarket } from "../f(x)/interfaces/IMarket.sol";
+import { IFxMarket } from "../interfaces/f(x)/IFxMarket.sol";
 import { ITokenConverter } from "../helpers/converter/ITokenConverter.sol";
 
 // solhint-disable contract-name-camelcase
@@ -119,7 +119,7 @@ contract FxGateway is Ownable {
     returns (uint256 _fTokenMinted)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
-    _fTokenMinted = IMarket(market).mintFToken(_amount, msg.sender, _minFTokenMinted);
+    _fTokenMinted = IFxMarket(market).mintFToken(_amount, msg.sender, _minFTokenMinted);
 
     _refund(baseToken, msg.sender);
   }
@@ -135,7 +135,7 @@ contract FxGateway is Ownable {
     returns (uint256 _xTokenMinted, uint256 _bonus)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
-    (_xTokenMinted, _bonus) = IMarket(market).mintXToken(_amount, msg.sender, _minXTokenMinted);
+    (_xTokenMinted, _bonus) = IFxMarket(market).mintXToken(_amount, msg.sender, _minXTokenMinted);
 
     _refund(baseToken, msg.sender);
   }
@@ -150,7 +150,7 @@ contract FxGateway is Ownable {
     returns (uint256 _xTokenMinted)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
-    _xTokenMinted = IMarket(market).addBaseToken(_amount, msg.sender, _minXTokenMinted);
+    _xTokenMinted = IFxMarket(market).addBaseToken(_amount, msg.sender, _minXTokenMinted);
 
     _refund(baseToken, msg.sender);
   }
@@ -178,7 +178,7 @@ contract FxGateway is Ownable {
       _fTokenIn = 0;
     }
 
-    _baseOut = IMarket(market).redeem(_fTokenIn, _xTokenIn, _call.converter, _minBaseToken);
+    _baseOut = IFxMarket(market).redeem(_fTokenIn, _xTokenIn, _call.converter, _minBaseToken);
     require(_baseOut >= _minBaseToken, "insufficient base token");
 
     _dstOut = _baseOut;
@@ -208,13 +208,13 @@ contract FxGateway is Ownable {
   ) external returns (uint256 _amountOut) {
     if (_fTokenForXToken) {
       _amountIn = _transferTokenIn(fToken, _amountIn);
-      uint256 _baseOut = IMarket(market).redeem(_amountIn, 0, address(this), 0);
-      (_amountOut, ) = IMarket(market).mintXToken(_baseOut, msg.sender, 0);
+      uint256 _baseOut = IFxMarket(market).redeem(_amountIn, 0, address(this), 0);
+      (_amountOut, ) = IFxMarket(market).mintXToken(_baseOut, msg.sender, 0);
       _refund(fToken, msg.sender);
     } else {
       _amountIn = _transferTokenIn(xToken, _amountIn);
-      uint256 _baseOut = IMarket(market).redeem(0, _amountIn, address(this), 0);
-      _amountOut = IMarket(market).mintFToken(_baseOut, msg.sender, 0);
+      uint256 _baseOut = IFxMarket(market).redeem(0, _amountIn, address(this), 0);
+      _amountOut = IFxMarket(market).mintFToken(_baseOut, msg.sender, 0);
       _refund(xToken, msg.sender);
     }
     require(_amountOut >= _minOut, "insufficient output");

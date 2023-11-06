@@ -5,11 +5,11 @@ pragma solidity ^0.7.6;
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-import { IFractionalToken } from "./interfaces/IFractionalToken.sol";
-import { ILeveragedToken } from "./interfaces/ILeveragedToken.sol";
-import { ITreasury } from "./interfaces/ITreasury.sol";
+import { IFxFractionalToken } from "../interfaces/f(x)/IFxFractionalToken.sol";
+import { IFxLeveragedToken } from "../interfaces/f(x)/IFxLeveragedToken.sol";
+import { IFxTreasury } from "../interfaces/f(x)/IFxTreasury.sol";
 
-contract LeveragedToken is ERC20Upgradeable, ILeveragedToken {
+contract LeveragedToken is ERC20Upgradeable, IFxLeveragedToken {
   using SafeMathUpgradeable for uint256;
 
   /*************
@@ -58,16 +58,16 @@ contract LeveragedToken is ERC20Upgradeable, ILeveragedToken {
    * Public View Functions *
    *************************/
 
-  /// @inheritdoc ILeveragedToken
+  /// @inheritdoc IFxLeveragedToken
   function nav() external view override returns (uint256) {
-    ITreasury _treasury = ITreasury(treasury);
+    IFxTreasury _treasury = IFxTreasury(treasury);
     address _fToken = fToken;
 
     uint256 _totalXToken = totalSupply();
     if (_totalXToken == 0) return PRECISION;
 
     uint256 _totalFToken = ERC20Upgradeable(_fToken).totalSupply();
-    uint256 _navFToken = IFractionalToken(_fToken).nav();
+    uint256 _navFToken = IFxFractionalToken(_fToken).nav();
     uint256 _totalBaseToken = _treasury.totalBaseToken();
     uint256 _price = _treasury.lastPermissionedPrice();
 
@@ -78,12 +78,12 @@ contract LeveragedToken is ERC20Upgradeable, ILeveragedToken {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc ILeveragedToken
+  /// @inheritdoc IFxLeveragedToken
   function mint(address _to, uint256 _amount) external override onlyTreasury {
     _mint(_to, _amount);
   }
 
-  /// @inheritdoc ILeveragedToken
+  /// @inheritdoc IFxLeveragedToken
   function burn(address _from, uint256 _amount) external override onlyTreasury {
     _burn(_from, _amount);
   }
