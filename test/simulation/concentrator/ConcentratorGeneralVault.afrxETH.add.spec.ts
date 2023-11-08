@@ -162,6 +162,30 @@ const POOL_FORK_CONFIG: {
     amount: "1",
     harvest: true,
   },
+  "hyUSD/eUSD": {
+    height: 18524680,
+    pid: 38,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
+    amount: "100",
+    harvest: true,
+  },
+  "ETH+/ETH": {
+    height: 18524680,
+    pid: 38,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
+    amount: "0.1",
+    harvest: true,
+  },
+  "eUSD/FRAXBP": {
+    height: 18524680,
+    pid: 38,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xf83deAdE1b0D2AfF07700C548a54700a082388bE",
+    amount: "100",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";

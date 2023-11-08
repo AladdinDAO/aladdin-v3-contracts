@@ -115,6 +115,8 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   FXN: { decimals: 18, address: "0x365AccFCa291e7D3914637ABf1F7635dB165Bb09" },
   cvxFXN: { decimals: 18, address: "0x183395DbD0B5e93323a7286D1973150697FFFCB3" },
   sdFXN: { decimals: 18, address: "0xe19d1c837B8A1C83A56cD9165b2c0256D39653aD" },
+  hyUSD: { decimals: 18, address: "0xacdf0dba4b9839b96221a8487e9ca660a48212be" },
+  "ETH+": { decimals: 18, address: "0xE72B141DF173b999AE7c1aDcbF60Cc9833Ce56a8" },
 };
 
 // Curve LP
