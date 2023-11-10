@@ -555,6 +555,17 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
+  /*
+  if ((await market.registry()) !== deployment.RebalancePoolRegistry) {
+    await ownerContractCall(
+      treasury,
+      "Market update rebalance pool registry",
+      "updateRebalancePoolRegistry",
+      [deployment.RebalancePoolRegistry],
+      overrides
+    );
+  }
+  */
 
   // Setup FxGateway
   for (const target of ["0x99a58482bd75cbab83b27ec03ca68ff489b5788f", "0x1111111254eeb25477b68fb85ed929f73a960582"]) {

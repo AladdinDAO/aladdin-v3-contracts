@@ -85,11 +85,11 @@ export async function ownerContractCall(
 ): Promise<TransactionReceipt | undefined> {
   const signer = contract.runner! as HardhatEthersSigner;
   let owner: string = ZeroAddress;
-  if (contract.getFunction("owner")) {
+  if (contract.interface.hasFunction("owner")) {
     owner = await contract.getFunction("owner").staticCall({ gasLimit: 1e6 });
-  } else if (contract.getFunction("admin")) {
+  } else if (contract.interface.hasFunction("admin")) {
     owner = await contract.getFunction("admin").staticCall({ gasLimit: 1e6 });
-  } else if (contract.getFunction("hasRole")) {
+  } else if (contract.interface.hasFunction("hasRole")) {
     const isAdmin = await contract.getFunction("hasRole").staticCall(ZeroHash, await signer.getAddress());
     if (isAdmin) owner = await signer.getAddress();
   }
