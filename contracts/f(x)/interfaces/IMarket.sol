@@ -118,12 +118,13 @@ interface IMarket {
   /// @param recipient The address of receiver for base token.
   /// @param minBaseOut The minimum amount of base token should be received.
   /// @return baseOut The amount of base token should be received.
+  /// @return bonus The amount of base token as bonus.
   function redeem(
     uint256 fTokenIn,
     uint256 xTokenIn,
     address recipient,
     uint256 minBaseOut
-  ) external returns (uint256 baseOut);
+  ) external returns (uint256 baseOut, uint256 bonus);
 
   /// @notice Permissionless liquidate some fToken to increase the collateral ratio.
   /// @param fTokenIn the amount of fToken to supply, use `uint256(-1)` to liquidate all fToken.

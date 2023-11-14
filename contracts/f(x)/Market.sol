@@ -402,7 +402,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     uint256 _xTokenIn,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant returns (uint256 _baseOut) {
+  ) external override nonReentrant returns (uint256 _baseOut, uint256 _bonus) {
     require(!redeemPaused, "redeem is paused");
 
     if (_fTokenIn == uint256(-1)) {
@@ -418,9 +418,12 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     MarketConfig memory _marketConfig = marketConfig;
 
     uint256 _feeRatio;
-    uint256 _maxFTokenInBeforeSystemStabilityMode;
+    uint256 _maxBaseOut;
     if (_fTokenIn > 0) {
-      (, _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
+      uint256 _maxFTokenInBeforeSystemStabilityMode;
+      (_maxBaseOut, _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(
+        _marketConfig.stabilityRatio
+      );
       _feeRatio = _computeFTokenRedeemFeeRatio(_fTokenIn, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
     } else {
       (, uint256 _maxXTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableXToken(_marketConfig.stabilityRatio);
@@ -441,11 +444,10 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     _baseOut = _treasury.redeem(_fTokenIn, _xTokenIn, msg.sender);
     if (_fTokenIn > 0) {
       // give bonus when redeem fToken
-      uint256 _bonus;
-      if (_baseOut < _maxFTokenInBeforeSystemStabilityMode) {
+      if (_baseOut < _maxBaseOut) {
         _bonus = _baseOut;
       } else {
-        _bonus = _maxFTokenInBeforeSystemStabilityMode;
+        _bonus = _maxBaseOut;
       }
       // deduct fee
       {
