@@ -11,11 +11,11 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
     ],
     // ALCX ==(UniV2)==> WETH
     WETH: [
-      /* // ALCX ==(UniV2)==> WETH
+      // ALCX ==(UniV2)==> WETH
       encodePoolHintV2(ADDRESS.WETH_ALCX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
-      */
-      // ALCX ==(BalancerV2) ==> WETH
+      /* // ALCX ==(BalancerV2) ==> WETH
       encodePoolHintV2(ADDRESS.WETH_ALCX_BalancerV2, PoolType.BalancerV2, 2, 1, 0, Action.Swap),
+      */
     ],
   },
   APEFI: {
