@@ -65,6 +65,14 @@ contract StETHAndxETHWrapper is IFxTokenWrapper {
 
   /// @inheritdoc IFxTokenWrapper
   function unwrap(uint256 _amount) external override returns (uint256) {
-    return IFxMarket(market).redeem(0, _amount, msg.sender, 0);
+    uint256 _bonus;
+    (_amount, _bonus) = IFxMarket(market).redeem(0, _amount, address(this), 0);
+    IERC20(src).safeTransfer(msg.sender, _amount);
+
+    // transfer bonus to platform
+    if (_bonus > 0) {
+      IERC20(src).safeTransfer(platform, _bonus);
+    }
+    return _amount;
   }
 }

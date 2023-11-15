@@ -7,7 +7,7 @@ import { ensureDeployer } from "@/contracts/helpers";
 import * as FxGovernance from "@/contracts/FxGovernance";
 import * as FxStETH from "@/contracts/FxStETH";
 
-const maxFeePerGas = ethers.parseUnits("30", "gwei");
+const maxFeePerGas = ethers.parseUnits("40", "gwei");
 const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 async function main() {

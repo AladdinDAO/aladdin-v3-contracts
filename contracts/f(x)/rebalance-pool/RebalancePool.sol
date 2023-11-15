@@ -507,7 +507,7 @@ contract RebalancePool is OwnableUpgradeable, IFxRebalancePool {
     IERC20Upgradeable(_asset).safeApprove(_market, 0);
     IERC20Upgradeable(_asset).safeApprove(_market, _amount);
 
-    _baseOut = IFxMarket(_market).redeem(_amount, 0, _wrapper, _minBaseOut);
+    (_baseOut, ) = IFxMarket(_market).redeem(_amount, 0, _wrapper, _minBaseOut);
     _liquidated = _liquidated.sub(IERC20Upgradeable(_asset).balanceOf(address(this)));
 
     emit Liquidate(_liquidated, _baseOut);
