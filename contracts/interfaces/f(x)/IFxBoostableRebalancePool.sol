@@ -9,7 +9,7 @@ interface IFxBoostableRebalancePool {
 
   /// @notice Emitted when user deposit asset into this contract.
   /// @param owner The address of asset owner.
-  /// @param reciever The address of recipient of the asset in this contract.
+  /// @param reciever The address of receiver of the asset in this contract.
   /// @param amount The amount of asset deposited.
   event Deposit(address indexed owner, address indexed reciever, uint256 amount);
 
@@ -21,8 +21,9 @@ interface IFxBoostableRebalancePool {
 
   /// @notice Emitted when user withdraw asset.
   /// @param owner The address of asset owner.
+  /// @param reciever The address of receiver of the asset.
   /// @param amount The amount of token to withdraw.
-  event Withdraw(address indexed owner, uint256 amount);
+  event Withdraw(address indexed owner, address indexed reciever, uint256 amount);
 
   /// @notice Emitted when liquidation happens.
   /// @param liquidated The amount of asset liquidated.
@@ -43,18 +44,19 @@ interface IFxBoostableRebalancePool {
    * Errors *
    **********/
 
+  /// @dev Thrown then the src token mismatched.
   error ErrorWrapperSrcMismatch();
 
+  /// @dev Thrown then the dst token mismatched.
   error ErrorWrapperDstMismatch();
 
-  error ErrorScaleOverflow();
-
+  /// @dev Thrown when the deposited amount is zero.
   error DepositZeroAmount();
 
+  /// @dev Thrown when the withdrawn amount is zero.
   error WithdrawZeroAmount();
 
-  error UserHasNoDeposits();
-
+  /// @dev Thrown the cannot liquidate.
   error CannotLiquidate();
 
   /*************************
@@ -71,6 +73,10 @@ interface IFxBoostableRebalancePool {
   /// @param account The address of user to query.
   function balanceOf(address account) external view returns (uint256);
 
+  /// @notice Return the current boost ratio for some specific user.
+  /// @param account The address of user to query, multiplied by 1e18.
+  function getBoostRatio(address account) external view returns (uint256);
+
   /****************************
    * Public Mutated Functions *
    ****************************/
@@ -78,11 +84,11 @@ interface IFxBoostableRebalancePool {
   /// @notice Deposit some asset to this contract.
   /// @dev Use `amount=uint256(-1)` if you want to deposit all asset held.
   /// @param amount The amount of asset to deposit.
-  /// @param recipient The address of receiver for the deposited asset.
-  function deposit(uint256 amount, address recipient) external;
+  /// @param receiver The address of recipient for the deposited asset.
+  function deposit(uint256 amount, address receiver) external;
 
   /// @notice Withdraw asset from this contract.
-  function withdraw(uint256 amount, address recipient) external;
+  function withdraw(uint256 amount, address receiver) external;
 
   /// @notice Liquidate asset for base token.
   /// @param maxAmount The maximum amount of asset to liquidate.

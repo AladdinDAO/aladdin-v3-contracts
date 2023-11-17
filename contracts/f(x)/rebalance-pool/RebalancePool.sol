@@ -311,7 +311,6 @@ contract RebalancePool is OwnableUpgradeable, IFxRebalancePool {
   function claimable(address _account, address _token) public view override returns (uint256) {
     uint256 _initialDeposit = snapshots[_account].initialDeposit;
     uint256 _initialUnlock = snapshots[_account].initialUnlock.amount;
-    if (_initialDeposit == 0 && _initialUnlock == 0) return 0;
 
     uint256 _amount;
     EpochState memory _previousEpoch = snapshots[_account].epoch;
@@ -330,19 +329,17 @@ contract RebalancePool is OwnableUpgradeable, IFxRebalancePool {
     }
 
     // 2. from extra rewards
-    if (_initialDeposit > 0) {
-      UserRewardSnapshot memory _extra = snapshots[_account].extraRewards[_token];
-      _amount = _amount.add(
-        _extra.pending.add(
-          _getGainFromSnapshots(
-            _initialDeposit,
-            _extra.accRewardsPerStake,
-            _previousEpoch,
-            epochToScaleToExtraRewardSum[_token]
-          )
+    UserRewardSnapshot memory _extra = snapshots[_account].extraRewards[_token];
+    _amount = _amount.add(
+      _extra.pending.add(
+        _getGainFromSnapshots(
+          _initialDeposit,
+          _extra.accRewardsPerStake,
+          _previousEpoch,
+          epochToScaleToExtraRewardSum[_token]
         )
-      );
-    }
+      )
+    );
 
     return _amount;
   }

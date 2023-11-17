@@ -84,7 +84,7 @@ abstract contract MultipleRewardCompoundingAccumulator is
   IMultipleRewardAccumulator
 {
   using SafeERC20Upgradeable for IERC20Upgradeable;
-  using DecrementalFloatingPoint for uint128;
+  using DecrementalFloatingPoint for uint112;
 
   /*************
    * Constants *
@@ -155,23 +155,7 @@ abstract contract MultipleRewardCompoundingAccumulator is
 
   /// @inheritdoc IMultipleRewardAccumulator
   function claimable(address _account, address _token) public view virtual override returns (uint256) {
-    UserRewardSnapshot memory _userSnapshot = userRewardSnapshot[_account][_token];
-    (uint128 previousProd, uint256 shares) = _getUserPoolShare(_account);
-    uint256 epochExponent = previousProd.epochAndExponent();
-    uint256 magnitude = previousProd.magnitude();
-
-    // Grab the sum 'S' from the epoch at which the stake was made. The gain may span up to one scale change.
-    // If it does, the second portion of the gain is scaled by 1e9.
-    // If the gain spans no scale change, the second portion will be 0.
-    uint256 firstPortion = epochToExponentToRewardSnapshot[_token][epochExponent].integral -
-      _userSnapshot.checkpoint.integral;
-    uint256 secondPortion = epochToExponentToRewardSnapshot[_token][epochExponent + 1].integral /
-      uint256(DecrementalFloatingPoint.HALF_PRECISION);
-
-    return
-      uint256(_userSnapshot.rewards.pending) +
-      (shares * (firstPortion + secondPortion)) /
-      (magnitude * REWARD_PRECISION);
+    return _claimable(_account, _token);
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
@@ -247,6 +231,26 @@ abstract contract MultipleRewardCompoundingAccumulator is
    * Internal Functions *
    **********************/
 
+  function _claimable(address _account, address _token) internal view virtual returns (uint256) {
+    UserRewardSnapshot memory _userSnapshot = userRewardSnapshot[_account][_token];
+    (uint112 previousProd, uint256 shares) = _getUserPoolShare(_account);
+    uint256 epochExponent = previousProd.epochAndExponent();
+    uint256 magnitude = previousProd.magnitude();
+
+    // Grab the sum 'S' from the epoch at which the stake was made. The gain may span up to one scale change.
+    // If it does, the second portion of the gain is scaled by 1e9.
+    // If the gain spans no scale change, the second portion will be 0.
+    uint256 firstPortion = epochToExponentToRewardSnapshot[_token][epochExponent].integral -
+      _userSnapshot.checkpoint.integral;
+    uint256 secondPortion = epochToExponentToRewardSnapshot[_token][epochExponent + 1].integral /
+      uint256(DecrementalFloatingPoint.HALF_PRECISION);
+
+    return
+      uint256(_userSnapshot.rewards.pending) +
+      (shares * (firstPortion + secondPortion)) /
+      (magnitude * REWARD_PRECISION);
+  }
+
   /// @dev Internal function to update the global and user snapshot.
   ///
   /// @param _account The address of user to update. Use zero address
@@ -272,12 +276,12 @@ abstract contract MultipleRewardCompoundingAccumulator is
   /// @notice Internal function to update snapshot for single token.
   /// @param _account The address of user to update.
   /// @param _token The address of token to update.
-  function _updateSnapshot(address _account, address _token) internal {
+  function _updateSnapshot(address _account, address _token) internal virtual {
     UserRewardSnapshot memory _snapshot = userRewardSnapshot[_account][_token];
-    (uint128 currentProd, ) = _getTotalPoolShare();
-    uint256 epochExponent = currentProd.epochAndExponent();
+    (uint112 currentProd, ) = _getTotalPoolShare();
+    uint48 epochExponent = currentProd.epochAndExponent();
 
-    _snapshot.rewards.pending = uint128(claimable(_account, _token));
+    _snapshot.rewards.pending = uint128(_claimable(_account, _token));
     _snapshot.checkpoint = epochToExponentToRewardSnapshot[_token][epochExponent];
     _snapshot.checkpoint.timestamp = uint64(block.timestamp);
     userRewardSnapshot[_account][_token] = _snapshot;
@@ -329,14 +333,14 @@ abstract contract MultipleRewardCompoundingAccumulator is
   function _accumulateReward(address _token, uint256 _amount) internal virtual override {
     if (_amount == 0) return;
 
-    (uint128 currentProd, uint256 totalShare) = _getTotalPoolShare();
+    (uint112 currentProd, uint256 totalShare) = _getTotalPoolShare();
     if (totalShare == 0) {
       // no deposits, queue rewards
       rewardData[_token].queued += uint96(_amount);
       return;
     }
 
-    uint256 epochExponent = currentProd.epochAndExponent();
+    uint48 epochExponent = currentProd.epochAndExponent();
     uint256 magnitude = currentProd.magnitude();
 
     RewardSnapshot memory _snapshot = epochToExponentToRewardSnapshot[_token][epochExponent];
@@ -349,10 +353,10 @@ abstract contract MultipleRewardCompoundingAccumulator is
   }
 
   /// @dev Internal function to get the total pool shares.
-  function _getTotalPoolShare() internal view virtual returns (uint128 currentProd, uint256 totalShare);
+  function _getTotalPoolShare() internal view virtual returns (uint112 currentProd, uint256 totalShare);
 
   /// @dev Internal function to get the amount of user shares.
   ///
   /// @param _account The address of user to query.
-  function _getUserPoolShare(address _account) internal view virtual returns (uint128 previousProd, uint256 share);
+  function _getUserPoolShare(address _account) internal view virtual returns (uint112 previousProd, uint256 share);
 }

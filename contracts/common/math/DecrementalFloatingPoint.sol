@@ -10,50 +10,69 @@ pragma solidity ^0.8.0;
 /// And the floating point is encoded as:
 ///
 /// [  epoch  | exponent | magnitude ]
-/// [ 32 bits | 32  bits |  64 bits  ]
+/// [ 24 bits | 24  bits |  64 bits  ]
 /// [ MSB                        LSB ]
+///
+/// Hopefully, the `epoch` and `exponent` won't exceed `type(uint24).max`.
 library DecrementalFloatingPoint {
+  /// @dev The precision of the `magnitude` in the floating point.
   uint64 internal constant PRECISION = 1e18;
 
+  /// @dev The half precision of the `magnitude` in the floating point.
   uint64 internal constant HALF_PRECISION = 1e9;
 
+  /// @dev Encode `_epoch`, `_exponent` and `_magnitude` to the floating point.
   function encode(
-    uint32 _epoch,
-    uint32 _exponent,
+    uint24 _epoch,
+    uint24 _exponent,
     uint64 _magnitude
-  ) internal pure returns (uint128 prod) {
+  ) internal pure returns (uint112 prod) {
     assembly {
-      prod := add(_magnitude, add(shl(64, _exponent), shl(96, _epoch)))
+      prod := add(_magnitude, add(shl(64, _exponent), shl(88, _epoch)))
     }
   }
 
-  function epoch(uint128 prod) internal pure returns (uint32 _epoch) {
+  /// @dev Return the epoch of the floating point.
+  /// @param prod The current encoded floating point.
+  function epoch(uint112 prod) internal pure returns (uint24 _epoch) {
     assembly {
-      _epoch := shr(96, prod)
+      _epoch := shr(88, prod)
     }
   }
 
-  function exponent(uint128 prod) internal pure returns (uint32 _exponent) {
+  /// @dev Return the exponent of the floating point.
+  /// @param prod The current encoded floating point.
+  function exponent(uint112 prod) internal pure returns (uint24 _exponent) {
     assembly {
-      _exponent := and(shr(64, prod), 0xffffffff)
+      _exponent := and(shr(64, prod), 0xffffff)
     }
   }
 
-  function epochAndExponent(uint128 prod) internal pure returns (uint64 _epochExponent) {
+  /// @dev Return the epoch and exponent of the floating point.
+  /// @param prod The current encoded floating point.
+  function epochAndExponent(uint112 prod) internal pure returns (uint48 _epochExponent) {
     assembly {
       _epochExponent := shr(64, prod)
     }
   }
 
-  function magnitude(uint128 prod) internal pure returns (uint64 _magnitude) {
+  /// @dev Return the magnitude of the floating point.
+  /// @param prod The current encoded floating point.
+  function magnitude(uint112 prod) internal pure returns (uint64 _magnitude) {
     assembly {
       _magnitude := and(prod, 0xffffffffffffffff)
     }
   }
 
-  function mul(uint128 prod, uint256 scale) internal pure returns (uint128) {
-    uint32 _epoch = epoch(prod);
-    uint32 _exponent = exponent(prod);
+  /// @dev Multiply the floating point by a scalar no more than 1.0.
+  ///
+  /// Caller should make sure `scale` is always smaller than or equals to 1.0
+  ///
+  /// @param prod The current encoded floating point.
+  /// @param scale The multiplier applied to the product, multiplied by 1e18.
+  function mul(uint112 prod, uint64 scale) internal pure returns (uint112) {
+    uint24 _epoch = epoch(prod);
+    uint24 _exponent = exponent(prod);
     uint256 _magnitude = magnitude(prod);
 
     unchecked {
@@ -61,14 +80,15 @@ library DecrementalFloatingPoint {
         _epoch += 1;
         _exponent = 0;
         _magnitude = PRECISION;
-      } else if ((scale * _magnitude) / PRECISION < HALF_PRECISION) {
+      } else if ((uint256(scale) * _magnitude) / PRECISION < HALF_PRECISION) {
         _exponent += 1;
-        _magnitude = (_magnitude * scale) / HALF_PRECISION;
+        _magnitude = (_magnitude * uint256(scale)) / HALF_PRECISION;
       } else {
-        _magnitude = (_magnitude * scale) / PRECISION;
+        _magnitude = (_magnitude * uint256(scale)) / PRECISION;
       }
     }
 
+    // it is safe to direct convert `_magnitude` to uint64.
     return encode(_epoch, _exponent, uint64(_magnitude));
   }
 }
