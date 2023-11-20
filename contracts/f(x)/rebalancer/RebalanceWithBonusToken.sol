@@ -25,7 +25,12 @@ contract RebalanceWithBonusToken is Ownable {
   function liquidate(uint256 _minBaseOut) external {
     IFxRebalancePool(stabilityPool).liquidate(uint256(-1), _minBaseOut);
 
-    IERC20(bonusToken).safeTransfer(msg.sender, bonus);
+    uint256 _balance = IERC20(bonusToken).balanceOf(address(this));
+    uint256 _bonus = bonus;
+    if (_bonus > _balance) _bonus = _balance;
+    if (_bonus > 0) {
+      IERC20(bonusToken).safeTransfer(msg.sender, _bonus);
+    }
   }
 
   function updateBonus(uint256 _bonus) external onlyOwner {

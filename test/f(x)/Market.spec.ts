@@ -53,6 +53,7 @@ describe("Market.spec", async () => {
       MaxUint256,
       ZeroAddress
     );
+    await treasury.initializeV2(15 * 60);
 
     await market.initialize(treasury.getAddress(), platform.address);
     await market.updateMarketConfig(

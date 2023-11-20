@@ -234,6 +234,8 @@ abstract contract MultipleRewardCompoundingAccumulator is
   function _claimable(address _account, address _token) internal view virtual returns (uint256) {
     UserRewardSnapshot memory _userSnapshot = userRewardSnapshot[_account][_token];
     (uint112 previousProd, uint256 shares) = _getUserPoolShare(_account);
+    if (shares == 0) return _userSnapshot.rewards.pending;
+
     uint256 epochExponent = previousProd.epochAndExponent();
     uint256 magnitude = previousProd.magnitude();
 
@@ -348,7 +350,7 @@ abstract contract MultipleRewardCompoundingAccumulator is
     // @note usually `_amount <= 10^6 * 10^18` and `magnitude <= 10^18`,
     // so the value of `_amount * REWARD_PRECISION` won't exceed type(uint192).max.
     // For the other parts, we rely on the overflow check provided by solc 0.8.
-    _snapshot.integral += uint192((_amount * REWARD_PRECISION) / totalShare) * uint192(magnitude);
+    _snapshot.integral += (uint192((_amount * REWARD_PRECISION) / totalShare) * uint192(magnitude));
     epochToExponentToRewardSnapshot[_token][epochExponent] = _snapshot;
   }
 

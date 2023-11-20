@@ -347,8 +347,10 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
 
     if (_option == MintOption.FToken) {
       _state = _loadSwapState(SwapKind.MintFToken);
+      _updateEMALeverageRatio(_state);
     } else if (_option == MintOption.XToken) {
       _state = _loadSwapState(SwapKind.MintXToken);
+      _updateEMALeverageRatio(_state);
     } else {
       _state = _loadSwapState(SwapKind.None);
     }
@@ -391,6 +393,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     } else {
       _state = _loadSwapState(SwapKind.RedeemXToken);
     }
+    _updateEMALeverageRatio(_state);
 
     _baseOut = _state.redeem(_fTokenIn, _xTokenIn);
 
@@ -414,6 +417,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     address _recipient
   ) external override onlyMarket returns (uint256 _xTokenOut) {
     StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
+    _updateEMALeverageRatio(_state);
 
     uint256 _fDeltaNav;
     (_xTokenOut, _fDeltaNav) = _state.mintXToken(_baseIn, _incentiveRatio);
@@ -437,6 +441,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     address _owner
   ) external override onlyMarket returns (uint256 _baseOut) {
     StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
+    _updateEMALeverageRatio(_state);
 
     uint256 _fDeltaNav;
     (_baseOut, _fDeltaNav) = _state.liquidateWithIncentive(_fTokenIn, _incentiveRatio);
@@ -593,6 +598,21 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
         _state.xNav = _state.baseSupply.mul(_state.baseNav).sub(_state.fSupply.mul(_state.fNav)).div(_state.xSupply);
       }
     }
+  }
+
+  /// @dev Internal function to update ema leverage ratio.
+  function _updateEMALeverageRatio(StableCoinMath.SwapState memory _state) internal {
+    ExponentialMovingAverage.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
+    int256 _lastPermissionedPrice = int256(lastPermissionedPrice);
+    int256 _earningRatio = int256(_state.baseNav).sub(_lastPermissionedPrice).mul(PRECISION_I256).div(
+      _lastPermissionedPrice
+    );
+    uint256 _ratio = _state.leverageRatio(beta, _earningRatio);
+
+    // The value is capped with 100*10^18, it is safe to cast.
+    cachedEmaLeverageRatio.saveValue(uint96(_ratio));
+
+    emaLeverageRatio = cachedEmaLeverageRatio;
   }
 
   /// @dev Internal function to compute latest nav multiple based on current price.

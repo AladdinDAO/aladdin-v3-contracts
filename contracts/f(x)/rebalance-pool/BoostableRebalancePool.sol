@@ -15,6 +15,7 @@ import { IFxMarket } from "../../interfaces/f(x)/IFxMarket.sol";
 import { IFxTokenWrapper } from "../../interfaces/f(x)/IFxTokenWrapper.sol";
 import { IFxTreasury } from "../../interfaces/f(x)/IFxTreasury.sol";
 import { IVotingEscrow } from "../../interfaces/voting-escrow/IVotingEscrow.sol";
+import { IVotingEscrowProxy } from "../../interfaces/voting-escrow/IVotingEscrowProxy.sol";
 import { ICurveTokenMinter } from "../../interfaces/ICurveTokenMinter.sol";
 
 // solhint-disable not-rely-on-time
@@ -54,6 +55,9 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   /// @notice The address of Voting Escrow FXN.
   address public immutable ve;
 
+  /// @notice The address of Voting Escrow FXN Boost.
+  address public immutable veProxy;
+
   /// @notice The address of FXN token minter.
   address public immutable minter;
 
@@ -81,6 +85,10 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     uint64 claimAt;
   }
 
+  /// @dev The boost checkpoint struct. The compiler will pack this into single `uint256`.
+  /// @param veBalance The ve balance at checkpoint.
+  /// @param veSupply The ve supply at checkpoint.
+  /// @param historyIndex The index of supply in totalSupplyHistory at checkpoint.
   struct BoostCheckpoint {
     uint112 veBalance;
     uint112 veSupply;
@@ -140,10 +148,12 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   constructor(
     address _fxn,
     address _ve,
+    address _veProxy,
     address _minter
   ) LinearMultipleRewardDistributor(1 weeks) {
     fxn = _fxn;
     ve = _ve;
+    veProxy = _veProxy;
     minter = _minter;
   }
 
@@ -241,6 +251,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     _balances[_receiver] = _balance;
 
     emit Deposit(_sender, _receiver, _amount);
+    emit UserDepositChange(_receiver, _balance.amount, 0);
   }
 
   /// @inheritdoc IFxBoostableRebalancePool
@@ -271,6 +282,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     IERC20Upgradeable(asset).safeTransfer(_receiver, _amount);
 
     emit Withdraw(_sender, _receiver, _amount);
+    emit UserDepositChange(_sender, _balance.amount, 0);
   }
 
   /// @inheritdoc IFxBoostableRebalancePool
@@ -373,10 +385,24 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
 
     if (_account != address(0)) {
       boostCheckpoint[_account] = BoostCheckpoint(
-        uint112(IVotingEscrow(ve).balanceOf(_account)),
+        uint112(IVotingEscrowProxy(veProxy).adjustedVeBalance(_account)),
         uint112(IVotingEscrow(ve).totalSupply()),
         uint32(numTotalSupplyHistory)
       );
+
+      TokenBalance memory _balance = _balances[_account];
+      TokenBalance memory _supply = _totalSupply;
+
+      uint104 _newBalance = uint104(_getCompoundedBalance(_balance.amount, _balance.product, _supply.product));
+      if (_newBalance != _balance.amount) {
+        // no unchecked here, just in case
+        emit UserDepositChange(_account, _newBalance, _balance.amount - _newBalance);
+      }
+
+      _balance.amount = _newBalance;
+      _balance.product = _supply.product;
+      _balance.updateAt = uint40(block.timestamp);
+      _balances[_account] = _balance;
     }
   }
 
@@ -478,6 +504,11 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     uint112 _initialProduct,
     uint112 _currentProduct
   ) internal pure returns (uint256 _compoundedBalance) {
+    // no balance before, return 0
+    if (_initialBalance == 0) {
+      return 0;
+    }
+
     // If stake was made before a pool-emptying event, then it has been fully cancelled with debt -- so, return 0
     if (_initialProduct.epoch() < _currentProduct.epoch()) {
       return 0;
@@ -515,6 +546,9 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     return _compoundedBalance;
   }
 
+  /// @dev Internal function to get boost ratio for the given account.
+  ///
+  /// @param _account The address of the account to query.
   function _getBoostRatioRead(address _account) internal view returns (uint256, BoostCheckpoint memory) {
     TokenBalance memory _balance = _balances[_account];
     BoostCheckpoint memory _boostCheckpoint = boostCheckpoint[_account];
@@ -522,7 +556,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     if (_balance.amount == 0) return (0, _boostCheckpoint);
 
     // @note For gas saving, we assume the ve balance and ve supply are changing linearly.
-    uint256 _currentVeBalance = IVotingEscrow(ve).balanceOf(_account);
+    uint256 _currentVeBalance = IVotingEscrowProxy(veProxy).adjustedVeBalance(_account);
     uint256 _currentVeSupply = IVotingEscrow(ve).totalSupply();
 
     (uint256 _currentRatio, uint256 _nextIndex) = _boostRatioAt(
@@ -570,12 +604,16 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     return (_accumulatedRatio / uint256(_duration), _boostCheckpoint);
   }
 
+  /// @dev Internal function to get boost ratio for the given account and make state change.
+  ///
+  /// @param _account The address of the account to query.
   function _getBoostRatioWrite(address _account) internal returns (uint256) {
     (uint256 _ratio, BoostCheckpoint memory _newCheckpoint) = _getBoostRatioRead(_account);
     boostCheckpoint[_account] = _newCheckpoint;
     return _ratio;
   }
 
+  /// @dev Internal function to get boost ratio at specific time point.
   function _boostRatioAt(
     TokenBalance memory _balance,
     uint256 _veBalance,
@@ -583,8 +621,8 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     uint256 startIndex,
     uint256 t
   ) internal view returns (uint256, uint256) {
-    // binary search first total supply history that
-    //   totalSupplyHistory[x+1].updateAt > t and totalSupplyHistory[x].updateAt <= t
+    // @note since totalSupplyHistory is bounded by the number of days,
+    // it should be ok to use while loop.
     unchecked {
       uint256 endIndex = numTotalSupplyHistory;
       while (startIndex < endIndex) {

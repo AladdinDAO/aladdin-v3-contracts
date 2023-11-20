@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
 import { IFxRebalancePoolSplitter } from "../../interfaces/f(x)/IFxRebalancePoolSplitter.sol";
 import { IFxTreasury } from "../../interfaces/f(x)/IFxTreasury.sol";
 import { ICurveTokenMinter } from "../../interfaces/ICurveTokenMinter.sol";
 
-contract RebalancePoolGaugeClaimer is Ownable {
+contract RebalancePoolGaugeClaimer is Ownable2Step {
   using SafeERC20 for IERC20;
 
   /**********
@@ -21,6 +21,28 @@ contract RebalancePoolGaugeClaimer is Ownable {
   /// @param oldIncentiveRatio The value of previous incentive ratio, multiplied by 1e9.
   /// @param newIncentiveRatio The value of current incentive ratio, multiplied by 1e9.
   event UpdateIncentiveRatio(uint256 oldIncentiveRatio, uint256 newIncentiveRatio);
+
+  /// @notice Emitted when the splitter ratio parameter is updated.
+  /// @param leverageRatioLowerBound The current lower bound of leverage ratio, multiplied by 1e9.
+  /// @param leverageRatioUpperBound The current upper bound of leverage ratio, multiplied by 1e9.
+  /// @param minSplitterRatio The current minimum splitter ratio, multiplied by 1e9.
+  event UpdateSplitterRatio(uint256 leverageRatioLowerBound, uint256 leverageRatioUpperBound, uint256 minSplitterRatio);
+
+  /**********
+   * Errors *
+   **********/
+
+  /// @dev Thrown when the incentive ratio is too large.
+  error ErrorIncentiveRatioTooLarge();
+
+  /// @dev Thrown when the leverage ratio lower bound is out of bound.
+  error ErrorInvalidLeverageRatioLowerBound();
+
+  /// @dev Thrown when the leverage ratio upper bound is out of bound.
+  error ErrorInvalidLeverageRatioUpperBound();
+
+  /// @dev Thrown when the min splitter ratio is out of bound.
+  error ErrorInvalidMinSplitRatio();
 
   /*************
    * Constants *
@@ -33,16 +55,16 @@ contract RebalancePoolGaugeClaimer is Ownable {
   uint256 private constant MAX_INCENTIVE_RATIO = 1e8; // 10%
 
   /// @dev The minimum value of `leveratio_raio_min`.
-  uint256 private constant MIN_MINIMUM_LEVERAGE_RATIO = 13e8; // 1.3
+  uint256 private constant MIN_LEVERAGE_RATIO_LOWER_BOUND = 13e8; // 1.3
 
   /// @dev The maximum value of `leveratio_raio_min`.
-  uint256 private constant MAX_MINIMUM_LEVERAGE_RATIO = 2e9; // 2
+  uint256 private constant MAX_LEVERAGE_RATIO_LOWER_BOUND = 2e9; // 2
 
   /// @dev The minimum value of `leveratio_raio_max`.
-  uint256 private constant MIN_MAXIMUM_LEVERAGE_RATIO = 2e9; // 2
+  uint256 private constant MIN_LEVERAGE_RATIO_UPPER_BOUND = 2e9; // 2
 
   /// @dev The maximum value of `leveratio_raio_max`.
-  uint256 private constant MAX_MAXIMUM_LEVERAGE_RATIO = 5e9; // 5
+  uint256 private constant MAX_LEVERAGE_RATIO_UPPER_BOUND = 5e9; // 5
 
   /// @dev The minimum value of `splitter_raio_min`.
   uint256 private constant MIN_MINIMUM_SPLITTER_RATIO = 5e8; // 0.5
@@ -51,7 +73,7 @@ contract RebalancePoolGaugeClaimer is Ownable {
   uint256 private constant MAX_MINIMUM_SPLITTER_RATIO = 1e9; // 1
 
   /// @dev The address of FXN token.
-  address private constant FXN = 0xC8b194925D55d5dE9555AD1db74c149329F71DeF;
+  address private constant FXN = 0x365AccFCa291e7D3914637ABf1F7635dB165Bb09;
 
   /// @dev The address of FXN token minter.
   address private constant TOKEN_MINTER = 0xC8b194925D55d5dE9555AD1db74c149329F71DeF;
@@ -62,13 +84,22 @@ contract RebalancePoolGaugeClaimer is Ownable {
   /// @notice The address of Treasury contract.
   address public immutable treasury;
 
+  /// @notice The address of gauge contract.
+  address public immutable gauge;
+
+  /// @notice The address of RebalancePoolSplitter contract.
+  address public immutable splitter;
+
   /***********
    * Structs *
    ***********/
 
-  struct SplitterRatio {
-    uint64 minLeverageRatio;
-    uint64 maxLeverageRatio;
+  /// @param leverageRatioLowerBound The lower bound value of leverage ratio.
+  /// @param leverageRatioUpperBound The upper bound value of leverage ratio.
+  /// @param minSplitterRatio The minimum value of splitter ratio.
+  struct SplitterRatioParameters {
+    uint64 leverageRatioLowerBound;
+    uint64 leverageRatioUpperBound;
     uint64 minSplitterRatio;
   }
 
@@ -76,11 +107,8 @@ contract RebalancePoolGaugeClaimer is Ownable {
    * Variables *
    *************/
 
-  /// @notice Mapping from Fundraising Gauge address to corresponding RebalancePoolSplitter.
-  mapping(address => address) public splitters;
-
   /// @notice The parameters used to compute splitter ratio.
-  SplitterRatio public ratio;
+  SplitterRatioParameters public params;
 
   /// @notice The incentive ratio for caller of `claim`.
   uint256 public incentiveRatio;
@@ -89,11 +117,18 @@ contract RebalancePoolGaugeClaimer is Ownable {
    * Constructor *
    ***************/
 
-  constructor(address _reservePool, address _treasury) {
+  constructor(
+    address _reservePool,
+    address _treasury,
+    address _gauge,
+    address _splitter
+  ) {
     reservePool = _reservePool;
     treasury = _treasury;
+    gauge = _gauge;
+    splitter = _splitter;
 
-    _updateSplitterRatio(2000000000, 3000000000, 666666666);
+    _updateSplitterRatioParameters(2000000000, 3000000000, 666666666);
     _updateIncentiveRatio(1e7);
   }
 
@@ -112,29 +147,30 @@ contract RebalancePoolGaugeClaimer is Ownable {
 
   /// @notice Claim pending FXN from gauge and split to rebalance pools.
   /// @param _receiver The address of incentive receiver.
-  /// @param _gauge The address of Fundraising Gauge contract.
-  function claim(address _receiver, address _gauge) public {
-    // @note We allow donating FXN to this contract, the incentive should only consider minted FXN.
-    uint256 _balance = IERC20(FXN).balanceOf(address(this));
-    ICurveTokenMinter(TOKEN_MINTER).mint(_gauge);
-    uint256 _minted = IERC20(FXN).balanceOf(address(this)) - _balance;
-    uint256 _incentive = (_minted * incentiveRatio) / PRECISION;
+  function claim(address _receiver) external {
+    unchecked {
+      // @note We allow donating FXN to this contract, the incentive should only consider minted FXN.
+      uint256 _balance = IERC20(FXN).balanceOf(address(this));
+      ICurveTokenMinter(TOKEN_MINTER).mint(gauge);
+      uint256 _minted = IERC20(FXN).balanceOf(address(this)) - _balance;
+      uint256 _incentive = (_minted * incentiveRatio) / PRECISION;
+      _balance += _minted;
 
-    if (_incentive > 0) {
-      IERC20(FXN).safeTransfer(_receiver, _incentive);
-      _balance -= _incentive;
-    }
+      if (_incentive > 0) {
+        IERC20(FXN).safeTransfer(_receiver, _incentive);
+        _balance -= _incentive;
+      }
 
-    if (_balance > 0) {
-      address _splitter = splitters[_gauge];
-      uint256 _ratio = _computeSplitterRatio();
-      uint256 _splitterFXN = (_balance * _ratio) / PRECISION;
-      // deposit rewards to rebalance pool splitter
-      IERC20(FXN).safeTransfer(_splitter, _splitterFXN);
-      // transfer extra FXN to reserve pool
-      IERC20(FXN).safeTransfer(reservePool, _balance - _splitterFXN);
-      // split rewards
-      IFxRebalancePoolSplitter(_splitter).split(FXN);
+      if (_balance > 0) {
+        uint256 _ratio = _computeSplitterRatio();
+        uint256 _splitterFXN = (_balance * _ratio) / PRECISION;
+        // deposit rewards to rebalance pool splitter
+        IERC20(FXN).safeTransfer(splitter, _splitterFXN);
+        // transfer extra FXN to reserve pool
+        IERC20(FXN).safeTransfer(reservePool, _balance - _splitterFXN);
+        // split rewards
+        IFxRebalancePoolSplitter(splitter).split(FXN);
+      }
     }
   }
 
@@ -152,12 +188,12 @@ contract RebalancePoolGaugeClaimer is Ownable {
   /// @param _minLeverage The minimum leverage ratio, multiplied by 1e9.
   /// @param _maxLeverage The maximum leverage ratio, multiplied by 1e9.
   /// @param _minRatio The minimum splitter ratio, multiplied by 1e9.
-  function updateSplitterRatio(
+  function updateSplitterRatioParameters(
     uint64 _minLeverage,
     uint64 _maxLeverage,
     uint64 _minRatio
   ) external onlyOwner {
-    _updateSplitterRatio(_minLeverage, _maxLeverage, _minRatio);
+    _updateSplitterRatioParameters(_minLeverage, _maxLeverage, _minRatio);
   }
 
   /************************
@@ -167,25 +203,36 @@ contract RebalancePoolGaugeClaimer is Ownable {
   /// @dev Internal function to compute current splitter ratio.
   /// @return _splitterRatio The current splitter ratio, multiplied by 1e9.
   function _computeSplitterRatio() internal view returns (uint256 _splitterRatio) {
-    SplitterRatio memory _ratio = ratio;
+    SplitterRatioParameters memory _params = params;
     uint256 _leverageRatio = IFxTreasury(treasury).leverageRatio();
-    if (_leverageRatio > _ratio.maxLeverageRatio) {
-      _splitterRatio = _ratio.minSplitterRatio;
-    } else if (_leverageRatio < _ratio.minLeverageRatio) {
+    if (_leverageRatio > _params.leverageRatioUpperBound) {
+      _splitterRatio = _params.minSplitterRatio;
+    } else if (_leverageRatio < _params.leverageRatioLowerBound) {
       _splitterRatio = PRECISION;
     } else {
-      _splitterRatio =
-        (uint256(_ratio.minSplitterRatio) *
-          (_leverageRatio - _ratio.minLeverageRatio) +
-          (_ratio.maxLeverageRatio - _leverageRatio)) /
-        (_ratio.maxLeverageRatio - _ratio.minLeverageRatio);
+      // a = (leverageRatioLowerBound * minSplitterRatio - leverageRatioUpperBound) / c
+      // b = (1 - minSplitterRatio) / c
+      // c = leverageRatioLowerBound - leverageRatioUpperBound
+      // a + b * leverageRatio
+      //   = leverageRatioLowerBound * minSplitterRatio - leverageRatioUpperBound + (1 - minSplitterRatio) * leverageRatio
+      //   = minSplitterRatio * (leverageRatioLowerBound - leverageRatio) + leverageRatio - leverageRatioUpperBound
+      unchecked {
+        _splitterRatio =
+          (uint256(_params.minSplitterRatio) *
+            (_leverageRatio - uint256(_params.leverageRatioLowerBound)) +
+            (uint256(_params.leverageRatioUpperBound) - _leverageRatio) *
+            PRECISION) /
+          uint256(_params.leverageRatioUpperBound - _params.leverageRatioLowerBound);
+      }
     }
   }
 
   /// @dev Internal function to update the incentive ratio.
   /// @param _newIncentiveRatio The new incentive ratio to claim caller, multiplied by 1e9.
   function _updateIncentiveRatio(uint256 _newIncentiveRatio) internal {
-    require(_newIncentiveRatio <= MAX_INCENTIVE_RATIO, "incentive ratio too large");
+    if (_newIncentiveRatio > MAX_INCENTIVE_RATIO) {
+      revert ErrorIncentiveRatioTooLarge();
+    }
 
     uint256 _oldIncentiveRatio = incentiveRatio;
     incentiveRatio = _newIncentiveRatio;
@@ -194,27 +241,32 @@ contract RebalancePoolGaugeClaimer is Ownable {
   }
 
   /// @dev Internal function to update the splitter ratio parameters.
-  /// @param _minLeverageRatio The minimum leverage ratio, multiplied by 1e9.
-  /// @param _maxLeverageRatio The maximum leverage ratio, multiplied by 1e9.
+  /// @param _leverageRatioLowerBound The lower bound of leverage ratio, multiplied by 1e9.
+  /// @param _leverageRatioUpperBound The upper bound of leverage ratio, multiplied by 1e9.
   /// @param _minSplitterRatio The minimum splitter ratio, multiplied by 1e9.
-  function _updateSplitterRatio(
-    uint64 _minLeverageRatio,
-    uint64 _maxLeverageRatio,
+  function _updateSplitterRatioParameters(
+    uint64 _leverageRatioLowerBound,
+    uint64 _leverageRatioUpperBound,
     uint64 _minSplitterRatio
   ) internal {
-    require(
-      MIN_MINIMUM_LEVERAGE_RATIO <= _minLeverageRatio && _minLeverageRatio <= MAX_MINIMUM_LEVERAGE_RATIO,
-      "invalid min leverage ratio"
-    );
-    require(
-      MIN_MAXIMUM_LEVERAGE_RATIO <= _maxLeverageRatio && _maxLeverageRatio <= MAX_MAXIMUM_LEVERAGE_RATIO,
-      "invalid max leverage ratio"
-    );
-    require(
-      MIN_MINIMUM_SPLITTER_RATIO <= _minSplitterRatio && _minSplitterRatio <= MAX_MINIMUM_SPLITTER_RATIO,
-      "invalid min split ratio"
-    );
+    if (
+      _leverageRatioLowerBound < MIN_LEVERAGE_RATIO_LOWER_BOUND ||
+      _leverageRatioLowerBound > MAX_LEVERAGE_RATIO_LOWER_BOUND
+    ) {
+      revert ErrorInvalidLeverageRatioLowerBound();
+    }
+    if (
+      _leverageRatioUpperBound < MIN_LEVERAGE_RATIO_UPPER_BOUND ||
+      _leverageRatioUpperBound > MAX_LEVERAGE_RATIO_UPPER_BOUND
+    ) {
+      revert ErrorInvalidLeverageRatioUpperBound();
+    }
+    if (_minSplitterRatio < MIN_MINIMUM_SPLITTER_RATIO || _minSplitterRatio > MAX_MINIMUM_SPLITTER_RATIO) {
+      revert ErrorInvalidMinSplitRatio();
+    }
 
-    ratio = SplitterRatio(_minLeverageRatio, _maxLeverageRatio, _minSplitterRatio);
+    params = SplitterRatioParameters(_leverageRatioLowerBound, _leverageRatioUpperBound, _minSplitterRatio);
+
+    emit UpdateSplitterRatio(_leverageRatioLowerBound, _leverageRatioUpperBound, _minSplitterRatio);
   }
 }

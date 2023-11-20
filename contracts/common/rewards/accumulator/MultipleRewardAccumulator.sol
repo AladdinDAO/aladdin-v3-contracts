@@ -286,6 +286,13 @@ abstract contract MultipleRewardAccumulator is
   function _accumulateReward(address _token, uint256 _amount) internal virtual override {
     if (_amount == 0) return;
 
+    uint256 totalShare = _getTotalPoolShare();
+    if (totalShare == 0) {
+      // no deposits, queue rewards
+      rewardData[_token].queued += uint96(_amount);
+      return;
+    }
+
     RewardSnapshot memory _snapshot = rewardSnapshot[_token];
     _snapshot.timestamp = uint64(block.timestamp);
     _snapshot.integral = uint192(uint256(_snapshot.integral) + (_amount * REWARD_PRECISION) / _getTotalPoolShare());

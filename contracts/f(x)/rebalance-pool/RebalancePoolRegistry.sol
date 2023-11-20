@@ -1,18 +1,36 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { EnumerableSet } from "@openzeppelin/contracts/utils/EnumerableSet.sol";
+import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol";
+import { EnumerableSet } from "@openzeppelin/contracts-v4/utils/structs/EnumerableSet.sol";
 
 import { IFxRebalancePool } from "../../interfaces/f(x)/IFxRebalancePool.sol";
 import { IFxRebalancePoolRegistry } from "../../interfaces/f(x)/IFxRebalancePoolRegistry.sol";
 
-contract RebalancePoolRegistry is Ownable, IFxRebalancePoolRegistry {
+contract RebalancePoolRegistry is Ownable2Step, IFxRebalancePoolRegistry {
   using EnumerableSet for EnumerableSet.AddressSet;
+
+  /**********
+   * Errors *
+   **********/
+
+  /// @dev Thrown when add an already added pool.
+  error ErrorPoolAlreadyAdded();
+
+  /// @dev Thrown when remove an unkown pool.
+  error ErrorPoolNotAdded();
+
+  /*************
+   * Variables *
+   *************/
 
   /// @dev The list of registered RebalancePool.
   EnumerableSet.AddressSet private pools;
+
+  /*************************
+   * Public View Functions *
+   *************************/
 
   /// @inheritdoc IFxRebalancePoolRegistry
   function getPools() external view override returns (address[] memory _pools) {
@@ -41,12 +59,16 @@ contract RebalancePoolRegistry is Ownable, IFxRebalancePoolRegistry {
   /// @notice Add a RebalancePool to the list.
   /// @param _pool The address of RebalancePool to add.
   function registerRebalancePool(address _pool) external onlyOwner {
-    require(pools.add(_pool), "pool already registered");
+    if (!pools.add(_pool)) revert ErrorPoolAlreadyAdded();
+
+    emit RegisterPool(_pool);
   }
 
   /// @notice Remove an exsiting RebalancePool.
   /// @param _pool The address of RebalancePool to remove.
   function deregisterRebalancePool(address _pool) external onlyOwner {
-    require(pools.remove(_pool), "pool not registered before");
+    if (!pools.remove(_pool)) revert ErrorPoolNotAdded();
+
+    emit DeregisterPool(_pool);
   }
 }

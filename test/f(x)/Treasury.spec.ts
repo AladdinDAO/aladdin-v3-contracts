@@ -49,6 +49,7 @@ describe("Treasury.spec", async () => {
       ethers.parseEther("1000"),
       ZeroAddress
     );
+    await treasury.initializeV2(15 * 60);
 
     await weth.deposit({ value: ethers.parseEther("100") });
     await weth.transfer(treasury.getAddress(), ethers.parseEther("100"));

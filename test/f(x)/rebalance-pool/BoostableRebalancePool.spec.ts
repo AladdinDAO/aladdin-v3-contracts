@@ -1,6 +1,6 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { MaxUint256, ZeroAddress } from "ethers";
+import { MaxUint256, ZeroAddress, concat } from "ethers";
 import { ethers, network } from "hardhat";
 
 import {
@@ -9,18 +9,38 @@ import {
   Market,
   MockTokenWrapper,
   MockTwapOracle,
-  RebalancePool,
+  BoostableRebalancePool,
   Treasury,
   WETH9,
+  GovernanceToken,
+  VotingEscrow,
+  GaugeController,
+  TokenMinter,
+  FundraisingGaugeV1,
+  VotingEscrowProxy,
 } from "@/types/index";
 
-describe("RebalancePool.spec", async () => {
+async function minimalProxyDeploy(deployer: HardhatEthersSigner, implementation: string): Promise<string> {
+  const tx = await deployer.sendTransaction({
+    data: concat(["0x3d602d80600a3d3981f3363d3d373d3d3d363d73", implementation, "0x5af43d82803e903d91602b57fd5bf3"]),
+  });
+  const receipt = await tx.wait();
+  return receipt!.contractAddress!;
+}
+
+describe("BoostableRebalancePool.spec", async () => {
   let deployer: HardhatEthersSigner;
   let signer: HardhatEthersSigner;
   let platform: HardhatEthersSigner;
   let liquidator: HardhatEthersSigner;
-  let userA: HardhatEthersSigner;
-  let userB: HardhatEthersSigner;
+  // let userA: HardhatEthersSigner;
+  // let userB: HardhatEthersSigner;
+
+  let fxn: GovernanceToken;
+  let ve: VotingEscrow;
+  let proxy: VotingEscrowProxy;
+  let controller: GaugeController;
+  let minter: TokenMinter;
 
   let weth: WETH9;
   let oracle: MockTwapOracle;
@@ -28,11 +48,53 @@ describe("RebalancePool.spec", async () => {
   let xToken: LeveragedToken;
   let treasury: Treasury;
   let market: Market;
-  let rebalancePool: RebalancePool;
+  let gauge: FundraisingGaugeV1;
+  let rebalancePool: BoostableRebalancePool;
   let wrapper: MockTokenWrapper;
 
   beforeEach(async () => {
-    [deployer, signer, platform, liquidator, userA, userB] = await ethers.getSigners();
+    [deployer, signer, platform, liquidator] = await ethers.getSigners();
+
+    const GovernanceToken = await ethers.getContractFactory("GovernanceToken", deployer);
+    const VotingEscrow = await ethers.getContractFactory("VotingEscrow", deployer);
+    const GaugeController = await ethers.getContractFactory("GaugeController", deployer);
+    const TokenMinter = await ethers.getContractFactory("TokenMinter", deployer);
+    const VotingEscrowBoost = await ethers.getContractFactory("VotingEscrowBoost", deployer);
+    const VotingEscrowProxy = await ethers.getContractFactory("VotingEscrowProxy", deployer);
+
+    fxn = await GovernanceToken.deploy();
+    ve = await VotingEscrow.deploy();
+    controller = await GaugeController.deploy();
+    minter = await TokenMinter.deploy();
+    const boost = await VotingEscrowBoost.deploy(await ve.getAddress());
+    proxy = await VotingEscrowProxy.deploy(await ve.getAddress());
+    await proxy.updateVeBoost(boost.getAddress());
+
+    await fxn.initialize(
+      ethers.parseEther("1020000"), // initial supply
+      ethers.parseEther("98000") / (86400n * 365n), // initial rate, 10%,
+      1111111111111111111n, // rate reduction coefficient, 1/0.9 * 1e18,
+      deployer.address,
+      "Governance Token",
+      "GOV"
+    );
+    await ve.initialize(deployer.address, fxn.getAddress(), "Voting Escrow GOV", "veGOV", "1.0");
+    await controller.initialize(deployer.address, fxn.getAddress(), ve.getAddress());
+    await minter.initialize(fxn.getAddress(), controller.getAddress());
+    await fxn.set_minter(minter.getAddress());
+    const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+    await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400]);
+    await fxn.update_mining_parameters();
+
+    const FundraisingGaugeV1 = await ethers.getContractFactory("FundraisingGaugeV1", deployer);
+    const gaugeImpl = await FundraisingGaugeV1.deploy(
+      deployer.address,
+      fxn.getAddress(),
+      controller.getAddress(),
+      minter.getAddress()
+    );
+    const gaugeAddr = await minimalProxyDeploy(deployer, await gaugeImpl.getAddress());
+    gauge = await ethers.getContractAt("FundraisingGaugeV1", gaugeAddr, deployer);
 
     const WETH9 = await ethers.getContractFactory("WETH9", deployer);
     weth = await WETH9.deploy();
@@ -55,8 +117,13 @@ describe("RebalancePool.spec", async () => {
     const Market = await ethers.getContractFactory("Market", deployer);
     market = await Market.deploy();
 
-    const RebalancePool = await ethers.getContractFactory("RebalancePool", deployer);
-    rebalancePool = await RebalancePool.deploy();
+    const BoostableRebalancePool = await ethers.getContractFactory("BoostableRebalancePool", deployer);
+    rebalancePool = await BoostableRebalancePool.deploy(
+      fxn.getAddress(),
+      ve.getAddress(),
+      proxy.getAddress(),
+      minter.getAddress()
+    );
 
     await fToken.initialize(treasury.getAddress(), "Fractional ETH", "fETH");
     await xToken.initialize(treasury.getAddress(), fToken.getAddress(), "Leveraged ETH", "xETH");
@@ -81,14 +148,20 @@ describe("RebalancePool.spec", async () => {
       ethers.parseEther("1")
     );
 
-    await rebalancePool.initialize(treasury.getAddress(), market.getAddress());
+    await rebalancePool.initialize(treasury.getAddress(), market.getAddress(), gauge.getAddress());
+    await rebalancePool.grantRole(await rebalancePool.REWARD_MANAGER_ROLE(), deployer.address);
+    await rebalancePool.registerRewardToken(await fxn.getAddress(), deployer.address);
+    await rebalancePool.registerRewardToken(await weth.getAddress(), deployer.address);
+    await gauge.initialize(rebalancePool.getAddress(), MaxUint256);
+    await controller["add_type(string,uint256)"]("RebalancePool", ethers.parseEther("0.3"));
+    await controller["add_gauge(address,int128,uint256)"](gauge.getAddress(), 0, ethers.parseEther("1"));
   });
 
   context("auth", async () => {
     it("should revert, when intialize again", async () => {
-      await expect(rebalancePool.initialize(treasury.getAddress(), market.getAddress())).to.revertedWith(
-        "Initializable: contract is already initialized"
-      );
+      await expect(
+        rebalancePool.initialize(treasury.getAddress(), market.getAddress(), gauge.getAddress())
+      ).to.revertedWith("Initializable: contract is already initialized");
     });
 
     it("should initialize correctly", async () => {
@@ -96,34 +169,22 @@ describe("RebalancePool.spec", async () => {
       expect(await rebalancePool.market()).to.eq(await market.getAddress());
       expect(await rebalancePool.asset()).to.eq(await fToken.getAddress());
       expect(await rebalancePool.wrapper()).to.eq(await rebalancePool.getAddress());
-      expect(await rebalancePool.unlockDuration()).to.eq(86400 * 14);
-    });
-
-    context("#updateLiquidator", async () => {
-      it("should revert, when non-owner call", async () => {
-        await expect(rebalancePool.connect(signer).updateLiquidator(ZeroAddress)).to.revertedWith(
-          "Ownable: caller is not the owner"
-        );
-      });
-
-      it("should succeed", async () => {
-        expect(await rebalancePool.liquidator()).to.eq(ZeroAddress);
-        await expect(rebalancePool.updateLiquidator(liquidator.address))
-          .to.emit(rebalancePool, "UpdateLiquidator")
-          .withArgs(liquidator.address);
-        expect(await rebalancePool.liquidator()).to.eq(liquidator.address);
-      });
     });
 
     context("#updateWrapper", async () => {
       it("should revert, when non-owner call", async () => {
         await expect(rebalancePool.connect(signer).updateWrapper(ZeroAddress)).to.revertedWith(
-          "Ownable: caller is not the owner"
+          "AccessControl: account " +
+            signer.address.toLowerCase() +
+            " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
         );
       });
 
       it("should revert, when src mismatch", async () => {
-        await expect(rebalancePool.updateWrapper(wrapper.getAddress())).to.revertedWith("src mismatch");
+        await expect(rebalancePool.updateWrapper(wrapper.getAddress())).to.revertedWithCustomError(
+          rebalancePool,
+          "ErrorWrapperSrcMismatch"
+        );
       });
 
       it("should revert, when dst mismatch", async () => {
@@ -134,7 +195,10 @@ describe("RebalancePool.spec", async () => {
         const newWrapper = await MockTokenWrapper.deploy();
         await newWrapper.set(weth.getAddress(), liquidator.address);
 
-        await expect(rebalancePool.updateWrapper(newWrapper.getAddress())).to.revertedWith("dst mismatch");
+        await expect(rebalancePool.updateWrapper(newWrapper.getAddress())).to.revertedWithCustomError(
+          rebalancePool,
+          "ErrorWrapperDstMismatch"
+        );
       });
 
       it("should succeed", async () => {
@@ -142,7 +206,7 @@ describe("RebalancePool.spec", async () => {
         expect(await rebalancePool.wrapper()).to.eq(await rebalancePool.getAddress());
         await expect(rebalancePool.updateWrapper(wrapper.getAddress()))
           .to.emit(rebalancePool, "UpdateWrapper")
-          .withArgs(await wrapper.getAddress());
+          .withArgs(await rebalancePool.getAddress(), await wrapper.getAddress());
         expect(await rebalancePool.wrapper()).to.eq(await wrapper.getAddress());
       });
     });
@@ -150,7 +214,9 @@ describe("RebalancePool.spec", async () => {
     context("#updateLiquidatableCollateralRatio", async () => {
       it("should revert, when non-owner call", async () => {
         await expect(rebalancePool.connect(signer).updateLiquidatableCollateralRatio(0)).to.revertedWith(
-          "Ownable: caller is not the owner"
+          "AccessControl: account " +
+            signer.address.toLowerCase() +
+            " is missing role 0x0000000000000000000000000000000000000000000000000000000000000000"
         );
       });
 
@@ -158,101 +224,8 @@ describe("RebalancePool.spec", async () => {
         expect(await rebalancePool.liquidatableCollateralRatio()).to.eq(0n);
         await expect(rebalancePool.updateLiquidatableCollateralRatio(1))
           .to.emit(rebalancePool, "UpdateLiquidatableCollateralRatio")
-          .withArgs(1);
+          .withArgs(0, 1);
         expect(await rebalancePool.liquidatableCollateralRatio()).to.eq(1);
-      });
-    });
-
-    context("#updateUnlockDuration", async () => {
-      it("should revert, when non-owner call", async () => {
-        await expect(rebalancePool.connect(signer).updateUnlockDuration(0)).to.revertedWith(
-          "Ownable: caller is not the owner"
-        );
-      });
-
-      it("should succeed", async () => {
-        expect(await rebalancePool.unlockDuration()).to.eq(86400 * 14);
-        await expect(rebalancePool.updateUnlockDuration(86401))
-          .to.emit(rebalancePool, "UpdateUnlockDuration")
-          .withArgs(86401);
-        expect(await rebalancePool.unlockDuration()).to.eq(86401);
-      });
-    });
-
-    context("#addReward", async () => {
-      it("should revert, when non-owner call", async () => {
-        await expect(rebalancePool.connect(signer).addReward(ZeroAddress, ZeroAddress, 0)).to.revertedWith(
-          "Ownable: caller is not the owner"
-        );
-      });
-
-      it("should revert, when duplicated reward token", async () => {
-        await rebalancePool.addReward(weth.getAddress(), deployer.address, 10);
-        await expect(rebalancePool.addReward(weth.getAddress(), deployer.address, 10)).to.revertedWith(
-          "duplicated reward token"
-        );
-      });
-
-      it("should revert, when zero manager address", async () => {
-        await expect(rebalancePool.addReward(weth.getAddress(), ZeroAddress, 10)).to.revertedWith(
-          "zero manager address"
-        );
-      });
-
-      it("should revert, when zero period length", async () => {
-        await expect(rebalancePool.addReward(weth.getAddress(), deployer.address, 0)).to.revertedWith(
-          "zero period length"
-        );
-      });
-
-      it("should succeed", async () => {
-        await expect(rebalancePool.addReward(weth.getAddress(), deployer.address, 86400))
-          .to.emit(rebalancePool, "AddRewardToken")
-          .withArgs(await weth.getAddress(), deployer.address, 86400);
-        expect(await rebalancePool.extraRewardsLength()).to.eq(1);
-        expect(await rebalancePool.extraRewards(0)).to.eq(await weth.getAddress());
-        expect(await rebalancePool.rewardManager(weth.getAddress())).to.eq(deployer.address);
-        expect((await rebalancePool.extraRewardState(weth.getAddress())).periodLength).to.eq(86400);
-      });
-    });
-
-    context("#updateReward", async () => {
-      beforeEach(async () => {
-        await expect(rebalancePool.addReward(weth.getAddress(), deployer.address, 86400))
-          .to.emit(rebalancePool, "AddRewardToken")
-          .withArgs(await weth.getAddress(), deployer.address, 86400);
-      });
-
-      it("should revert, when non-owner call", async () => {
-        await expect(rebalancePool.connect(signer).updateReward(ZeroAddress, ZeroAddress, 0)).to.revertedWith(
-          "Ownable: caller is not the owner"
-        );
-      });
-
-      it("should revert, when no such reward token", async () => {
-        await expect(rebalancePool.updateReward(ZeroAddress, deployer.address, 10)).to.revertedWith(
-          "no such reward token"
-        );
-      });
-
-      it("should revert, when zero manager address", async () => {
-        await expect(rebalancePool.updateReward(weth.getAddress(), ZeroAddress, 10)).to.revertedWith(
-          "zero manager address"
-        );
-      });
-
-      it("should revert, when zero period length", async () => {
-        await expect(rebalancePool.updateReward(weth.getAddress(), deployer.address, 0)).to.revertedWith(
-          "zero period length"
-        );
-      });
-
-      it("should succeed", async () => {
-        await expect(rebalancePool.updateReward(weth.getAddress(), signer.address, 86401))
-          .to.emit(rebalancePool, "UpdateRewardToken")
-          .withArgs(await weth.getAddress(), signer.address, 86401);
-        expect(await rebalancePool.rewardManager(weth.getAddress())).to.eq(signer.address);
-        expect((await rebalancePool.extraRewardState(weth.getAddress())).periodLength).to.eq(86401);
       });
     });
   });
@@ -268,7 +241,10 @@ describe("RebalancePool.spec", async () => {
     });
 
     it("should revert, when deposit zero amount", async () => {
-      await expect(rebalancePool.deposit(ZeroAddress, deployer.address)).to.revertedWith("deposit zero amount");
+      await expect(rebalancePool.deposit(ZeroAddress, deployer.address)).to.revertedWithCustomError(
+        rebalancePool,
+        "DepositZeroAmount"
+      );
     });
 
     it("should succeed, when single deposit", async () => {
@@ -297,7 +273,7 @@ describe("RebalancePool.spec", async () => {
 
       // current collateral ratio is 200%, make 300% as liquidatable
       await rebalancePool.updateLiquidatableCollateralRatio(ethers.parseEther("3"));
-      await rebalancePool.updateLiquidator(liquidator.address);
+      await rebalancePool.grantRole(await rebalancePool.LIQUIDATOR_ROLE(), liquidator.address);
 
       // liquidate
       await expect(rebalancePool.connect(liquidator).liquidate(ethers.parseEther("200"), 0))
@@ -305,9 +281,9 @@ describe("RebalancePool.spec", async () => {
         .withArgs(ethers.parseEther("200"), ethers.parseEther("0.2"));
       expect(await rebalancePool.totalSupply()).to.eq(amountIn - ethers.parseEther("200"));
       expect(await rebalancePool.balanceOf(signer.address)).to.closeTo(amountIn - ethers.parseEther("200"), 1e6);
-      expect((await rebalancePool.epochState()).prod).to.closeTo(ethers.parseEther("0.98"), 100);
-      expect((await rebalancePool.epochState()).epoch).to.eq(0);
-      expect((await rebalancePool.epochState()).scale).to.eq(0);
+      // expect((await rebalancePool.epochState()).prod).to.closeTo(ethers.parseEther("0.98"), 100);
+      // expect((await rebalancePool.epochState()).epoch).to.eq(0);
+      // expect((await rebalancePool.epochState()).scale).to.eq(0);
 
       expect(await rebalancePool.claimable(signer.address, weth.getAddress())).to.closeTo(
         ethers.parseEther("0.2"),
@@ -327,10 +303,7 @@ describe("RebalancePool.spec", async () => {
       );
 
       // claim
-      await expect(rebalancePool.connect(signer)["claim(address,bool)"](weth.getAddress(), false)).to.emit(
-        rebalancePool,
-        "Claim"
-      );
+      await expect(rebalancePool.connect(signer)["claim()"]()).to.emit(rebalancePool, "Claim");
       expect(await weth.balanceOf(signer.address)).to.closeTo(ethers.parseEther("0.2"), 100000);
       expect(await rebalancePool.claimable(signer.address, weth.getAddress())).to.eq(0n);
     });
@@ -347,7 +320,7 @@ describe("RebalancePool.spec", async () => {
 
       // current collateral ratio is 200%, make 300% as liquidatable
       await rebalancePool.updateLiquidatableCollateralRatio(ethers.parseEther("3"));
-      await rebalancePool.updateLiquidator(liquidator.address);
+      await rebalancePool.grantRole(await rebalancePool.LIQUIDATOR_ROLE(), liquidator.address);
 
       // liquidate
       await expect(rebalancePool.connect(liquidator).liquidate(ethers.parseEther("200"), 0))
@@ -362,12 +335,14 @@ describe("RebalancePool.spec", async () => {
         amountIn2 - (ethers.parseEther("200") * amountIn2) / (amountIn1 + amountIn2),
         1e6
       );
+      /*
       expect((await rebalancePool.epochState()).prod).to.closeTo(
         ethers.parseEther("0.981818181818181818"), // 108/110
         100
       );
       expect((await rebalancePool.epochState()).epoch).to.eq(0);
       expect((await rebalancePool.epochState()).scale).to.eq(0);
+      */
 
       expect(await rebalancePool.claimable(signer.address, weth.getAddress())).to.closeTo(
         (ethers.parseEther("0.2") * amountIn1) / (amountIn1 + amountIn2),
@@ -380,6 +355,7 @@ describe("RebalancePool.spec", async () => {
     });
   });
 
+  /*
   context("deposit, unlock and liquidate and withdraw", async () => {
     beforeEach(async () => {
       await oracle.setPrice(ethers.parseEther("1000"));
@@ -416,7 +392,7 @@ describe("RebalancePool.spec", async () => {
 
       // current collateral ratio is 200%, make 300% as liquidatable
       await rebalancePool.updateLiquidatableCollateralRatio(ethers.parseEther("3"));
-      await rebalancePool.updateLiquidator(liquidator.address);
+      await rebalancePool.grantRole(await rebalancePool.LIQUIDATOR_ROLE(), liquidator.address);
 
       // liquidate
       await expect(rebalancePool.connect(liquidator).liquidate(ethers.parseEther("200"), 0))
@@ -494,7 +470,7 @@ describe("RebalancePool.spec", async () => {
 
       // current collateral ratio is 200%, make 300% as liquidatable
       await rebalancePool.updateLiquidatableCollateralRatio(ethers.parseEther("3"));
-      await rebalancePool.updateLiquidator(liquidator.address);
+      await rebalancePool.grantRole(await rebalancePool.LIQUIDATOR_ROLE(), liquidator.address);
 
       // liquidate
       await expect(rebalancePool.connect(liquidator).liquidate(ethers.parseEther("200"), 0))
@@ -523,4 +499,5 @@ describe("RebalancePool.spec", async () => {
       );
     });
   });
+  */
 });

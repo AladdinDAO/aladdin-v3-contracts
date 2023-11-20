@@ -1,18 +1,43 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import { EnumerableSet } from "@openzeppelin/contracts/utils/EnumerableSet.sol";
+import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
+import { EnumerableSet } from "@openzeppelin/contracts-v4/utils/structs/EnumerableSet.sol";
 
 import { IFxRebalancePool } from "../../interfaces/f(x)/IFxRebalancePool.sol";
 import { IFxRebalancePoolSplitter } from "../../interfaces/f(x)/IFxRebalancePoolSplitter.sol";
 
-contract RebalancePoolSplitter is Ownable, IFxRebalancePoolSplitter {
+contract RebalancePoolSplitter is Ownable2Step, IFxRebalancePoolSplitter {
   using SafeERC20 for IERC20;
   using EnumerableSet for EnumerableSet.AddressSet;
+
+  /**********
+   * Errors *
+   **********/
+
+  /// @dev Thrown when caller is not splitter.
+  error ErrorCallerIsNotSplitter();
+
+  /// @dev Thrown when add an already added receiver.
+  error ErrorReceiverAlreadyAdded();
+
+  /// @dev Thrown when remove an unkown receiver.
+  error ErrorUnknownReceiver();
+
+  /// @dev Thrown when try to withdraw protected token.
+  error ErrorWithdrawTokenWithSplitter();
+
+  /// @dev Thrown when then length of `receivers` and `ratios` are mismatched.
+  error ErrorLengthMismatch();
+
+  /// @dev Thrown when the split ratio is larger then 1e9.
+  error ErrorSplitRatioTooLarge();
+
+  /// @dev Thrown when the sum of all split ratios is not 1e9.
+  error ErrorSplitRatioSumMismatch();
 
   /*************
    * Constants *
@@ -66,7 +91,7 @@ contract RebalancePoolSplitter is Ownable, IFxRebalancePoolSplitter {
 
   /// @inheritdoc IFxRebalancePoolSplitter
   function split(address _token) external override {
-    require(splitter[_token] == msg.sender, "caller is not splitter");
+    if (splitter[_token] != _msgSender()) revert ErrorCallerIsNotSplitter();
 
     uint256 _balance = IERC20(_token).balanceOf(address(this));
     EnumerableSet.AddressSet storage _receivers = receivers[_token];
@@ -110,7 +135,7 @@ contract RebalancePoolSplitter is Ownable, IFxRebalancePoolSplitter {
     uint256[] memory _ratios
   ) external onlyOwner {
     EnumerableSet.AddressSet storage _receivers = receivers[_token];
-    require(_receivers.add(_receiver), "receiver already added");
+    if (!_receivers.add(_receiver)) revert ErrorReceiverAlreadyAdded();
 
     emit RegisterReceiver(_token, _receiver);
 
@@ -127,7 +152,7 @@ contract RebalancePoolSplitter is Ownable, IFxRebalancePoolSplitter {
     uint256[] memory _ratios
   ) external onlyOwner {
     EnumerableSet.AddressSet storage _receivers = receivers[_token];
-    require(_receivers.remove(_receiver), "receiver not added before");
+    if (!_receivers.remove(_receiver)) revert ErrorUnknownReceiver();
 
     emit DeregisterReceiver(_token, _receiver);
 
@@ -145,7 +170,7 @@ contract RebalancePoolSplitter is Ownable, IFxRebalancePoolSplitter {
   /// @param _token The address of token to withdraw.
   /// @param _recipient The address of token receiver.
   function withdrawFund(address _token, address _recipient) external onlyOwner {
-    require(splitter[_token] == address(0), "withdraw token with splitter");
+    if (splitter[_token] != address(0)) revert ErrorWithdrawTokenWithSplitter();
 
     uint256 _balance = IERC20(_token).balanceOf(address(this));
     IERC20(_token).safeTransfer(_recipient, _balance);
@@ -161,16 +186,16 @@ contract RebalancePoolSplitter is Ownable, IFxRebalancePoolSplitter {
   function _updateSplitRatios(address _token, uint256[] memory _ratios) private {
     EnumerableSet.AddressSet storage _receivers = receivers[_token];
     uint256 _length = _receivers.length();
-    require(_length == _ratios.length, "length mismtach");
+    if (_length != _ratios.length) revert ErrorLengthMismatch();
 
     uint256 _sum;
     uint256 _encoding;
     for (uint256 i = 0; i < _length; i++) {
-      require(_ratios[i] <= PRECISION, "split ratio too large");
+      if (_ratios[i] > PRECISION) revert ErrorSplitRatioTooLarge();
       _sum += _ratios[i];
       _encoding |= _ratios[i] << (i * 32);
     }
-    require(_length == 0 || _sum == PRECISION, "sum not 10^9");
+    if (_length > 0 && _sum != PRECISION) revert ErrorSplitRatioSumMismatch();
 
     ratioEncoding[_token] = _encoding;
 
