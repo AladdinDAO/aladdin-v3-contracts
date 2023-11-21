@@ -171,6 +171,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
 
     // access control
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    _grantRole(REWARD_MANAGER_ROLE, _msgSender());
 
     treasury = _treasury;
     market = _market;
@@ -373,7 +374,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   function _checkpoint(address _account) internal virtual override {
     // fetch FXN from gauge every 24h
     Gauge memory _gauge = gauge;
-    if (block.timestamp > uint256(_gauge.claimAt) + DAY) {
+    if (_gauge.gauge != address(0) && block.timestamp > uint256(_gauge.claimAt) + DAY) {
       uint256 _balance = IERC20Upgradeable(fxn).balanceOf(address(this));
       ICurveTokenMinter(minter).mint(_gauge.gauge);
       uint256 _minted = IERC20Upgradeable(fxn).balanceOf(address(this)) - _balance;

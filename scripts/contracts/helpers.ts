@@ -1,8 +1,10 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import editJsonFile from "edit-json-file";
 import { BaseContract, BytesLike, Result, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
 import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
+import { selectDeployments } from "@/utils/deploys";
 
 function replacer(key: any, value: any) {
   if (typeof value === "bigint") return value.toString();
@@ -118,6 +120,7 @@ export const ExpectedDeployers: { [network: string]: string } = {
   mainnet: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
   hermez: "0xa1d0a635f7b447b06836d9aC773b03f1F706bBC4",
   fork_mainnet_10548: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
+  fork_mainnet_10547: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
 };
 
 export async function ensureDeployer(network: string): Promise<HardhatEthersSigner> {
@@ -130,4 +133,54 @@ export async function ensureDeployer(network: string): Promise<HardhatEthersSign
     `balance[${ethers.formatEther(await ethers.provider.getBalance(deployer.address))}]`
   );
   return deployer;
+}
+
+export class DeploymentHelper {
+  public readonly storage: editJsonFile.JsonEditor;
+  public readonly deployer: HardhatEthersSigner;
+  public readonly overrides?: PayableOverrides;
+
+  constructor(network: string, namespace: string, deployer: HardhatEthersSigner, overrides?: PayableOverrides) {
+    this.storage = selectDeployments(network, namespace);
+    this.deployer = deployer;
+    this.overrides = overrides;
+  }
+
+  public async contractDeploy(selector: string, desc: string, name: string, args: Array<any>): Promise<string> {
+    if (!this.storage.get(selector)) {
+      const address = await contractDeploy(this.deployer, desc, name, args, this.overrides);
+      this.storage.set(selector, address);
+    } else {
+      console.log(`Found ${desc} at:`, this.storage.get(selector));
+    }
+    return this.storage.get(selector);
+  }
+
+  public async proxyDeploy(
+    selector: string,
+    desc: string,
+    implementation: string,
+    admin: string,
+    initializer: string
+  ): Promise<string> {
+    return this.contractDeploy(selector, desc, "TransparentUpgradeableProxy", [implementation, admin, initializer]);
+  }
+
+  public async minimalProxyDeploy(selector: string, desc: string, implementation: string): Promise<string> {
+    if (!this.storage.get(selector)) {
+      const address = await minimalProxyDeploy(this.deployer, desc, implementation, this.overrides);
+      this.storage.set(selector, address);
+    } else {
+      console.log(`Found ${desc} at:`, this.storage.get(selector));
+    }
+    return this.storage.get(selector);
+  }
+
+  public get(selector: string): any {
+    return this.storage.get(selector);
+  }
+
+  public toObject(): object {
+    return this.storage.toObject();
+  }
 }

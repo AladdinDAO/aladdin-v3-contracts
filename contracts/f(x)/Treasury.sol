@@ -547,6 +547,17 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     emit UpdateBaseTokenCap(_baseTokenCap);
   }
 
+  /// @notice Update the EMA sample interval.
+  /// @param _sampleInterval The new EMA sample interval.
+  function updateEMASampleInterval(uint24 _sampleInterval) external onlyOwner {
+    require(_sampleInterval >= 1 minutes, "EMA sample interval too small");
+
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
+    _updateEMALeverageRatio(_state);
+
+    emaLeverageRatio.sampleInterval = _sampleInterval;
+  }
+
   /**********************
    * Internal Functions *
    **********************/
