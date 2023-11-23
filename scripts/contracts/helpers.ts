@@ -1,6 +1,6 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import editJsonFile from "edit-json-file";
-import { BaseContract, BytesLike, Result, TransactionReceipt, ZeroAddress, ZeroHash, concat } from "ethers";
+import { BaseContract, BytesLike, Result, TransactionReceipt, ZeroAddress, ZeroHash, concat, id } from "ethers";
 import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
@@ -20,7 +20,7 @@ export async function contractDeploy(
 ): Promise<string> {
   const contract = await ethers.getContractFactory(name, deployer);
 
-  console.log(`\nDeploying ${desc} ...`);
+  console.log(`>> Deploying ${desc} ...`);
   console.log("  args:", JSON.stringify(args, replacer));
   const instance = overrides ? await contract.deploy(...args, overrides) : await contract.deploy(...args);
   console.log(`  TransactionHash[${instance.deploymentTransaction()?.hash}]`);
@@ -37,7 +37,7 @@ export async function minimalProxyDeploy(
   implementation: string,
   overrides?: PayableOverrides
 ): Promise<string> {
-  console.log(`\nDeploying Minimal Proxy for ${name} ...`);
+  console.log(`>> Deploying Minimal Proxy for ${name} ...`);
   const tx = await deployer.sendTransaction({
     data: concat(["0x3d602d80600a3d3981f3363d3d373d3d3d363d73", implementation, "0x5af43d82803e903d91602b57fd5bf3"]),
     gasPrice: overrides?.gasPrice,
@@ -59,7 +59,7 @@ export async function contractCall(
   args: Array<any>,
   overrides?: PayableOverrides
 ): Promise<TransactionReceipt> {
-  console.log(`\n${desc}`);
+  console.log(`>> ${desc}`);
   console.log("  target:", await contract.getAddress());
   console.log("  method:", method);
   console.log("  args:", JSON.stringify(args, replacer));
@@ -98,7 +98,7 @@ export async function ownerContractCall(
   if (owner.toLowerCase() === (await signer.getAddress()).toLowerCase()) {
     return contractCall(contract, desc, method, args, overrides);
   } else {
-    console.log(`\n${desc}:`);
+    console.log(`>> ${desc}:`);
     console.log("  owner/admin:", owner);
     console.log("  target:", await contract.getAddress());
     console.log("  method:", method);
@@ -136,23 +136,36 @@ export async function ensureDeployer(network: string): Promise<HardhatEthersSign
 }
 
 export class DeploymentHelper {
+  public static marker: Record<string, boolean> = {};
+  public readonly network: string;
+  public readonly namespace: string;
   public readonly storage: editJsonFile.JsonEditor;
   public readonly deployer: HardhatEthersSigner;
   public readonly overrides?: PayableOverrides;
 
   constructor(network: string, namespace: string, deployer: HardhatEthersSigner, overrides?: PayableOverrides) {
+    this.network = network;
+    this.namespace = namespace;
     this.storage = selectDeployments(network, namespace);
     this.deployer = deployer;
     this.overrides = overrides;
+
+    const key = id(this.network + this.namespace);
+    if (!DeploymentHelper.marker[key]) {
+      DeploymentHelper.marker[key] = true;
+      console.log(`\nNetwork[${network}] Namespace[${namespace}]`);
+    }
   }
 
   public async contractDeploy(selector: string, desc: string, name: string, args: Array<any>): Promise<string> {
+    const key = id(this.network + this.namespace + selector);
     if (!this.storage.get(selector)) {
       const address = await contractDeploy(this.deployer, desc, name, args, this.overrides);
       this.storage.set(selector, address);
-    } else {
-      console.log(`Found ${desc} at:`, this.storage.get(selector));
+    } else if (!DeploymentHelper.marker[key]) {
+      console.log(`  Found ${desc} at:`, this.storage.get(selector));
     }
+    DeploymentHelper.marker[key] = true;
     return this.storage.get(selector);
   }
 
@@ -167,12 +180,14 @@ export class DeploymentHelper {
   }
 
   public async minimalProxyDeploy(selector: string, desc: string, implementation: string): Promise<string> {
+    const key = id(this.network + this.namespace + selector);
     if (!this.storage.get(selector)) {
       const address = await minimalProxyDeploy(this.deployer, desc, implementation, this.overrides);
       this.storage.set(selector, address);
-    } else {
-      console.log(`Found ${desc} at:`, this.storage.get(selector));
+    } else if (!DeploymentHelper.marker[key]) {
+      console.log(`  Found ${desc} at:`, this.storage.get(selector));
     }
+    DeploymentHelper.marker[key] = true;
     return this.storage.get(selector);
   }
 

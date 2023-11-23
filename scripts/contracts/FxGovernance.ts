@@ -589,6 +589,27 @@ export async function initialize(
         overrides
       );
     }
+    const REWARD_MANAGER_ROLE = await gauge.REWARD_MANAGER_ROLE();
+    if (!(await gauge.hasRole(REWARD_MANAGER_ROLE, deployer.address))) {
+      await ownerContractCall(
+        gauge,
+        `SharedLiquidityGauge for ${name} grant REWARD_MANAGER_ROLE`,
+        "grantRole",
+        [REWARD_MANAGER_ROLE, deployer.address],
+        overrides
+      );
+    }
+    for (const token of ["CRV", "CVX"]) {
+      if ((await gauge.distributors(TOKENS[token].address)) === ZeroAddress) {
+        await ownerContractCall(
+          gauge,
+          `SharedLiquidityGauge for ${name} add extra reward ${token}`,
+          "registerRewardToken",
+          [TOKENS[token].address, await manager.getAddress()],
+          overrides
+        );
+      }
+    }
     await addGauge(controller, name, await gauge.getAddress(), 0);
   }
   // Setup FundraisingGauge

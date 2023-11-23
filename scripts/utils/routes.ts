@@ -1,5 +1,5 @@
 import { ADDRESS } from "./address";
-import { Action, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3 } from "./codec";
+import { Action, decodePoolV3, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3 } from "./codec";
 import { TOKENS } from "./tokens";
 
 export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
@@ -640,9 +640,14 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
   },
 };
 
-export function showConverterRoute(src: string, dst: string) {
+export function showConverterRoute(src: string, dst: string, space?: number) {
+  const routes = CONVERTER_ROUTRS[src][dst];
   console.log(
-    `convert ${src}[${TOKENS[src].address}] => ${dst}[${TOKENS[dst].address}]:`,
-    `[${CONVERTER_ROUTRS[src][dst].map((r) => `"0x${r.toString(16)}"`).join(",")}]`
+    " ".repeat(space ?? 0),
+    `${src}[${TOKENS[src].address}] => ${dst}[${TOKENS[dst].address}]:`,
+    `[${routes.map((r) => `"0x${r.toString(16)}"`).join(",")}]`
   );
+  routes.forEach((route, index) => {
+    console.log(" ".repeat(space ?? 0), `  route #${index + 1}: ${decodePoolV3(route)}`);
+  });
 }

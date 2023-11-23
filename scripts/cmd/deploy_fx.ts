@@ -17,13 +17,14 @@ async function main() {
   };
   const deployer = await ensureDeployer(network.name);
 
+  console.log("\nFx Convert Routes:");
   for (const [src, dst] of [
     ["stETH", "WETH"],
     ["stETH", "USDC"],
     ["stETH", "USDT"],
     ["stETH", "wstETH"],
   ]) {
-    showConverterRoute(src, dst);
+    showConverterRoute(src, dst, 2);
   }
 
   const governance = await FxGovernance.deploy(deployer, overrides);

@@ -68,7 +68,6 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   const admin = await ProxyAdmin.deploy(deployer);
   const governance = await FxGovernance.deploy(deployer, overrides);
 
-  console.log("");
   const deployment = new DeploymentHelper(network.name, "Fx.stETH", deployer, overrides);
 
   // deploy implementation
