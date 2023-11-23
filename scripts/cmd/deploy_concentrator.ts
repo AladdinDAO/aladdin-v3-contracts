@@ -4,9 +4,10 @@ import { toBigInt } from "ethers";
 import { ensureDeployer } from "@/contracts/helpers";
 import * as ConcentratorCVX from "@/contracts/ConcentratorCVX";
 import * as ConcentratorFrxETH from "@/contracts/ConcentratorFrxETH";
+import * as ConcentratorStakeDAO from "@/contracts/ConcentratorStakeDAO";
 import { showConverterRoute } from "../utils";
 
-const maxFeePerGas = 30e9;
+const maxFeePerGas = 50e9;
 const maxPriorityFeePerGas = 0.1e9;
 
 async function main() {
@@ -27,6 +28,12 @@ async function main() {
     showConverterRoute("CURVE_ETH/frxETH", "aCRV");
     const frxeth = await ConcentratorFrxETH.deploy(deployer, overrides);
     await ConcentratorFrxETH.initialize(deployer, frxeth, overrides);
+  }
+
+  if (cmd === "sdcrv") {
+    showConverterRoute("sdCRV", "aCRV");
+    const sdcrv = await ConcentratorStakeDAO.deploy(deployer, overrides);
+    await ConcentratorStakeDAO.initialize(deployer, sdcrv, overrides);
   }
 }
 

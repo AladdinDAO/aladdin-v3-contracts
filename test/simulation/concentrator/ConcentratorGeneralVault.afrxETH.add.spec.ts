@@ -4,10 +4,9 @@ import { expect } from "chai";
 import { MaxUint256, ZeroAddress } from "ethers";
 import { ethers, network } from "hardhat";
 
+import { request_fork } from "@/test/utils";
 import { AladdinZap, ConcentratorAladdinETHVault, ConcentratorGateway, IConvexBooster, IERC20 } from "@/types/index";
 import { ADDRESS, AVAILABLE_VAULTS, DEPLOYED_CONTRACTS, DEPLOYED_VAULTS, TOKENS, ZAP_ROUTES } from "@/utils/index";
-
-import { request_fork } from "../../utils";
 
 const strategies: {
   factory: string;
@@ -202,24 +201,6 @@ describe("ConcentratorGeneralVault.afrxETH.add.spec", async () => {
   let gateway: ConcentratorGateway;
 
   if (PRINT_ZAP) {
-    DEPLOYED_VAULTS.afrxETH.forEach(({ name, fees }) => {
-      const config = AVAILABLE_VAULTS[name];
-      const fork = POOL_FORK_CONFIG[name];
-      if (fork === undefined) {
-        return;
-      }
-      if (!POOLS.includes(name)) return;
-
-      console.log(
-        `add pool[${name}]:`,
-        `convexCurveID[${config.convexCurveID}]`,
-        `gauge[${config.gauge}]`,
-        `rewards[${config.rewards}]`,
-        `withdrawFee[${fees.withdraw}]`,
-        `platformFee[${fees.platform}]`,
-        `harvestBounty[${fees.harvest}]`
-      );
-    });
     console.log("{");
     DEPLOYED_VAULTS.afrxETH.forEach(({ name }) => {
       const config = AVAILABLE_VAULTS[name];
