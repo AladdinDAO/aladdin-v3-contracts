@@ -5,16 +5,16 @@ pragma solidity ^0.7.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import "../interfaces/IYieldStrategy.sol";
+import "../../interfaces/clever/ICLeverYieldStrategy.sol";
 
 /// @title YieldStrategyBase for CLever and Furnace.
-abstract contract YieldStrategyBase is IYieldStrategy {
+abstract contract YieldStrategyBase is ICLeverYieldStrategy {
   using SafeERC20 for IERC20;
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   address public immutable override yieldToken;
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   address public immutable override underlyingToken;
 
   /// @notice The address of operator.
@@ -39,18 +39,18 @@ abstract contract YieldStrategyBase is IYieldStrategy {
     operator = _operator;
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function migrate(address _strategy) external virtual override onlyOperator returns (uint256 _yieldAmount) {
     address _yieldToken = yieldToken;
     _yieldAmount = IERC20(_yieldToken).balanceOf(address(this));
     IERC20(_yieldToken).safeTransfer(_strategy, _yieldAmount);
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   // solhint-disable-next-line no-empty-blocks
   function onMigrateFinished(uint256 _yieldAmount) external virtual override onlyOperator {}
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function execute(
     address _to,
     uint256 _value,

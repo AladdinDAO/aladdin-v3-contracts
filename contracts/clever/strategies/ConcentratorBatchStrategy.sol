@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./ConcentratorStrategy.sol";
-import "../interfaces/ICurveSwapPool.sol";
+import "../../interfaces/ICurveBasePool.sol";
 import "../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
 import "../../concentrator/interfaces/IAladdinCRV.sol";
 import "../../interfaces/IZap.sol";
@@ -37,7 +37,7 @@ contract ConcentratorBatchStrategy is Ownable, ConcentratorStrategy {
     threshold = _threshold;
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function deposit(
     address,
     uint256 _amount,
@@ -50,7 +50,7 @@ contract ConcentratorBatchStrategy is Ownable, ConcentratorStrategy {
     }
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function withdraw(
     address _recipient,
     uint256 _amount,

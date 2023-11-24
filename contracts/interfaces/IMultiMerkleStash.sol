@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.0 || ^0.8.0;
 pragma abicoder v2;
 
-interface IVotiumMultiMerkleStash {
+interface IMultiMerkleStash {
   // solhint-disable-next-line contract-name-camelcase
   struct claimParam {
     address token;
@@ -13,6 +13,8 @@ interface IVotiumMultiMerkleStash {
   }
 
   function isClaimed(address token, uint256 index) external view returns (bool);
+
+  function merkleRoot(address token) external returns (bytes32);
 
   function claim(
     address token,

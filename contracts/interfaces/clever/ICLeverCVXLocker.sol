@@ -3,8 +3,6 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "./IVotiumMultiMerkleStash.sol";
-
 interface ICLeverCVXLocker {
   event Deposit(address indexed _account, uint256 _amount);
   event Unlock(address indexed _account, uint256 _amount);

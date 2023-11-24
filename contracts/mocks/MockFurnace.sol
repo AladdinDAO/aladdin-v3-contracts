@@ -4,8 +4,8 @@ pragma solidity ^0.7.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../clever/interfaces/ICLeverToken.sol";
-import "../clever/interfaces/IMetaFurnace.sol";
+import "../interfaces/clever/ICLeverToken.sol";
+import "../interfaces/clever/IMetaFurnace.sol";
 
 // solhint-disable reason-string, no-empty-blocks
 

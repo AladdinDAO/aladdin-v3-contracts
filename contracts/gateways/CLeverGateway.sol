@@ -5,7 +5,7 @@ pragma solidity ^0.7.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import "../clever/interfaces/IMetaCLever.sol";
+import "../interfaces/clever/IMetaCLever.sol";
 import "../zap/TokenZapLogic.sol";
 import "./ZapGatewayBase.sol";
 
