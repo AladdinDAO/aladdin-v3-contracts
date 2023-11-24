@@ -31,24 +31,24 @@ contract AladdinCRVStrategy is YieldStrategyBase {
     IERC20(CRV).safeApprove(aCRV, uint256(-1));
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function underlyingPrice() external view override returns (uint256) {
     uint256 _totalUnderlying = IAladdinCRV(aCRV).totalUnderlying();
     uint256 _totalSupply = IERC20(aCRV).totalSupply();
     return (_totalUnderlying * 1e18) / _totalSupply;
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function totalUnderlyingToken() external view override returns (uint256) {
     return IAladdinCRV(aCRV).balanceOfUnderlying(address(this));
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function totalYieldToken() external view override returns (uint256) {
     return IERC20(aCRV).balanceOf(address(this));
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function deposit(
     address,
     uint256 _amount,
@@ -61,7 +61,7 @@ contract AladdinCRVStrategy is YieldStrategyBase {
     }
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function withdraw(
     address _recipient,
     uint256 _amount,
@@ -75,7 +75,7 @@ contract AladdinCRVStrategy is YieldStrategyBase {
     }
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function harvest()
     external
     virtual

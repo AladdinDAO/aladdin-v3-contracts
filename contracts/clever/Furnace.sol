@@ -6,8 +6,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import "./interfaces/ICLeverToken.sol";
-import "./interfaces/IFurnace.sol";
+import "../interfaces/clever/ICLeverToken.sol";
+import "../interfaces/clever/IFurnace.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
 import "../interfaces/IZap.sol";
 

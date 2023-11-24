@@ -7,12 +7,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import "./interfaces/ICLeverCVXLocker.sol";
-import "./interfaces/ICLeverToken.sol";
-import { ICommitUserSurrogate } from "./interfaces/ICommitUserSurrogate.sol";
-import "./interfaces/IFurnace.sol";
+import "../interfaces/clever/ICLeverCVXLocker.sol";
+import "../interfaces/clever/ICLeverToken.sol";
+import "../interfaces/clever/IFurnace.sol";
+import { ICommitUserSurrogate } from "../interfaces/convex/ICommitUserSurrogate.sol";
 import "../interfaces/IConvexCVXLocker.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
+import { IMultiMerkleStash } from "../interfaces/IMultiMerkleStash.sol";
 import "../interfaces/ISnapshotDelegateRegistry.sol";
 import "../interfaces/IZap.sol";
 import "../voting/ISignatureVerifier.sol";
@@ -603,7 +604,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @param _minimumOut - The minimum amount of CVX should get.
   /// @return The amount of CVX harvested.
   function harvestVotium(
-    IVotiumMultiMerkleStash.claimParam[] calldata claims,
+    IMultiMerkleStash.claimParam[] calldata claims,
     uint256[][] calldata _routes,
     uint256 _minimumOut
   ) external onlyKeeper returns (uint256) {
@@ -612,8 +613,8 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     // 1. claim reward from votium
     for (uint256 i = 0; i < claims.length; i++) {
       // in case someone has claimed the reward for this contract, we can still call this function to process reward.
-      if (!IVotiumMultiMerkleStash(VOTIUM_DISTRIBUTOR).isClaimed(claims[i].token, claims[i].index)) {
-        IVotiumMultiMerkleStash(VOTIUM_DISTRIBUTOR).claim(
+      if (!IMultiMerkleStash(VOTIUM_DISTRIBUTOR).isClaimed(claims[i].token, claims[i].index)) {
+        IMultiMerkleStash(VOTIUM_DISTRIBUTOR).claim(
           claims[i].token,
           claims[i].index,
           address(this),

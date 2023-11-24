@@ -6,7 +6,7 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import "../clever/interfaces/IMetaCLever.sol";
+import "../interfaces/clever/IMetaCLever.sol";
 import "../concentrator/interfaces/IAladdinCRVConvexVault.sol";
 import "../interfaces/IBalancerPool.sol";
 import "../interfaces/IBalancerVault.sol";

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface IYieldStrategy {
+interface ICLeverYieldStrategy {
   /// @notice Return the the address of the yield token.
   function yieldToken() external view returns (address);
 

@@ -8,11 +8,11 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
+import "../../interfaces/clever/IMetaCLever.sol";
+import "../../interfaces/clever/IMetaFurnace.sol";
+import "../../interfaces/clever/ICLeverToken.sol";
+import "../../interfaces/clever/ICLeverYieldStrategy.sol";
 import "../../interfaces/IERC20Metadata.sol";
-import "../interfaces/IMetaCLever.sol";
-import "../interfaces/IMetaFurnace.sol";
-import "../interfaces/ICLeverToken.sol";
-import "../interfaces/IYieldStrategy.sol";
 
 // solhint-disable not-rely-on-time, max-states-count, reason-string
 
@@ -334,7 +334,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
       _amount = IERC20Upgradeable(_token).balanceOf(_strategy).sub(_beforeBalance);
     }
     // @note reuse `_amount` to store the actual yield token deposited.
-    _amount = IYieldStrategy(_strategy).deposit(_recipient, _amount, _isUnderlying);
+    _amount = ICLeverYieldStrategy(_strategy).deposit(_recipient, _amount, _isUnderlying);
 
     // 2. update harvestable yield token
     _updateHarvestable(_strategyIndex);
@@ -412,7 +412,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
 
     // 7. withdraw token from yield strategy
     // @note The variable `_amount` is reused as the amount of token received after withdraw.
-    _amount = IYieldStrategy(_yieldStrategy.strategy).withdraw(_recipient, _amount, _asUnderlying);
+    _amount = ICLeverYieldStrategy(_yieldStrategy.strategy).withdraw(_recipient, _amount, _asUnderlying);
     require(_amount >= _minAmountOut, "CLever: insufficient output");
 
     emit Withdraw(_strategyIndex, msg.sender, _share, _amount);
@@ -562,7 +562,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
       uint256 _harvestable = (_harvestableYieldTokenAmount * yieldTokenHarvestPercentage[_strategyIndex]) /
         FEE_PRECISION;
       if (_harvestable > 0) {
-        _harvestedUnderlyingTokenAmount = IYieldStrategy(_yieldStrategy.strategy).withdraw(
+        _harvestedUnderlyingTokenAmount = ICLeverYieldStrategy(_yieldStrategy.strategy).withdraw(
           address(this),
           _harvestable,
           true
@@ -577,7 +577,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
         uint256 _extraHarvestedUnderlyingTokenAmount,
         address[] memory _rewardTokens,
         uint256[] memory _amounts
-      ) = IYieldStrategy(_yieldStrategy.strategy).harvest();
+      ) = ICLeverYieldStrategy(_yieldStrategy.strategy).harvest();
 
       _harvestedUnderlyingTokenAmount += _extraHarvestedUnderlyingTokenAmount;
       _distributeExtraRewards(_strategyIndex, _rewardTokens, _amounts);
@@ -586,7 +586,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     require(_harvestedUnderlyingTokenAmount >= _minimumOut, "CLever: insufficient harvested amount");
 
     // 4. take fee
-    address _underlyingToken = IYieldStrategy(_yieldStrategy.strategy).underlyingToken();
+    address _underlyingToken = ICLeverYieldStrategy(_yieldStrategy.strategy).underlyingToken();
     FeeInfo memory _feeInfo = feeInfo;
     uint256 _platformFee;
     uint256 _harvestBounty;
@@ -656,11 +656,14 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
       require(yieldStrategies[i].strategy != _strategy, "CLever: add duplicated strategy");
     }
 
-    require(IERC20Metadata(IYieldStrategy(_strategy).underlyingToken()).decimals() <= 18, "CLever: decimals too large");
+    require(
+      IERC20Metadata(ICLeverYieldStrategy(_strategy).underlyingToken()).decimals() <= 18,
+      "CLever: decimals too large"
+    );
 
     yieldStrategies[_yieldStrategyIndex].strategy = _strategy;
-    yieldStrategies[_yieldStrategyIndex].underlyingToken = IYieldStrategy(_strategy).underlyingToken();
-    yieldStrategies[_yieldStrategyIndex].yieldToken = IYieldStrategy(_strategy).yieldToken();
+    yieldStrategies[_yieldStrategyIndex].underlyingToken = ICLeverYieldStrategy(_strategy).underlyingToken();
+    yieldStrategies[_yieldStrategyIndex].yieldToken = ICLeverYieldStrategy(_strategy).yieldToken();
     yieldStrategies[_yieldStrategyIndex].isActive = true;
     yieldStrategies[_yieldStrategyIndex].extraRewardTokens = _extraRewardTokens;
     yieldStrategyIndex = _yieldStrategyIndex + 1;
@@ -703,11 +706,11 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     address _oldStrategy = yieldStrategies[_strategyIndex].strategy;
     require(_oldStrategy != _newStrategy, "CLever: migrate to same strategy");
     require(
-      IYieldStrategy(_oldStrategy).yieldToken() == IYieldStrategy(_newStrategy).yieldToken(),
+      ICLeverYieldStrategy(_oldStrategy).yieldToken() == ICLeverYieldStrategy(_newStrategy).yieldToken(),
       "CLever: yield token mismatch"
     );
     require(
-      IYieldStrategy(_oldStrategy).underlyingToken() == IYieldStrategy(_newStrategy).underlyingToken(),
+      ICLeverYieldStrategy(_oldStrategy).underlyingToken() == ICLeverYieldStrategy(_newStrategy).underlyingToken(),
       "CLever: underlying token mismatch"
     );
 
@@ -715,9 +718,9 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     _updateHarvestable(_strategyIndex);
 
     // 2. do migration
-    uint256 _oldYieldAmount = IYieldStrategy(_oldStrategy).totalYieldToken();
-    uint256 _newYieldAmount = IYieldStrategy(_oldStrategy).migrate(_newStrategy);
-    IYieldStrategy(_newStrategy).onMigrateFinished(_newYieldAmount);
+    uint256 _oldYieldAmount = ICLeverYieldStrategy(_oldStrategy).totalYieldToken();
+    uint256 _newYieldAmount = ICLeverYieldStrategy(_oldStrategy).migrate(_newStrategy);
+    ICLeverYieldStrategy(_newStrategy).onMigrateFinished(_newYieldAmount);
 
     // 3. update yield strategy
     yieldStrategies[_strategyIndex].strategy = _newStrategy;
@@ -814,7 +817,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     uint256 _activeYieldTokenAmount = yieldStrategies[_strategyIndex].activeYieldTokenAmount;
     if (_activeYieldTokenAmount == 0) return;
 
-    uint256 _rate = IYieldStrategy(yieldStrategies[_strategyIndex].strategy).underlyingPrice();
+    uint256 _rate = ICLeverYieldStrategy(yieldStrategies[_strategyIndex].strategy).underlyingPrice();
 
     uint256 _currentUnderlyingTokenAmount = _activeYieldTokenAmount.mul(_rate) / PRECISION;
     uint256 _expectedUnderlyingTokenAmount = yieldStrategies[_strategyIndex].expectedUnderlyingTokenAmount;
@@ -837,7 +840,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     uint256 _activeYieldTokenAmount = yieldStrategies[_strategyIndex].activeYieldTokenAmount;
     uint256 _expectedUnderlyingTokenAmount = yieldStrategies[_strategyIndex].expectedUnderlyingTokenAmount;
 
-    uint256 _rate = IYieldStrategy(yieldStrategies[_strategyIndex].strategy).underlyingPrice();
+    uint256 _rate = ICLeverYieldStrategy(yieldStrategies[_strategyIndex].strategy).underlyingPrice();
 
     if (_delta > 0) {
       _activeYieldTokenAmount = _activeYieldTokenAmount.add(uint256(_delta));
@@ -959,7 +962,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     if (_totalShare == 0) return 0;
 
     uint256 _activeYieldTokenAmount = _calculateActiveYieldTokenAmount(_strategyIndex);
-    uint256 _rate = IYieldStrategy(yieldStrategies[_strategyIndex].strategy).underlyingPrice();
+    uint256 _rate = ICLeverYieldStrategy(yieldStrategies[_strategyIndex].strategy).underlyingPrice();
     uint256 _activeUnderlyingTokenAmount = (_activeYieldTokenAmount * _rate) / PRECISION;
 
     return (_activeUnderlyingTokenAmount * PRECISION) / _totalShare;
@@ -972,7 +975,7 @@ contract MetaCLever is OwnableUpgradeable, ReentrancyGuardUpgradeable, IMetaCLev
     uint256 _activeYieldTokenAmount = yieldStrategies[_strategyIndex].activeYieldTokenAmount;
     if (_activeYieldTokenAmount == 0) return 0;
 
-    uint256 _rate = IYieldStrategy(yieldStrategies[_strategyIndex].strategy).underlyingPrice();
+    uint256 _rate = ICLeverYieldStrategy(yieldStrategies[_strategyIndex].strategy).underlyingPrice();
 
     uint256 _currentUnderlyingTokenAmount = _activeYieldTokenAmount.mul(_rate) / PRECISION;
     uint256 _expectedUnderlyingTokenAmount = yieldStrategies[_strategyIndex].expectedUnderlyingTokenAmount;

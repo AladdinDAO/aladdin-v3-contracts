@@ -64,22 +64,22 @@ contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase
     return SdCRVLocker(vault).withdrawLockTime();
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function underlyingPrice() external pure override returns (uint256) {
     return 1e18;
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function totalUnderlyingToken() external view override returns (uint256) {
     return IStakeDAOCRVVault(vault).balanceOf(address(this));
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function totalYieldToken() external view override returns (uint256) {
     return IStakeDAOCRVVault(vault).balanceOf(address(this));
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function deposit(
     address,
     uint256 _amount,
@@ -93,7 +93,7 @@ contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase
     }
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function withdraw(
     address _recipient,
     uint256 _amount,
@@ -114,7 +114,7 @@ contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase
     return _amount;
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function harvest()
     external
     override
@@ -158,7 +158,7 @@ contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase
     return (_amountCRV, new address[](0), new uint256[](0));
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function migrate(address _strategy) external virtual override onlyOperator returns (uint256 _yieldAmount) {
     _yieldAmount = IStakeDAOCRVVault(vault).balanceOf(address(this));
     IStakeDAOCRVVault(vault).withdraw(_yieldAmount, address(this));

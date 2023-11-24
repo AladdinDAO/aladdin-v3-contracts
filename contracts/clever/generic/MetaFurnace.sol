@@ -7,10 +7,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
+import "../../interfaces/clever/ICLeverToken.sol";
+import "../../interfaces/clever/IMetaFurnace.sol";
+import "../../interfaces/clever/ICLeverYieldStrategy.sol";
 import "../../interfaces/IERC20Metadata.sol";
-import "../interfaces/ICLeverToken.sol";
-import "../interfaces/IMetaFurnace.sol";
-import "../interfaces/IYieldStrategy.sol";
 
 // solhint-disable reason-string, not-rely-on-time
 
@@ -189,7 +189,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     if (_info.strategy == address(0)) {
       return _balanceInContract;
     } else {
-      return _balanceInContract.add(IYieldStrategy(_info.strategy).totalUnderlyingToken());
+      return _balanceInContract.add(ICLeverYieldStrategy(_info.strategy).totalUnderlyingToken());
     }
   }
 
@@ -255,7 +255,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     if (_strategy == address(0)) return 0;
 
     // 1. harvest from yield strategy
-    (uint256 _amount, , ) = IYieldStrategy(_strategy).harvest();
+    (uint256 _amount, , ) = ICLeverYieldStrategy(_strategy).harvest();
     require(_amount >= _minimumOut, "Furnace: insufficient harvested amount");
 
     emit Harvest(msg.sender, _amount);
@@ -321,15 +321,15 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
 
     if (_yieldInfo.strategy != address(0)) {
       if (_strategy == address(0)) {
-        IYieldStrategy(_yieldInfo.strategy).withdraw(
+        ICLeverYieldStrategy(_yieldInfo.strategy).withdraw(
           address(this),
-          IYieldStrategy(_yieldInfo.strategy).totalYieldToken(),
+          ICLeverYieldStrategy(_yieldInfo.strategy).totalYieldToken(),
           true
         );
       } else {
         // migrate and notify
-        uint256 _totalMigrate = IYieldStrategy(_yieldInfo.strategy).migrate(_strategy);
-        IYieldStrategy(_strategy).onMigrateFinished(_totalMigrate);
+        uint256 _totalMigrate = ICLeverYieldStrategy(_yieldInfo.strategy).migrate(_strategy);
+        ICLeverYieldStrategy(_strategy).onMigrateFinished(_totalMigrate);
       }
     }
 
@@ -497,8 +497,8 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
       address _strategy = yieldInfo.strategy;
       // balance is not enough, with from yield strategy
       uint256 _yieldAmountToWithdraw = ((_baseAmount - _balanceInContract) * 1e18) /
-        IYieldStrategy(_strategy).underlyingPrice();
-      uint256 _diff = IYieldStrategy(_strategy).withdraw(address(this), _yieldAmountToWithdraw, true);
+        ICLeverYieldStrategy(_strategy).underlyingPrice();
+      uint256 _diff = ICLeverYieldStrategy(_strategy).withdraw(address(this), _yieldAmountToWithdraw, true);
       _baseAmount = _balanceInContract + _diff;
     }
     IERC20Upgradeable(_baseToken).safeTransfer(_recipient, _baseAmount);
@@ -543,12 +543,12 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
     YieldInfo memory _yieldInfo = yieldInfo;
     if (_yieldInfo.strategy != address(0)) {
       uint256 _exepctToStake = totalBaseTokenInPool().mul(_yieldInfo.percentage) / 1e5;
-      uint256 _balanceStaked = IYieldStrategy(_yieldInfo.strategy).totalUnderlyingToken();
+      uint256 _balanceStaked = ICLeverYieldStrategy(_yieldInfo.strategy).totalUnderlyingToken();
       if (_balanceStaked < _exepctToStake) {
         _exepctToStake = _exepctToStake - _balanceStaked;
         if (_exepctToStake >= _yieldInfo.threshold) {
           IERC20Upgradeable(baseToken).safeTransfer(_yieldInfo.strategy, _exepctToStake);
-          IYieldStrategy(_yieldInfo.strategy).deposit(address(this), _exepctToStake, true);
+          ICLeverYieldStrategy(_yieldInfo.strategy).deposit(address(this), _exepctToStake, true);
         }
       }
     }

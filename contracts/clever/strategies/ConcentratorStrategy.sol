@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./YieldStrategyBase.sol";
-import "../interfaces/ICurveSwapPool.sol";
+import "../../interfaces/ICurveBasePool.sol";
 import "../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
 import "../../concentrator/interfaces/IAladdinCRV.sol";
 import "../../interfaces/IZap.sol";
@@ -73,24 +73,24 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     IERC20(_yieldToken).safeApprove(_vault, uint256(-1));
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function underlyingPrice() public view override returns (uint256) {
-    return ICurveSwapPool(curvePool).get_virtual_price();
+    return ICurveBasePool(curvePool).get_virtual_price();
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   ///
   /// @dev It is just an estimation, not accurate amount.
   function totalUnderlyingToken() external view override returns (uint256) {
     return (_totalYieldToken() * underlyingPrice()) / 1e18;
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function totalYieldToken() external view override returns (uint256) {
     return _totalYieldToken();
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function deposit(
     address,
     uint256 _amount,
@@ -101,7 +101,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     IAladdinCRVConvexVault(vault).deposit(pid, _yieldAmount);
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function withdraw(
     address _recipient,
     uint256 _amount,
@@ -112,7 +112,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     _returnAmount = _zapAfterWithdraw(_recipient, _amount, _asUnderlying);
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function harvest()
     external
     virtual
@@ -153,7 +153,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     _amounts[0] = _aCRVAmount;
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function migrate(address _strategy) external virtual override onlyOperator returns (uint256 _yieldAmount) {
     IAladdinCRVConvexVault(vault).withdrawAllAndClaim(pid, 0, IAladdinCRVConvexVault.ClaimOption.None);
 
@@ -162,7 +162,7 @@ contract ConcentratorStrategy is Ownable, YieldStrategyBase {
     IERC20(_yieldToken).safeTransfer(_strategy, _yieldAmount);
   }
 
-  /// @inheritdoc IYieldStrategy
+  /// @inheritdoc ICLeverYieldStrategy
   function onMigrateFinished(uint256 _yieldAmount) external virtual override onlyOperator {
     IAladdinCRVConvexVault(vault).deposit(pid, _yieldAmount);
   }
