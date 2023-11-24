@@ -5,10 +5,11 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
-import "../ConcentratorGeneralVault.sol";
-import "../interfaces/IAladdinCompounder.sol";
+import "../../interfaces/concentrator/IAladdinCompounder.sol";
 import "../../interfaces/ICurveETHPool.sol";
 import "../../interfaces/IZap.sol";
+
+import "../ConcentratorGeneralVault.sol";
 
 // solhint-disable reason-string
 

@@ -6,7 +6,7 @@ import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable-v4
 
 import { WordCodec } from "../common/codec/WordCodec.sol";
 
-import { IConcentratorBase } from "./interfaces/IConcentratorBase.sol";
+import { IConcentratorBase } from "../interfaces/concentrator/IConcentratorBase.sol";
 
 // solhint-disable func-name-mixedcase
 // solhint-disable no-inline-assembly

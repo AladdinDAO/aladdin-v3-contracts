@@ -5,11 +5,12 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
-import "./interfaces/IAladdinSdCRVExtension.sol";
-import "../ConcentratorGeneralVault.sol";
-import "../interfaces/IAladdinCompounder.sol";
+import "../../interfaces/concentrator/IAladdinCompounder.sol";
+import "../../interfaces/concentrator/ISdCrvCompounder.sol";
 import "../../interfaces/ICurveETHPool.sol";
 import "../../interfaces/IZap.sol";
+
+import "../ConcentratorGeneralVault.sol";
 
 // solhint-disable reason-string
 
@@ -65,6 +66,6 @@ contract ConcentratorVaultForAsdCRV is ConcentratorGeneralVault {
     address _strategy = poolInfo[_pid].strategy.strategy;
     uint256 _amountCRV = IConcentratorStrategy(_strategy).harvest(zap, CRV);
 
-    return IAladdinSdCRVExtension(asdCRV).depositWithCRV(_amountCRV, address(this), 0);
+    return ISdCrvCompounder(asdCRV).depositWithCRV(_amountCRV, address(this), 0);
   }
 }

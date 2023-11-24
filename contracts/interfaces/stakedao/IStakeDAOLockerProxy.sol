@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.0 || ^0.8.0;
 pragma abicoder v2;
 
-import "./IStakeDAOMultiMerkleStash.sol";
+import { IMultiMerkleStash } from "../IMultiMerkleStash.sol";
 
 interface IStakeDAOLockerProxy {
   /// @notice Deposit staked token to StakeDAO gauge.
@@ -36,5 +36,5 @@ interface IStakeDAOLockerProxy {
   /// @notice Claim bribe rewards for sdCRV.
   /// @param _claims The claim parameters passing to StakeDAOMultiMerkleStash contract.
   /// @param _recipient The address of recipient who will receive the bribe rewards.
-  function claimBribeRewards(IStakeDAOMultiMerkleStash.claimParam[] memory _claims, address _recipient) external;
+  function claimBribeRewards(IMultiMerkleStash.claimParam[] memory _claims, address _recipient) external;
 }

@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 
 import "../YieldStrategyBase.sol";
 import "../../../common/fees/FeeCustomization.sol";
-import "../../../concentrator/stakedao/interfaces/IStakeDAOCRVVault.sol";
+import "../../../interfaces/concentrator/IConcentratorSdCrvVault.sol";
 import "../../../concentrator/stakedao/SdCRVLocker.sol";
 import "../../../interfaces/IZap.sol";
 
@@ -71,12 +71,12 @@ contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase
 
   /// @inheritdoc ICLeverYieldStrategy
   function totalUnderlyingToken() external view override returns (uint256) {
-    return IStakeDAOCRVVault(vault).balanceOf(address(this));
+    return IConcentratorSdCrvVault(vault).balanceOf(address(this));
   }
 
   /// @inheritdoc ICLeverYieldStrategy
   function totalYieldToken() external view override returns (uint256) {
-    return IStakeDAOCRVVault(vault).balanceOf(address(this));
+    return IConcentratorSdCrvVault(vault).balanceOf(address(this));
   }
 
   /// @inheritdoc ICLeverYieldStrategy
@@ -86,9 +86,9 @@ contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase
     bool _isUnderlying
   ) external override onlyOperator returns (uint256 _yieldAmount) {
     if (_isUnderlying) {
-      return IStakeDAOCRVVault(vault).depositWithCRV(_amount, address(this), 0);
+      return IConcentratorSdCrvVault(vault).depositWithCRV(_amount, address(this), 0);
     } else {
-      IStakeDAOCRVVault(vault).deposit(_amount, address(this));
+      IConcentratorSdCrvVault(vault).deposit(_amount, address(this));
       return _amount;
     }
   }
@@ -102,7 +102,7 @@ contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase
     require(!_asUnderlying, "cannot withdraw as underlying");
 
     // vault has withdraw fee, we need to subtract from it
-    IStakeDAOCRVVault(vault).withdraw(_amount, address(this));
+    IConcentratorSdCrvVault(vault).withdraw(_amount, address(this));
     uint256 _vaultWithdrawFee = FeeCustomization(vault).getFeeRate(VAULT_WITHDRAW_FEE_TYPE, address(this));
     if (_vaultWithdrawFee > 0) {
       _vaultWithdrawFee = (_amount * _vaultWithdrawFee) / FEE_PRECISION;
@@ -129,7 +129,7 @@ contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase
     uint256 _amountSDT = IERC20Upgradeable(SDT).balanceOf(address(this));
     uint256 _amountCRV = IERC20Upgradeable(CRV).balanceOf(address(this));
     uint256 _amount3CRV = IERC20Upgradeable(THREE_CRV).balanceOf(address(this));
-    IStakeDAOCRVVault(vault).claim(address(this), address(this));
+    IConcentratorSdCrvVault(vault).claim(address(this), address(this));
     _amountSDT = IERC20Upgradeable(SDT).balanceOf(address(this)) - _amountSDT;
     _amountCRV = IERC20Upgradeable(CRV).balanceOf(address(this)) - _amountCRV;
     _amount3CRV = IERC20Upgradeable(THREE_CRV).balanceOf(address(this)) - _amount3CRV;
@@ -160,8 +160,8 @@ contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase
 
   /// @inheritdoc ICLeverYieldStrategy
   function migrate(address _strategy) external virtual override onlyOperator returns (uint256 _yieldAmount) {
-    _yieldAmount = IStakeDAOCRVVault(vault).balanceOf(address(this));
-    IStakeDAOCRVVault(vault).withdraw(_yieldAmount, address(this));
+    _yieldAmount = IConcentratorSdCrvVault(vault).balanceOf(address(this));
+    IConcentratorSdCrvVault(vault).withdraw(_yieldAmount, address(this));
 
     _lockToken(_yieldAmount, _strategy);
   }

@@ -5,11 +5,11 @@ pragma solidity =0.8.20;
 import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
+import { IConcentratorStrategy } from "../../interfaces/concentrator/IConcentratorStrategy.sol";
 import { IConvexVirtualBalanceRewardPool } from "../../interfaces/convex/IConvexVirtualBalanceRewardPool.sol";
 import { ICvxRewardPool } from "../../interfaces/convex/ICvxRewardPool.sol";
 import { IStashTokenWrapper } from "../../interfaces/convex/IStashTokenWrapper.sol";
 import { IConvexBasicRewards } from "../../interfaces/IConvexBasicRewards.sol";
-import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
 
 import { AutoCompoundingStrategyBaseV2 } from "../strategies/AutoCompoundingStrategyBaseV2.sol";
 

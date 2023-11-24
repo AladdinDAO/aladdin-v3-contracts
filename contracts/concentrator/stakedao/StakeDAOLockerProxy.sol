@@ -8,9 +8,9 @@ import "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "./interfaces/IStakeDAOGauge.sol";
-import "./interfaces/IStakeDAOLockerProxy.sol";
-import "./interfaces/IStakeDAOMultiMerkleStash.sol";
+import "../../interfaces/stakedao/IStakeDAOGauge.sol";
+import "../../interfaces/stakedao/IStakeDAOLockerProxy.sol";
+import "../../interfaces/IMultiMerkleStash.sol";
 import "../../interfaces/ISnapshotDelegateRegistry.sol";
 import "../../voting/ISignatureVerifier.sol";
 
@@ -138,17 +138,14 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
   }
 
   /// @inheritdoc IStakeDAOLockerProxy
-  function claimBribeRewards(IStakeDAOMultiMerkleStash.claimParam[] memory _claims, address _recipient)
-    external
-    override
-  {
+  function claimBribeRewards(IMultiMerkleStash.claimParam[] memory _claims, address _recipient) external override {
     require(msg.sender == claimer, "only bribe claimer");
     uint256 _length = _claims.length;
     // 1. claim bribe rewards from StakeDAOMultiMerkleStash
     for (uint256 i = 0; i < _length; i++) {
       // in case someone has claimed the reward for this contract, we can still call this function to process reward.
-      if (!IStakeDAOMultiMerkleStash(MULTI_MERKLE_STASH).isClaimed(_claims[i].token, _claims[i].index)) {
-        IStakeDAOMultiMerkleStash(MULTI_MERKLE_STASH).claim(
+      if (!IMultiMerkleStash(MULTI_MERKLE_STASH).isClaimed(_claims[i].token, _claims[i].index)) {
+        IMultiMerkleStash(MULTI_MERKLE_STASH).claim(
           _claims[i].token,
           _claims[i].index,
           address(this),
@@ -156,7 +153,7 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
           _claims[i].merkleProof
         );
       } else {
-        bytes32 root = IStakeDAOMultiMerkleStash(MULTI_MERKLE_STASH).merkleRoot(_claims[i].token);
+        bytes32 root = IMultiMerkleStash(MULTI_MERKLE_STASH).merkleRoot(_claims[i].token);
         bytes32 node = keccak256(abi.encodePacked(_claims[i].index, address(this), _claims[i].amount));
         require(MerkleProofUpgradeable.verify(_claims[i].merkleProof, root, node), "invalid merkle proof");
       }
@@ -165,7 +162,7 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     // 2. transfer bribe rewards to _recipient
     for (uint256 i = 0; i < _length; i++) {
       address _token = _claims[i].token;
-      bytes32 _root = IStakeDAOMultiMerkleStash(MULTI_MERKLE_STASH).merkleRoot(_token);
+      bytes32 _root = IMultiMerkleStash(MULTI_MERKLE_STASH).merkleRoot(_token);
       require(!claimed[_token][_root], "bribe rewards claimed");
 
       IERC20Upgradeable(_token).safeTransfer(_recipient, _claims[i].amount);

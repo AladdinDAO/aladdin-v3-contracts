@@ -7,10 +7,10 @@ import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC2
 
 import { IConverterRegistry } from "../../helpers/converter/IConverterRegistry.sol";
 import { ITokenConverter } from "../../helpers/converter/ITokenConverter.sol";
+import { IConcentratorStrategy } from "../../interfaces/concentrator/IConcentratorStrategy.sol";
 import { IConvexFXNDepositor } from "../../interfaces/convex/IConvexFXNDepositor.sol";
-import { ICurveFactoryPlainPool } from "../../interfaces/ICurveFactoryPlainPool.sol";
 import { ICvxFxnStaking } from "../../interfaces/convex/ICvxFxnStaking.sol";
-import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
+import { ICurveFactoryPlainPool } from "../../interfaces/ICurveFactoryPlainPool.sol";
 
 import { ConcentratorStrategyBaseV2 } from "../strategies/ConcentratorStrategyBaseV2.sol";
 

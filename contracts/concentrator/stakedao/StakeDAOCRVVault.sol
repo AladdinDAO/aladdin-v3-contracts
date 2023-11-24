@@ -6,8 +6,8 @@ pragma abicoder v2;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "./interfaces/IStakeDAOCRVDepositor.sol";
-import "./interfaces/IStakeDAOCRVVault.sol";
+import "../../interfaces/concentrator/IConcentratorSdCrvVault.sol";
+import "../../interfaces/stakedao/IStakeDAOCRVDepositor.sol";
 import "../../interfaces/ICurveFactoryPlainPool.sol";
 
 import "./SdCRVLocker.sol";
@@ -15,7 +15,7 @@ import "./StakeDAOVaultBase.sol";
 
 // solhint-disable not-rely-on-time
 
-contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
+contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IConcentratorSdCrvVault {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
   /// @notice Emitted when BribeBurner contract is updated.
@@ -95,7 +95,7 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
 
   /********************************** Mutated Functions **********************************/
 
-  /// @inheritdoc IStakeDAOCRVVault
+  /// @inheritdoc IConcentratorSdCrvVault
   function depositWithCRV(
     uint256 _amount,
     address _recipient,
@@ -127,7 +127,7 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
     _deposit(_amountOut, _recipient);
   }
 
-  /// @inheritdoc IStakeDAOCRVVault
+  /// @inheritdoc IConcentratorSdCrvVault
   function depositWithSdVeCRV(uint256 _amount, address _recipient) external override {
     if (_amount == uint256(-1)) {
       _amount = IERC20Upgradeable(SD_VE_CRV).balanceOf(msg.sender);
@@ -148,8 +148,11 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
     _deposit(_amount, _recipient);
   }
 
-  /// @inheritdoc IStakeDAOVault
-  function withdraw(uint256 _amount, address _recipient) external override(StakeDAOVaultBase, IStakeDAOVault) {
+  /// @inheritdoc IConcentratorStakeDAOVault
+  function withdraw(uint256 _amount, address _recipient)
+    external
+    override(StakeDAOVaultBase, IConcentratorStakeDAOVault)
+  {
     _checkpoint(msg.sender);
 
     uint256 _balance = userInfo[msg.sender].balance;
@@ -177,8 +180,8 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IStakeDAOCRVVault {
     emit Withdraw(msg.sender, _recipient, _amount, _withdrawFee);
   }
 
-  /// @inheritdoc IStakeDAOCRVVault
-  function harvestBribes(IStakeDAOMultiMerkleStash.claimParam[] memory _claims) external override {
+  /// @inheritdoc IConcentratorSdCrvVault
+  function harvestBribes(IMultiMerkleStash.claimParam[] memory _claims) external override {
     IStakeDAOLockerProxy(stakeDAOProxy).claimBribeRewards(_claims, address(this));
 
     FeeInfo memory _fee = feeInfo;

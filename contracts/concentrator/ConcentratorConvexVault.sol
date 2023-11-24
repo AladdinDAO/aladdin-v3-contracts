@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
-import "./interfaces/IConcentratorConvexVault.sol";
+import "../interfaces/concentrator/IConcentratorConvexVault.sol";
 import "../interfaces/IConvexBooster.sol";
 import "../interfaces/IConvexBasicRewards.sol";
 

@@ -7,11 +7,11 @@ import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import { Pausable } from "@openzeppelin/contracts-v4/security/Pausable.sol";
 
+import { IConcentratorStrategy } from "../../interfaces/concentrator/IConcentratorStrategy.sol";
 import { IConvexFraxBooster } from "../../interfaces/IConvexFraxBooster.sol";
 import { IFraxUnifiedFarm } from "../../interfaces/IFraxUnifiedFarm.sol";
 import { IStakingProxyConvex } from "../../interfaces/IStakingProxyConvex.sol";
 import { IZap } from "../../interfaces/IZap.sol";
-import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
 
 import { AutoCompoundingStrategyBase } from "./AutoCompoundingStrategyBase.sol";
 

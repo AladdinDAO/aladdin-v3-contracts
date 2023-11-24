@@ -3,10 +3,10 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "./IStakeDAOMultiMerkleStash.sol";
-import "./IStakeDAOVault.sol";
+import { IConcentratorStakeDAOVault } from "./IConcentratorStakeDAOVault.sol";
+import { IMultiMerkleStash } from "../IMultiMerkleStash.sol";
 
-interface IStakeDAOCRVVault is IStakeDAOVault {
+interface IConcentratorSdCrvVault is IConcentratorStakeDAOVault {
   /// @notice Emitted when the withdraw lock time is updated.
   /// @param _withdrawLockTime The new withdraw lock time in seconds.
   event UpdateWithdrawLockTime(uint256 _withdrawLockTime);
@@ -39,5 +39,5 @@ interface IStakeDAOCRVVault is IStakeDAOVault {
   /// @notice Harvest sdCRV bribes.
   /// @dev No harvest bounty when others call this function.
   /// @param _claims The claim parameters passing to StakeDAOMultiMerkleStash contract.
-  function harvestBribes(IStakeDAOMultiMerkleStash.claimParam[] memory _claims) external;
+  function harvestBribes(IMultiMerkleStash.claimParam[] memory _claims) external;
 }

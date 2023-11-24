@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface IAladdinFXSExtensions {
+interface ICvxFxsCompounder {
   /// @notice Deposit stkCvxFxs into the contract.
   /// @dev Use `assets=uint256(-1)` if you want to deposit all stkCvxFxs.
   /// @param assets The amount of stkCvxFxs to desposit.
