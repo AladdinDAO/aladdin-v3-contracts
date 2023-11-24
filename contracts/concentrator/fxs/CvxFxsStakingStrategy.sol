@@ -5,7 +5,7 @@ pragma solidity =0.8.20;
 import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
+import { IConcentratorStrategy } from "../../interfaces/concentrator/IConcentratorStrategy.sol";
 import { IConvexFXSDepositor } from "../../interfaces/convex/IConvexFXSDepositor.sol";
 import { ICvxFxsStaking } from "../../interfaces/convex/ICvxFxsStaking.sol";
 import { ICurveCryptoPool } from "../../interfaces/ICurveCryptoPool.sol";

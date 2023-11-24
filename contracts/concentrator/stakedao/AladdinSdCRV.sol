@@ -3,7 +3,8 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "./interfaces/IStakeDAOCRVVault.sol";
+import { IConcentratorSdCrvVault } from "../../interfaces/concentrator/IConcentratorSdCrvVault.sol";
+import { ISdCrvCompounder } from "../../interfaces/concentrator/ISdCrvCompounder.sol";
 import "../../interfaces/IZap.sol";
 
 import "../AladdinCompounder.sol";
@@ -11,7 +12,7 @@ import "./SdCRVLocker.sol";
 
 // solhint-disable reason-string
 
-contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
+contract AladdinSdCRV is AladdinCompounder, SdCRVLocker, ISdCrvCompounder {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -76,17 +77,12 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
 
   /********************************** Mutated Functions **********************************/
 
-  /// @notice Deposit CRV into the contract.
-  /// @dev Use `_assets=uint256(-1)` if you want to deposit all CRV.
-  /// @param _assets The amount of CRV to desposit.
-  /// @param _receiver The address of account who will receive the pool share.
-  /// @param _minShareOut The minimum amount of share to receive.
-  /// @return _shares The amount of pool shares received.
+  /// @inheritdoc ISdCrvCompounder
   function depositWithCRV(
     uint256 _assets,
     address _receiver,
     uint256 _minShareOut
-  ) external nonReentrant returns (uint256 _shares) {
+  ) external override nonReentrant returns (uint256 _shares) {
     _distributePendingReward();
 
     if (_assets == uint256(-1)) {
@@ -94,18 +90,19 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
     }
     IERC20Upgradeable(CRV).safeTransferFrom(msg.sender, address(this), _assets);
 
-    _assets = IStakeDAOCRVVault(vault).depositWithCRV(_assets, address(this), 0);
+    _assets = IConcentratorSdCrvVault(vault).depositWithCRV(_assets, address(this), 0);
 
     _shares = _mintShare(_assets, _receiver);
     require(_shares >= _minShareOut, "asdCRV: insufficient share received");
   }
 
-  /// @notice Deposit sdveCRV into the contract.
-  /// @dev Use `_assets=uint256(-1)` if you want to deposit all sdveCRV.
-  /// @param _assets The amount of sdveCRV to desposit.
-  /// @param _receiver The address of account who will receive the pool share.
-  /// @return _shares The amount of pool shares received.
-  function depositWithSdVeCRV(uint256 _assets, address _receiver) external nonReentrant returns (uint256 _shares) {
+  /// @inheritdoc ISdCrvCompounder
+  function depositWithSdVeCRV(uint256 _assets, address _receiver)
+    external
+    override
+    nonReentrant
+    returns (uint256 _shares)
+  {
     _distributePendingReward();
 
     if (_assets == uint256(-1)) {
@@ -113,7 +110,7 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
     }
     IERC20Upgradeable(SD_VE_CRV).safeTransferFrom(msg.sender, address(this), _assets);
 
-    IStakeDAOCRVVault(vault).depositWithSdVeCRV(_assets, address(this));
+    IConcentratorSdCrvVault(vault).depositWithSdVeCRV(_assets, address(this));
 
     _shares = _mintShare(_assets, _receiver);
   }
@@ -131,7 +128,7 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
       uint256 _amountCRV = IERC20Upgradeable(CRV).balanceOf(address(this));
       uint256 _amount3CRV = IERC20Upgradeable(THREE_CRV).balanceOf(address(this));
       uint256 _amountSdCRV = IERC20Upgradeable(sdCRV).balanceOf(address(this));
-      IStakeDAOCRVVault(vault).claim(address(this), address(this));
+      IConcentratorSdCrvVault(vault).claim(address(this), address(this));
       _amountSDT = IERC20Upgradeable(SDT).balanceOf(address(this)) - _amountSDT;
       _amountCRV = IERC20Upgradeable(CRV).balanceOf(address(this)) - _amountCRV;
       _amount3CRV = IERC20Upgradeable(THREE_CRV).balanceOf(address(this)) - _amount3CRV;
@@ -156,11 +153,11 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
       }
 
       // 1.4 deposit CRV as sdCRV
-      assets = IStakeDAOCRVVault(vault).depositWithCRV(_amountCRV, address(this), 0);
+      assets = IConcentratorSdCrvVault(vault).depositWithCRV(_amountCRV, address(this), 0);
 
       // 1.5 deposit sdCRV to vault
       if (_amountSdCRV > 0) {
-        IStakeDAOCRVVault(vault).deposit(_amountSdCRV, address(this));
+        IConcentratorSdCrvVault(vault).deposit(_amountSdCRV, address(this));
         assets = assets + _amountSdCRV;
       }
       require(assets >= _minAssets, "asdCRV: insufficient harvested sdCRV");
@@ -204,7 +201,7 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
 
   /// @inheritdoc AladdinCompounder
   function _deposit(uint256 _assets, address _receiver) internal override returns (uint256) {
-    IStakeDAOCRVVault(vault).deposit(_assets, address(this));
+    IConcentratorSdCrvVault(vault).deposit(_assets, address(this));
 
     return _mintShare(_assets, _receiver);
   }
@@ -257,7 +254,7 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker {
     totalAssetsStored = _totalAssets - _amount; // never overflow here
 
     // vault has withdraw fee, we need to subtract from it
-    IStakeDAOCRVVault(vault).withdraw(_amount, address(this));
+    IConcentratorSdCrvVault(vault).withdraw(_amount, address(this));
     uint256 _vaultWithdrawFee = FeeCustomization(vault).getFeeRate(VAULT_WITHDRAW_FEE_TYPE, address(this));
     if (_vaultWithdrawFee > 0) {
       _vaultWithdrawFee = (_amount * _vaultWithdrawFee) / FEE_PRECISION;

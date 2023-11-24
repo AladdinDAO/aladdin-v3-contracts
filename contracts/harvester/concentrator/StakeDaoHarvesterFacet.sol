@@ -2,8 +2,8 @@
 
 pragma solidity ^0.7.6;
 
-import "../../concentrator/interfaces/IAladdinCompounder.sol";
-import "../../concentrator/stakedao/interfaces/IStakeDAOVault.sol";
+import "../../interfaces/concentrator/IAladdinCompounder.sol";
+import "../../interfaces/concentrator/IConcentratorStakeDAOVault.sol";
 
 import "../libraries/LibConcentratorHarvester.sol";
 
@@ -13,7 +13,7 @@ contract StakeDaoHarvesterFacet {
   function harvestStakeDaoVault(address _vault) external {
     LibConcentratorHarvester.enforceHasPermission();
 
-    IStakeDAOVault(_vault).harvest(msg.sender);
+    IConcentratorStakeDAOVault(_vault).harvest(msg.sender);
   }
 
   /// @notice Harvest pending rewards from StakeDAOVault and corresponding AladdinCompounder contract.
@@ -27,7 +27,7 @@ contract StakeDaoHarvesterFacet {
   ) external {
     LibConcentratorHarvester.enforceHasPermission();
 
-    IStakeDAOVault(_vault).harvest(msg.sender);
+    IConcentratorStakeDAOVault(_vault).harvest(msg.sender);
     IAladdinCompounder(_compounder).harvest(msg.sender, _minAssets);
   }
 }

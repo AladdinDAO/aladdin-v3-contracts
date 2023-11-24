@@ -8,15 +8,15 @@ import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "./interfaces/IStakeDAOGauge.sol";
-import "./interfaces/IStakeDAOLockerProxy.sol";
-import "./interfaces/IStakeDAOVault.sol";
+import "../../interfaces/stakedao/IStakeDAOGauge.sol";
+import "../../interfaces/stakedao/IStakeDAOLockerProxy.sol";
+import "../../interfaces/concentrator/IConcentratorStakeDAOVault.sol";
 
 import "../../common/fees/FeeCustomization.sol";
 
 // solhint-disable not-rely-on-time
 
-abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, IStakeDAOVault {
+abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, IConcentratorStakeDAOVault {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
 
@@ -123,7 +123,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
   /// @notice Mapping from reward token to reward information.
   mapping(address => RewardData) public rewardInfo;
 
-  /// @inheritdoc IStakeDAOVault
+  /// @inheritdoc IConcentratorStakeDAOVault
   uint256 public override totalSupply;
 
   /// @dev Mapping from user address to user information.
@@ -179,14 +179,14 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
     }
   }
 
-  /// @inheritdoc IStakeDAOVault
+  /// @inheritdoc IConcentratorStakeDAOVault
   function balanceOf(address _user) external view override returns (uint256) {
     return userInfo[_user].balance;
   }
 
   /********************************** Mutated Functions **********************************/
 
-  /// @inheritdoc IStakeDAOVault
+  /// @inheritdoc IConcentratorStakeDAOVault
   function deposit(uint256 _amount, address _recipient) external virtual override {
     address _token = stakingToken;
     if (_amount == uint256(-1)) {
@@ -198,7 +198,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
     _deposit(_amount, _recipient);
   }
 
-  /// @inheritdoc IStakeDAOVault
+  /// @inheritdoc IConcentratorStakeDAOVault
   function withdraw(uint256 _amount, address _recipient) external virtual override {
     _checkpoint(msg.sender);
 
@@ -224,7 +224,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
     emit Withdraw(msg.sender, _recipient, _amount, _withdrawFee);
   }
 
-  /// @inheritdoc IStakeDAOVault
+  /// @inheritdoc IConcentratorStakeDAOVault
   function claim(address _user, address _recipient) external override returns (uint256[] memory _amounts) {
     if (_user != msg.sender) {
       require(_recipient == _user, "claim from others to others");
@@ -237,7 +237,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
     emit Claim(_user, _recipient, _amounts);
   }
 
-  /// @inheritdoc IStakeDAOVault
+  /// @inheritdoc IConcentratorStakeDAOVault
   function harvest(address _recipient) external override {
     // 1. checkpoint pending rewards
     _checkpoint(address(0));
@@ -277,7 +277,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
     _distribute(_tokens, _amounts);
   }
 
-  /// @inheritdoc IStakeDAOVault
+  /// @inheritdoc IConcentratorStakeDAOVault
   function checkpoint(address _user) external override {
     _checkpoint(_user);
   }
@@ -293,7 +293,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ISt
     }
   }
 
-  /// @inheritdoc IStakeDAOVault
+  /// @inheritdoc IConcentratorStakeDAOVault
   function donate(address[] memory _tokens, uint256[] memory _amounts) external override {
     require(_tokens.length == _amounts.length, "length mismatch");
 

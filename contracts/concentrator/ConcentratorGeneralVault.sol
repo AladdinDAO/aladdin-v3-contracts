@@ -9,8 +9,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
 
-import "./interfaces/IConcentratorGeneralVault.sol";
-import "./interfaces/IConcentratorStrategy.sol";
+import "../interfaces/concentrator/IConcentratorGeneralVault.sol";
+import "../interfaces/concentrator/IConcentratorStrategy.sol";
 
 import "../common/fees/FeeCustomization.sol";
 import "./ConcentratorBase.sol";

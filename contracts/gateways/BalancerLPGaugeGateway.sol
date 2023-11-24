@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../concentrator/interfaces/IAladdinCRV.sol";
+import "../interfaces/concentrator/IAladdinCRV.sol";
 import "../interfaces/IBalancerVault.sol";
 import "../zap/TokenZapLogic.sol";
 import "./ZapGatewayBase.sol";

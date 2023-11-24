@@ -4,12 +4,12 @@ pragma solidity ^0.7.6;
 
 import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
-import "../ConcentratorConvexVault.sol";
-import "../interfaces/IAladdinCompounder.sol";
+import "../../interfaces/concentrator/IAladdinCompounder.sol";
+import { ICvxFxsCompounder } from "../../interfaces/concentrator/ICvxFxsCompounder.sol";
 import "../../interfaces/ICurveCryptoPool.sol";
 import "../../interfaces/IZap.sol";
 
-import { IAladdinFXSExtensions } from "./interfaces/IAladdinFXSExtensions.sol";
+import "../ConcentratorConvexVault.sol";
 
 contract AladdinFXSConvexVault is ConcentratorConvexVault {
   using SafeMathUpgradeable for uint256;
@@ -132,7 +132,7 @@ contract AladdinFXSConvexVault is ConcentratorConvexVault {
     if (_amountFXS > 0) {
       IERC20Upgradeable(FXS).safeApprove(_aladdinFXS, 0);
       IERC20Upgradeable(FXS).safeApprove(_aladdinFXS, _amountFXS);
-      _amountOut = _amountOut.add(IAladdinFXSExtensions(_aladdinFXS).depositWithFXS(_amountFXS, address(this), 0));
+      _amountOut = _amountOut.add(ICvxFxsCompounder(_aladdinFXS).depositWithFXS(_amountFXS, address(this), 0));
     }
 
     return _amountOut;

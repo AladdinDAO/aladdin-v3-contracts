@@ -8,9 +8,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./ConcentratorStrategy.sol";
+import "../../interfaces/concentrator/IAladdinCRVConvexVault.sol";
+import "../../interfaces/concentrator/IAladdinCRV.sol";
 import "../../interfaces/ICurveBasePool.sol";
-import "../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
-import "../../concentrator/interfaces/IAladdinCRV.sol";
 import "../../interfaces/IZap.sol";
 
 // solhint-disable reason-string

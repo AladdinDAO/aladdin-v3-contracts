@@ -7,8 +7,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
-import "../concentrator/interfaces/IAladdinCompounder.sol";
-import "../concentrator/interfaces/IAladdinCRV.sol";
+import "../interfaces/concentrator/IAladdinCompounder.sol";
+import "../interfaces/concentrator/IAladdinCRV.sol";
 import "../interfaces/IBalancerVault.sol";
 import "../interfaces/IBalancerPool.sol";
 import "../interfaces/IConvexCRVDepositor.sol";

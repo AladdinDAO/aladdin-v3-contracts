@@ -8,9 +8,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./YieldStrategyBase.sol";
+import "../../interfaces/concentrator/IAladdinCRVConvexVault.sol";
+import "../../interfaces/concentrator/IAladdinCRV.sol";
 import "../../interfaces/ICurveBasePool.sol";
-import "../../concentrator/interfaces/IAladdinCRVConvexVault.sol";
-import "../../concentrator/interfaces/IAladdinCRV.sol";
 import "../../interfaces/IZap.sol";
 import "../../misc/checker/IPriceChecker.sol";
 

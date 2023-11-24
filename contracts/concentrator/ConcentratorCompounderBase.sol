@@ -12,8 +12,8 @@ import { CustomFeeRate } from "../common/fees/CustomFeeRate.sol";
 import { LinearRewardDistributor } from "../common/rewards/distributor/LinearRewardDistributor.sol";
 import { ConcentratorBaseV2 } from "./ConcentratorBaseV2.sol";
 
-import { IConcentratorCompounder } from "./interfaces/IConcentratorCompounder.sol";
-import { IConcentratorStrategy } from "./interfaces/IConcentratorStrategy.sol";
+import { IConcentratorCompounder } from "../interfaces/concentrator/IConcentratorCompounder.sol";
+import { IConcentratorStrategy } from "../interfaces/concentrator/IConcentratorStrategy.sol";
 
 // solhint-disable func-name-mixedcase
 // solhint-disable no-empty-blocks

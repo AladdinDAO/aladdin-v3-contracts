@@ -3,8 +3,8 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "../../concentrator/interfaces/IAladdinCompounder.sol";
-import "../../concentrator/interfaces/IConcentratorGeneralVault.sol";
+import "../../interfaces/concentrator/IAladdinCompounder.sol";
+import "../../interfaces/concentrator/IConcentratorGeneralVault.sol";
 
 import "../libraries/LibConcentratorHarvester.sol";
 

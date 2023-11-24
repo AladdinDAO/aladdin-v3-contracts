@@ -4,7 +4,7 @@ pragma solidity ^0.7.6;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { IAladdinCompounder } from "../../concentrator/interfaces/IAladdinCompounder.sol";
+import { IAladdinCompounder } from "../../interfaces/concentrator/IAladdinCompounder.sol";
 
 import { BurnerBase } from "./BurnerBase.sol";
 

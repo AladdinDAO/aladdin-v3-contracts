@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface IAladdinSdCRVExtension {
+interface ISdCrvCompounder {
   /// @notice Deposit sdveCRV into the contract.
   /// @dev Use `_assets=uint256(-1)` if you want to deposit all sdveCRV.
   /// @param _assets The amount of sdveCRV to desposit.

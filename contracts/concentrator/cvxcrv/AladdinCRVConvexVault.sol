@@ -8,8 +8,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import "../interfaces/IAladdinCRVConvexVault.sol";
-import "../interfaces/IAladdinCRV.sol";
+import "../../interfaces/concentrator/IAladdinCRVConvexVault.sol";
+import "../../interfaces/concentrator/IAladdinCRV.sol";
 import "../../interfaces/IConvexBooster.sol";
 import "../../interfaces/IConvexBasicRewards.sol";
 import "../../interfaces/IConvexCRVDepositor.sol";

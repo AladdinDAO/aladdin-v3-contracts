@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface IStakeDAOVault {
+interface IConcentratorStakeDAOVault {
   /// @notice Emitted when user deposit staking token to the contract.
   /// @param _owner The address of the owner of the staking token.
   /// @param _recipient The address of the recipient of the staking token.

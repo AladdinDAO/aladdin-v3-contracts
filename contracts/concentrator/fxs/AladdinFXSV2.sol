@@ -6,9 +6,9 @@ import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/Sa
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { IAladdinFXSExtensions } from "./interfaces/IAladdinFXSExtensions.sol";
-import { IAladdinCompounder } from "../interfaces/IAladdinCompounder.sol";
-import { IConcentratorStrategy } from "../interfaces/IConcentratorStrategy.sol";
+import { ICvxFxsCompounder } from "../../interfaces/concentrator/ICvxFxsCompounder.sol";
+import { IAladdinCompounder } from "../../interfaces/concentrator/IAladdinCompounder.sol";
+import { IConcentratorStrategy } from "../../interfaces/concentrator/IConcentratorStrategy.sol";
 import { IConvexFXSDepositor } from "../../interfaces/convex/IConvexFXSDepositor.sol";
 import { IConvexBasicRewards } from "../../interfaces/IConvexBasicRewards.sol";
 import { ICurveCryptoPool } from "../../interfaces/ICurveCryptoPool.sol";
@@ -20,7 +20,7 @@ import { AladdinCompounder } from "../AladdinCompounder.sol";
 // solhint-disable const-name-snakecase
 // solhint-disable reason-string
 
-contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
+contract AladdinFXSV2 is AladdinCompounder, ICvxFxsCompounder {
   using SafeMathUpgradeable for uint256;
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -118,7 +118,7 @@ contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc IAladdinFXSExtensions
+  /// @inheritdoc ICvxFxsCompounder
   function depositWithStkCvxFxs(uint256 _assets, address _receiver)
     external
     override
@@ -135,7 +135,7 @@ contract AladdinFXSV2 is AladdinCompounder, IAladdinFXSExtensions {
     _shares = _mintShare(_assets, _receiver);
   }
 
-  /// @inheritdoc IAladdinFXSExtensions
+  /// @inheritdoc ICvxFxsCompounder
   function depositWithFXS(
     uint256 _assets,
     address _receiver,
