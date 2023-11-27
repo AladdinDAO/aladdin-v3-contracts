@@ -456,7 +456,9 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMark
       }
       // request bonus
       if (_bonus > 0 && IFxRebalancePoolRegistry(registry).totalSupply() == 0) {
-        IFxReservePool(reservePool).requestBonus(baseToken, _recipient, _bonus);
+        _bonus = IFxReservePool(reservePool).requestBonus(baseToken, _recipient, _bonus);
+      } else {
+        _bonus = 0;
       }
     }
 
