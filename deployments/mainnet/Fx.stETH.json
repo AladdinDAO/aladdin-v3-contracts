@@ -8,25 +8,31 @@
     "proxy": "0xe063F04f280c60aECa68b38341C2eEcBeC703ae2"
   },
   "stETHTreasury": {
-    "implementation": "0x1951Fb29Ee3ED3026ED7cE2BEEE3194D90fBB2Bc",
-    "proxy": "0x0e5CAA5c889Bdf053c9A76395f62267E653AFbb0"
+    "proxy": "0x0e5CAA5c889Bdf053c9A76395f62267E653AFbb0",
+    "implementation": "0x12B295D12a4D4DF2F3F5B2B8E151bbE000564fa5"
   },
   "Market": {
-    "implementation": "0x31bfAf256875A93B5D02Cdef80B17EF780663D81",
-    "proxy": "0xe7b9c7c9cA85340b8c06fb805f7775e3015108dB"
+    "proxy": "0xe7b9c7c9cA85340b8c06fb805f7775e3015108dB",
+    "implementation": "0x679DE4A3836D916Fc86c6d9944c98A694f68aDb4"
   },
   "RebalancePool": {
-    "implementation": "0x3415fcD2885C486E2d848403d51077f7176473C7",
-    "proxy": "0xa677d95B91530d56791FbA72C01a862f1B01A49e"
+    "APool": "0xa677d95B91530d56791FbA72C01a862f1B01A49e",
+    "APoolRebalancer": "0x17f21f468d77E6e35702a9Ae7a9da50Db7F6a4f4",
+    "implementation": "0x23831E29db590BbbAcF267EE2Cf377cD3E54A718"
+  },
+  "wrapper": {
+    "wstETHWrapper": "0xb09e34dD25d5E88a1E9Ff6F6418109927675B658"
   },
   "stETHGateway": "0x9bF5fFABbF97De0a47843A7Ba0A9DDB40f2e2ed5",
-  "wstETHWrapper": "0xb09e34dD25d5E88a1E9Ff6F6418109927675B658",
   "ChainlinkTwapOracle": {
     "ETH": "0x460B3CdE57DfbA90DBed02fd83d3990a92DA1230",
     "stETH": "0xD24AC180e6769Fd5F624e7605B93084171074A77"
   },
   "FxETHTwapOracle": "0xa84360896cE9152d1780c546305BB54125F962d9",
-  "FxGateway": "0x49e51067E695bd79d6275eCaB6E9E527a72AbdE4",
   "ReservePool": "0x5d0Aacf75116d1645Db2B3d1Ca4b303ef0CA3752",
-  "RebalanceWithBonusToken": "0x17f21f468d77E6e35702a9Ae7a9da50Db7F6a4f4"
+  "BoostableRebalancePool": {
+    "splitter": "0x79c5f5b0753acE25ecdBdA4c2Bc86Ab074B6c2Bb"
+  },
+  "FxGateway": "0x5c28b966aB37cFB9397bBc04595f91F0fBf06d9b",
+  "RebalancePoolRegistry": "0x4eEfea49e4D876599765d5375cF7314cD14C9d38"
 }

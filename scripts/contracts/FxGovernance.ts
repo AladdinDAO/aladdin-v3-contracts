@@ -1,6 +1,6 @@
 /* eslint-disable node/no-missing-import */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { ZeroAddress, Overrides, Contract, MaxUint256 } from "ethers";
+import { ZeroAddress, Overrides, Contract } from "ethers";
 import { network, ethers } from "hardhat";
 
 import { GaugeController } from "@/types/index";
@@ -12,6 +12,7 @@ import * as Converter from "./Converter";
 import * as Multisig from "./Multisig";
 import * as VotingEscrow from "./VotingEscrow";
 
+/*
 const DeployedGauges: { [name: string]: { token: string; rewarder: string; immutable: boolean } } = {
   "ETH+xETH": {
     token: TOKENS["CURVE_CRYPTO_ETH/xETH_302"].address,
@@ -42,6 +43,7 @@ const GaugeTypeLists: Array<{ name: string; weight: bigint }> = [
   { name: "Rebalance Pool (fETH)", weight: ethers.parseEther("0.25") },
   { name: "Rebalance Pool (fBTC)", weight: ethers.parseEther("0.15") },
 ];
+*/
 
 export interface FxGovernanceDeployment {
   TokenSale1: string;
@@ -149,16 +151,19 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   // VotingEscrow related contracts
   await deployment.minimalProxyDeploy("veFXN", "veFXN", implementationDeployment.VotingEscrow);
   await deployment.contractDeploy("SmartWalletWhitelist", "SmartWalletWhitelist", "SmartWalletWhitelist", []);
+  /*
   await deployment.contractDeploy("VotingEscrowBoost", "VotingEscrowBoost", "VotingEscrowBoost", [
     deployment.get("veFXN"),
   ]);
   await deployment.contractDeploy("VotingEscrowProxy", "VotingEscrowProxy", "VotingEscrowProxy", [
     deployment.get("veFXN"),
   ]);
+  */
 
   // GaugeController
   await deployment.minimalProxyDeploy("GaugeController", "GaugeController", implementationDeployment.GaugeController);
 
+  /*
   // LiquidityGauge related contracts
   await deployment.contractDeploy(
     "LiquidityGauge.implementation.SharedLiquidityGauge",
@@ -209,6 +214,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "FundraisingGaugeFx for FxTreasury",
     deployment.get("FundraiseGauge.implementation.FundraisingGaugeFx")
   );
+  */
 
   // Vesting related contracts
   await deployment.contractDeploy("MultipleVestHelper", "FXN MultipleVestHelper", "MultipleVestHelper", []);
@@ -533,6 +539,7 @@ export async function initialize(
     );
   }
 
+  /*
   // Setup GaugeController
   for (let i = 0; i < GaugeTypeLists.length; i++) {
     if ((await controller.gauge_type_names(i)) !== "Liquidity") {
@@ -630,4 +637,5 @@ export async function initialize(
     }
     await addGauge(controller, "FundraisingGaugeFx.FxTreasury", await gauge.getAddress(), 2);
   }
+  */
 }
