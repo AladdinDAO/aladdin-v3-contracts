@@ -46,7 +46,7 @@ library ExponentialMovingAverage {
     if (uint256(s.lastTime) < block.timestamp) {
       uint256 dt = block.timestamp - uint256(s.lastTime);
       uint256 e = (dt * PRECISION) / s.sampleInterval;
-      if (e >= 42139678854452767551) {
+      if (e > 41e18) {
         return s.lastValue;
       } else {
         uint256 alpha = uint256(LogExpMath.exp(-int256(e)));

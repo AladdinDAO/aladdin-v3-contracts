@@ -471,6 +471,10 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     emit ProtocolSettle(_newPrice, _fNav);
 
     lastPermissionedPrice = _newPrice;
+
+    // update leverage ratio at the end
+    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
+    _updateEMALeverageRatio(_state);
   }
 
   /// @inheritdoc IFxTreasury
