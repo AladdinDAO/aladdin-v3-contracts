@@ -9,7 +9,7 @@
   },
   "stETHTreasury": {
     "proxy": "0x0e5CAA5c889Bdf053c9A76395f62267E653AFbb0",
-    "implementation": "0x12B295D12a4D4DF2F3F5B2B8E151bbE000564fa5"
+    "implementation": "0x969fCABb703052155c4CC3B24458e77b2D56b29a"
   },
   "Market": {
     "proxy": "0xe7b9c7c9cA85340b8c06fb805f7775e3015108dB",
