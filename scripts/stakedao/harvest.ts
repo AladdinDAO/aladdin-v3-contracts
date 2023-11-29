@@ -52,7 +52,7 @@ async function main(round: string) {
   const [deployer] = await ethers.getSigners();
   const vault = await ethers.getContractAt("StakeDAOCRVVault", deployment.StakeDAOCRVVault.proxy, deployer);
   const locker = await ethers.getContractAt("StakeDAOLockerProxy", deployment.StakeDAOLockerProxy.proxy, deployer);
-  const stash = await ethers.getContractAt("IStakeDAOMultiMerkleStash", STASH, deployer);
+  const stash = await ethers.getContractAt("IMultiMerkleStash", STASH, deployer);
   const burner = await ethers.getContractAt("SdCRVBribeBurner", deployment.SdCRVBribeBurner, deployer);
   const priceSDT = prices.SDT;
   const priceCRV = prices.CRV;
