@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 import { IMultiMerkleStash } from "../IMultiMerkleStash.sol";
 
-interface IStakeDAOLockerProxy {
+interface IConcentratorStakeDAOLocker {
   /// @notice Deposit staked token to StakeDAO gauge.
   /// @dev The caller should make sure the token is already transfered to the contract.
   /// @param _gauge The address of gauge.

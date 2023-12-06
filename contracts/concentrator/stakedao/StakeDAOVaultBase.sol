@@ -8,9 +8,9 @@ import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "../../interfaces/stakedao/IStakeDAOGauge.sol";
-import "../../interfaces/stakedao/IStakeDAOLockerProxy.sol";
+import "../../interfaces/concentrator/IConcentratorStakeDAOLocker.sol";
 import "../../interfaces/concentrator/IConcentratorStakeDAOVault.sol";
+import "../../interfaces/ICurveGauge.sol";
 
 import "../../common/fees/FeeCustomization.sol";
 
@@ -146,11 +146,11 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ICo
     OwnableUpgradeable.__Ownable_init();
 
     gauge = _gauge;
-    stakingToken = IStakeDAOGauge(_gauge).staking_token();
+    stakingToken = ICurveGauge(_gauge).staking_token();
 
-    uint256 _count = IStakeDAOGauge(_gauge).reward_count();
+    uint256 _count = ICurveGauge(_gauge).reward_count();
     for (uint256 i = 0; i < _count; i++) {
-      rewardTokens.push(IStakeDAOGauge(_gauge).reward_tokens(i));
+      rewardTokens.push(ICurveGauge(_gauge).reward_tokens(i));
     }
   }
 
@@ -219,7 +219,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ICo
       _amount -= _withdrawFee;
     }
 
-    IStakeDAOLockerProxy(stakeDAOProxy).withdraw(gauge, stakingToken, _amount, _recipient);
+    IConcentratorStakeDAOLocker(stakeDAOProxy).withdraw(gauge, stakingToken, _amount, _recipient);
 
     emit Withdraw(msg.sender, _recipient, _amount, _withdrawFee);
   }
@@ -244,7 +244,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ICo
 
     // 2. claim rewards from gauge
     address[] memory _tokens = rewardTokens;
-    uint256[] memory _amounts = IStakeDAOLockerProxy(stakeDAOProxy).claimRewards(gauge, _tokens);
+    uint256[] memory _amounts = IConcentratorStakeDAOLocker(stakeDAOProxy).claimRewards(gauge, _tokens);
 
     // 3. distribute platform fee, harvest bounty and boost fee
     uint256[] memory _platformFees = new uint256[](_tokens.length);
@@ -287,9 +287,9 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ICo
     delete rewardTokens;
 
     address _gauge = gauge;
-    uint256 _count = IStakeDAOGauge(_gauge).reward_count();
+    uint256 _count = ICurveGauge(_gauge).reward_count();
     for (uint256 i = 0; i < _count; i++) {
-      rewardTokens.push(IStakeDAOGauge(_gauge).reward_tokens(i));
+      rewardTokens.push(ICurveGauge(_gauge).reward_tokens(i));
     }
   }
 
@@ -312,7 +312,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ICo
   function takeWithdrawFee(address _recipient) external onlyOwner {
     uint256 _amount = withdrawFeeAccumulated;
     if (_amount > 0) {
-      IStakeDAOLockerProxy(stakeDAOProxy).withdraw(gauge, stakingToken, _amount, _recipient);
+      IConcentratorStakeDAOLocker(stakeDAOProxy).withdraw(gauge, stakingToken, _amount, _recipient);
       withdrawFeeAccumulated = 0;
 
       emit TakeWithdrawFee(_amount);
@@ -422,7 +422,7 @@ abstract contract StakeDAOVaultBase is OwnableUpgradeable, FeeCustomization, ICo
   function _deposit(uint256 _amount, address _recipient) internal {
     _checkpoint(_recipient);
 
-    uint256 _staked = IStakeDAOLockerProxy(stakeDAOProxy).deposit(gauge, stakingToken);
+    uint256 _staked = IConcentratorStakeDAOLocker(stakeDAOProxy).deposit(gauge, stakingToken);
     require(_staked >= _amount, "staked amount mismatch");
 
     userInfo[_recipient].balance += _amount;

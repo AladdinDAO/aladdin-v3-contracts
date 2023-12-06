@@ -32,6 +32,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   FIDU: { decimals: 18, address: "0x6a445E9F40e0b97c92d0b8a3366cEF1d67F700BF" },
   SDT: { decimals: 18, address: "0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F" },
   sdCRV: { decimals: 18, address: "0xD1b5651E55D4CeeD36251c61c50C889B36F6abB5" },
+  sdveCRV: { decimals: 18, address: "0x478bBC744811eE8310B461514BDc29D03739084D" },
   LYRA: { decimals: 18, address: "0x01BA67AAC7f75f647D94220Cc98FB30FCc5105Bf" },
   SNX: { decimals: 18, address: "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F" },
   GRO: { decimals: 18, address: "0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7" },

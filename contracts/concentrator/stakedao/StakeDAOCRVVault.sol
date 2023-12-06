@@ -182,7 +182,7 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IConcentratorSdCrvV
 
   /// @inheritdoc IConcentratorSdCrvVault
   function harvestBribes(IMultiMerkleStash.claimParam[] memory _claims) external override {
-    IStakeDAOLockerProxy(stakeDAOProxy).claimBribeRewards(_claims, address(this));
+    IConcentratorStakeDAOLocker(stakeDAOProxy).claimBribeRewards(_claims, address(this));
 
     FeeInfo memory _fee = feeInfo;
     uint256[] memory _amounts = new uint256[](_claims.length);
@@ -280,6 +280,6 @@ contract StakeDAOCRVVault is StakeDAOVaultBase, SdCRVLocker, IConcentratorSdCrvV
 
   /// @inheritdoc SdCRVLocker
   function _unlockToken(uint256 _amount, address _recipient) internal override {
-    IStakeDAOLockerProxy(stakeDAOProxy).withdraw(gauge, stakingToken, _amount, _recipient);
+    IConcentratorStakeDAOLocker(stakeDAOProxy).withdraw(gauge, stakingToken, _amount, _recipient);
   }
 }

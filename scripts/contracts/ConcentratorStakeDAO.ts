@@ -14,7 +14,7 @@ const Strategy: { [name: string]: string } = {
 };
 
 export interface ConcentratorStakeDAODeployment {
-  StakeDAOLockerProxy: {
+  ConcentratorStakeDAOLocker: {
     proxy: string;
     implementation: string;
   };

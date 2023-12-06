@@ -1,5 +1,5 @@
 {
-  "StakeDAOLockerProxy": {
+  "ConcentratorStakeDAOLocker": {
     "proxy": "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09",
     "implementation": "0x98626a8E560014B6d25336ef72969D8ec1188E2D"
   },

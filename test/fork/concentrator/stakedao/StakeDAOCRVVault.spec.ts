@@ -1,14 +1,13 @@
 /* eslint-disable camelcase */
-/* eslint-disable node/no-missing-import */
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { BigNumber, constants } from "ethers";
-import { ethers } from "hardhat";
-import * as hre from "hardhat";
-import { MockERC20, StakeDAOCRVVault, StakeDAOLockerProxy, VeSDTDelegation } from "../../../typechain";
-import { request_fork } from "../../utils";
+import { ethers, network } from "hardhat";
 
-const FORK_BLOCK_NUMBER = 16076550;
+import { request_fork } from "@/test/utils";
+import { MockERC20, StakeDAOCRVVault, ConcentratorStakeDAOLocker, VeSDTDelegation } from "@/types/index";
+import { MaxUint256, ZeroAddress, toBigInt } from "ethers";
+
+const FORK_BLOCK_NUMBER = 18725800;
 
 const SDT = "0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F";
 const THREE_CRV = "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490";
@@ -16,7 +15,7 @@ const CRV = "0xD533a949740bb3306d119CC777fa900bA034cd52";
 const CRV_HOLDER = "0x9B44473E223f8a3c047AD86f387B80402536B029";
 
 const SD_VE_CRV = "0x478bBC744811eE8310B461514BDc29D03739084D";
-const SD_VE_CRV_HOLDER = "0x2e945f5229dc19accaa8568ea783cbe73aac1505";
+const SD_VE_CRV_HOLDER = "0xaa0FC588529dF72f71e3D758A69b897341195208";
 
 const SDCRV = "0xD1b5651E55D4CeeD36251c61c50C889B36F6abB5";
 const SDCRV_HOLDER = "0x25431341a5800759268a6ac1d3cd91c029d7d9ca";
@@ -27,9 +26,10 @@ const OPERATOR = "0x66c57bF505A85A74609D2C83E94Aabb26d691E1F";
 const WITHDRAW_FEE_TYPE = "0x44348323fbba5bd7468c04e14f94511bb9dacbe9d1c917894dc7a6fb5c078462";
 
 describe("StakeDAOCRVVault.spec", async () => {
-  let deployer: SignerWithAddress;
-  let operator: SignerWithAddress;
-  let proxy: StakeDAOLockerProxy;
+  let deployer: HardhatEthersSigner;
+  let operator: HardhatEthersSigner;
+
+  let locker: ConcentratorStakeDAOLocker;
   let delegation: VeSDTDelegation;
   let vault: StakeDAOCRVVault;
 
@@ -37,25 +37,24 @@ describe("StakeDAOCRVVault.spec", async () => {
     request_fork(FORK_BLOCK_NUMBER, [DEPLOYER, OPERATOR, CRV_HOLDER, SD_VE_CRV_HOLDER, SDCRV_HOLDER]);
     deployer = await ethers.getSigner(DEPLOYER);
     operator = await ethers.getSigner(OPERATOR);
-    await deployer.sendTransaction({ to: CRV_HOLDER, value: ethers.utils.parseEther("10") });
-    await deployer.sendTransaction({ to: SD_VE_CRV_HOLDER, value: ethers.utils.parseEther("10") });
-    await deployer.sendTransaction({ to: SDCRV_HOLDER, value: ethers.utils.parseEther("10") });
+    await deployer.sendTransaction({ to: CRV_HOLDER, value: ethers.parseEther("10") });
+    await deployer.sendTransaction({ to: SD_VE_CRV_HOLDER, value: ethers.parseEther("10") });
+    await deployer.sendTransaction({ to: SDCRV_HOLDER, value: ethers.parseEther("10") });
 
-    const StakeDAOLockerProxy = await ethers.getContractFactory("StakeDAOLockerProxy", deployer);
-    proxy = await StakeDAOLockerProxy.deploy();
-    await proxy.deployed();
-    await proxy.initialize();
+    const ConcentratorStakeDAOLocker = await ethers.getContractFactory("ConcentratorStakeDAOLocker", deployer);
+    locker = await ConcentratorStakeDAOLocker.deploy();
+    await locker.initialize();
 
     const VeSDTDelegation = await ethers.getContractFactory("VeSDTDelegation", deployer);
-    delegation = await VeSDTDelegation.deploy(proxy.address);
+    delegation = await VeSDTDelegation.deploy(locker.getAddress());
     await delegation.initialize(0);
 
     const StakeDAOCRVVault = await ethers.getContractFactory("StakeDAOCRVVault", deployer);
-    vault = await StakeDAOCRVVault.deploy(proxy.address, delegation.address);
+    vault = await StakeDAOCRVVault.deploy(locker.getAddress(), delegation.getAddress());
     await vault.initialize(SDCRV_GAUGE, 86400 * 30);
 
-    await proxy.updateOperator(SDCRV_GAUGE, vault.address);
-    await proxy.updateClaimer(vault.address);
+    await locker.updateOperator(SDCRV_GAUGE, vault.getAddress());
+    await locker.updateClaimer(vault.getAddress());
 
     expect(await vault.rewardTokens(0)).to.eq(SDT);
     expect(await vault.rewardTokens(1)).to.eq(THREE_CRV);
@@ -79,7 +78,7 @@ describe("StakeDAOCRVVault.spec", async () => {
       });
 
       it("should revert when fee too large", async () => {
-        await expect(vault.updateFeeInfo(constants.AddressZero, 0, 0, 0, 0)).to.revertedWith("zero address");
+        await expect(vault.updateFeeInfo(ZeroAddress, 0, 0, 0, 0)).to.revertedWith("zero address");
         await expect(vault.updateFeeInfo(operator.address, 2e6 + 1, 0, 0, 0)).to.revertedWith("platform fee too large");
         await expect(vault.updateFeeInfo(operator.address, 0, 1e6 + 1, 0, 0)).to.revertedWith("bounty fee too large");
         await expect(vault.updateFeeInfo(operator.address, 0, 0, 2e6 + 1, 0)).to.revertedWith("boost fee too large");
@@ -87,7 +86,7 @@ describe("StakeDAOCRVVault.spec", async () => {
       });
 
       it("should succeed", async () => {
-        expect((await vault.feeInfo()).platform).to.eq(constants.AddressZero);
+        expect((await vault.feeInfo()).platform).to.eq(ZeroAddress);
         expect((await vault.feeInfo()).platformPercentage).to.eq(0);
         expect((await vault.feeInfo()).bountyPercentage).to.eq(0);
         expect((await vault.feeInfo()).boostPercentage).to.eq(0);
@@ -105,15 +104,13 @@ describe("StakeDAOCRVVault.spec", async () => {
 
     context("#updateRewardPeriod", async () => {
       it("should revert, when call updateRewardPeriod and caller is not owner", async () => {
-        await expect(vault.connect(operator).updateRewardPeriod(constants.AddressZero, 0)).to.revertedWith(
+        await expect(vault.connect(operator).updateRewardPeriod(ZeroAddress, 0)).to.revertedWith(
           "Ownable: caller is not the owner"
         );
       });
 
       it("should revert, when period too long", async () => {
-        await expect(vault.updateRewardPeriod(constants.AddressZero, 86400 * 7 + 1)).to.revertedWith(
-          "reward period too long"
-        );
+        await expect(vault.updateRewardPeriod(ZeroAddress, 86400 * 7 + 1)).to.revertedWith("reward period too long");
       });
 
       it("should succeed", async () => {
@@ -127,7 +124,7 @@ describe("StakeDAOCRVVault.spec", async () => {
 
     context("setWithdrawFeeForUser", async () => {
       it("should revert, when non-owner call", async () => {
-        await expect(vault.connect(operator).setWithdrawFeeForUser(constants.AddressZero, 0)).to.revertedWith(
+        await expect(vault.connect(operator).setWithdrawFeeForUser(ZeroAddress, 0)).to.revertedWith(
           "Ownable: caller is not the owner"
         );
       });
@@ -165,7 +162,7 @@ describe("StakeDAOCRVVault.spec", async () => {
   });
 
   context("deposit", async () => {
-    let signer: SignerWithAddress;
+    let signer: HardhatEthersSigner;
     let token: MockERC20;
 
     beforeEach(async () => {
@@ -178,10 +175,10 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed when deposit to self", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, amount);
-      expect(await vault.balanceOf(signer.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), amount);
+      expect(await vault.balanceOf(signer.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
       await expect(vault.connect(signer).deposit(amount, signer.address))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, signer.address, amount);
@@ -190,10 +187,10 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed when deposit to other", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, amount);
-      expect(await vault.balanceOf(operator.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), amount);
+      expect(await vault.balanceOf(operator.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
       await expect(vault.connect(signer).deposit(amount, operator.address))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, operator.address, amount);
@@ -203,10 +200,10 @@ describe("StakeDAOCRVVault.spec", async () => {
 
     it("should succeed when deposit all to self", async () => {
       const amount = await token.balanceOf(signer.address);
-      await token.approve(vault.address, amount);
-      expect(await vault.balanceOf(operator.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
-      await expect(vault.connect(signer).deposit(constants.MaxUint256, operator.address))
+      await token.approve(vault.getAddress(), amount);
+      expect(await vault.balanceOf(operator.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
+      await expect(vault.connect(signer).deposit(MaxUint256, operator.address))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, operator.address, amount);
       expect(await vault.balanceOf(operator.address)).to.eq(amount);
@@ -214,10 +211,10 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed when deposit multiple times", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, constants.MaxUint256);
-      expect(await vault.balanceOf(signer.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), MaxUint256);
+      expect(await vault.balanceOf(signer.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
 
       await expect(vault.connect(signer).deposit(amount, signer.address))
         .to.emit(vault, "Deposit")
@@ -225,19 +222,19 @@ describe("StakeDAOCRVVault.spec", async () => {
 
       expect(await vault.balanceOf(signer.address)).to.eq(amount);
       expect(await vault.totalSupply()).to.eq(amount);
-      expect(await vault.balanceOf(operator.address)).to.eq(constants.Zero);
+      expect(await vault.balanceOf(operator.address)).to.eq(0n);
 
       await expect(vault.connect(signer).deposit(amount, operator.address))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, operator.address, amount);
 
       expect(await vault.balanceOf(operator.address)).to.eq(amount);
-      expect(await vault.totalSupply()).to.eq(amount.mul(2));
+      expect(await vault.totalSupply()).to.eq(amount * 2n);
     });
   });
 
   context("depositWithCRV", async () => {
-    let signer: SignerWithAddress;
+    let signer: HardhatEthersSigner;
     let token: MockERC20;
 
     beforeEach(async () => {
@@ -250,20 +247,20 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should revert when insufficient out", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, amount);
-      const amountOut = await vault.connect(signer).callStatic.depositWithCRV(amount, operator.address, 0);
-      await expect(vault.connect(signer).depositWithCRV(amount, deployer.address, amountOut.add(1))).to.revertedWith(
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), amount);
+      const amountOut = await vault.connect(signer).depositWithCRV.staticCall(amount, operator.address, 0);
+      await expect(vault.connect(signer).depositWithCRV(amount, deployer.address, amountOut + 1n)).to.revertedWith(
         "insufficient amount out"
       );
     });
 
     it("should succeed when deposit to self", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, amount);
-      expect(await vault.balanceOf(signer.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
-      const amountOut = await vault.connect(signer).callStatic.depositWithCRV(amount, signer.address, 0);
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), amount);
+      expect(await vault.balanceOf(signer.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
+      const amountOut = await vault.connect(signer).depositWithCRV.staticCall(amount, signer.address, 0);
       await expect(vault.connect(signer).depositWithCRV(amount, signer.address, amountOut))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, signer.address, amountOut);
@@ -272,11 +269,11 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed when deposit to other", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, amount);
-      expect(await vault.balanceOf(operator.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
-      const amountOut = await vault.connect(signer).callStatic.depositWithCRV(amount, operator.address, 0);
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), amount);
+      expect(await vault.balanceOf(operator.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
+      const amountOut = await vault.connect(signer).depositWithCRV.staticCall(amount, operator.address, 0);
       await expect(vault.connect(signer).depositWithCRV(amount, operator.address, amountOut))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, operator.address, amountOut);
@@ -286,13 +283,11 @@ describe("StakeDAOCRVVault.spec", async () => {
 
     it("should succeed when deposit all to self", async () => {
       const amount = await token.balanceOf(signer.address);
-      await token.approve(vault.address, amount);
-      expect(await vault.balanceOf(operator.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
-      const amountOut = await vault
-        .connect(signer)
-        .callStatic.depositWithCRV(constants.MaxUint256, operator.address, 0);
-      await expect(vault.connect(signer).depositWithCRV(constants.MaxUint256, operator.address, amountOut))
+      await token.approve(vault.getAddress(), amount);
+      expect(await vault.balanceOf(operator.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
+      const amountOut = await vault.connect(signer).depositWithCRV.staticCall(MaxUint256, operator.address, 0);
+      await expect(vault.connect(signer).depositWithCRV(MaxUint256, operator.address, amountOut))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, operator.address, amountOut);
       expect(await vault.balanceOf(operator.address)).to.eq(amountOut);
@@ -300,32 +295,32 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed when deposit multiple times", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, constants.MaxUint256);
-      expect(await vault.balanceOf(signer.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), MaxUint256);
+      expect(await vault.balanceOf(signer.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
 
-      const amountOut1 = await vault.connect(signer).callStatic.depositWithCRV(amount, operator.address, 0);
+      const amountOut1 = await vault.connect(signer).depositWithCRV.staticCall(amount, operator.address, 0);
       await expect(vault.connect(signer).depositWithCRV(amount, signer.address, amountOut1))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, signer.address, amountOut1);
 
       expect(await vault.balanceOf(signer.address)).to.eq(amountOut1);
       expect(await vault.totalSupply()).to.eq(amountOut1);
-      expect(await vault.balanceOf(operator.address)).to.eq(constants.Zero);
+      expect(await vault.balanceOf(operator.address)).to.eq(0n);
 
-      const amountOut2 = await vault.connect(signer).callStatic.depositWithCRV(amount, operator.address, 0);
+      const amountOut2 = await vault.connect(signer).depositWithCRV.staticCall(amount, operator.address, 0);
       await expect(vault.connect(signer).depositWithCRV(amount, operator.address, amountOut2))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, operator.address, amountOut2);
 
       expect(await vault.balanceOf(operator.address)).to.eq(amountOut2);
-      expect(await vault.totalSupply()).to.eq(amountOut1.add(amountOut2));
+      expect(await vault.totalSupply()).to.eq(amountOut1 + amountOut2);
     });
   });
 
   context("depositWithSdVeCRV", async () => {
-    let signer: SignerWithAddress;
+    let signer: HardhatEthersSigner;
     let token: MockERC20;
 
     beforeEach(async () => {
@@ -338,10 +333,10 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed when deposit to self", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, amount);
-      expect(await vault.balanceOf(signer.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), amount);
+      expect(await vault.balanceOf(signer.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
       await expect(vault.connect(signer).depositWithSdVeCRV(amount, signer.address))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, signer.address, amount);
@@ -350,10 +345,10 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed when deposit to other", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, amount);
-      expect(await vault.balanceOf(operator.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), amount);
+      expect(await vault.balanceOf(operator.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
       await expect(vault.connect(signer).depositWithSdVeCRV(amount, operator.address))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, operator.address, amount);
@@ -363,10 +358,10 @@ describe("StakeDAOCRVVault.spec", async () => {
 
     it("should succeed when deposit all to self", async () => {
       const amount = await token.balanceOf(signer.address);
-      await token.approve(vault.address, amount);
-      expect(await vault.balanceOf(operator.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
-      await expect(vault.connect(signer).depositWithSdVeCRV(constants.MaxUint256, operator.address))
+      await token.approve(vault.getAddress(), amount);
+      expect(await vault.balanceOf(operator.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
+      await expect(vault.connect(signer).depositWithSdVeCRV(MaxUint256, operator.address))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, operator.address, amount);
       expect(await vault.balanceOf(operator.address)).to.eq(amount);
@@ -374,10 +369,10 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed when deposit multiple times", async () => {
-      const amount = ethers.utils.parseEther("100");
-      await token.approve(vault.address, constants.MaxUint256);
-      expect(await vault.balanceOf(signer.address)).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(constants.Zero);
+      const amount = ethers.parseEther("100");
+      await token.approve(vault.getAddress(), MaxUint256);
+      expect(await vault.balanceOf(signer.address)).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(0n);
 
       await expect(vault.connect(signer).depositWithSdVeCRV(amount, signer.address))
         .to.emit(vault, "Deposit")
@@ -385,26 +380,26 @@ describe("StakeDAOCRVVault.spec", async () => {
 
       expect(await vault.balanceOf(signer.address)).to.eq(amount);
       expect(await vault.totalSupply()).to.eq(amount);
-      expect(await vault.balanceOf(operator.address)).to.eq(constants.Zero);
+      expect(await vault.balanceOf(operator.address)).to.eq(0n);
 
       await expect(vault.connect(signer).depositWithSdVeCRV(amount, operator.address))
         .to.emit(vault, "Deposit")
         .withArgs(signer.address, operator.address, amount);
 
       expect(await vault.balanceOf(operator.address)).to.eq(amount);
-      expect(await vault.totalSupply()).to.eq(amount.mul(2));
+      expect(await vault.totalSupply()).to.eq(amount * 2n);
     });
   });
 
   context("withdraw", async () => {
-    const depositAmount = ethers.utils.parseEther("100");
-    let signer: SignerWithAddress;
+    const depositAmount = ethers.parseEther("100");
+    let signer: HardhatEthersSigner;
     let sdcrv: MockERC20;
 
     beforeEach(async () => {
       signer = await ethers.getSigner(SDCRV_HOLDER);
       sdcrv = await ethers.getContractAt("MockERC20", SDCRV, signer);
-      await sdcrv.approve(vault.address, constants.MaxUint256);
+      await sdcrv.approve(vault.getAddress(), MaxUint256);
       await vault.connect(signer).deposit(depositAmount, signer.address);
       await vault.updateFeeInfo(deployer.address, 0, 0, 0, 1e6); // 10% withdraw fee
     });
@@ -414,135 +409,135 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should revert when withdraw exceed balance", async () => {
-      await expect(vault.connect(signer).withdraw(depositAmount.add(1), deployer.address)).to.revertedWith(
+      await expect(vault.connect(signer).withdraw(depositAmount + 1n, deployer.address)).to.revertedWith(
         "insufficient staked token"
       );
     });
 
     it("should succeed, when withdraw 10 to self", async () => {
-      expect(await vault.withdrawFeeAccumulated()).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("100"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("100"));
-      await expect(vault.connect(signer).withdraw(ethers.utils.parseEther("10"), signer.address))
+      expect(await vault.withdrawFeeAccumulated()).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("100"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("100"));
+      await expect(vault.connect(signer).withdraw(ethers.parseEther("10"), signer.address))
         .to.emit(vault, "Withdraw")
-        .withArgs(signer.address, signer.address, ethers.utils.parseEther("9"), ethers.utils.parseEther("1"));
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("1"));
-      expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("9"));
+        .withArgs(signer.address, signer.address, ethers.parseEther("9"), ethers.parseEther("1"));
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.parseEther("1"));
+      expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.parseEther("9"));
       expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(
         Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
       );
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("90"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("90"));
 
       await expect(vault.connect(deployer).takeWithdrawFee(deployer.address))
         .to.emit(vault, "TakeWithdrawFee")
-        .withArgs(ethers.utils.parseEther("1"));
+        .withArgs(ethers.parseEther("1"));
     });
 
     it("should succeed, when withdraw 10 to other", async () => {
-      expect(await vault.withdrawFeeAccumulated()).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("100"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("100"));
-      await expect(vault.connect(signer).withdraw(ethers.utils.parseEther("10"), operator.address))
+      expect(await vault.withdrawFeeAccumulated()).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("100"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("100"));
+      await expect(vault.connect(signer).withdraw(ethers.parseEther("10"), operator.address))
         .to.emit(vault, "Withdraw")
-        .withArgs(signer.address, operator.address, ethers.utils.parseEther("9"), ethers.utils.parseEther("1"));
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("1"));
-      expect((await vault.getUserLocks(operator.address))[0].amount).to.eq(ethers.utils.parseEther("9"));
+        .withArgs(signer.address, operator.address, ethers.parseEther("9"), ethers.parseEther("1"));
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.parseEther("1"));
+      expect((await vault.getUserLocks(operator.address))[0].amount).to.eq(ethers.parseEther("9"));
       expect((await vault.getUserLocks(operator.address))[0].expireAt).to.eq(
         Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
       );
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("90"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("90"));
 
       await expect(vault.connect(deployer).takeWithdrawFee(deployer.address))
         .to.emit(vault, "TakeWithdrawFee")
-        .withArgs(ethers.utils.parseEther("1"));
+        .withArgs(ethers.parseEther("1"));
     });
 
     it("should succeed, when withdraw all to self", async () => {
-      expect(await vault.withdrawFeeAccumulated()).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("100"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("100"));
-      await expect(vault.connect(signer).withdraw(constants.MaxUint256, signer.address))
+      expect(await vault.withdrawFeeAccumulated()).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("100"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("100"));
+      await expect(vault.connect(signer).withdraw(MaxUint256, signer.address))
         .to.emit(vault, "Withdraw")
-        .withArgs(signer.address, signer.address, ethers.utils.parseEther("90"), ethers.utils.parseEther("10"));
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("10"));
-      expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("90"));
+        .withArgs(signer.address, signer.address, ethers.parseEther("90"), ethers.parseEther("10"));
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.parseEther("10"));
+      expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.parseEther("90"));
       expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(
         Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
       );
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("0"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("0"));
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("0"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("0"));
 
       await expect(vault.connect(deployer).takeWithdrawFee(deployer.address))
         .to.emit(vault, "TakeWithdrawFee")
-        .withArgs(ethers.utils.parseEther("10"));
+        .withArgs(ethers.parseEther("10"));
     });
 
     it("should succeed, when withdraw 10 to self and ignore withdraw fee", async () => {
       await vault.connect(deployer).setWithdrawFeeForUser(signer.address, 0);
-      expect(await vault.withdrawFeeAccumulated()).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("100"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("100"));
-      await expect(vault.connect(signer).withdraw(ethers.utils.parseEther("10"), signer.address))
+      expect(await vault.withdrawFeeAccumulated()).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("100"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("100"));
+      await expect(vault.connect(signer).withdraw(ethers.parseEther("10"), signer.address))
         .to.emit(vault, "Withdraw")
-        .withArgs(signer.address, signer.address, ethers.utils.parseEther("10"), ethers.utils.parseEther("0"));
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("0"));
-      expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("10"));
+        .withArgs(signer.address, signer.address, ethers.parseEther("10"), ethers.parseEther("0"));
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.parseEther("0"));
+      expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.parseEther("10"));
       expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(
         Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
       );
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("90"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("90"));
     });
 
     it("should succeed, when withdraw 10 to self and withdraw fee customize to 5%", async () => {
       await vault.connect(deployer).setWithdrawFeeForUser(signer.address, "50000000");
-      expect(await vault.withdrawFeeAccumulated()).to.eq(constants.Zero);
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("100"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("100"));
-      await expect(vault.connect(signer).withdraw(ethers.utils.parseEther("10"), signer.address))
+      expect(await vault.withdrawFeeAccumulated()).to.eq(0n);
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("100"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("100"));
+      await expect(vault.connect(signer).withdraw(ethers.parseEther("10"), signer.address))
         .to.emit(vault, "Withdraw")
-        .withArgs(signer.address, signer.address, ethers.utils.parseEther("9.5"), ethers.utils.parseEther("0.5"));
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.utils.parseEther("0.5"));
-      expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.utils.parseEther("9.5"));
+        .withArgs(signer.address, signer.address, ethers.parseEther("9.5"), ethers.parseEther("0.5"));
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+      expect(await vault.withdrawFeeAccumulated()).to.eq(ethers.parseEther("0.5"));
+      expect((await vault.getUserLocks(signer.address))[0].amount).to.eq(ethers.parseEther("9.5"));
       expect((await vault.getUserLocks(signer.address))[0].expireAt).to.eq(
         Math.ceil(timestamp / 86400) * 86400 + 86400 * 30
       );
-      expect(await vault.totalSupply()).to.eq(ethers.utils.parseEther("90"));
-      expect(await vault.balanceOf(signer.address)).to.eq(ethers.utils.parseEther("90"));
+      expect(await vault.totalSupply()).to.eq(ethers.parseEther("90"));
+      expect(await vault.balanceOf(signer.address)).to.eq(ethers.parseEther("90"));
     });
   });
 
   context("withdrawExpired", async () => {
-    const depositAmount = ethers.utils.parseEther("100");
-    let signer: SignerWithAddress;
+    const depositAmount = ethers.parseEther("100");
+    let signer: HardhatEthersSigner;
     let sdcrv: MockERC20;
     let timestamps: number[];
 
     beforeEach(async () => {
       signer = await ethers.getSigner(SDCRV_HOLDER);
       sdcrv = await ethers.getContractAt("MockERC20", SDCRV, signer);
-      await sdcrv.approve(vault.address, constants.MaxUint256);
+      await sdcrv.approve(vault.getAddress(), MaxUint256);
       await vault.connect(signer).deposit(depositAmount, signer.address);
       timestamps = [];
       for (let i = 0; i < 10; i++) {
-        await vault.connect(signer).withdraw(ethers.utils.parseEther("10"), signer.address);
-        const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
+        await vault.connect(signer).withdraw(ethers.parseEther("10"), signer.address);
+        const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
         timestamps.push(timestamp);
         if (i < 9) {
-          await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400]);
+          await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400]);
         }
       }
       const lists = await vault.getUserLocks(signer.address);
       expect(lists.length).to.eq(10);
       for (let i = 0; i < 10; i++) {
-        expect(lists[i].amount).to.eq(ethers.utils.parseEther("10"));
+        expect(lists[i].amount).to.eq(ethers.parseEther("10"));
         expect(lists[i].expireAt).to.eq(Math.ceil(timestamps[i] / 86400) * 86400 + 86400 * 30);
       }
     });
@@ -555,15 +550,15 @@ describe("StakeDAOCRVVault.spec", async () => {
 
     it("should succeed, when with expired to self", async () => {
       for (let i = 0; i < 10; i++) {
-        await hre.network.provider.send("evm_setNextBlockTimestamp", [
+        await network.provider.send("evm_setNextBlockTimestamp", [
           Math.ceil(timestamps[i] / 86400) * 86400 + 86400 * 30,
         ]);
         const balanceBefore = await sdcrv.balanceOf(signer.address);
         await expect(vault.connect(signer).withdrawExpired(signer.address, signer.address))
           .to.emit(vault, "WithdrawExpired")
-          .withArgs(signer.address, signer.address, ethers.utils.parseEther("10"));
+          .withArgs(signer.address, signer.address, ethers.parseEther("10"));
         const balanceAfter = await sdcrv.balanceOf(signer.address);
-        expect(balanceAfter.sub(balanceBefore)).to.eq(ethers.utils.parseEther("10"));
+        expect(balanceAfter - balanceBefore).to.eq(ethers.parseEther("10"));
         const lists = await vault.getUserLocks(signer.address);
         expect(lists.length).to.eq(9 - i);
       }
@@ -571,15 +566,15 @@ describe("StakeDAOCRVVault.spec", async () => {
 
     it("should succeed, when with expired to others", async () => {
       for (let i = 0; i < 10; i++) {
-        await hre.network.provider.send("evm_setNextBlockTimestamp", [
+        await network.provider.send("evm_setNextBlockTimestamp", [
           Math.ceil(timestamps[i] / 86400) * 86400 + 86400 * 30,
         ]);
         const balanceBefore = await sdcrv.balanceOf(operator.address);
         await expect(vault.connect(signer).withdrawExpired(signer.address, operator.address))
           .to.emit(vault, "WithdrawExpired")
-          .withArgs(signer.address, operator.address, ethers.utils.parseEther("10"));
+          .withArgs(signer.address, operator.address, ethers.parseEther("10"));
         const balanceAfter = await sdcrv.balanceOf(operator.address);
-        expect(balanceAfter.sub(balanceBefore)).to.eq(ethers.utils.parseEther("10"));
+        expect(balanceAfter - balanceBefore).to.eq(ethers.parseEther("10"));
         const lists = await vault.getUserLocks(signer.address);
         expect(lists.length).to.eq(9 - i);
       }
@@ -587,43 +582,43 @@ describe("StakeDAOCRVVault.spec", async () => {
   });
 
   context("harvest", async () => {
-    const depositAmount = ethers.utils.parseEther("800000");
-    let signer: SignerWithAddress;
+    const depositAmount = ethers.parseEther("800000");
+    let signer: HardhatEthersSigner;
     let sdcrv: MockERC20;
 
     beforeEach(async () => {
       signer = await ethers.getSigner(SDCRV_HOLDER);
       sdcrv = await ethers.getContractAt("MockERC20", SDCRV, signer);
-      await sdcrv.approve(vault.address, constants.MaxUint256);
+      await sdcrv.approve(vault.getAddress(), MaxUint256);
       await vault.connect(signer).deposit(depositAmount, signer.address);
       // 20% platform, 10% bounty, 20% boost
       await vault.updateFeeInfo(operator.address, 2e6, 1e6, 2e6, 0);
     });
 
     it("should succeed, when distribute intermediately", async () => {
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-      await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+      await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
       const crv = await ethers.getContractAt("MockERC20", CRV, deployer);
       const sdt = await ethers.getContractAt("MockERC20", SDT, deployer);
       const tricrv = await ethers.getContractAt("MockERC20", THREE_CRV, deployer);
       const tx = await vault.harvest(deployer.address);
-      const crv_reward = await crv.balanceOf(vault.address); // 70%
+      const crv_reward = await crv.balanceOf(vault.getAddress()); // 70%
       const crv_bounty = await crv.balanceOf(deployer.address); // 10%
       const crv_platform = await crv.balanceOf(operator.address); // 20%
-      expect(crv_reward).to.eq(crv_bounty.mul(7));
-      expect(crv_platform).to.eq(crv_bounty.mul(2));
-      const sdt_reward = await sdt.balanceOf(vault.address); // 50%
+      expect(crv_reward).to.eq(crv_bounty * 7n);
+      expect(crv_platform).to.eq(crv_bounty * 2n);
+      const sdt_reward = await sdt.balanceOf(vault.getAddress()); // 50%
       const sdt_bounty = await sdt.balanceOf(deployer.address); // 10%
       const sdt_platform = await sdt.balanceOf(operator.address); // 20%
-      const sdt_boost = await sdt.balanceOf(delegation.address); // 20%
-      expect(sdt_reward).to.eq(sdt_bounty.mul(5));
-      expect(sdt_platform).to.eq(sdt_bounty.mul(2));
-      expect(sdt_boost).to.eq(sdt_bounty.mul(2));
-      const tricrv_reward = await tricrv.balanceOf(vault.address); // 70%
+      const sdt_boost = await sdt.balanceOf(delegation.getAddress()); // 20%
+      expect(sdt_reward).to.eq(sdt_bounty * 5n);
+      expect(sdt_platform).to.eq(sdt_bounty * 2n);
+      expect(sdt_boost).to.eq(sdt_bounty * 2n);
+      const tricrv_reward = await tricrv.balanceOf(vault.getAddress()); // 70%
       const tricrv_bounty = await tricrv.balanceOf(deployer.address); // 10%
       const tricrv_platform = await tricrv.balanceOf(operator.address); // 20%
-      expect(tricrv_reward).to.eq(tricrv_bounty.mul(7));
-      expect(tricrv_platform).to.eq(tricrv_bounty.mul(2));
+      expect(tricrv_reward).to.eq(tricrv_bounty * 7n);
+      expect(tricrv_platform).to.eq(tricrv_bounty * 2n);
 
       await expect(tx)
         .to.emit(vault, "Harvest")
@@ -635,15 +630,15 @@ describe("StakeDAOCRVVault.spec", async () => {
           sdt_boost
         );
 
-      const precision = BigNumber.from(10).pow(18);
-      expect((await vault.rewardInfo(crv.address)).accRewardPerShare).to.eq(
-        crv_reward.mul(precision).div(depositAmount)
+      const precision = 10n ** 18n;
+      expect((await vault.rewardInfo(crv.getAddress())).accRewardPerShare).to.eq(
+        (crv_reward * precision) / depositAmount
       );
-      expect((await vault.rewardInfo(sdt.address)).accRewardPerShare).to.eq(
-        sdt_reward.mul(precision).div(depositAmount)
+      expect((await vault.rewardInfo(sdt.getAddress())).accRewardPerShare).to.eq(
+        (sdt_reward * precision) / depositAmount
       );
-      expect((await vault.rewardInfo(tricrv.address)).accRewardPerShare).to.eq(
-        tricrv_reward.mul(precision).div(depositAmount)
+      expect((await vault.rewardInfo(tricrv.getAddress())).accRewardPerShare).to.eq(
+        (tricrv_reward * precision) / depositAmount
       );
     });
 
@@ -651,29 +646,29 @@ describe("StakeDAOCRVVault.spec", async () => {
       const crv = await ethers.getContractAt("MockERC20", CRV, deployer);
       const sdt = await ethers.getContractAt("MockERC20", SDT, deployer);
       const tricrv = await ethers.getContractAt("MockERC20", THREE_CRV, deployer);
-      await vault.updateRewardPeriod(crv.address, 86400 * 7);
-      await vault.updateRewardPeriod(sdt.address, 86400 * 7);
+      await vault.updateRewardPeriod(crv.getAddress(), 86400 * 7);
+      await vault.updateRewardPeriod(sdt.getAddress(), 86400 * 7);
 
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-      await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+      await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
       const tx = await vault.harvest(deployer.address);
-      const crv_reward = await crv.balanceOf(vault.address); // 70%
+      const crv_reward = await crv.balanceOf(vault.getAddress()); // 70%
       const crv_bounty = await crv.balanceOf(deployer.address); // 10%
       const crv_platform = await crv.balanceOf(operator.address); // 20%
-      expect(crv_reward).to.eq(crv_bounty.mul(7));
-      expect(crv_platform).to.eq(crv_bounty.mul(2));
-      const sdt_reward = await sdt.balanceOf(vault.address); // 50%
+      expect(crv_reward).to.eq(crv_bounty * 7n);
+      expect(crv_platform).to.eq(crv_bounty * 2n);
+      const sdt_reward = await sdt.balanceOf(vault.getAddress()); // 50%
       const sdt_bounty = await sdt.balanceOf(deployer.address); // 10%
       const sdt_platform = await sdt.balanceOf(operator.address); // 20%
-      const sdt_boost = await sdt.balanceOf(delegation.address); // 20%
-      expect(sdt_reward).to.eq(sdt_bounty.mul(5));
-      expect(sdt_platform).to.eq(sdt_bounty.mul(2));
-      expect(sdt_boost).to.eq(sdt_bounty.mul(2));
-      const tricrv_reward = await tricrv.balanceOf(vault.address); // 70%
+      const sdt_boost = await sdt.balanceOf(delegation.getAddress()); // 20%
+      expect(sdt_reward).to.eq(sdt_bounty * 5n);
+      expect(sdt_platform).to.eq(sdt_bounty * 2n);
+      expect(sdt_boost).to.eq(sdt_bounty * 2n);
+      const tricrv_reward = await tricrv.balanceOf(vault.getAddress()); // 70%
       const tricrv_bounty = await tricrv.balanceOf(deployer.address); // 10%
       const tricrv_platform = await tricrv.balanceOf(operator.address); // 20%
-      expect(tricrv_reward).to.eq(tricrv_bounty.mul(7));
-      expect(tricrv_platform).to.eq(tricrv_bounty.mul(2));
+      expect(tricrv_reward).to.eq(tricrv_bounty * 7n);
+      expect(tricrv_platform).to.eq(tricrv_bounty * 2n);
 
       await expect(tx)
         .to.emit(vault, "Harvest")
@@ -685,66 +680,58 @@ describe("StakeDAOCRVVault.spec", async () => {
           sdt_boost
         );
 
-      const precision = BigNumber.from(10).pow(18);
-      expect((await vault.rewardInfo(tricrv.address)).accRewardPerShare).to.eq(
-        tricrv_reward.mul(precision).div(depositAmount)
+      const precision = 10n ** 18n;
+      expect((await vault.rewardInfo(tricrv.getAddress())).accRewardPerShare).to.eq(
+        (tricrv_reward * precision) / depositAmount
       );
-      expect((await vault.rewardInfo(crv.address)).accRewardPerShare).to.eq(constants.Zero);
-      expect((await vault.rewardInfo(crv.address)).rate).to.eq(crv_reward.div(86400 * 7));
-      expect((await vault.rewardInfo(crv.address)).finishAt).to.eq(timestamp + 86400 * 7 * 2);
-      expect((await vault.rewardInfo(crv.address)).lastUpdate).to.eq(timestamp + 86400 * 7);
-      expect((await vault.rewardInfo(sdt.address)).accRewardPerShare).to.eq(constants.Zero);
-      expect((await vault.rewardInfo(sdt.address)).rate).to.eq(sdt_reward.div(86400 * 7));
-      expect((await vault.rewardInfo(sdt.address)).finishAt).to.eq(timestamp + 86400 * 7 * 2);
-      expect((await vault.rewardInfo(sdt.address)).lastUpdate).to.eq(timestamp + 86400 * 7);
+      expect((await vault.rewardInfo(crv.getAddress())).accRewardPerShare).to.eq(0n);
+      expect((await vault.rewardInfo(crv.getAddress())).rate).to.eq(crv_reward / toBigInt(86400 * 7));
+      expect((await vault.rewardInfo(crv.getAddress())).finishAt).to.eq(timestamp + 86400 * 7 * 2);
+      expect((await vault.rewardInfo(crv.getAddress())).lastUpdate).to.eq(timestamp + 86400 * 7);
+      expect((await vault.rewardInfo(sdt.getAddress())).accRewardPerShare).to.eq(0n);
+      expect((await vault.rewardInfo(sdt.getAddress())).rate).to.eq(sdt_reward / toBigInt(86400 * 7));
+      expect((await vault.rewardInfo(sdt.getAddress())).finishAt).to.eq(timestamp + 86400 * 7 * 2);
+      expect((await vault.rewardInfo(sdt.getAddress())).lastUpdate).to.eq(timestamp + 86400 * 7);
 
       // 3 days passed
-      await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 10]);
+      await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 10]);
       await vault.checkpoint(deployer.address);
-      expect((await vault.rewardInfo(tricrv.address)).accRewardPerShare).to.eq(
-        tricrv_reward.mul(precision).div(depositAmount)
+      expect((await vault.rewardInfo(tricrv.getAddress())).accRewardPerShare).to.eq(
+        (tricrv_reward * precision) / depositAmount
       );
-      expect((await vault.rewardInfo(crv.address)).accRewardPerShare).to.eq(
-        crv_reward
-          .div(86400 * 7)
-          .mul(86400 * 3)
-          .mul(precision)
-          .div(depositAmount)
+      expect((await vault.rewardInfo(crv.getAddress())).accRewardPerShare).to.eq(
+        ((crv_reward / toBigInt(86400 * 7)) * toBigInt(86400 * 3) * precision) / depositAmount
       );
-      expect((await vault.rewardInfo(crv.address)).rate).to.eq(crv_reward.div(86400 * 7));
-      expect((await vault.rewardInfo(crv.address)).finishAt).to.eq(timestamp + 86400 * 7 * 2);
-      expect((await vault.rewardInfo(crv.address)).lastUpdate).to.eq(timestamp + 86400 * 10);
-      expect((await vault.rewardInfo(sdt.address)).accRewardPerShare).to.eq(
-        sdt_reward
-          .div(86400 * 7)
-          .mul(86400 * 3)
-          .mul(precision)
-          .div(depositAmount)
+      expect((await vault.rewardInfo(crv.getAddress())).rate).to.eq(crv_reward / toBigInt(86400 * 7));
+      expect((await vault.rewardInfo(crv.getAddress())).finishAt).to.eq(timestamp + 86400 * 7 * 2);
+      expect((await vault.rewardInfo(crv.getAddress())).lastUpdate).to.eq(timestamp + 86400 * 10);
+      expect((await vault.rewardInfo(sdt.getAddress())).accRewardPerShare).to.eq(
+        ((sdt_reward / toBigInt(86400 * 7)) * toBigInt(86400 * 3) * precision) / depositAmount
       );
-      expect((await vault.rewardInfo(sdt.address)).rate).to.eq(sdt_reward.div(86400 * 7));
-      expect((await vault.rewardInfo(sdt.address)).finishAt).to.eq(timestamp + 86400 * 7 * 2);
-      expect((await vault.rewardInfo(sdt.address)).lastUpdate).to.eq(timestamp + 86400 * 10);
+      expect((await vault.rewardInfo(sdt.getAddress())).rate).to.eq(sdt_reward / toBigInt(86400 * 7));
+      expect((await vault.rewardInfo(sdt.getAddress())).finishAt).to.eq(timestamp + 86400 * 7 * 2);
+      expect((await vault.rewardInfo(sdt.getAddress())).lastUpdate).to.eq(timestamp + 86400 * 10);
     });
   });
 
   context("claim", async () => {
-    let signer: SignerWithAddress;
+    let signer: HardhatEthersSigner;
     let sdcrv: MockERC20;
 
     beforeEach(async () => {
       signer = await ethers.getSigner(SDCRV_HOLDER);
       sdcrv = await ethers.getContractAt("MockERC20", SDCRV, signer);
 
-      await sdcrv.connect(signer).approve(vault.address, constants.MaxUint256);
-      await vault.connect(signer).deposit(ethers.utils.parseEther("160000"), signer.address); // 20%
+      await sdcrv.connect(signer).approve(vault.getAddress(), MaxUint256);
+      await vault.connect(signer).deposit(ethers.parseEther("160000"), signer.address); // 20%
 
-      await sdcrv.connect(signer).transfer(deployer.address, ethers.utils.parseEther("400000")); // 50%
-      await sdcrv.connect(deployer).approve(vault.address, constants.MaxUint256);
-      await vault.connect(deployer).deposit(ethers.utils.parseEther("400000"), deployer.address); // 50%
+      await sdcrv.connect(signer).transfer(deployer.address, ethers.parseEther("400000")); // 50%
+      await sdcrv.connect(deployer).approve(vault.getAddress(), MaxUint256);
+      await vault.connect(deployer).deposit(ethers.parseEther("400000"), deployer.address); // 50%
 
-      await sdcrv.connect(signer).transfer(operator.address, ethers.utils.parseEther("240000")); // 30%
-      await sdcrv.connect(operator).approve(vault.address, constants.MaxUint256);
-      await vault.connect(operator).deposit(ethers.utils.parseEther("240000"), operator.address); // 30%
+      await sdcrv.connect(signer).transfer(operator.address, ethers.parseEther("240000")); // 30%
+      await sdcrv.connect(operator).approve(vault.getAddress(), MaxUint256);
+      await vault.connect(operator).deposit(ethers.parseEther("240000"), operator.address); // 30%
 
       // 20% platform, 10% bounty, 20% boost
       await vault.updateFeeInfo(operator.address, 2e6, 1e6, 2e6, 0);
@@ -757,15 +744,15 @@ describe("StakeDAOCRVVault.spec", async () => {
     });
 
     it("should succeed, when distribute intermediately", async () => {
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-      await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+      await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
       const crv = await ethers.getContractAt("MockERC20", CRV, deployer);
       const sdt = await ethers.getContractAt("MockERC20", SDT, deployer);
       const tricrv = await ethers.getContractAt("MockERC20", THREE_CRV, deployer);
       await vault.harvest(deployer.address);
-      const crv_reward = await crv.balanceOf(vault.address);
-      const sdt_reward = await sdt.balanceOf(vault.address);
-      const tricrv_reward = await tricrv.balanceOf(vault.address);
+      const crv_reward = await crv.balanceOf(vault.getAddress());
+      const sdt_reward = await sdt.balanceOf(vault.getAddress());
+      const tricrv_reward = await tricrv.balanceOf(vault.getAddress());
 
       let beforeCRV = await crv.balanceOf(signer.address);
       let beforeSDT = await sdt.balanceOf(signer.address);
@@ -774,9 +761,9 @@ describe("StakeDAOCRVVault.spec", async () => {
       let afterCRV = await crv.balanceOf(signer.address);
       let afterSDT = await sdt.balanceOf(signer.address);
       let after3CRV = await tricrv.balanceOf(signer.address);
-      expect(afterCRV.sub(beforeCRV)).to.closeToBn(crv_reward.mul(2).div(10), 1e6);
-      expect(afterSDT.sub(beforeSDT)).to.closeToBn(sdt_reward.mul(2).div(10), 1e6);
-      expect(after3CRV.sub(before3CRV)).to.closeToBn(tricrv_reward.mul(2).div(10), 1e6);
+      expect(afterCRV - beforeCRV).to.closeTo((crv_reward * 2n) / 10n, 10n ** 6n);
+      expect(afterSDT - beforeSDT).to.closeTo((sdt_reward * 2n) / 10n, 10n ** 6n);
+      expect(after3CRV - before3CRV).to.closeTo((tricrv_reward * 2n) / 10n, 10n ** 6n);
 
       beforeCRV = await crv.balanceOf(signer.address);
       beforeSDT = await sdt.balanceOf(signer.address);
@@ -785,9 +772,9 @@ describe("StakeDAOCRVVault.spec", async () => {
       afterCRV = await crv.balanceOf(signer.address);
       afterSDT = await sdt.balanceOf(signer.address);
       after3CRV = await tricrv.balanceOf(signer.address);
-      expect(afterCRV.sub(beforeCRV)).to.closeToBn(crv_reward.mul(5).div(10), 1e6);
-      expect(afterSDT.sub(beforeSDT)).to.closeToBn(sdt_reward.mul(5).div(10), 1e6);
-      expect(after3CRV.sub(before3CRV)).to.closeToBn(tricrv_reward.mul(5).div(10), 1e6);
+      expect(afterCRV - beforeCRV).to.closeTo((crv_reward * 5n) / 10n, 10n ** 6n);
+      expect(afterSDT - beforeSDT).to.closeTo((sdt_reward * 5n) / 10n, 10n ** 6n);
+      expect(after3CRV - before3CRV).to.closeTo((tricrv_reward * 5n) / 10n, 10n ** 6n);
 
       beforeCRV = await crv.balanceOf(operator.address);
       beforeSDT = await sdt.balanceOf(operator.address);
@@ -796,35 +783,35 @@ describe("StakeDAOCRVVault.spec", async () => {
       afterCRV = await crv.balanceOf(operator.address);
       afterSDT = await sdt.balanceOf(operator.address);
       after3CRV = await tricrv.balanceOf(operator.address);
-      expect(afterCRV.sub(beforeCRV)).to.closeToBn(crv_reward.mul(3).div(10), 1e6);
-      expect(afterSDT.sub(beforeSDT)).to.closeToBn(sdt_reward.mul(3).div(10), 1e6);
-      expect(after3CRV.sub(before3CRV)).to.closeToBn(tricrv_reward.mul(3).div(10), 1e6);
+      expect(afterCRV - beforeCRV).to.closeTo((crv_reward * 3n) / 10n, 10n ** 6n);
+      expect(afterSDT - beforeSDT).to.closeTo((sdt_reward * 3n) / 10n, 10n ** 6n);
+      expect(after3CRV - before3CRV).to.closeTo((tricrv_reward * 3n) / 10n, 10n ** 6n);
     });
 
     it("should succeed, when distribute linear in 7 days", async () => {
       const crv = await ethers.getContractAt("MockERC20", CRV, deployer);
       const sdt = await ethers.getContractAt("MockERC20", SDT, deployer);
       const tricrv = await ethers.getContractAt("MockERC20", THREE_CRV, deployer);
-      await vault.updateRewardPeriod(crv.address, 86400 * 7);
-      await vault.updateRewardPeriod(sdt.address, 86400 * 7);
-      const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-      await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
+      await vault.updateRewardPeriod(crv.getAddress(), 86400 * 7);
+      await vault.updateRewardPeriod(sdt.getAddress(), 86400 * 7);
+      const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+      await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
       await vault.harvest(deployer.address);
-      const crv_reward = await crv.balanceOf(vault.address);
-      const sdt_reward = await sdt.balanceOf(vault.address);
-      const tricrv_reward = await tricrv.balanceOf(vault.address);
+      const crv_reward = await crv.balanceOf(vault.getAddress());
+      const sdt_reward = await sdt.balanceOf(vault.getAddress());
+      const tricrv_reward = await tricrv.balanceOf(vault.getAddress());
 
       let beforeCRV = await crv.balanceOf(signer.address);
       let beforeSDT = await sdt.balanceOf(signer.address);
       let before3CRV = await tricrv.balanceOf(signer.address);
-      await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * (7 + 3.5)]);
+      await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * (7 + 3.5)]);
       await vault.connect(signer).claim(signer.address, signer.address); // to self
       let afterCRV = await crv.balanceOf(signer.address);
       let afterSDT = await sdt.balanceOf(signer.address);
       let after3CRV = await tricrv.balanceOf(signer.address);
-      expect(afterCRV.sub(beforeCRV)).to.closeToBn(crv_reward.mul(2).div(10).div(2), 1e6);
-      expect(afterSDT.sub(beforeSDT)).to.closeToBn(sdt_reward.mul(2).div(10).div(2), 1e6);
-      expect(after3CRV.sub(before3CRV)).to.closeToBn(tricrv_reward.mul(2).div(10), 1e6);
+      expect(afterCRV - beforeCRV).to.closeTo((crv_reward * 2n) / 10n / 2n, 10n ** 6n);
+      expect(afterSDT - beforeSDT).to.closeTo((sdt_reward * 2n) / 10n / 2n, 10n ** 6n);
+      expect(after3CRV - before3CRV).to.closeTo((tricrv_reward * 2n) / 10n, 10n ** 6n);
 
       beforeCRV = await crv.balanceOf(signer.address);
       beforeSDT = await sdt.balanceOf(signer.address);
@@ -833,9 +820,9 @@ describe("StakeDAOCRVVault.spec", async () => {
       afterCRV = await crv.balanceOf(signer.address);
       afterSDT = await sdt.balanceOf(signer.address);
       after3CRV = await tricrv.balanceOf(signer.address);
-      expect(afterCRV.sub(beforeCRV)).to.closeToBn(crv_reward.mul(5).div(10).div(2), afterCRV.sub(beforeCRV).div(1e4));
-      expect(afterSDT.sub(beforeSDT)).to.closeToBn(sdt_reward.mul(5).div(10).div(2), afterSDT.sub(beforeSDT).div(1e4));
-      expect(after3CRV.sub(before3CRV)).to.closeToBn(tricrv_reward.mul(5).div(10), 1e6);
+      expect(afterCRV - beforeCRV).to.closeTo((crv_reward * 5n) / 10n / 2n, (afterCRV - beforeCRV) / 10000n);
+      expect(afterSDT - beforeSDT).to.closeTo((sdt_reward * 5n) / 10n / 2n, (afterSDT - beforeSDT) / 10000n);
+      expect(after3CRV - before3CRV).to.closeTo((tricrv_reward * 5n) / 10n, 10n ** 6n);
 
       beforeCRV = await crv.balanceOf(operator.address);
       beforeSDT = await sdt.balanceOf(operator.address);
@@ -844,9 +831,9 @@ describe("StakeDAOCRVVault.spec", async () => {
       afterCRV = await crv.balanceOf(operator.address);
       afterSDT = await sdt.balanceOf(operator.address);
       after3CRV = await tricrv.balanceOf(operator.address);
-      expect(afterCRV.sub(beforeCRV)).to.closeToBn(crv_reward.mul(3).div(10).div(2), afterCRV.sub(beforeCRV).div(1e4));
-      expect(afterSDT.sub(beforeSDT)).to.closeToBn(sdt_reward.mul(3).div(10).div(2), afterSDT.sub(beforeSDT).div(1e4));
-      expect(after3CRV.sub(before3CRV)).to.closeToBn(tricrv_reward.mul(3).div(10), 1e6);
+      expect(afterCRV - beforeCRV).to.closeTo((crv_reward * 3n) / 10n / 2n, (afterCRV - beforeCRV) / 10000n);
+      expect(afterSDT - beforeSDT).to.closeTo((sdt_reward * 3n) / 10n / 2n, (afterSDT - beforeSDT) / 10000n);
+      expect(after3CRV - before3CRV).to.closeTo((tricrv_reward * 3n) / 10n, 10n ** 6n);
     });
   });
 });

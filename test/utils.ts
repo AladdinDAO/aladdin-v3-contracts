@@ -1,13 +1,12 @@
-import { Assertion } from "chai";
 import { config as dotEnvConfig } from "dotenv";
-import { BigNumber, BigNumberish } from "ethers";
-import * as hre from "hardhat";
+import { BigNumberish, toBigInt } from "ethers";
+import { network } from "hardhat";
 
 dotEnvConfig();
 
 // eslint-disable-next-line camelcase
 export async function request_fork(blockNumber: number, accounts: string[]) {
-  await hre.network.provider.request({
+  await network.provider.request({
     method: "hardhat_reset",
     params: [
       {
@@ -19,29 +18,13 @@ export async function request_fork(blockNumber: number, accounts: string[]) {
     ],
   });
   for (const address of accounts) {
-    await hre.network.provider.request({
+    await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [address],
     });
   }
 }
 
-Assertion.addMethod("closeToBn", function (expected: BigNumberish, delta: BigNumberish) {
-  const obj = this._obj;
-  this.assert(
-    BigNumber.from(expected).sub(obj).abs().lte(delta),
-    `expected ${obj} to be close to ${expected} +/- ${delta}`,
-    `expected ${obj} not to be close to ${expected} +/- ${delta}`,
-    expected,
-    obj
-  );
-});
-
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  export namespace Chai {
-    interface Assertion {
-      closeToBn(expected: BigNumberish, delta: BigNumberish): Assertion;
-    }
-  }
+export async function mockETHBalance(account: string, amount: BigNumberish) {
+  await network.provider.send("hardhat_setBalance", [account, "0x" + toBigInt(amount).toString(16)]);
 }
