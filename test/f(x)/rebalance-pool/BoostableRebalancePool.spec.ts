@@ -17,7 +17,6 @@ import {
   GaugeController,
   TokenMinter,
   FundraisingGaugeV1,
-  VotingEscrowProxy,
 } from "@/types/index";
 
 async function minimalProxyDeploy(deployer: HardhatEthersSigner, implementation: string): Promise<string> {
@@ -38,7 +37,6 @@ describe("BoostableRebalancePool.spec", async () => {
 
   let fxn: GovernanceToken;
   let ve: VotingEscrow;
-  let proxy: VotingEscrowProxy;
   let controller: GaugeController;
   let minter: TokenMinter;
 
@@ -59,16 +57,11 @@ describe("BoostableRebalancePool.spec", async () => {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow", deployer);
     const GaugeController = await ethers.getContractFactory("GaugeController", deployer);
     const TokenMinter = await ethers.getContractFactory("TokenMinter", deployer);
-    const VotingEscrowBoost = await ethers.getContractFactory("VotingEscrowBoost", deployer);
-    const VotingEscrowProxy = await ethers.getContractFactory("VotingEscrowProxy", deployer);
 
     fxn = await GovernanceToken.deploy();
     ve = await VotingEscrow.deploy();
     controller = await GaugeController.deploy();
     minter = await TokenMinter.deploy();
-    const boost = await VotingEscrowBoost.deploy(await ve.getAddress());
-    proxy = await VotingEscrowProxy.deploy(await ve.getAddress());
-    await proxy.updateVeBoost(boost.getAddress());
 
     await fxn.initialize(
       ethers.parseEther("1020000"), // initial supply
@@ -118,12 +111,7 @@ describe("BoostableRebalancePool.spec", async () => {
     market = await Market.deploy();
 
     const BoostableRebalancePool = await ethers.getContractFactory("BoostableRebalancePool", deployer);
-    rebalancePool = await BoostableRebalancePool.deploy(
-      fxn.getAddress(),
-      ve.getAddress(),
-      proxy.getAddress(),
-      minter.getAddress()
-    );
+    rebalancePool = await BoostableRebalancePool.deploy(fxn.getAddress(), ve.getAddress(), minter.getAddress());
 
     await fToken.initialize(treasury.getAddress(), "Fractional ETH", "fETH");
     await xToken.initialize(treasury.getAddress(), fToken.getAddress(), "Leveraged ETH", "xETH");

@@ -15,7 +15,6 @@ import { IFxMarket } from "../../interfaces/f(x)/IFxMarket.sol";
 import { IFxTokenWrapper } from "../../interfaces/f(x)/IFxTokenWrapper.sol";
 import { IFxTreasury } from "../../interfaces/f(x)/IFxTreasury.sol";
 import { IVotingEscrow } from "../../interfaces/voting-escrow/IVotingEscrow.sol";
-import { IVotingEscrowProxy } from "../../interfaces/voting-escrow/IVotingEscrowProxy.sol";
 import { ICurveTokenMinter } from "../../interfaces/ICurveTokenMinter.sol";
 
 // solhint-disable not-rely-on-time
@@ -54,9 +53,6 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
 
   /// @notice The address of Voting Escrow FXN.
   address public immutable ve;
-
-  /// @notice The address of Voting Escrow FXN Boost.
-  address public immutable veProxy;
 
   /// @notice The address of FXN token minter.
   address public immutable minter;
@@ -148,12 +144,10 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   constructor(
     address _fxn,
     address _ve,
-    address _veProxy,
     address _minter
   ) LinearMultipleRewardDistributor(1 weeks) {
     fxn = _fxn;
     ve = _ve;
-    veProxy = _veProxy;
     minter = _minter;
   }
 
@@ -204,8 +198,24 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
 
   /// @inheritdoc IFxBoostableRebalancePool
   function getBoostRatio(address _account) public view returns (uint256) {
-    (uint256 _ratio, ) = _getBoostRatioRead(_account);
-    return _ratio;
+    return _getBoostRatio(_account);
+  }
+
+  /// @notice Get boost ratio for the given account with custom ve balance and ve supply.
+  ///
+  /// @param _account The address of the account to query.
+  /// @param _veBalance The current ve balance of the account.
+  /// @param _veSupply The current ve total supply.
+  function getBoostRatioWithVeBalanceAndSupply(
+    address _account,
+    uint256 _veBalance,
+    uint256 _veSupply
+  ) public view returns (uint256) {
+    TokenBalance memory _balance = _balances[_account];
+    // no deposit before
+    if (_balance.amount == 0) return 0;
+
+    return _getBoostRatioWithVeBalanceAndSupply(_account, _balance, _veBalance, _veSupply);
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
@@ -245,7 +255,9 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     _supply.amount += uint104(_amount);
     _supply.updateAt = uint40(block.timestamp);
     _balance.amount += uint104(_amount);
-    _balance.updateAt = uint40(block.timestamp);
+
+    // this is already updated in `_checkpoint(_receiver)`.
+    // _balance.updateAt = uint40(block.timestamp);
 
     _recordTotalSupply(_supply);
     _totalSupply = _supply;
@@ -273,7 +285,9 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
       _supply.amount -= uint104(_amount);
       _supply.updateAt = uint40(block.timestamp);
       _balance.amount -= uint104(_amount);
-      _balance.updateAt = uint40(block.timestamp);
+
+      // this is already updated in `_checkpoint(_sender)`.
+      // _balance.updateAt = uint40(block.timestamp);
     }
 
     _recordTotalSupply(_supply);
@@ -293,7 +307,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     onlyRole(LIQUIDATOR_ROLE)
     returns (uint256 _liquidated, uint256 _baseOut)
   {
-    _checkpoint(address(this));
+    _checkpoint(address(0));
 
     IFxTreasury _treasury = IFxTreasury(treasury);
     if (_treasury.collateralRatio() >= liquidatableCollateralRatio) {
@@ -386,7 +400,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
 
     if (_account != address(0)) {
       boostCheckpoint[_account] = BoostCheckpoint(
-        uint112(IVotingEscrowProxy(veProxy).adjustedVeBalance(_account)),
+        uint112(IVotingEscrow(ve).balanceOf(_account)),
         uint112(IVotingEscrow(ve).totalSupply()),
         uint32(numTotalSupplyHistory)
       );
@@ -414,12 +428,15 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
 
     if (_token == fxn) {
       uint256 fullEarned = _claimable(_account, _token) - _snapshot.rewards.pending;
-      uint256 ratio = _getBoostRatioWrite(_account);
-      uint256 boostEarned = (fullEarned * ratio) / PRECISION;
-      _snapshot.rewards.pending += uint128(boostEarned);
-      if (fullEarned > boostEarned) {
-        // redistribute unboosted rewards.
-        _notifyReward(fxn, fullEarned - boostEarned);
+      // save gas when on earned
+      if (fullEarned > 0) {
+        uint256 ratio = _getBoostRatio(_account);
+        uint256 boostEarned = (fullEarned * ratio) / PRECISION;
+        _snapshot.rewards.pending += uint128(boostEarned);
+        if (fullEarned > boostEarned) {
+          // redistribute unboosted rewards.
+          _notifyReward(fxn, fullEarned - boostEarned);
+        }
       }
     } else {
       _snapshot.rewards.pending = uint128(_claimable(_account, _token));
@@ -486,7 +503,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     unchecked {
       uint256 _numTotalSupplyHistory = numTotalSupplyHistory;
       TokenBalance memory _last = totalSupplyHistory[_numTotalSupplyHistory - 1];
-      if (_last.updateAt / DAY == _supply.updateAt / DAY) {
+      if (_last.updateAt == _supply.updateAt) {
         totalSupplyHistory[_numTotalSupplyHistory - 1] = _supply;
       } else {
         totalSupplyHistory[_numTotalSupplyHistory] = _supply;
@@ -550,16 +567,31 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   /// @dev Internal function to get boost ratio for the given account.
   ///
   /// @param _account The address of the account to query.
-  function _getBoostRatioRead(address _account) internal view returns (uint256, BoostCheckpoint memory) {
+  function _getBoostRatio(address _account) internal view returns (uint256) {
     TokenBalance memory _balance = _balances[_account];
-    BoostCheckpoint memory _boostCheckpoint = boostCheckpoint[_account];
     // no deposit before
-    if (_balance.amount == 0) return (0, _boostCheckpoint);
+    if (_balance.amount == 0) return 0;
 
-    // @note For gas saving, we assume the ve balance and ve supply are changing linearly.
-    uint256 _currentVeBalance = IVotingEscrowProxy(veProxy).adjustedVeBalance(_account);
+    uint256 _currentVeBalance = IVotingEscrow(ve).balanceOf(_account);
     uint256 _currentVeSupply = IVotingEscrow(ve).totalSupply();
+    return _getBoostRatioWithVeBalanceAndSupply(_account, _balance, _currentVeBalance, _currentVeSupply);
+  }
 
+  /// @dev Internal function to get boost ratio for the given account with custom ve balance and ve supply.
+  /// For gas saving, we assume the ve balance and ve supply are changing linearly.
+  ///
+  /// @param _account The address of the account to query.
+  /// @param _balance The token balance structs of the account.
+  /// @param _currentVeBalance The current ve balance of the account.
+  /// @param _currentVeSupply The current ve total supply.
+  /// @return _boostRatio The computed boost ratio, multiplied with 1e18.
+  function _getBoostRatioWithVeBalanceAndSupply(
+    address _account,
+    TokenBalance memory _balance,
+    uint256 _currentVeBalance,
+    uint256 _currentVeSupply
+  ) internal view returns (uint256 _boostRatio) {
+    BoostCheckpoint memory _boostCheckpoint = boostCheckpoint[_account];
     (uint256 _currentRatio, uint256 _nextIndex) = _boostRatioAt(
       _balance,
       _boostCheckpoint.veBalance,
@@ -568,10 +600,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
       _balance.updateAt
     );
     if (uint256(_balance.updateAt) == block.timestamp) {
-      _boostCheckpoint.veBalance = uint112(_currentVeBalance);
-      _boostCheckpoint.veSupply = uint112(_currentVeSupply);
-      _boostCheckpoint.historyIndex = uint32(_nextIndex);
-      return (_currentRatio, _boostCheckpoint);
+      return _currentRatio;
     }
 
     int256 _deltaVeBalance = int256(_currentVeBalance) - int256(uint256(_boostCheckpoint.veBalance));
@@ -579,13 +608,12 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     int256 _duration = int256(block.timestamp - _balance.updateAt);
 
     uint256 _prevTs = _balance.updateAt;
-    uint256 _accumulatedRatio;
     // compute the time weighted boost from _balance.updateAt to now.
     uint256 _nowTs = ((_prevTs + WEEK - 1) / WEEK) * WEEK;
     for (uint256 i = 0; i < 256; ++i) {
       // it is more than 4 years, should be enough
       if (_nowTs > block.timestamp) _nowTs = block.timestamp;
-      _accumulatedRatio += _currentRatio * (_nowTs - _prevTs);
+      _boostRatio += _currentRatio * (_nowTs - _prevTs);
       if (_nowTs == block.timestamp) break;
       uint256 _veBalance;
       uint256 _veSupply;
@@ -598,20 +626,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
       _prevTs = _nowTs;
       _nowTs += WEEK;
     }
-
-    _boostCheckpoint.veBalance = uint112(_currentVeBalance);
-    _boostCheckpoint.veSupply = uint112(_currentVeSupply);
-    _boostCheckpoint.historyIndex = uint32(_nextIndex);
-    return (_accumulatedRatio / uint256(_duration), _boostCheckpoint);
-  }
-
-  /// @dev Internal function to get boost ratio for the given account and make state change.
-  ///
-  /// @param _account The address of the account to query.
-  function _getBoostRatioWrite(address _account) internal returns (uint256) {
-    (uint256 _ratio, BoostCheckpoint memory _newCheckpoint) = _getBoostRatioRead(_account);
-    boostCheckpoint[_account] = _newCheckpoint;
-    return _ratio;
+    _boostRatio /= uint256(_duration);
   }
 
   /// @dev Internal function to get boost ratio at specific time point.
@@ -622,21 +637,27 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     uint256 startIndex,
     uint256 t
   ) internal view returns (uint256, uint256) {
-    // @note since totalSupplyHistory is bounded by the number of days,
-    // it should be ok to use while loop.
+    // Binary search to find largest `index` that totalSupplyHistory[index].updateAt <= t.
+    // The largest `index` may not be the correct one if there are multiple deposit/withdraw/liquidation
+    // in the same block. However, we only care about the boost ratio after timestamp `t`,
+    // it is tolerable to use the largest `index`.
     unchecked {
-      uint256 endIndex = numTotalSupplyHistory;
+      uint256 endIndex = numTotalSupplyHistory - 1;
       while (startIndex < endIndex) {
-        if (totalSupplyHistory[startIndex].updateAt > t) break;
-        startIndex += 1;
+        uint256 mid = (startIndex + endIndex + 1) >> 1;
+        if (totalSupplyHistory[mid].updateAt <= t) startIndex = mid;
+        else endIndex = mid - 1;
       }
-      if (startIndex > 0) startIndex -= 1;
     }
+
+    // Find the actual balance base on the supply.
     TokenBalance memory _supply = totalSupplyHistory[startIndex];
     uint256 _realBalance = _getCompoundedBalance(_balance.amount, _balance.product, _supply.product);
     if (_realBalance == 0) {
       return ((PRECISION * 4) / 10, startIndex);
     }
+
+    // Compute boost ratio with Curve's rule: min(balance, balance * 0.4 + 0.6 * veBalance * supply / veSupply) / balance
     uint256 _boostedBalance = (_realBalance * 4) / 10;
     if (_veSupply > 0) {
       _boostedBalance += (((_veBalance * uint256(_supply.amount)) / _veSupply) * 6) / 10;
