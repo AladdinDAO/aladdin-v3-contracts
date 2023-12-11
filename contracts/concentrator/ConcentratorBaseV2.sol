@@ -18,11 +18,14 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
    * Constants *
    *************/
 
+  /// @dev The fee denominator used for rate calculation.
+  uint256 internal constant RATE_PRECISION = 1e9;
+
   /// @dev The maximum expense ratio.
   uint256 private constant MAX_EXPENSE_RATIO = 5e8; // 50%
 
   /// @dev The maximum harvester ratio.
-  uint256 private constant MAX_HARVESTER_RATIO = 1e8; // 20%
+  uint256 private constant MAX_HARVESTER_RATIO = 1e8; // 10%
 
   /// @dev The maximum withdraw fee percentage.
   uint256 private constant MAX_WITHDRAW_FEE_PERCENTAGE = 1e8; // 10%
@@ -64,7 +67,7 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
   /// [ expense ratio | harvester ratio | withdraw fee | available ]
   /// [    30 bits    |     30 bits     |   30  bits   |  166 bits ]
   /// [ MSB                                                    LSB ]
-  bytes32 private _miscData;
+  bytes32 internal _miscData;
 
   /// @dev reserved slots.
   uint256[46] private __gap;
