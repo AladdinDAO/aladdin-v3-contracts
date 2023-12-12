@@ -557,6 +557,17 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
     ],
   },
+  cvxPrisma: {
+    // cvxPrisma ==(Curve) ==> PRISMA ==(CurveV2)==> WETH
+    WETH: [
+      encodePoolHintV2(ADDRESS["CURVE_PRISMA/cvxPrisma_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_ETH/PRISMA_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+    ],
+  },
+  PRISMA: {
+    // PRISMA ==(CurveV2)==> WETH
+    WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/PRISMA_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap)],
+  },
 };
 
 export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = {

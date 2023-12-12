@@ -118,6 +118,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   hyUSD: { decimals: 18, address: "0xacdf0dba4b9839b96221a8487e9ca660a48212be" },
   "ETH+": { decimals: 18, address: "0xE72B141DF173b999AE7c1aDcbF60Cc9833Ce56a8" },
   PRISMA: { decimals: 18, address: "0xdA47862a83dac0c112BA89c6abC2159b95afd71C" },
+  cvxPrisma: { decimals: 18, address: "0x34635280737b5bfe6c7dc2fc3065d60d66e78185" },
 };
 
 // Curve LP
