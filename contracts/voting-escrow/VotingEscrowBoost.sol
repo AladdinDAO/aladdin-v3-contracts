@@ -7,8 +7,8 @@ import { ECDSA } from "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 import { EIP712 } from "@openzeppelin/contracts-v4/utils/cryptography/EIP712.sol";
 import { Context } from "@openzeppelin/contracts-v4/utils/Context.sol";
 
-import { IVotingEscrow } from "./interfaces/IVotingEscrow.sol";
-import { IVotingEscrowBoost } from "./interfaces/IVotingEscrowBoost.sol";
+import { IVotingEscrow } from "../interfaces/voting-escrow/IVotingEscrow.sol";
+import { IVotingEscrowBoost } from "../interfaces/voting-escrow/IVotingEscrowBoost.sol";
 
 // solhint-disable const-name-snakecase
 // solhint-disable not-rely-on-time

@@ -1,13 +1,13 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { Overrides, ZeroAddress } from "ethers";
+import { MaxUint256, Overrides, ZeroAddress } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { selectDeployments } from "@/utils/deploys";
 import { TOKENS } from "@/utils/tokens";
 
-import { contractCall, contractDeploy, ownerContractCall } from "./helpers";
-import * as ProxyAdmin from "./ProxyAdmin";
+import { DeploymentHelper, contractCall, ownerContractCall } from "./helpers";
 import * as FxGovernance from "./FxGovernance";
+import * as Multisig from "./Multisig";
+import * as ProxyAdmin from "./ProxyAdmin";
 
 const ReservePoolBonusRatio = ethers.parseEther("0.05"); // 5%
 
@@ -31,7 +31,17 @@ export interface FxStETHDeployment {
   RebalancePool: {
     implementation: string;
     APool: string;
+    APoolRebalancer: string;
+  };
+  BoostableRebalancePool: {
+    implementation: string;
+    splitter: string;
+    claimer: string;
+    gauge: string;
+    APool: string;
     BPool: string;
+    APoolRebalancer: string;
+    BPoolRebalancer: string;
   };
   wrapper: {
     wstETHWrapper: string;
@@ -45,9 +55,7 @@ export interface FxStETHDeployment {
   FxETHTwapOracle: string;
   FxGateway: string;
   ReservePool: string;
-  RebalanceWithBonusToken: { APool: string; BPool: string };
   RebalancePoolRegistry: string;
-  RebalancePoolSplitter: string;
 }
 
 const ChainlinkPriceFeed: { [name: string]: string } = {
@@ -56,201 +64,144 @@ const ChainlinkPriceFeed: { [name: string]: string } = {
 };
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxStETHDeployment> {
+  const multisig = Multisig.deploy(network.name);
   const admin = await ProxyAdmin.deploy(deployer);
   const governance = await FxGovernance.deploy(deployer, overrides);
 
-  console.log("");
-  const deployment = selectDeployments(network.name, "Fx.stETH");
+  const deployment = new DeploymentHelper(network.name, "Fx.stETH", deployer, overrides);
 
   // deploy implementation
   for (const name of ["FractionalToken", "LeveragedToken", "Market", "RebalancePool"]) {
-    if (!deployment.get(name + ".implementation")) {
-      const address = await contractDeploy(deployer, name + " implementation", name, [], overrides);
-      deployment.set(name + ".implementation", address);
-    } else {
-      console.log(`Found ${name} implementation at:`, deployment.get(name + ".implementation"));
-    }
+    await deployment.contractDeploy(name + ".implementation", name + " implementation", name, []);
   }
-  if (!deployment.get("stETHTreasury.implementation")) {
-    const address = await contractDeploy(
-      deployer,
-      "stETHTreasury implementation",
-      "stETHTreasury",
-      [ethers.parseEther("0.5")],
-      overrides
-    );
-    deployment.set("stETHTreasury.implementation", address);
-  } else {
-    console.log(`Found stETHTreasury implementation at:`, deployment.get("stETHTreasury.implementation"));
-  }
+  // deploy stETHTreasury implementation
+  await deployment.contractDeploy("stETHTreasury.implementation", "stETHTreasury implementation", "stETHTreasury", [
+    ethers.parseEther("0.5"),
+  ]);
+  // deploy BoostableRebalancePool implementation
+  await deployment.contractDeploy(
+    "BoostableRebalancePool.implementation",
+    "BoostableRebalancePool implementation",
+    "BoostableRebalancePool",
+    [governance.FXN, governance.veFXN, governance.TokenMinter]
+  );
 
   // deploy proxy for FractionalToken, LeveragedToken, stETHTreasury and Market
   for (const name of ["FractionalToken", "LeveragedToken", "stETHTreasury", "Market"]) {
-    if (!deployment.get(`${name}.proxy`)) {
-      const address = await contractDeploy(
-        deployer,
-        `${name} Proxy`,
-        "TransparentUpgradeableProxy",
-        [deployment.get(`${name}.implementation`), admin.Fx, "0x"],
-        overrides
-      );
-      deployment.set(`${name}.proxy`, address);
-    } else {
-      console.log(`Found ${name} Proxy at:`, deployment.get(`${name}.proxy`));
-    }
+    await deployment.proxyDeploy(
+      `${name}.proxy`,
+      `${name} Proxy`,
+      deployment.get(`${name}.implementation`),
+      admin.Fx,
+      "0x"
+    );
   }
-  // deploy proxy for RebalancePool A and B
+  // deploy proxy for RebalancePool A
+  for (const name of ["APool"]) {
+    await deployment.proxyDeploy(
+      `RebalancePool.${name}`,
+      `RebalancePool.${name} Proxy`,
+      deployment.get("RebalancePool.implementation"),
+      admin.Fx,
+      "0x"
+    );
+  }
+
+  // deploy proxy for BoostableRebalancePool A and B
   for (const name of ["APool", "BPool"]) {
-    const selector = `RebalancePool.${name}`;
-    if (!deployment.get(selector)) {
-      const address = await contractDeploy(
-        deployer,
-        `${selector} Proxy`,
-        "TransparentUpgradeableProxy",
-        [deployment.get("RebalancePool.implementation"), admin.Fx, "0x"],
-        overrides
-      );
-      deployment.set(selector, address);
-    } else {
-      console.log(`Found ${selector} Proxy at:`, deployment.get(selector));
-    }
+    await deployment.proxyDeploy(
+      `BoostableRebalancePool.${name}`,
+      `BoostableRebalancePool.${name} Proxy`,
+      deployment.get("BoostableRebalancePool.implementation"),
+      admin.Fx,
+      "0x"
+    );
   }
+  // deploy RebalanceWithBonusToken for BoostableRebalancePool A and B
+  for (const pool of ["APool", "BPool"]) {
+    await deployment.contractDeploy(
+      `BoostableRebalancePool.${pool}Rebalancer`,
+      `RebalanceWithBonusToken for BoostableRebalancePool.${pool}`,
+      "RebalanceWithBonusToken",
+      [deployment.get(`BoostableRebalancePool.${pool}`), governance.FXN]
+    );
+  }
+  // deploy FundraiseGauge for BoostableRebalancePool
+  await deployment.minimalProxyDeploy(
+    "BoostableRebalancePool.gauge",
+    "BoostableRebalancePool (fETH) FundraiseGauge",
+    governance.FundraiseGauge.implementation.FundraisingGaugeFx
+  );
+  // deploy RebalancePoolSplitter for BoostableRebalancePool
+  await deployment.contractDeploy(
+    "BoostableRebalancePool.splitter",
+    "RebalancePoolSplitter of BoostableRebalancePool (fETH)",
+    "RebalancePoolSplitter",
+    []
+  );
+  // deploy RebalancePoolGaugeClaimer for BoostableRebalancePool
+  await deployment.contractDeploy(
+    "BoostableRebalancePool.claimer",
+    "RebalancePoolGaugeClaimer of BoostableRebalancePool (fETH)",
+    "RebalancePoolGaugeClaimer",
+    [
+      multisig.Fx,
+      deployment.get("stETHTreasury.proxy"),
+      deployment.get("BoostableRebalancePool.gauge"),
+      deployment.get("BoostableRebalancePool.splitter"),
+    ]
+  );
 
   // deploy stETHGateway
-  if (!deployment.get("stETHGateway")) {
-    const address = await contractDeploy(
-      deployer,
-      "stETHGateway",
-      "stETHGateway",
-      [deployment.get("Market.proxy"), deployment.get("FractionalToken.proxy"), deployment.get("LeveragedToken.proxy")],
-      overrides
-    );
-    deployment.set("stETHGateway", address);
-  } else {
-    console.log(`Found stETHGateway at:`, deployment.get("stETHGateway"));
-  }
+  await deployment.contractDeploy("stETHGateway", "stETHGateway", "stETHGateway", [
+    deployment.get("Market.proxy"),
+    deployment.get("FractionalToken.proxy"),
+    deployment.get("LeveragedToken.proxy"),
+  ]);
 
   // deploy wstETHWrapper
-  if (!deployment.get("wrapper.wstETHWrapper")) {
-    const address = await contractDeploy(deployer, "wstETHWrapper", "wstETHWrapper", [], overrides);
-    deployment.set("wrapper.wstETHWrapper", address);
-  } else {
-    console.log(`Found wstETHWrapper at:`, deployment.get("wrapper.wstETHWrapper"));
-  }
+  await deployment.contractDeploy("wrapper.wstETHWrapper", "wstETHWrapper", "wstETHWrapper", []);
 
   // deploy StETHAndxETHWrapper
-  if (!deployment.get("wrapper.StETHAndxETHWrapper")) {
-    const address = await contractDeploy(
-      deployer,
-      "StETHAndxETHWrapper",
-      "StETHAndxETHWrapper",
-      [deployment.get("LeveragedToken.proxy"), deployment.get("Market.proxy"), governance.PlatformFeeSpliter],
-      overrides
-    );
-    deployment.set("wrapper.StETHAndxETHWrapper", address);
-  } else {
-    console.log(`Found StETHAndxETHWrapper at:`, deployment.get("wrapper.StETHAndxETHWrapper"));
-  }
+  await deployment.contractDeploy("wrapper.StETHAndxETHWrapper", "StETHAndxETHWrapper", "StETHAndxETHWrapper", [
+    deployment.get("LeveragedToken.proxy"),
+    deployment.get("Market.proxy"),
+    governance.PlatformFeeSpliter,
+  ]);
 
   // deploy chainlink twap oracle
   for (const symbol of ["ETH", "stETH"]) {
-    if (!deployment.get("ChainlinkTwapOracle." + symbol)) {
-      const address = await contractDeploy(
-        deployer,
-        "ChainlinkTwapOracleV3 for " + symbol,
-        "ChainlinkTwapOracleV3",
-        [ChainlinkPriceFeed[symbol], 1, 10800, symbol],
-        overrides
-      );
-      deployment.set("ChainlinkTwapOracle." + symbol, address);
-    } else {
-      console.log(`Found ChainlinkTwapOracleV3 for ${symbol} at:`, deployment.get("ChainlinkTwapOracle." + symbol));
-    }
+    await deployment.contractDeploy(
+      "ChainlinkTwapOracle." + symbol,
+      "ChainlinkTwapOracleV3 for " + symbol,
+      "ChainlinkTwapOracleV3",
+      [ChainlinkPriceFeed[symbol], 1, 10800, symbol]
+    );
   }
 
   // deploy FxETHTwapOracle
-  if (!deployment.get("FxETHTwapOracle")) {
-    const address = await contractDeploy(
-      deployer,
-      "FxETHTwapOracle",
-      "FxETHTwapOracle",
-      [
-        deployment.get("ChainlinkTwapOracle.stETH"),
-        deployment.get("ChainlinkTwapOracle.ETH"),
-        "0x21e27a5e5513d6e65c4f830167390997aa84843a",
-      ],
-      overrides
-    );
-    deployment.set("FxETHTwapOracle", address);
-  } else {
-    console.log(`Found FxETHTwapOracle at:`, deployment.get("FxETHTwapOracle"));
-  }
+  await deployment.contractDeploy("FxETHTwapOracle", "FxETHTwapOracle", "FxETHTwapOracle", [
+    deployment.get("ChainlinkTwapOracle.stETH"),
+    deployment.get("ChainlinkTwapOracle.ETH"),
+    "0x21e27a5e5513d6e65c4f830167390997aa84843a", // Curve ETH/stETH pool
+  ]);
 
   // deploy FxGateway
-  if (!deployment.get("FxGateway")) {
-    const address = await contractDeploy(
-      deployer,
-      "FxGateway",
-      "FxGateway",
-      [
-        deployment.get("Market.proxy"),
-        TOKENS.stETH.address,
-        deployment.get("FractionalToken.proxy"),
-        deployment.get("LeveragedToken.proxy"),
-      ],
-      overrides
-    );
-    deployment.set("FxGateway", address);
-  } else {
-    console.log(`Found FxGateway at:`, deployment.get("FxGateway"));
-  }
+  await deployment.contractDeploy("FxGateway", "FxGateway", "FxGateway", [
+    deployment.get("Market.proxy"),
+    TOKENS.stETH.address,
+    deployment.get("FractionalToken.proxy"),
+    deployment.get("LeveragedToken.proxy"),
+  ]);
 
   // deploy ReservePool
-  if (!deployment.get("ReservePool")) {
-    const address = await contractDeploy(
-      deployer,
-      "ReservePool",
-      "ReservePool",
-      [deployment.get("Market.proxy"), deployment.get("FractionalToken.proxy")],
-      overrides
-    );
-    deployment.set("ReservePool", address);
-  } else {
-    console.log(`Found ReservePool at:`, deployment.get("ReservePool"));
-  }
-
-  // deploy RebalanceWithBonusToken
-  for (const pool of ["APool", "BPool"]) {
-    const selector = `RebalanceWithBonusToken.${pool}`;
-    if (!deployment.get(selector)) {
-      const address = await contractDeploy(
-        deployer,
-        selector,
-        "RebalanceWithBonusToken",
-        [deployment.get(`RebalancePool.${pool}`), governance.FXN],
-        overrides
-      );
-      deployment.set(selector, address);
-    } else {
-      console.log(`Found ${selector} at:`, deployment.get(selector));
-    }
-  }
+  await deployment.contractDeploy("ReservePool", "ReservePool", "ReservePool", [
+    deployment.get("Market.proxy"),
+    deployment.get("FractionalToken.proxy"),
+  ]);
 
   // deploy RebalancePoolRegistry
-  if (!deployment.get("RebalancePoolRegistry")) {
-    const address = await contractDeploy(deployer, "RebalancePoolRegistry", "RebalancePoolRegistry", [], overrides);
-    deployment.set("RebalancePoolRegistry", address);
-  } else {
-    console.log(`Found RebalancePoolRegistry at:`, deployment.get("RebalancePoolRegistry"));
-  }
-
-  // deploy RebalancePoolSplitter
-  if (!deployment.get("RebalancePoolSplitter")) {
-    const address = await contractDeploy(deployer, "RebalancePoolSplitter", "RebalancePoolSplitter", [], overrides);
-    deployment.set("RebalancePoolSplitter", address);
-  } else {
-    console.log(`Found RebalancePoolSplitter at:`, deployment.get("RebalancePoolSplitter"));
-  }
+  await deployment.contractDeploy("RebalancePoolRegistry", "RebalancePoolRegistry", "RebalancePoolRegistry", []);
 
   return deployment.toObject() as FxStETHDeployment;
 }
@@ -271,7 +222,7 @@ async function upgrade(
       await ownerContractCall(proxyAdmin, "ProxyAdmin upgrade " + name, "upgrade", [proxy, impl], overrides);
     }
   }
-  // upgrade proxy for RebalancePool A and B
+  // upgrade proxy for RebalancePool A
   if (
     (await proxyAdmin.getProxyImplementation(deployment.RebalancePool.APool)) !==
     deployment.RebalancePool.implementation
@@ -284,15 +235,29 @@ async function upgrade(
       overrides
     );
   }
+  // upgrade proxy for BoostableRebalancePool A
   if (
-    (await proxyAdmin.getProxyImplementation(deployment.RebalancePool.BPool)) !==
-    deployment.RebalancePool.implementation
+    (await proxyAdmin.getProxyImplementation(deployment.BoostableRebalancePool.APool)) !==
+    deployment.BoostableRebalancePool.implementation
   ) {
     await ownerContractCall(
       proxyAdmin,
-      "ProxyAdmin upgrade RebalancePool B",
+      "ProxyAdmin upgrade BoostableRebalancePool A",
       "upgrade",
-      [deployment.RebalancePool.BPool, deployment.RebalancePool.implementation],
+      [deployment.BoostableRebalancePool.APool, deployment.BoostableRebalancePool.implementation],
+      overrides
+    );
+  }
+  // upgrade proxy for BoostableRebalancePool B
+  if (
+    (await proxyAdmin.getProxyImplementation(deployment.BoostableRebalancePool.BPool)) !==
+    deployment.BoostableRebalancePool.implementation
+  ) {
+    await ownerContractCall(
+      proxyAdmin,
+      "ProxyAdmin upgrade BoostableRebalancePool B",
+      "upgrade",
+      [deployment.BoostableRebalancePool.BPool, deployment.BoostableRebalancePool.implementation],
       overrides
     );
   }
@@ -310,15 +275,29 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   const gateway = await ethers.getContractAt("FxGateway", deployment.FxGateway, deployer);
   const platformFeeSpliter = await ethers.getContractAt("PlatformFeeSpliter", governance.PlatformFeeSpliter, deployer);
   const rebalancePoolA = await ethers.getContractAt("RebalancePool", deployment.RebalancePool.APool, deployer);
-  const rebalancePoolB = await ethers.getContractAt("RebalancePool", deployment.RebalancePool.BPool, deployer);
   const rebalancerA = await ethers.getContractAt(
     "RebalanceWithBonusToken",
-    deployment.RebalanceWithBonusToken.APool,
+    deployment.RebalancePool.APoolRebalancer,
     deployer
   );
-  const rebalancerB = await ethers.getContractAt(
+  const boostableRebalancePoolA = await ethers.getContractAt(
+    "BoostableRebalancePool",
+    deployment.BoostableRebalancePool.APool,
+    deployer
+  );
+  const boostableRebalancePoolB = await ethers.getContractAt(
+    "BoostableRebalancePool",
+    deployment.BoostableRebalancePool.BPool,
+    deployer
+  );
+  const boostableRebalancerA = await ethers.getContractAt(
     "RebalanceWithBonusToken",
-    deployment.RebalanceWithBonusToken.APool,
+    deployment.BoostableRebalancePool.APoolRebalancer,
+    deployer
+  );
+  const boostableRebalancerB = await ethers.getContractAt(
+    "RebalanceWithBonusToken",
+    deployment.BoostableRebalancePool.BPoolRebalancer,
     deployer
   );
   const rebalancePoolRegistry = await ethers.getContractAt(
@@ -328,9 +307,23 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   );
   const rebalancePoolSplitter = await ethers.getContractAt(
     "RebalancePoolSplitter",
-    deployment.RebalancePoolSplitter,
+    deployment.BoostableRebalancePool.splitter,
     deployer
   );
+  const boostableGauge = await ethers.getContractAt(
+    "FundraisingGaugeFx",
+    deployment.BoostableRebalancePool.gauge,
+    deployer
+  );
+  /*
+  const rebalancePoolClaimer = await ethers.getContractAt(
+    "RebalancePoolGaugeClaimer",
+    deployment.BoostableRebalancePool.claimer,
+    deployer
+  );
+  */
+
+  const controller = await ethers.getContractAt("GaugeController", governance.GaugeController, deployer);
 
   // Initialize RebalancePool APool
   if ((await rebalancePoolA.treasury()) === ZeroAddress) {
@@ -343,13 +336,24 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
     );
   }
 
-  // Initialize RebalancePool BPool
-  if ((await rebalancePoolB.treasury()) === ZeroAddress) {
+  // Initialize BoostableRebalancePool APool
+  if ((await boostableRebalancePoolA.treasury()) === ZeroAddress) {
     await contractCall(
-      rebalancePoolB,
-      "RebalancePool BPool initialize",
+      boostableRebalancePoolA,
+      "BoostableRebalancePool APool initialize",
       "initialize",
-      [await treasury.getAddress(), await market.getAddress()],
+      [await treasury.getAddress(), await market.getAddress(), ZeroAddress],
+      overrides
+    );
+  }
+
+  // Initialize BoostableRebalancePool BPool
+  if ((await boostableRebalancePoolB.treasury()) === ZeroAddress) {
+    await contractCall(
+      boostableRebalancePoolB,
+      "BoostableRebalancePool BPool initialize",
+      "initialize",
+      [await treasury.getAddress(), await market.getAddress(), ZeroAddress],
       overrides
     );
   }
@@ -364,12 +368,12 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
-  if ((await rebalancePoolA.liquidator()) !== deployment.RebalanceWithBonusToken.APool) {
+  if ((await rebalancePoolA.liquidator()) !== deployment.RebalancePool.APoolRebalancer) {
     await ownerContractCall(
       rebalancePoolA,
       "RebalancePool APool updateLiquidator",
       "updateLiquidator",
-      [deployment.RebalanceWithBonusToken.APool],
+      [deployment.RebalancePool.APoolRebalancer],
       overrides
     );
   }
@@ -378,54 +382,104 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       rebalancePoolA,
       "RebalancePool.APool add wstETH as reward",
       "addReward",
-      [TOKENS.wstETH.address, deployment.RebalancePoolSplitter, 86400 * 7],
+      [TOKENS.wstETH.address, deployment.BoostableRebalancePool.splitter, 86400 * 7],
       overrides
     );
   }
-  if ((await rebalancePoolA.rewardManager(TOKENS.wstETH.address)) !== deployment.RebalancePoolSplitter) {
+  if ((await rebalancePoolA.rewardManager(TOKENS.wstETH.address)) !== deployment.BoostableRebalancePool.splitter) {
     await ownerContractCall(
       rebalancePoolA,
       "RebalancePool.APool updateReward for wstETH",
       "updateReward",
-      [TOKENS.wstETH.address, deployment.RebalancePoolSplitter, 86400 * 7],
+      [TOKENS.wstETH.address, deployment.BoostableRebalancePool.splitter, 86400 * 7],
       overrides
     );
   }
 
-  // Setup RebalancePool BPool
-  if ((await rebalancePoolB.wrapper()) !== deployment.wrapper.StETHAndxETHWrapper) {
+  // Setup BoostableRebalancePool.gauge
+  if ((await boostableGauge.receiver()) !== deployment.BoostableRebalancePool.claimer) {
+    await contractCall(
+      boostableGauge,
+      `FundraisingGaugeFx for BoostableRebalancePool initialize`,
+      "initialize",
+      [deployment.BoostableRebalancePool.claimer, MaxUint256],
+      overrides
+    );
+  }
+  await FxGovernance.addGauge(controller, "BoostableRebalancePool (fETH)", deployment.BoostableRebalancePool.gauge, 3);
+
+  const LIQUIDATOR_ROLE = await boostableRebalancePoolB.LIQUIDATOR_ROLE();
+  // Setup BoostableRebalancePool APool
+  if ((await boostableRebalancePoolA.wrapper()) !== deployment.wrapper.wstETHWrapper) {
     await ownerContractCall(
-      rebalancePoolB,
-      "RebalancePool BPool updateWrapper to StETHAndxETHWrapper",
+      boostableRebalancePoolA,
+      "BoostableRebalancePool.APool updateWrapper to wstETHWrapper",
+      "updateWrapper",
+      [deployment.wrapper.wstETHWrapper],
+      overrides
+    );
+  }
+  if (!(await boostableRebalancePoolA.hasRole(LIQUIDATOR_ROLE, deployment.BoostableRebalancePool.APoolRebalancer))) {
+    await ownerContractCall(
+      boostableRebalancePoolA,
+      "BoostableRebalancePool.APool add liquidator",
+      "grantRole",
+      [LIQUIDATOR_ROLE, deployment.BoostableRebalancePool.APoolRebalancer],
+      overrides
+    );
+  }
+  if ((await boostableRebalancePoolA.distributors(TOKENS.wstETH.address)) === ZeroAddress) {
+    await ownerContractCall(
+      boostableRebalancePoolA,
+      "BoostableRebalancePool.APool add wstETH as reward",
+      "registerRewardToken",
+      [TOKENS.wstETH.address, deployment.BoostableRebalancePool.splitter],
+      overrides
+    );
+  }
+  if ((await boostableRebalancePoolA.distributors(TOKENS.FXN.address)) === ZeroAddress) {
+    await ownerContractCall(
+      boostableRebalancePoolA,
+      "BoostableRebalancePool.APool add FXN as reward",
+      "registerRewardToken",
+      [TOKENS.FXN.address, deployment.BoostableRebalancePool.splitter],
+      overrides
+    );
+  }
+  // Setup BoostableRebalancePool BPool
+  if ((await boostableRebalancePoolB.wrapper()) !== deployment.wrapper.StETHAndxETHWrapper) {
+    await ownerContractCall(
+      boostableRebalancePoolB,
+      "BoostableRebalancePool BPool updateWrapper to StETHAndxETHWrapper",
       "updateWrapper",
       [deployment.wrapper.StETHAndxETHWrapper],
       overrides
     );
   }
-  if ((await rebalancePoolB.liquidator()) !== deployment.RebalanceWithBonusToken.BPool) {
+  if (!(await boostableRebalancePoolB.hasRole(LIQUIDATOR_ROLE, deployment.BoostableRebalancePool.BPoolRebalancer))) {
     await ownerContractCall(
-      rebalancePoolB,
-      "RebalancePool BPool updateLiquidator",
-      "updateLiquidator",
-      [deployment.RebalanceWithBonusToken.BPool],
+      boostableRebalancePoolB,
+      "BoostableRebalancePool BPool add liquidator",
+      "grantRole",
+      [LIQUIDATOR_ROLE, deployment.BoostableRebalancePool.BPoolRebalancer],
       overrides
     );
   }
-  if ((await rebalancePoolB.rewardManager(TOKENS.wstETH.address)) === ZeroAddress) {
+  if ((await boostableRebalancePoolB.distributors(TOKENS.wstETH.address)) === ZeroAddress) {
     await ownerContractCall(
-      rebalancePoolB,
-      "RebalancePool.BPool add wstETH as reward",
-      "addReward",
-      [TOKENS.wstETH.address, deployment.RebalancePoolSplitter, 86400 * 7],
+      boostableRebalancePoolB,
+      "BoostableRebalancePool.BPool add wstETH as reward",
+      "registerRewardToken",
+      [TOKENS.wstETH.address, deployment.BoostableRebalancePool.splitter],
       overrides
     );
   }
-  if ((await rebalancePoolB.rewardManager(TOKENS.wstETH.address)) !== deployment.RebalancePoolSplitter) {
+  if ((await boostableRebalancePoolB.distributors(TOKENS.FXN.address)) === ZeroAddress) {
     await ownerContractCall(
-      rebalancePoolB,
-      "RebalancePool.BPool updateReward for wstETH",
-      "updateReward",
-      [TOKENS.wstETH.address, deployment.RebalancePoolSplitter, 86400 * 7],
+      boostableRebalancePoolB,
+      "BoostableRebalancePool.BPool add FXN as reward",
+      "registerRewardToken",
+      [TOKENS.FXN.address, deployment.BoostableRebalancePool.splitter],
       overrides
     );
   }
@@ -441,47 +495,26 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
-  if (!pools.includes(await rebalancePoolB.getAddress())) {
+  if (!pools.includes(await boostableRebalancePoolA.getAddress())) {
     await ownerContractCall(
       rebalancePoolRegistry,
-      "RebalancePoolRegistry register RebalancePool BPool",
+      "RebalancePoolRegistry register BoostableRebalancePool APool",
       "registerRebalancePool",
-      [await rebalancePoolB.getAddress()],
+      [await boostableRebalancePoolA.getAddress()],
+      overrides
+    );
+  }
+  if (!pools.includes(await boostableRebalancePoolB.getAddress())) {
+    await ownerContractCall(
+      rebalancePoolRegistry,
+      "RebalancePoolRegistry register BoostableRebalancePool BPool",
+      "registerRebalancePool",
+      [await boostableRebalancePoolB.getAddress()],
       overrides
     );
   }
 
-  // Setup RebalancePoolSplitter
-  if ((await rebalancePoolSplitter.splitter(TOKENS.wstETH.address)) !== deployment.stETHTreasury.proxy) {
-    await ownerContractCall(
-      rebalancePoolSplitter,
-      "RebalancePoolSplitter set splitter for wstETH",
-      "setSplitter",
-      [TOKENS.wstETH.address, deployment.stETHTreasury.proxy],
-      overrides
-    );
-  }
-  const [receivers] = await rebalancePoolSplitter.getReceivers(TOKENS.wstETH.address);
-  if (receivers.length === 0) {
-    await ownerContractCall(
-      rebalancePoolSplitter,
-      "RebalancePoolSplitter add RebalancePool.APool",
-      "registerReceiver",
-      [TOKENS.wstETH.address, deployment.RebalancePool.APool, [1e9]],
-      overrides
-    );
-  }
-  if (receivers.length === 1) {
-    await ownerContractCall(
-      rebalancePoolSplitter,
-      "RebalancePoolSplitter add RebalancePool.BPool",
-      "registerReceiver",
-      [TOKENS.wstETH.address, deployment.RebalancePool.BPool, [5e8, 5e8]],
-      overrides
-    );
-  }
-
-  // Setup RebalanceWithBonusToken APool
+  // Setup RebalancePool APoolRebalancer
   if ((await rebalancerA.bonus()) !== ethers.parseEther("2")) {
     await ownerContractCall(
       rebalancerA,
@@ -491,16 +524,114 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
-
-  // Setup RebalanceWithBonusToken BPool
-  if ((await rebalancerB.bonus()) !== ethers.parseEther("2")) {
+  // Setup BoostableRebalancePool APoolRebalancer
+  if ((await boostableRebalancerA.bonus()) !== ethers.parseEther("2")) {
     await ownerContractCall(
-      rebalancerB,
-      "RebalanceWithBonusToken BPool set bonus to 2 FXN",
+      boostableRebalancerA,
+      "BoostableRebalancePool.APoolRebalancer set bonus to 2 FXN",
       "updateBonus",
       [ethers.parseEther("2")],
       overrides
     );
+  }
+  // Setup BoostableRebalancePool BPoolRebalancer
+  if ((await boostableRebalancerB.bonus()) !== ethers.parseEther("2")) {
+    await ownerContractCall(
+      boostableRebalancerB,
+      "BoostableRebalancePool.BPoolRebalancer set bonus to 2 FXN",
+      "updateBonus",
+      [ethers.parseEther("2")],
+      overrides
+    );
+  }
+
+  // Setup BoostableRebalancePool.RebalancePoolGaugeClaimer
+
+  // Setup wstETH for BoostableRebalancePool.RebalancePoolSplitter
+  if ((await rebalancePoolSplitter.splitter(TOKENS.wstETH.address)) !== deployment.stETHTreasury.proxy) {
+    await ownerContractCall(
+      rebalancePoolSplitter,
+      "RebalancePoolSplitter set splitter for wstETH",
+      "setSplitter",
+      [TOKENS.wstETH.address, deployment.stETHTreasury.proxy],
+      overrides
+    );
+  }
+  {
+    const [receivers] = await rebalancePoolSplitter.getReceivers(TOKENS.wstETH.address);
+    if (receivers.length === 1 && receivers[0] === deployment.RebalancePool.APool) {
+      await ownerContractCall(
+        rebalancePoolSplitter,
+        "RebalancePoolSplitter.wstETH remove RebalancePool.APool",
+        "deregisterReceiver",
+        [TOKENS.wstETH.address, deployment.RebalancePool.APool, []],
+        overrides
+      );
+      await ownerContractCall(
+        rebalancePoolSplitter,
+        "RebalancePoolSplitter.wstETH add BoostableRebalancePool.APool",
+        "registerReceiver",
+        [TOKENS.wstETH.address, deployment.BoostableRebalancePool.APool, [1e9]],
+        overrides
+      );
+      await ownerContractCall(
+        rebalancePoolSplitter,
+        "RebalancePoolSplitter.wstETH add BoostableRebalancePool.BPool",
+        "registerReceiver",
+        [TOKENS.wstETH.address, deployment.BoostableRebalancePool.BPool, [5e8, 5e8]],
+        overrides
+      );
+    } else {
+      if (receivers.length < 1) {
+        await ownerContractCall(
+          rebalancePoolSplitter,
+          "RebalancePoolSplitter.wstETH add BoostableRebalancePool.APool",
+          "registerReceiver",
+          [TOKENS.wstETH.address, deployment.BoostableRebalancePool.APool, [1e9]],
+          overrides
+        );
+      }
+      if (receivers.length < 2) {
+        await ownerContractCall(
+          rebalancePoolSplitter,
+          "RebalancePoolSplitter.wstETH add BoostableRebalancePool.BPool",
+          "registerReceiver",
+          [TOKENS.wstETH.address, deployment.BoostableRebalancePool.BPool, [5e8, 5e8]],
+          overrides
+        );
+      }
+    }
+  }
+  // Setup FXN for BoostableRebalancePool.RebalancePoolSplitter
+  if ((await rebalancePoolSplitter.splitter(TOKENS.FXN.address)) !== deployment.BoostableRebalancePool.claimer) {
+    await ownerContractCall(
+      rebalancePoolSplitter,
+      "RebalancePoolSplitter set splitter for FXN",
+      "setSplitter",
+      [TOKENS.FXN.address, deployment.BoostableRebalancePool.claimer],
+      overrides
+    );
+  }
+  {
+    const [receivers] = await rebalancePoolSplitter.getReceivers(TOKENS.FXN.address);
+    if (receivers.length < 1) {
+      await ownerContractCall(
+        rebalancePoolSplitter,
+        "RebalancePoolSplitter.FXN add BoostableRebalancePool.APool",
+        "registerReceiver",
+        [TOKENS.FXN.address, deployment.BoostableRebalancePool.APool, [1e9]],
+        overrides
+      );
+    }
+    if (receivers.length < 2) {
+      await ownerContractCall(
+        rebalancePoolSplitter,
+        "RebalancePoolSplitter.FXN add BoostableRebalancePool.BPool",
+        "registerReceiver",
+        [TOKENS.FXN.address, deployment.BoostableRebalancePool.BPool, [5e8, 5e8]],
+        overrides
+      );
+    }
   }
 
   // Setup ReservePool
@@ -533,17 +664,18 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
-  /*
-  if ((await treasury.rebalancePool()) !== deployment.RebalancePoolSplitter) {
+  if ((await treasury.rebalancePool()) !== deployment.BoostableRebalancePool.splitter) {
     await ownerContractCall(
       treasury,
       "stETHTreasury updateRebalancePool to RebalancePoolSplitter",
       "updateRebalancePool",
-      [deployment.RebalancePoolSplitter],
+      [deployment.BoostableRebalancePool.splitter],
       overrides
     );
   }
-  */
+  if ((await treasury.emaLeverageRatio()).lastTime === 0n) {
+    await contractCall(treasury, "stETHTreasury initializeV2", "initializeV2", [15 * 60], overrides);
+  }
 
   // Setup Market
   if ((await market.reservePool()) !== deployment.ReservePool) {
@@ -552,6 +684,15 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       "Market update reserve pool",
       "updateReservePool",
       [deployment.ReservePool],
+      overrides
+    );
+  }
+  if ((await market.registry()) !== deployment.RebalancePoolRegistry) {
+    await ownerContractCall(
+      treasury,
+      "Market update rebalance pool registry",
+      "updateRebalancePoolRegistry",
+      [deployment.RebalancePoolRegistry],
       overrides
     );
   }

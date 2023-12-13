@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-import { IRebalancePool } from "./interfaces/IRebalancePool.sol";
+import { IFxRebalancePool } from "../interfaces/f(x)/IFxRebalancePool.sol";
 
 import { HarvestableTreasury } from "./HarvestableTreasury.sol";
 
@@ -26,6 +26,6 @@ contract WrappedTokenTreasury is HarvestableTreasury {
     address _rebalancePool = rebalancePool;
     // deposit rewards to stability pool
     _approve(_token, _rebalancePool, _amount);
-    IRebalancePool(_rebalancePool).depositReward(_token, _amount);
+    IFxRebalancePool(_rebalancePool).depositReward(_token, _amount);
   }
 }

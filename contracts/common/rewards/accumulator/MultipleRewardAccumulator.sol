@@ -12,6 +12,43 @@ import { LinearMultipleRewardDistributor } from "../distributor/LinearMultipleRe
 
 // solhint-disable not-rely-on-time
 
+/// @title MultipleRewardAccumulator
+/// @notice `MultipleRewardAccumulator` is a reward accumulator for reward distribution in a staking pool.
+/// In the staking pool, the staker’s share won't change, unless the staker manually stakes or unstakes.
+/// The contract will distribute rewards in proportion to a staker’s share of total stakes with only
+/// O(1) complexity.
+///
+/// Assume that there are n events e[1], e[2], ..., and e[n]. The types of events are user stake,
+/// user unstake and reward distribution.
+/// Right after event e[i], let the total pool stakes be s[i], the user pool stakes be u[i],
+/// and the rewards distributed be r[i].
+///
+/// The basic assumptions are, if
+///   + e[i] is user stake, r[i] = 0, u[i] > u[i-1] and s[i] - s[i-1] = u[i] - u[i-1].
+///   + e[i] is user unstake, r[i] = 0, u[i] < u[i-1] and s[i] - s[i-1] = u[i] - u[i-1].
+///   + e[i] is reward distribution, r[i] > 0, u[i] = u[i-1] and s[i] = s[i-1].
+///
+/// So under the assumptions, we can maintain s[i] and u[i] easily.
+///
+/// Then, the total amount of rewards for the user after n events is:
+///                 u[0]          u[1]                u[n-1]
+///   g[n] = r[1] * ---- + r[2] * ---- + ... + r[n] * ------
+///                 s[0]          s[1]                s[n-1]
+///
+/// And, the rewards from event x to event y (both inclusive) for the user is:
+///                    u[x-1]            u[x]                u[y-1]
+///   g[x->y] = r[x] * ------ + r[x+1] * ---- + ... + r[y] * ------
+///                    s[x-1]            s[x]                s[y-1]
+///
+/// To check the accumulated total user rewards, we can maintain the value of
+///         r[1]   r[2]          r[n]
+///   acc = ---- + ---- + ... + ------
+///         s[0]   s[1]         s[n-1]
+///
+/// For each event, if
+///   + e[i] is user stake or unstake, new accumulated rewards is `gain += u[i-1] * (cur_acc - last_user_recorded_acc)`
+//      and update `last_user_recorded_acc` to `cur_acc`.
+///   + e[i] is reward distribution, update `cur_acc` to `cur_acc + r[i] / s[i-1]`.
 abstract contract MultipleRewardAccumulator is
   ReentrancyGuardUpgradeable,
   LinearMultipleRewardDistributor,
@@ -248,6 +285,13 @@ abstract contract MultipleRewardAccumulator is
   /// @inheritdoc LinearMultipleRewardDistributor
   function _accumulateReward(address _token, uint256 _amount) internal virtual override {
     if (_amount == 0) return;
+
+    uint256 totalShare = _getTotalPoolShare();
+    if (totalShare == 0) {
+      // no deposits, queue rewards
+      rewardData[_token].queued += uint96(_amount);
+      return;
+    }
 
     RewardSnapshot memory _snapshot = rewardSnapshot[_token];
     _snapshot.timestamp = uint64(block.timestamp);

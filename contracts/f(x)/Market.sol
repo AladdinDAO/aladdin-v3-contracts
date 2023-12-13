@@ -8,14 +8,14 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import { IMarket } from "./interfaces/IMarket.sol";
-import { IRebalancePoolRegistry } from "./interfaces/IRebalancePoolRegistry.sol";
-import { IReservePool } from "./interfaces/IReservePool.sol";
-import { ITreasury } from "./interfaces/ITreasury.sol";
+import { IFxMarket } from "../interfaces/f(x)/IFxMarket.sol";
+import { IFxRebalancePoolRegistry } from "../interfaces/f(x)/IFxRebalancePoolRegistry.sol";
+import { IFxReservePool } from "../interfaces/f(x)/IFxReservePool.sol";
+import { IFxTreasury } from "../interfaces/f(x)/IFxTreasury.sol";
 
 // solhint-disable max-states-count
 
-contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket {
+contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMarket {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
 
@@ -226,16 +226,16 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     treasury = _treasury;
     platform = _platform;
 
-    baseToken = ITreasury(_treasury).baseToken();
-    fToken = ITreasury(_treasury).fToken();
-    xToken = ITreasury(_treasury).xToken();
+    baseToken = IFxTreasury(_treasury).baseToken();
+    fToken = IFxTreasury(_treasury).fToken();
+    xToken = IFxTreasury(_treasury).xToken();
   }
 
   /****************************
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc IMarket
+  /// @inheritdoc IFxMarket
   function mint(
     uint256 _baseIn,
     address _recipient,
@@ -248,14 +248,14 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     }
     require(_baseIn > 0, "mint zero amount");
 
-    ITreasury _treasury = ITreasury(treasury);
+    IFxTreasury _treasury = IFxTreasury(treasury);
     require(_treasury.totalBaseToken() == 0, "only initialize once");
 
     IERC20Upgradeable(_baseToken).safeTransferFrom(msg.sender, address(_treasury), _baseIn);
     (_fTokenMinted, _xTokenMinted) = _treasury.mint(
       _treasury.convertToUnwrapped(_baseIn),
       _recipient,
-      ITreasury.MintOption.Both
+      IFxTreasury.MintOption.Both
     );
 
     require(_fTokenMinted >= _minFTokenMinted, "insufficient fToken output");
@@ -264,7 +264,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     emit Mint(msg.sender, _recipient, _baseIn, _fTokenMinted, _xTokenMinted, 0);
   }
 
-  /// @inheritdoc IMarket
+  /// @inheritdoc IFxMarket
   function mintFToken(
     uint256 _baseIn,
     address _recipient,
@@ -278,7 +278,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     }
     require(_baseIn > 0, "mint zero amount");
 
-    ITreasury _treasury = ITreasury(treasury);
+    IFxTreasury _treasury = IFxTreasury(treasury);
     (uint256 _maxBaseInBeforeSystemStabilityMode, ) = _treasury.maxMintableFToken(marketConfig.stabilityRatio);
     _maxBaseInBeforeSystemStabilityMode = _treasury.convertToWrapped(_maxBaseInBeforeSystemStabilityMode);
 
@@ -298,14 +298,14 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     (_fTokenMinted, ) = _treasury.mint(
       _treasury.convertToUnwrapped(_amountWithoutFee),
       _recipient,
-      ITreasury.MintOption.FToken
+      IFxTreasury.MintOption.FToken
     );
     require(_fTokenMinted >= _minFTokenMinted, "insufficient fToken output");
 
     emit Mint(msg.sender, _recipient, _baseIn, _fTokenMinted, 0, _baseIn - _amountWithoutFee);
   }
 
-  /// @inheritdoc IMarket
+  /// @inheritdoc IFxMarket
   function mintXToken(
     uint256 _baseIn,
     address _recipient,
@@ -319,7 +319,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     }
     require(_baseIn > 0, "mint zero amount");
 
-    ITreasury _treasury = ITreasury(treasury);
+    IFxTreasury _treasury = IFxTreasury(treasury);
     (uint256 _maxBaseInBeforeSystemStabilityMode, ) = _treasury.maxMintableXToken(marketConfig.stabilityRatio);
     _maxBaseInBeforeSystemStabilityMode = _treasury.convertToWrapped(_maxBaseInBeforeSystemStabilityMode);
 
@@ -329,7 +329,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     (, _xTokenMinted) = _treasury.mint(
       _treasury.convertToUnwrapped(_amountWithoutFee),
       _recipient,
-      ITreasury.MintOption.XToken
+      IFxTreasury.MintOption.XToken
     );
     require(_xTokenMinted >= _minXTokenMinted, "insufficient xToken output");
 
@@ -339,8 +339,8 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     } else {
       _bonus = _maxBaseInBeforeSystemStabilityMode;
     }
-    if (_bonus > 0 && IRebalancePoolRegistry(registry).totalSupply() == 0) {
-      _bonus = IReservePool(reservePool).requestBonus(baseToken, _recipient, _bonus);
+    if (_bonus > 0 && IFxRebalancePoolRegistry(registry).totalSupply() == 0) {
+      _bonus = IFxReservePool(reservePool).requestBonus(baseToken, _recipient, _bonus);
     } else {
       _bonus = 0;
     }
@@ -348,7 +348,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     emit Mint(msg.sender, _recipient, _baseIn, 0, _xTokenMinted, _baseIn - _amountWithoutFee);
   }
 
-  /// @inheritdoc IMarket
+  /// @inheritdoc IFxMarket
   function addBaseToken(
     uint256 _baseIn,
     address _recipient,
@@ -356,7 +356,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   ) external override nonReentrant returns (uint256 _xTokenMinted) {
     require(!mintPaused, "mint is paused");
 
-    ITreasury _treasury = ITreasury(treasury);
+    IFxTreasury _treasury = IFxTreasury(treasury);
     uint256 _collateralRatio = _treasury.collateralRatio();
 
     MarketConfig memory _marketConfig = marketConfig;
@@ -396,13 +396,13 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     emit AddCollateral(msg.sender, _recipient, _baseIn, _xTokenMinted);
   }
 
-  /// @inheritdoc IMarket
+  /// @inheritdoc IFxMarket
   function redeem(
     uint256 _fTokenIn,
     uint256 _xTokenIn,
     address _recipient,
     uint256 _minBaseOut
-  ) external override nonReentrant returns (uint256 _baseOut) {
+  ) external override nonReentrant returns (uint256 _baseOut, uint256 _bonus) {
     require(!redeemPaused, "redeem is paused");
 
     if (_fTokenIn == uint256(-1)) {
@@ -414,13 +414,16 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     require(_fTokenIn > 0 || _xTokenIn > 0, "redeem zero amount");
     require(_fTokenIn == 0 || _xTokenIn == 0, "only redeem single side");
 
-    ITreasury _treasury = ITreasury(treasury);
+    IFxTreasury _treasury = IFxTreasury(treasury);
     MarketConfig memory _marketConfig = marketConfig;
 
     uint256 _feeRatio;
-    uint256 _maxFTokenInBeforeSystemStabilityMode;
+    uint256 _maxBaseOut;
     if (_fTokenIn > 0) {
-      (, _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(_marketConfig.stabilityRatio);
+      uint256 _maxFTokenInBeforeSystemStabilityMode;
+      (_maxBaseOut, _maxFTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableFToken(
+        _marketConfig.stabilityRatio
+      );
       _feeRatio = _computeFTokenRedeemFeeRatio(_fTokenIn, fTokenRedeemFeeRatio, _maxFTokenInBeforeSystemStabilityMode);
     } else {
       (, uint256 _maxXTokenInBeforeSystemStabilityMode) = _treasury.maxRedeemableXToken(_marketConfig.stabilityRatio);
@@ -441,11 +444,10 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     _baseOut = _treasury.redeem(_fTokenIn, _xTokenIn, msg.sender);
     if (_fTokenIn > 0) {
       // give bonus when redeem fToken
-      uint256 _bonus;
-      if (_baseOut < _maxFTokenInBeforeSystemStabilityMode) {
+      if (_baseOut < _maxBaseOut) {
         _bonus = _baseOut;
       } else {
-        _bonus = _maxFTokenInBeforeSystemStabilityMode;
+        _bonus = _maxBaseOut;
       }
       // deduct fee
       {
@@ -453,8 +455,10 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
         _bonus -= (_bonus * uint256(int256(_ratio.defaultFeeRatio) + _ratio.extraFeeRatio)) / PRECISION;
       }
       // request bonus
-      if (_bonus > 0 && IRebalancePoolRegistry(registry).totalSupply() == 0) {
-        IReservePool(reservePool).requestBonus(baseToken, _recipient, _bonus);
+      if (_bonus > 0 && IFxRebalancePoolRegistry(registry).totalSupply() == 0) {
+        _bonus = IFxReservePool(reservePool).requestBonus(baseToken, _recipient, _bonus);
+      } else {
+        _bonus = 0;
       }
     }
 
@@ -477,7 +481,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
     emit Redeem(msg.sender, _recipient, _fTokenIn, _xTokenIn, _baseOut, _fee);
   }
 
-  /// @inheritdoc IMarket
+  /// @inheritdoc IFxMarket
   function liquidate(
     uint256 _fTokenIn,
     address _recipient,
@@ -485,7 +489,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IMarket
   ) external override nonReentrant returns (uint256 _baseOut) {
     require(!redeemPaused, "redeem is paused");
 
-    ITreasury _treasury = ITreasury(treasury);
+    IFxTreasury _treasury = IFxTreasury(treasury);
     uint256 _collateralRatio = _treasury.collateralRatio();
 
     MarketConfig memory _marketConfig = marketConfig;

@@ -7,7 +7,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import { IMarket } from "../f(x)/interfaces/IMarket.sol";
+import { IFxMarket } from "../interfaces/f(x)/IFxMarket.sol";
 import { ITokenConverter } from "../helpers/converter/ITokenConverter.sol";
 
 // solhint-disable contract-name-camelcase
@@ -119,7 +119,7 @@ contract FxGateway is Ownable {
     returns (uint256 _fTokenMinted)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
-    _fTokenMinted = IMarket(market).mintFToken(_amount, msg.sender, _minFTokenMinted);
+    _fTokenMinted = IFxMarket(market).mintFToken(_amount, msg.sender, _minFTokenMinted);
 
     _refund(baseToken, msg.sender);
   }
@@ -135,7 +135,7 @@ contract FxGateway is Ownable {
     returns (uint256 _xTokenMinted, uint256 _bonus)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
-    (_xTokenMinted, _bonus) = IMarket(market).mintXToken(_amount, msg.sender, _minXTokenMinted);
+    (_xTokenMinted, _bonus) = IFxMarket(market).mintXToken(_amount, msg.sender, _minXTokenMinted);
 
     _refund(baseToken, msg.sender);
   }
@@ -150,7 +150,7 @@ contract FxGateway is Ownable {
     returns (uint256 _xTokenMinted)
   {
     uint256 _amount = IERC20(baseToken).balanceOf(address(this));
-    _xTokenMinted = IMarket(market).addBaseToken(_amount, msg.sender, _minXTokenMinted);
+    _xTokenMinted = IFxMarket(market).addBaseToken(_amount, msg.sender, _minXTokenMinted);
 
     _refund(baseToken, msg.sender);
   }
@@ -162,13 +162,21 @@ contract FxGateway is Ownable {
   /// @param _minDstToken The minimum amount of dst token should be received.
   /// @return _baseOut The amount of base token received.
   /// @return _dstOut The amount of dst token received.
+  /// @return _bonus The amount of bonus base token received.
   function redeem(
     ZapOutCall memory _call,
     uint256 _fTokenIn,
     uint256 _xTokenIn,
     uint256 _minBaseToken,
     uint256 _minDstToken
-  ) external returns (uint256 _baseOut, uint256 _dstOut) {
+  )
+    external
+    returns (
+      uint256 _baseOut,
+      uint256 _dstOut,
+      uint256 _bonus
+    )
+  {
     require(_call.routes.length > 0, "no routes");
 
     if (_xTokenIn == 0) {
@@ -178,10 +186,11 @@ contract FxGateway is Ownable {
       _fTokenIn = 0;
     }
 
-    _baseOut = IMarket(market).redeem(_fTokenIn, _xTokenIn, _call.converter, _minBaseToken);
+    (_baseOut, _bonus) = IFxMarket(market).redeem(_fTokenIn, _xTokenIn, address(this), _minBaseToken);
     require(_baseOut >= _minBaseToken, "insufficient base token");
 
     _dstOut = _baseOut;
+    IERC20(baseToken).safeTransfer(_call.converter, _baseOut);
     for (uint256 i = 0; i < _call.routes.length; i++) {
       address _recipient = i == _call.routes.length - 1 ? msg.sender : _call.converter;
       _dstOut = ITokenConverter(_call.converter).convert(_call.routes[i], _dstOut, _recipient);
@@ -194,6 +203,9 @@ contract FxGateway is Ownable {
     if (_xTokenIn > 0) {
       _refund(xToken, msg.sender);
     }
+    if (_bonus > 0) {
+      _refund(baseToken, msg.sender);
+    }
   }
 
   /// @notice Swap between fToken and xToken
@@ -201,20 +213,24 @@ contract FxGateway is Ownable {
   /// @param _fTokenForXToken Whether swap fToken for xToken.
   /// @param _minOut The minimum amount of token should be received.
   /// @return _amountOut The amount of token received.
+  /// @return _bonus The amount of bonus token received.
   function swap(
     uint256 _amountIn,
     bool _fTokenForXToken,
     uint256 _minOut
-  ) external returns (uint256 _amountOut) {
+  ) external returns (uint256 _amountOut, uint256 _bonus) {
     if (_fTokenForXToken) {
       _amountIn = _transferTokenIn(fToken, _amountIn);
-      uint256 _baseOut = IMarket(market).redeem(_amountIn, 0, address(this), 0);
-      (_amountOut, ) = IMarket(market).mintXToken(_baseOut, msg.sender, 0);
+      (uint256 _baseOut, uint256 _redeemBonus) = IFxMarket(market).redeem(_amountIn, 0, address(this), 0);
+      _bonus = _redeemBonus;
+      (_amountOut, _redeemBonus) = IFxMarket(market).mintXToken(_baseOut, msg.sender, 0);
+      _bonus += _redeemBonus;
       _refund(fToken, msg.sender);
     } else {
       _amountIn = _transferTokenIn(xToken, _amountIn);
-      uint256 _baseOut = IMarket(market).redeem(0, _amountIn, address(this), 0);
-      _amountOut = IMarket(market).mintFToken(_baseOut, msg.sender, 0);
+      (uint256 _baseOut, uint256 _redeemBonus) = IFxMarket(market).redeem(0, _amountIn, address(this), 0);
+      _bonus = _redeemBonus;
+      _amountOut = IFxMarket(market).mintFToken(_baseOut, msg.sender, 0);
       _refund(xToken, msg.sender);
     }
     require(_amountOut >= _minOut, "insufficient output");

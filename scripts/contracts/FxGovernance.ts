@@ -1,15 +1,47 @@
 /* eslint-disable node/no-missing-import */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { ZeroAddress, Overrides, Contract } from "ethers";
+import { ZeroAddress, Overrides, Contract, MaxUint256 } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { DEPLOYED_CONTRACTS, selectDeployments } from "@/utils/deploys";
+import { GaugeController } from "@/types/index";
+import { DEPLOYED_CONTRACTS } from "@/utils/deploys";
 import { TOKENS } from "@/utils/tokens";
 
-import { contractCall, contractDeploy, minimalProxyDeploy, ownerContractCall } from "./helpers";
+import { DeploymentHelper, contractCall, ownerContractCall } from "./helpers";
 import * as Converter from "./Converter";
 import * as Multisig from "./Multisig";
 import * as VotingEscrow from "./VotingEscrow";
+
+const DeployedGauges: { [name: string]: { token: string; rewarder: string; immutable: boolean } } = {
+  "ETH+xETH": {
+    token: TOKENS["CURVE_CRYPTO_ETH/xETH_302"].address,
+    rewarder: "0x0831c171938033d0C5218B509502E2d95AC10cAb",
+    immutable: false,
+  },
+  "ETH+FXN": {
+    token: TOKENS["CURVE_CRYPTO_ETH/FXN_311"].address,
+    rewarder: "0x2b732f0Eee9e1b4329C25Cbb8bdC0dc3bC1448E2",
+    immutable: false,
+  },
+  "crvUSD+fETH": {
+    token: TOKENS["CURVE_CRYPTO_crvUSD/fETH_299"].address,
+    rewarder: "0xFcef86a917fb2D0AB39D60e111a3763927Db485d",
+    immutable: true,
+  },
+  "fETH+FRAXBP": {
+    token: TOKENS["CURVE_CRYPTO_fETH/FRAXBP_301"].address,
+    rewarder: "0x2267b760Ce858617ff1Ef8E7c598397093c276bD",
+    immutable: true,
+  },
+};
+
+const GaugeTypeLists: Array<{ name: string; weight: bigint }> = [
+  { name: "Liquidity", weight: ethers.parseEther("0.3") },
+  { name: "Rebalance Pool", weight: ethers.parseEther("0.2") },
+  { name: "Fundraising", weight: ethers.parseEther("0.1") },
+  { name: "Rebalance Pool (fETH)", weight: ethers.parseEther("0.25") },
+  { name: "Rebalance Pool (fBTC)", weight: ethers.parseEther("0.15") },
+];
 
 export interface FxGovernanceDeployment {
   TokenSale1: string;
@@ -17,8 +49,32 @@ export interface FxGovernanceDeployment {
 
   FXN: string;
   veFXN: string;
+  VotingEscrowBoost: string;
+  VotingEscrowProxy: string;
   TokenMinter: string;
   GaugeController: string;
+  LiquidityGauge: {
+    implementation: {
+      LiquidityGauge: string;
+      DelegatedLiquidityGauge: string;
+      SharedLiquidityGauge: string;
+      ConvexCurveManager: string;
+    };
+    ConvexDualFarm: {
+      [token: string]: {
+        gauge: string;
+        manager: string;
+      };
+    };
+  };
+  FundraiseGauge: {
+    implementation: {
+      FundraisingGaugeFx: string;
+    };
+    Gauge: {
+      FxTreasury: string;
+    };
+  };
   FeeDistributor: { [symbol: string]: string };
 
   SmartWalletWhitelist: string;
@@ -75,151 +131,154 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   const multisig = Multisig.deploy(network.name);
   const converter = await Converter.deploy(deployer, overrides);
   const implementationDeployment = await VotingEscrow.deploy(deployer, overrides);
-  const deployment = selectDeployments(network.name, "Fx.Governance");
+  const deployment = new DeploymentHelper(network.name, "Fx.Governance", deployer, overrides);
 
   for (const round of ["TokenSale1", "TokenSale2"]) {
-    if (!deployment.get(round)) {
-      const address = await contractDeploy(deployer, round, "TokenSale", [
-        TOKENS.WETH.address,
-        TOKENS.WETH.address,
-        DEPLOYED_CONTRACTS.AladdinZap,
-        SaleConfig[round].cap,
-      ]);
-      deployment.set(round, address);
-    } else {
-      console.log(`Found ${round} at:`, deployment.get(round));
-    }
+    await deployment.contractDeploy(round, round, "TokenSale", [
+      TOKENS.WETH.address,
+      TOKENS.WETH.address,
+      DEPLOYED_CONTRACTS.AladdinZap,
+      SaleConfig[round].cap,
+    ]);
   }
 
-  if (!deployment.get("FXN")) {
-    const address = await minimalProxyDeploy(deployer, "FXN", implementationDeployment.GovernanceToken, overrides);
-    deployment.set("FXN", address);
-  } else {
-    console.log(`Found FXN token at:`, deployment.get("FXN"));
-  }
+  // Token related contracts
+  await deployment.minimalProxyDeploy("FXN", "FXN", implementationDeployment.GovernanceToken);
+  await deployment.minimalProxyDeploy("TokenMinter", "TokenMinter", implementationDeployment.TokenMinter);
 
-  if (!deployment.get("veFXN")) {
-    const address = await minimalProxyDeploy(deployer, "veFXN", implementationDeployment.VotingEscrow, overrides);
-    deployment.set("veFXN", address);
-  } else {
-    console.log(`Found veFXN at:`, deployment.get("veFXN"));
-  }
+  // VotingEscrow related contracts
+  await deployment.minimalProxyDeploy("veFXN", "veFXN", implementationDeployment.VotingEscrow);
+  await deployment.contractDeploy("SmartWalletWhitelist", "SmartWalletWhitelist", "SmartWalletWhitelist", []);
+  await deployment.contractDeploy("VotingEscrowBoost", "VotingEscrowBoost", "VotingEscrowBoost", [
+    deployment.get("veFXN"),
+  ]);
+  await deployment.contractDeploy("VotingEscrowProxy", "VotingEscrowProxy", "VotingEscrowProxy", [
+    deployment.get("veFXN"),
+  ]);
 
-  if (!deployment.get("TokenMinter")) {
-    const address = await minimalProxyDeploy(deployer, "TokenMinter", implementationDeployment.TokenMinter, overrides);
-    deployment.set("TokenMinter", address);
-  } else {
-    console.log(`Found TokenMinter at:`, deployment.get("TokenMinter"));
-  }
+  // GaugeController
+  await deployment.minimalProxyDeploy("GaugeController", "GaugeController", implementationDeployment.GaugeController);
 
-  if (!deployment.get("GaugeController")) {
-    const address = await minimalProxyDeploy(
-      deployer,
-      "GaugeController",
-      implementationDeployment.GaugeController,
-      overrides
+  // LiquidityGauge related contracts
+  await deployment.contractDeploy(
+    "LiquidityGauge.implementation.SharedLiquidityGauge",
+    "SharedLiquidityGauge implementation",
+    "SharedLiquidityGauge",
+    [deployment.get("TokenMinter"), deployment.get("VotingEscrowProxy")]
+  );
+  await deployment.contractDeploy(
+    "LiquidityGauge.implementation.ConvexCurveManager",
+    "ConvexCurveManager implementation",
+    "ConvexCurveManager",
+    []
+  );
+  for (const name of ["ETH+xETH", "ETH+FXN", "crvUSD+fETH", "fETH+FRAXBP"]) {
+    await deployment.minimalProxyDeploy(
+      "LiquidityGauge.ConvexDualFarm." + name + ".gauge",
+      `SharedLiquidityGauge of ${name}`,
+      deployment.get("LiquidityGauge.implementation.SharedLiquidityGauge")
     );
-    deployment.set("GaugeController", address);
-  } else {
-    console.log(`Found GaugeController at:`, deployment.get("GaugeController"));
-  }
-
-  for (const token of ["stETH", "wstETH"]) {
-    const selector = `FeeDistributor.${token}`;
-    if (!deployment.get(selector)) {
-      const address = await minimalProxyDeploy(
-        deployer,
-        `FeeDistributor ${token}`,
-        implementationDeployment.FeeDistributor,
-        overrides
+    if (DeployedGauges[name].immutable) {
+      await deployment.contractDeploy(
+        "LiquidityGauge.ConvexDualFarm." + name + ".manager",
+        `ConvexCurveManagerImmutable of ${name}`,
+        "ConvexCurveManagerImmutable",
+        [
+          deployment.get("LiquidityGauge.ConvexDualFarm." + name + ".gauge"),
+          DeployedGauges[name].token,
+          DeployedGauges[name].rewarder,
+        ]
       );
-      deployment.set(selector, address);
     } else {
-      console.log(`Found FeeDistributor ${token} at:`, deployment.get(selector));
+      await deployment.minimalProxyDeploy(
+        "LiquidityGauge.ConvexDualFarm." + name + ".manager",
+        `ConvexCurveManager of ${name}`,
+        deployment.get("LiquidityGauge.implementation.ConvexCurveManager")
+      );
     }
   }
+  // Fundraising related contracts
+  await deployment.contractDeploy(
+    "FundraiseGauge.implementation.FundraisingGaugeFx",
+    "FundraisingGaugeFx implementation",
+    "FundraisingGaugeFx",
+    [multisig.Fx]
+  );
+  await deployment.minimalProxyDeploy(
+    "FundraiseGauge.Gauge.FxTreasury",
+    "FundraisingGaugeFx for FxTreasury",
+    deployment.get("FundraiseGauge.implementation.FundraisingGaugeFx")
+  );
 
-  if (!deployment.get("SmartWalletWhitelist")) {
-    const address = await contractDeploy(deployer, "SmartWalletWhitelist", "SmartWalletWhitelist", [], overrides);
-    deployment.set("SmartWalletWhitelist", address);
-  } else {
-    console.log(`Found SmartWalletWhitelist at:`, deployment.get("SmartWalletWhitelist"));
-  }
-
-  if (!deployment.get("MultipleVestHelper")) {
-    const address = await contractDeploy(deployer, "FXN MultipleVestHelper", "MultipleVestHelper", [], overrides);
-    deployment.set("MultipleVestHelper", address);
-  } else {
-    console.log(`Found FXN MultipleVestHelper at:`, deployment.get("MultipleVestHelper"));
-  }
+  // Vesting related contracts
+  await deployment.contractDeploy("MultipleVestHelper", "FXN MultipleVestHelper", "MultipleVestHelper", []);
 
   for (const token of ["FXN", "fETH"]) {
-    const selector = `Vesting.${token}`;
-    if (!deployment.get(selector)) {
-      const address = await contractDeploy(deployer, `${token} Vesting`, "Vesting", [TOKENS[token].address], overrides);
-      deployment.set(selector, address);
-    } else {
-      console.log(`Found ${token} Vesting at:`, deployment.get(selector));
-    }
+    await deployment.contractDeploy(`Vesting.${token}`, `${token} Vesting`, "Vesting", [TOKENS[token].address]);
   }
 
   for (const token of ["FXN"]) {
-    const selector = `ManageableVesting.vesting.${token}`;
-    if (!deployment.get(selector)) {
-      const address = await contractDeploy(
-        deployer,
-        `${token} ManageableVesting`,
-        "ManageableVesting",
-        [TOKENS[token].address],
-        overrides
-      );
-      deployment.set(selector, address);
-    } else {
-      console.log(`Found ${token} ManageableVesting at:`, deployment.get(selector));
-    }
-  }
-
-  if (!deployment.get("ManageableVesting.manager.CvxFxnVestingManager")) {
-    const address = await contractDeploy(deployer, "CvxFxnVestingManager", "CvxFxnVestingManager", [], overrides);
-    deployment.set("ManageableVesting.manager.CvxFxnVestingManager", address);
-  } else {
-    console.log(`Found CvxFxnVestingManager at:`, deployment.get("ManageableVesting.manager.CvxFxnVestingManager"));
-  }
-
-  if (!deployment.get("ManageableVesting.manager.SdFxnVestingManager")) {
-    const address = await contractDeploy(deployer, "SdFxnVestingManager", "SdFxnVestingManager", [], overrides);
-    deployment.set("ManageableVesting.manager.SdFxnVestingManager", address);
-  } else {
-    console.log(`Found SdFxnVestingManager at:`, deployment.get("ManageableVesting.manager.SdFxnVestingManager"));
-  }
-
-  if (!deployment.get("PlatformFeeSpliter")) {
-    const address = await contractDeploy(
-      deployer,
-      "PlatformFeeSpliter",
-      "PlatformFeeSpliter",
-      [multisig.Fx, multisig.Fx, multisig.Fx],
-      overrides
+    await deployment.contractDeploy(
+      `ManageableVesting.vesting.${token}`,
+      `${token} ManageableVesting`,
+      "ManageableVesting",
+      [TOKENS[token].address]
     );
-    deployment.set("PlatformFeeSpliter", address);
-  } else {
-    console.log(`Found PlatformFeeSpliter at:`, deployment.get("PlatformFeeSpliter"));
   }
 
-  if (!deployment.get("Burner.PlatformFeeBurner")) {
-    const address = await contractDeploy(
-      deployer,
-      "PlatformFeeBurner",
-      "PlatformFeeBurner",
-      [converter.GeneralTokenConverter, deployment.get("FeeDistributor.wstETH")],
-      overrides
+  await deployment.contractDeploy(
+    "ManageableVesting.manager.CvxFxnVestingManager",
+    "CvxFxnVestingManager",
+    "CvxFxnVestingManager",
+    []
+  );
+
+  await deployment.contractDeploy(
+    "ManageableVesting.manager.SdFxnVestingManager",
+    "SdFxnVestingManager",
+    "SdFxnVestingManager",
+    []
+  );
+
+  // Revenue Sharing related contracts
+  for (const token of ["stETH", "wstETH"]) {
+    await deployment.minimalProxyDeploy(
+      `FeeDistributor.${token}`,
+      `FeeDistributor for ${token}`,
+      implementationDeployment.FeeDistributor
     );
-    deployment.set("Burner.PlatformFeeBurner", address);
-  } else {
-    console.log(`Found PlatformFeeBurner at:`, deployment.get("Burner.PlatformFeeBurner"));
   }
+  await deployment.contractDeploy("PlatformFeeSpliter", "PlatformFeeSpliter", "PlatformFeeSpliter", [
+    multisig.Fx,
+    multisig.Fx,
+    multisig.Fx,
+  ]);
+  await deployment.contractDeploy("Burner.PlatformFeeBurner", "PlatformFeeBurner for wstETH", "PlatformFeeBurner", [
+    converter.GeneralTokenConverter,
+    deployment.get("FeeDistributor.wstETH"),
+  ]);
 
   return deployment.toObject() as FxGovernanceDeployment;
+}
+
+export async function addGauge(
+  controller: GaugeController,
+  name: string,
+  address: string,
+  type: number,
+  overrides?: Overrides
+) {
+  try {
+    await controller.gauge_types(address, { gasLimit: 1e6 });
+  } catch {
+    await ownerContractCall(
+      controller,
+      "GaugeController add gauge: " + name,
+      "0x3a04f900", // keccack("add_gauge(address,int128)")
+      [address, type],
+      overrides
+    );
+  }
 }
 
 export async function initialize(
@@ -472,5 +531,103 @@ export async function initialize(
       "addVestingManager",
       [deployment.ManageableVesting.manager.SdFxnVestingManager]
     );
+  }
+
+  // Setup GaugeController
+  for (let i = 0; i < GaugeTypeLists.length; i++) {
+    if ((await controller.gauge_type_names(i)) !== "Liquidity") {
+      await ownerContractCall(
+        controller,
+        "GaugeController add type: " + GaugeTypeLists[i].name,
+        "0x92d0d232", // keccack("add_type(string)")
+        [GaugeTypeLists[i].name, GaugeTypeLists[i].weight],
+        overrides
+      );
+    }
+  }
+  // Setup LiquidityGauge
+  for (const name of ["ETH+xETH", "ETH+FXN", "crvUSD+fETH", "fETH+FRAXBP"]) {
+    const manager = await ethers.getContractAt(
+      "ConvexCurveManager",
+      deployment.LiquidityGauge.ConvexDualFarm[name].manager,
+      deployer
+    );
+    if (!DeployedGauges[name].immutable && (await manager.token()) === ZeroAddress) {
+      // do initialize
+      await contractCall(
+        manager,
+        `ConvexCurveManager of ${name} initialize`,
+        "initialize",
+        [
+          deployment.LiquidityGauge.ConvexDualFarm[name].gauge,
+          DeployedGauges[name].token,
+          DeployedGauges[name].rewarder,
+        ],
+        overrides
+      );
+    }
+    const gauge = await ethers.getContractAt(
+      "SharedLiquidityGauge",
+      deployment.LiquidityGauge.ConvexDualFarm[name].gauge,
+      deployer
+    );
+    if ((await gauge.stakingToken()) === ZeroAddress) {
+      await contractCall(
+        gauge,
+        `SharedLiquidityGauge for ${name} initialize`,
+        "initialize",
+        [await manager.token()],
+        overrides
+      );
+    }
+    if ((await gauge.manager()) === ZeroAddress) {
+      await ownerContractCall(
+        gauge,
+        `SharedLiquidityGauge for ${name} updateLiquidityManager`,
+        "updateLiquidityManager",
+        [await manager.getAddress()],
+        overrides
+      );
+    }
+    const REWARD_MANAGER_ROLE = await gauge.REWARD_MANAGER_ROLE();
+    if (!(await gauge.hasRole(REWARD_MANAGER_ROLE, deployer.address))) {
+      await ownerContractCall(
+        gauge,
+        `SharedLiquidityGauge for ${name} grant REWARD_MANAGER_ROLE`,
+        "grantRole",
+        [REWARD_MANAGER_ROLE, deployer.address],
+        overrides
+      );
+    }
+    for (const token of ["CRV", "CVX"]) {
+      if ((await gauge.distributors(TOKENS[token].address)) === ZeroAddress) {
+        await ownerContractCall(
+          gauge,
+          `SharedLiquidityGauge for ${name} add extra reward ${token}`,
+          "registerRewardToken",
+          [TOKENS[token].address, await manager.getAddress()],
+          overrides
+        );
+      }
+    }
+    await addGauge(controller, name, await gauge.getAddress(), 0);
+  }
+  // Setup FundraisingGauge
+  {
+    const gauge = await ethers.getContractAt(
+      "FundraisingGaugeFx",
+      deployment.FundraiseGauge.Gauge.FxTreasury,
+      deployer
+    );
+    if ((await gauge.receiver()) !== multisig.Fx) {
+      await contractCall(
+        gauge,
+        `FundraisingGaugeFx for FxTreasury initialize`,
+        "initialize",
+        [multisig.Fx, MaxUint256],
+        overrides
+      );
+    }
+    await addGauge(controller, "FundraisingGaugeFx.FxTreasury", await gauge.getAddress(), 2);
   }
 }

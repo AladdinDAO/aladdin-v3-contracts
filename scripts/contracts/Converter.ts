@@ -2,9 +2,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Contract, Overrides } from "ethers";
 import { ethers, network } from "hardhat";
 
-import { selectDeployments } from "@/utils/deploys";
-
-import { contractDeploy, ownerContractCall } from "./helpers";
+import { DeploymentHelper, ownerContractCall } from "./helpers";
 
 export interface ConverterDeployment {
   ConverterRegistry: string;
@@ -13,40 +11,17 @@ export interface ConverterDeployment {
 }
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<ConverterDeployment> {
-  const deployment = selectDeployments(network.name, "Converter");
+  const deployment = new DeploymentHelper(network.name, "Converter", deployer, overrides);
 
-  if (!deployment.get("ConverterRegistry")) {
-    const address = await contractDeploy(deployer, "ConverterRegistry", "ConverterRegistry", [], overrides);
-    deployment.set("ConverterRegistry", address);
-  } else {
-    console.log("Found ConverterRegistry at:", deployment.get("ConverterRegistry"));
-  }
+  await deployment.contractDeploy("ConverterRegistry", "ConverterRegistry", "ConverterRegistry", []);
 
-  if (!deployment.get("GeneralTokenConverter")) {
-    const address = await contractDeploy(
-      deployer,
-      "GeneralTokenConverter",
-      "GeneralTokenConverter",
-      [deployment.get("ConverterRegistry")],
-      overrides
-    );
-    deployment.set("GeneralTokenConverter", address);
-  } else {
-    console.log("Found GeneralTokenConverter at:", deployment.get("GeneralTokenConverter"));
-  }
+  await deployment.contractDeploy("GeneralTokenConverter", "GeneralTokenConverter", "GeneralTokenConverter", [
+    deployment.get("ConverterRegistry"),
+  ]);
 
-  if (!deployment.get("LidoConverter")) {
-    const address = await contractDeploy(
-      deployer,
-      "LidoConverter",
-      "LidoConverter",
-      [deployment.get("ConverterRegistry")],
-      overrides
-    );
-    deployment.set("LidoConverter", address);
-  } else {
-    console.log("Found LidoConverter at:", deployment.get("LidoConverter"));
-  }
+  await deployment.contractDeploy("LidoConverter", "LidoConverter", "LidoConverter", [
+    deployment.get("ConverterRegistry"),
+  ]);
 
   return deployment.toObject() as ConverterDeployment;
 }
