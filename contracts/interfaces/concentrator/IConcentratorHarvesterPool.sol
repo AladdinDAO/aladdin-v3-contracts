@@ -20,6 +20,17 @@ interface IConcentratorHarvesterPool is
    * Events *
    **********/
 
+  /// @notice Emitted when the ratio for staker is updated.
+  /// @param oldRatio The value of the previous ratio, multipled by 1e9.
+  /// @param newRatio The value of the current ratio, multipled by 1e9.
+  event UpdateIncentiveRatio(uint256 oldRatio, uint256 newRatio);
+
+  /// @notice Emitted when the address of claimer is updated.
+  ///
+  /// @param oldClaimer The address of old claimer.
+  /// @param newClaimer The address of current claimer.
+  event UpdateClaimer(address indexed oldClaimer, address indexed newClaimer);
+
   /// @notice Emitted when the pool active status is updated.
   ///
   /// @param caller The address fo caller.
@@ -87,6 +98,12 @@ interface IConcentratorHarvesterPool is
 
   /// @dev Thrown when the incentive ratio exceeds `MAX_INCENTIVE_RATIO`.
   error ErrorIncentiveRatioTooLarge();
+
+  /// @dev Thrown when other user try to call `claimFor`.
+  error ErrorCallerNotClaimer();
+
+  /// @dev Thrown when try to deposit in to inactive pool.
+  error ErrorPoolNotActive();
 
   /*************************
    * Public View Functions *
@@ -160,6 +177,11 @@ interface IConcentratorHarvesterPool is
     address receiver,
     address owner
   ) external;
+
+  /// @notice Claim pending rewards of all active tokens for the caller and transfer to other account.
+  /// @param account The address of the user.
+  /// @param receiver The address of the recipient.
+  function claimFor(address account, address receiver) external;
 
   /// @notice Harvest rewards and convert to compounder.
   ///

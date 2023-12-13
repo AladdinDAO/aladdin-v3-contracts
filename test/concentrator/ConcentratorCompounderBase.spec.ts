@@ -4,7 +4,7 @@ import { expect } from "chai";
 import { BigNumberish, MaxUint256, ZeroAddress, toBigInt } from "ethers";
 import { ethers, network } from "hardhat";
 
-import { MockAutoCompoundingConcentratorStrategy, MockConcentratorCompounderBase, MockERC20 } from "@/types/index";
+import { MockConcentratorStrategy, MockConcentratorCompounderBase, MockERC20 } from "@/types/index";
 
 describe("ConcentratorCompounderBase.spec", async () => {
   let deployer: HardhatEthersSigner;
@@ -16,7 +16,7 @@ describe("ConcentratorCompounderBase.spec", async () => {
   let converter: HardhatEthersSigner;
 
   let token: MockERC20;
-  let strategy: MockAutoCompoundingConcentratorStrategy;
+  let strategy: MockConcentratorStrategy;
   let compounder: MockConcentratorCompounderBase;
 
   for (const periodLength of [0, 100000]) {
@@ -38,10 +38,7 @@ describe("ConcentratorCompounderBase.spec", async () => {
         [deployer, signer, other, treasury, harvester, converter] = await ethers.getSigners();
 
         const MockERC20 = await ethers.getContractFactory("MockERC20", deployer);
-        const MockAutoCompoundingConcentratorStrategy = await ethers.getContractFactory(
-          "MockAutoCompoundingConcentratorStrategy",
-          deployer
-        );
+        const MockConcentratorStrategy = await ethers.getContractFactory("MockConcentratorStrategy", deployer);
         const MockConcentratorCompounderBase = await ethers.getContractFactory(
           "MockConcentratorCompounderBase",
           deployer
@@ -49,7 +46,11 @@ describe("ConcentratorCompounderBase.spec", async () => {
 
         token = await MockERC20.deploy("X", "Y", 18);
         compounder = await MockConcentratorCompounderBase.deploy(periodLength, token.getAddress());
-        strategy = await MockAutoCompoundingConcentratorStrategy.deploy(compounder.getAddress(), token.getAddress());
+        strategy = await MockConcentratorStrategy.deploy(
+          compounder.getAddress(),
+          token.getAddress(),
+          token.getAddress()
+        );
 
         await compounder.initialize(
           "XX",
@@ -1281,12 +1282,10 @@ describe("ConcentratorCompounderBase.spec", async () => {
             expect(await token.balanceOf(strategy.getAddress())).to.eq(initialSupply + harvested);
           }
 
-          const MockAutoCompoundingConcentratorStrategy = await ethers.getContractFactory(
-            "MockAutoCompoundingConcentratorStrategy",
-            deployer
-          );
-          const newStrategy = await MockAutoCompoundingConcentratorStrategy.deploy(
+          const MockConcentratorStrategy = await ethers.getContractFactory("MockConcentratorStrategy", deployer);
+          const newStrategy = await MockConcentratorStrategy.deploy(
             compounder.getAddress(),
+            token.getAddress(),
             token.getAddress()
           );
           await expect(compounder.migrateStrategy(newStrategy.getAddress()))

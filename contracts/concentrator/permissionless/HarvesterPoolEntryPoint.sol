@@ -22,7 +22,7 @@ contract HarvesterPoolEntryPoint is AccessControlUpgradeable, IHarvesterPoolEntr
    * Constructor *
    ***************/
 
-  function _initialize() external initializer {
+  function initialize() external initializer {
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
   }
 

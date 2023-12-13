@@ -61,9 +61,9 @@ contract xETHHarvesterPool is ConcentratorHarvesterPoolBase {
 
     __ConcentratorBaseV2_init(_treasury, _harvester, _converter); // from ConcentratorBaseV2
     __RewardAccumulator_init(axETH); // from RewardAccumulator
-    __ConcentratorHarvesterBase_init(_stakingToken, _strategy); // from ConcentratorHarvesterBase
+    __ConcentratorHarvesterPoolBase_init(_stakingToken, _strategy); // from ConcentratorHarvesterPoolBase
 
-    // access control
+    // grant role
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
     // approval
@@ -86,12 +86,10 @@ contract xETHHarvesterPool is ConcentratorHarvesterPoolBase {
 
   /// @inheritdoc ConcentratorHarvesterPoolBase
   function _convertToCompounder(uint256 _imAmount) internal virtual override returns (uint256) {
-    // convert stETH to xETH
-    (uint256 _amount, uint256 _bonus) = IMarket(market).mintXToken(_imAmount, address(this), 0);
-    if (_bonus > 0) {
-      // send to strategy
-      IERC20Upgradeable(stETH).safeTransfer(strategy, _bonus);
-    }
+    // There may be some stETH as bonus when convert stETH to xETH, we simply keep it in this contract
+    // and converting to xETH in next harvest call.
+    _imAmount = IERC20Upgradeable(stETH).balanceOf(address(this));
+    (uint256 _amount, ) = IMarket(market).mintXToken(_imAmount, address(this), 0);
 
     // deposit xETH to axETH
     return IConcentratorCompounder(axETH).deposit(_amount, address(this));

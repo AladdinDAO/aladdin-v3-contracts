@@ -7,14 +7,14 @@ import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/tok
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/ERC20Upgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
 
+import { IConcentratorCompounder } from "../../interfaces/concentrator/IConcentratorCompounder.sol";
+import { IConcentratorHarvesterPool } from "../../interfaces/concentrator/IConcentratorHarvesterPool.sol";
+import { IConcentratorStrategy } from "../../interfaces/concentrator/IConcentratorStrategy.sol";
+
 import { WordCodec } from "../../common/codec/WordCodec.sol";
 import { CustomFeeRate } from "../../common/fees/CustomFeeRate.sol";
 import { RewardAccumulator } from "../../common/rewards/accumulator/RewardAccumulator.sol";
 import { ConcentratorBaseV2 } from "../ConcentratorBaseV2.sol";
-
-import { IConcentratorCompounder } from "../../interfaces/concentrator/IConcentratorCompounder.sol";
-import { IConcentratorHarvesterPool } from "../../interfaces/concentrator/IConcentratorHarvesterPool.sol";
-import { IConcentratorStrategy } from "../../interfaces/concentrator/IConcentratorStrategy.sol";
 
 // solhint-disable func-name-mixedcase
 // solhint-disable no-empty-blocks
@@ -61,14 +61,18 @@ abstract contract ConcentratorHarvesterPoolBase is
   /// @inheritdoc IConcentratorHarvesterPool
   uint256 public override withdrawFeeAccumulated;
 
+  /// @notice The address of reward claimer.
+  address public claimer;
+
   /// @dev reserved slots.
-  uint256[46] private __gap;
+  uint256[45] private __gap;
 
   /*************
    * Modifiers *
    *************/
 
   modifier whenActive() {
+    if (!isActive()) revert ErrorPoolNotActive();
     _;
   }
 
@@ -76,7 +80,7 @@ abstract contract ConcentratorHarvesterPoolBase is
    * Constructor *
    ***************/
 
-  function __ConcentratorHarvesterBase_init(address _stakingToken, address _strategy) internal onlyInitializing {
+  function __ConcentratorHarvesterPoolBase_init(address _stakingToken, address _strategy) internal onlyInitializing {
     stakingToken = _stakingToken;
     strategy = _strategy;
 
@@ -211,6 +215,15 @@ abstract contract ConcentratorHarvesterPoolBase is
   }
 
   /// @inheritdoc IConcentratorHarvesterPool
+  /// @dev Here we assume `_claimAs != rewardToken`.
+  function claimFor(address _account, address _receiver) external override nonReentrant {
+    if (claimer != _msgSender()) revert ErrorCallerNotClaimer();
+
+    _checkpoint(_account);
+    _claim(_account, _receiver);
+  }
+
+  /// @inheritdoc IConcentratorHarvesterPool
   function harvest(address _receiver, uint256 _minAssets)
     external
     onlyHarvester
@@ -265,7 +278,16 @@ abstract contract ConcentratorHarvesterPoolBase is
     uint256 _oldRatio = _miscData.decodeUint(INCENTIVE_RATIO_OFFSET, 30);
     _miscData = _data.insertUint(_newRatio, INCENTIVE_RATIO_OFFSET, 30);
 
-    emit UpdateHarvesterRatio(_oldRatio, _newRatio);
+    emit UpdateIncentiveRatio(_oldRatio, _newRatio);
+  }
+
+  /// @notice Update the address of claimer.
+  /// @param _newClaimer The address of new claimer.
+  function updateClaimer(address _newClaimer) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    address _oldClaimer = claimer;
+    claimer = _newClaimer;
+
+    emit UpdateClaimer(_oldClaimer, _newClaimer);
   }
 
   /// @notice Update the pool active status

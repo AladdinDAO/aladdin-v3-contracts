@@ -7,6 +7,8 @@ import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol
 import { BeaconProxy } from "@openzeppelin/contracts-v4/proxy/beacon/BeaconProxy.sol";
 
 import { IConcentratorHarvesterPoolFactory } from "../../interfaces/concentrator/IConcentratorHarvesterPoolFactory.sol";
+import { IHarvesterPoolEntryPoint } from "../../interfaces/concentrator/IHarvesterPoolEntryPoint.sol";
+import { IHarvesterPoolEntryPoint } from "../../interfaces/concentrator/IHarvesterPoolEntryPoint.sol";
 import { IConvexBooster } from "../../interfaces/IConvexBooster.sol";
 
 abstract contract ConvexCurveHarvesterPoolFactory is Ownable2Step, IConcentratorHarvesterPoolFactory {
@@ -34,6 +36,11 @@ abstract contract ConvexCurveHarvesterPoolFactory is Ownable2Step, IConcentrator
   /// @param newConverter The address of current converter contract.
   event UpdateConverter(address indexed oldConverter, address indexed newConverter);
 
+  /// @notice Emitted when the address of HarvesterPoolClaimGateway is updated.
+  /// @param oldClaimer The address of previous claimer contract.
+  /// @param newClaimer The address of current claimer contract.
+  event UpdateClaimer(address indexed oldClaimer, address indexed newClaimer);
+
   /*************
    * Constants *
    *************/
@@ -43,6 +50,9 @@ abstract contract ConvexCurveHarvesterPoolFactory is Ownable2Step, IConcentrator
 
   /// @notice The address of `UpgradeableBeacon` for pool template.
   address public immutable poolBeacon;
+
+  /// @notice The address of HarvesterPoolEntryPoint contract.
+  address public immutable entryPoint;
 
   /// @dev The address of Convex Booster Contract
   address private constant BOOSTER = 0xF403C135812408BFbE8713b5A23a04b3D48AAE31;
@@ -63,6 +73,9 @@ abstract contract ConvexCurveHarvesterPoolFactory is Ownable2Step, IConcentrator
   /// @notice The address of token converter contract.
   address public converter = 0x11C907b3aeDbD863e551c37f21DD3F36b28A6784;
 
+  /// @notice The address of HarvesterPoolClaimGateway contract.
+  address public claimer;
+
   /// @dev The list of created pools.
   address[] private _pools;
 
@@ -76,16 +89,20 @@ abstract contract ConvexCurveHarvesterPoolFactory is Ownable2Step, IConcentrator
   constructor(
     address _compounder,
     address _poolBeacon,
-    address _strategyTemplate
+    address _entryPoint,
+    address _strategyTemplate,
+    address _claimer
   ) {
-    if (_compounder == address(0) || _poolBeacon == address(0)) {
+    if (_compounder == address(0) || _poolBeacon == address(0) || _entryPoint == address(0)) {
       revert ErrorZeroAddress();
     }
 
     compounder = _compounder;
     poolBeacon = _poolBeacon;
+    entryPoint = _entryPoint;
 
     _updateStrategyTemplate(_strategyTemplate);
+    _updateClaimer(_claimer);
   }
 
   /*************************
@@ -129,6 +146,8 @@ abstract contract ConvexCurveHarvesterPoolFactory is Ownable2Step, IConcentrator
     _pools.push(_pool);
     _gaugeToPools[_info.gauge] = _pool;
 
+    IHarvesterPoolEntryPoint(entryPoint).registerConvexCurvePool(_info.gauge);
+
     emit NewPool(_index, _info.gauge, _pool);
   }
 
@@ -156,9 +175,7 @@ abstract contract ConvexCurveHarvesterPoolFactory is Ownable2Step, IConcentrator
   /// @notice Update the address of Concentrator Harvester contract.
   /// @param _newHarvester The address of new harvester contract.
   function updateHarvester(address _newHarvester) external onlyOwner {
-    if (_newHarvester == address(0)) revert ErrorZeroAddress();
-
-    address _oldHarvester = treasury;
+    address _oldHarvester = harvester;
     harvester = _newHarvester;
 
     emit UpdateHarvester(_oldHarvester, _newHarvester);
@@ -175,6 +192,12 @@ abstract contract ConvexCurveHarvesterPoolFactory is Ownable2Step, IConcentrator
     emit UpdateConverter(_oldConverter, _newConverter);
   }
 
+  /// @notice Update the address of token claimer contract.
+  /// @param _newClaimer The address of new claimer contract.
+  function updateClaimer(address _newClaimer) external onlyOwner {
+    _updateClaimer(_newClaimer);
+  }
+
   /**********************
    * Internal Functions *
    **********************/
@@ -188,6 +211,17 @@ abstract contract ConvexCurveHarvesterPoolFactory is Ownable2Step, IConcentrator
     strategyTemplate = _newTemplate;
 
     emit UpdateStrategyTemplate(_oldTempalte, _newTemplate);
+  }
+
+  /// @dev Internal function to update the address of claimer.
+  /// @param _newClaimer The address of new claimer contract.
+  function _updateClaimer(address _newClaimer) internal {
+    if (_newClaimer == address(0)) revert ErrorZeroAddress();
+
+    address _oldClaimer = claimer;
+    claimer = _newClaimer;
+
+    emit UpdateClaimer(_oldClaimer, _newClaimer);
   }
 
   /// @dev Internal function to create strategy contract for the given pool.

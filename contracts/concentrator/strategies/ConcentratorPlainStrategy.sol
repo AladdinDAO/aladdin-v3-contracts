@@ -30,6 +30,8 @@ contract ConcentratorPlainStrategy is ConcentratorStrategyBase {
   constructor(address _operator, address _token) initializer {
     __ConcentratorStrategyBase_init(_operator, new address[](0));
     token = _token;
+
+    isTokenProtected[_token] = true;
   }
 
   /****************************

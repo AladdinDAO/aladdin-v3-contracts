@@ -27,8 +27,10 @@ contract xETHHarvesterPoolFactory is ConvexCurveHarvesterPoolFactory {
   constructor(
     address _compounder,
     address _poolBeacon,
-    address _strategyTemplate
-  ) ConvexCurveHarvesterPoolFactory(_compounder, _poolBeacon, _strategyTemplate) {}
+    address _entryPoint,
+    address _strategyTemplate,
+    address _claimer
+  ) ConvexCurveHarvesterPoolFactory(_compounder, _poolBeacon, _entryPoint, _strategyTemplate, _claimer) {}
 
   /**********************
    * Internal Functions *
@@ -55,6 +57,7 @@ contract xETHHarvesterPoolFactory is ConvexCurveHarvesterPoolFactory {
     xETHHarvesterPool(_pool).initialize(_info.lptoken, treasury, harvester, converter, _strategy);
     xETHHarvesterPool(_pool).updateExpenseRatio(10e7); // 10%
     xETHHarvesterPool(_pool).updateHarvesterRatio(2e7); // 2%
+    xETHHarvesterPool(_pool).updateClaimer(claimer);
 
     xETHHarvesterPool(_pool).grantRole(bytes32(0), owner());
     xETHHarvesterPool(_pool).revokeRole(bytes32(0), address(this));
