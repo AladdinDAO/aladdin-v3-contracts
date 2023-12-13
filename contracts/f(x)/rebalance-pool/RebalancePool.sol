@@ -8,10 +8,10 @@ import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/Sa
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { IMarket } from "./interfaces/IMarket.sol";
-import { IRebalancePool } from "./interfaces/IRebalancePool.sol";
-import { ITokenWrapper } from "./interfaces/ITokenWrapper.sol";
-import { ITreasury } from "./interfaces/ITreasury.sol";
+import { IFxMarket } from "../../interfaces/f(x)/IFxMarket.sol";
+import { IFxRebalancePool } from "../../interfaces/f(x)/IFxRebalancePool.sol";
+import { IFxTokenWrapper } from "../../interfaces/f(x)/IFxTokenWrapper.sol";
+import { IFxTreasury } from "../../interfaces/f(x)/IFxTreasury.sol";
 
 // solhint-disable not-rely-on-time
 // solhint-disable max-states-count
@@ -57,7 +57,7 @@ import { ITreasury } from "./interfaces/ITreasury.sol";
 ///
 /// There are possibilities that all assets are liquidated. In such case, we will reset the P[i] to 1, scale[i] = 0,
 /// and increase current epoch by 1.
-contract RebalancePool is OwnableUpgradeable, IRebalancePool {
+contract RebalancePool is OwnableUpgradeable, IFxRebalancePool {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
 
@@ -179,10 +179,10 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
   /// @notice The address of base token.
   address public baseToken;
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   address public override asset;
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   uint256 public override totalSupply;
 
   /// @notice The total amount of assets unlocked.
@@ -245,8 +245,8 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     treasury = _treasury;
     market = _market;
 
-    baseToken = ITreasury(_treasury).baseToken();
-    asset = ITreasury(_treasury).fToken();
+    baseToken = IFxTreasury(_treasury).baseToken();
+    asset = IFxTreasury(_treasury).fToken();
     wrapper = address(this);
     unlockDuration = 14 * DAY;
 
@@ -267,12 +267,12 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     address _token = baseToken;
     address _wrapper = wrapper;
     if (_wrapper != address(this)) {
-      _token = ITokenWrapper(_wrapper).dst();
+      _token = IFxTokenWrapper(_wrapper).dst();
     }
     return _token;
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function balanceOf(address _account) public view override returns (uint256) {
     uint256 initialDeposit = snapshots[_account].initialDeposit;
     if (initialDeposit == 0) {
@@ -285,7 +285,7 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     return compoundedDeposit;
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function unlockedBalanceOf(address account) external view override returns (uint256) {
     UserUnlock memory _unlock = snapshots[account].initialUnlock;
     if (_unlock.amount == 0) return 0;
@@ -297,7 +297,7 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     }
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function unlockingBalanceOf(address account) external view override returns (uint256 _balance, uint256 _unlockAt) {
     UserUnlock memory _unlock = snapshots[account].initialUnlock;
 
@@ -307,11 +307,10 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     }
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function claimable(address _account, address _token) public view override returns (uint256) {
     uint256 _initialDeposit = snapshots[_account].initialDeposit;
     uint256 _initialUnlock = snapshots[_account].initialUnlock.amount;
-    if (_initialDeposit == 0 && _initialUnlock == 0) return 0;
 
     uint256 _amount;
     EpochState memory _previousEpoch = snapshots[_account].epoch;
@@ -330,19 +329,17 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     }
 
     // 2. from extra rewards
-    if (_initialDeposit > 0) {
-      UserRewardSnapshot memory _extra = snapshots[_account].extraRewards[_token];
-      _amount = _amount.add(
-        _extra.pending.add(
-          _getGainFromSnapshots(
-            _initialDeposit,
-            _extra.accRewardsPerStake,
-            _previousEpoch,
-            epochToScaleToExtraRewardSum[_token]
-          )
+    UserRewardSnapshot memory _extra = snapshots[_account].extraRewards[_token];
+    _amount = _amount.add(
+      _extra.pending.add(
+        _getGainFromSnapshots(
+          _initialDeposit,
+          _extra.accRewardsPerStake,
+          _previousEpoch,
+          epochToScaleToExtraRewardSum[_token]
         )
-      );
-    }
+      )
+    );
 
     return _amount;
   }
@@ -351,7 +348,7 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function deposit(uint256 _amount, address _recipient) external override {
     // transfer asset token to this contract
     address _asset = asset;
@@ -380,7 +377,7 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     emit Deposit(msg.sender, _recipient, _amount);
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function unlock(uint256 _amount) external override {
     require(_amount > 0, "unlock zero amount");
     require(snapshots[msg.sender].initialDeposit > 0, "user has no deposit");
@@ -418,7 +415,7 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     emit Unlock(msg.sender, _amount, _unlockAt);
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function withdrawUnlocked(bool _doClaim, bool _unwrap) external override {
     // distribute pending extraRewards
     _distributeRewards(msg.sender);
@@ -454,7 +451,7 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     }
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function claim(address _token, bool _unwrap) external override {
     // distribute pending extraRewards
     _distributeRewards(msg.sender);
@@ -463,7 +460,7 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     _claim(msg.sender, _token, _unwrap);
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function claim(address[] memory _tokens, bool _unwrap) external override {
     // distribute pending extraRewards
     _distributeRewards(msg.sender);
@@ -474,7 +471,7 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     }
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function liquidate(uint256 _maxAmount, uint256 _minBaseOut)
     external
     override
@@ -485,7 +482,7 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     // distribute pending extraRewards
     _distributeRewards(address(0));
 
-    ITreasury _treasury = ITreasury(treasury);
+    IFxTreasury _treasury = IFxTreasury(treasury);
 
     require(_treasury.collateralRatio() < liquidatableCollateralRatio, "cannot liquidate");
     (, uint256 _maxLiquidatable) = _treasury.maxRedeemableFToken(liquidatableCollateralRatio);
@@ -507,27 +504,27 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     IERC20Upgradeable(_asset).safeApprove(_market, 0);
     IERC20Upgradeable(_asset).safeApprove(_market, _amount);
 
-    _baseOut = IMarket(_market).redeem(_amount, 0, _wrapper, _minBaseOut);
+    (_baseOut, ) = IFxMarket(_market).redeem(_amount, 0, _wrapper, _minBaseOut);
     _liquidated = _liquidated.sub(IERC20Upgradeable(_asset).balanceOf(address(this)));
 
     emit Liquidate(_liquidated, _baseOut);
 
     // wrap base token if needed
     if (_wrapper != address(this)) {
-      _baseOut = ITokenWrapper(_wrapper).wrap(_baseOut);
+      _baseOut = IFxTokenWrapper(_wrapper).wrap(_baseOut);
     }
 
     // notify liquidation loss
     _notifyLoss(_liquidated, _baseOut);
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function updateAccountSnapshot(address _account) external override {
     // distribute pending extraRewards
     _distributeRewards(_account);
   }
 
-  /// @inheritdoc IRebalancePool
+  /// @inheritdoc IFxRebalancePool
   function depositReward(address _token, uint256 _amount) external override onlyRewardManager(_token) {
     uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
     IERC20Upgradeable(_token).safeTransferFrom(msg.sender, address(this), _amount);
@@ -554,11 +551,11 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
   /// @notice Update the address of reward wrapper.
   /// @param _newWrapper The new address of reward wrapper.
   function updateWrapper(address _newWrapper) external onlyOwner {
-    require(ITokenWrapper(_newWrapper).src() == baseToken, "src mismatch");
+    require(IFxTokenWrapper(_newWrapper).src() == baseToken, "src mismatch");
 
     address _oldWrapper = wrapper;
     if (_oldWrapper != address(this)) {
-      require(ITokenWrapper(_oldWrapper).dst() == ITokenWrapper(_newWrapper).dst(), "dst mismatch");
+      require(IFxTokenWrapper(_oldWrapper).dst() == IFxTokenWrapper(_newWrapper).dst(), "dst mismatch");
     }
 
     wrapper = _newWrapper;
@@ -577,8 +574,6 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
   /// @notice Update the unlock duration after unlocking.
   /// @param _unlockDuration The new unlock duration in second.
   function updateUnlockDuration(uint256 _unlockDuration) external onlyOwner {
-    require(_unlockDuration >= DAY, "unlock duration too small");
-
     unlockDuration = _unlockDuration;
 
     emit UpdateUnlockDuration(_unlockDuration);
@@ -906,10 +901,10 @@ contract RebalancePool is OwnableUpgradeable, IRebalancePool {
     }
 
     address _wrapper = wrapper;
-    if (_wrapper != address(this) && _unwrap && _token == ITokenWrapper(_wrapper).dst()) {
+    if (_wrapper != address(this) && _unwrap && _token == IFxTokenWrapper(_wrapper).dst()) {
       IERC20Upgradeable(_token).safeTransfer(_wrapper, _rewards);
-      _rewards = ITokenWrapper(_wrapper).unwrap(_rewards);
-      _token = ITokenWrapper(_wrapper).src();
+      _rewards = IFxTokenWrapper(_wrapper).unwrap(_rewards);
+      _token = IFxTokenWrapper(_wrapper).src();
     }
 
     IERC20Upgradeable(_token).safeTransfer(_account, _rewards);

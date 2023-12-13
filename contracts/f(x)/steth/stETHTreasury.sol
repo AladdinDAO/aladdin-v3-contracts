@@ -5,7 +5,7 @@ pragma solidity ^0.7.6;
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { IRebalancePoolSplitter } from "../interfaces/IRebalancePoolSplitter.sol";
+import { IFxRebalancePoolSplitter } from "../../interfaces/f(x)/IFxRebalancePoolSplitter.sol";
 import { ILidoWstETH } from "../../interfaces/ILidoWstETH.sol";
 
 import { HarvestableTreasury } from "../HarvestableTreasury.sol";
@@ -44,8 +44,8 @@ contract stETHTreasury is HarvestableTreasury {
     _amount = ILidoWstETH(wstETH).wrap(_amount);
 
     address _rebalancePool = rebalancePool;
-    // deposit rewards to stability pool
+    // deposit rewards to rebalance pool
     IERC20Upgradeable(wstETH).safeTransfer(_rebalancePool, _amount);
-    IRebalancePoolSplitter(_rebalancePool).split(wstETH);
+    IFxRebalancePoolSplitter(_rebalancePool).split(wstETH);
   }
 }

@@ -18,5 +18,14 @@
   "MultipleVestHelper": "0x267b7A1d56d624293Ba1819f30B5bf0F12A524E4",
   "Burner": {
     "PlatformFeeBurner": "0x6440e21A3634C319c69CEf8d17601DBC4E97C3dB"
+  },
+  "ManageableVesting": {
+    "vesting": {
+      "FXN": "0x0E4f31a2f48418c90F5e9fa84Bf761D832C54ceD"
+    },
+    "manager": {
+      "CvxFxnVestingManager": "0x43fCFe9F128b5e4271c7E25C47eFe91bA8896220",
+      "SdFxnVestingManager": "0xA2FaffE31153e5E60F2352e3ed28ff973309C156"
+    }
   }
 }

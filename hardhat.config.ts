@@ -69,6 +69,10 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       accounts: [process.env.PRIVATE_KEY_HERMEZ!],
     },
+    fork_phalcon: {
+      url: `https://rpc.phalcon.xyz/${process.env.PHALCON_RPC_ID || ""}`,
+      accounts,
+    },
     fork_mainnet_10540: {
       url: process.env.MAINNET_FORK_10540_URL || "",
       accounts,
@@ -91,7 +95,11 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: {
+      mainnet: process.env.ETHERSCAN_API_KEY || "",
+      hermez: process.env.ETHERSCAN_API_KEY || "",
+      phalcon: process.env.PHALCON_FORK_ACCESS_KEY || "",
+    },
     customChains: [
       {
         network: "hermez",
@@ -101,10 +109,18 @@ const config: HardhatUserConfig = {
           browserURL: "https://zkevm.polygonscan.com",
         },
       },
+      {
+        network: "phalcon",
+        chainId: parseInt(process.env.PHALCON_CHAIN_ID || "1"),
+        urls: {
+          apiURL: `https://api.phalcon.xyz/api/${process.env.PHALCON_RPC_ID || ""}`,
+          browserURL: `https://scan.phalcon.xyz/${process.env.PHALCON_FORK_ID || ""}`,
+        },
+      },
     ],
   },
   sourcify: {
-    enabled: true,
+    enabled: false,
   },
   mocha: {
     timeout: 400000,

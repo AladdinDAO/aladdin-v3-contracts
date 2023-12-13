@@ -6,7 +6,7 @@ import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol
 
 import { WordCodec } from "../../../common/codec/WordCodec.sol";
 
-import { ILiquidityManager } from "../../interfaces/ILiquidityManager.sol";
+import { ILiquidityManager } from "../../../interfaces/voting-escrow/ILiquidityManager.sol";
 
 abstract contract LiquidityManagerBaseImmutable is Ownable2Step, ILiquidityManager {
   using WordCodec for bytes32;

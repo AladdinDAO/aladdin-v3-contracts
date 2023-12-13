@@ -1,9 +1,7 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { network } from "hardhat";
 
-import { selectDeployments } from "@/utils/deploys";
-
-import { contractDeploy } from "./helpers";
+import { DeploymentHelper } from "./helpers";
 
 export interface ProxyAdminDeployment {
   Concentrator: string;
@@ -12,16 +10,10 @@ export interface ProxyAdminDeployment {
 }
 
 export async function deploy(deployer: HardhatEthersSigner): Promise<ProxyAdminDeployment> {
-  console.log("");
-  const deployment = selectDeployments(network.name, "ProxyAdmin");
+  const deployment = new DeploymentHelper(network.name, "ProxyAdmin", deployer);
 
   for (const name of ["Concentrator", "CLever", "Fx"]) {
-    if (!deployment.get(name)) {
-      const address = await contractDeploy(deployer, "ProxyAdmin for " + name, "ProxyAdmin", []);
-      deployment.set(name, address);
-    } else {
-      console.log(`Found ProxyAdmin for ${name} at:`, deployment.get(name));
-    }
+    await deployment.contractDeploy(name, "ProxyAdmin for " + name, "ProxyAdmin", []);
   }
 
   return deployment.toObject() as ProxyAdminDeployment;
