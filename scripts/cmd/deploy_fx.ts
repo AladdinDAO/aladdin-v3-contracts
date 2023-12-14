@@ -4,10 +4,10 @@ import { ethers, toBigInt } from "ethers";
 import { showConverterRoute } from "@/utils/routes";
 
 import { ensureDeployer } from "@/contracts/helpers";
-import * as FxGovernance from "@/contracts/FxGovernance";
+// import * as FxGovernance from "@/contracts/FxGovernance";
 import * as FxStETH from "@/contracts/FxStETH";
 
-const maxFeePerGas = ethers.parseUnits("35", "gwei");
+const maxFeePerGas = ethers.parseUnits("60", "gwei");
 const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 async function main() {
@@ -27,8 +27,8 @@ async function main() {
     showConverterRoute(src, dst, 2);
   }
 
-  const governance = await FxGovernance.deploy(deployer, overrides);
-  await FxGovernance.initialize(deployer, governance, overrides);
+  // const governance = await FxGovernance.deploy(deployer, overrides);
+  // await FxGovernance.initialize(deployer, governance, overrides);
 
   const fxsteth = await FxStETH.deploy(deployer, overrides);
   await FxStETH.initialize(deployer, fxsteth);

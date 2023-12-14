@@ -149,16 +149,19 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   // VotingEscrow related contracts
   await deployment.minimalProxyDeploy("veFXN", "veFXN", implementationDeployment.VotingEscrow);
   await deployment.contractDeploy("SmartWalletWhitelist", "SmartWalletWhitelist", "SmartWalletWhitelist", []);
+  /*
   await deployment.contractDeploy("VotingEscrowBoost", "VotingEscrowBoost", "VotingEscrowBoost", [
     deployment.get("veFXN"),
   ]);
   await deployment.contractDeploy("VotingEscrowProxy", "VotingEscrowProxy", "VotingEscrowProxy", [
     deployment.get("veFXN"),
   ]);
+  */
 
   // GaugeController
   await deployment.minimalProxyDeploy("GaugeController", "GaugeController", implementationDeployment.GaugeController);
 
+  /*
   // LiquidityGauge related contracts
   await deployment.contractDeploy(
     "LiquidityGauge.implementation.SharedLiquidityGauge",
@@ -209,6 +212,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "FundraisingGaugeFx for FxTreasury",
     deployment.get("FundraiseGauge.implementation.FundraisingGaugeFx")
   );
+  */
 
   // Vesting related contracts
   await deployment.contractDeploy("MultipleVestHelper", "FXN MultipleVestHelper", "MultipleVestHelper", []);

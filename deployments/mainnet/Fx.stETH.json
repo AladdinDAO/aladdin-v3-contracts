@@ -21,7 +21,8 @@
     "implementation": "0x23831E29db590BbbAcF267EE2Cf377cD3E54A718"
   },
   "wrapper": {
-    "wstETHWrapper": "0xb09e34dD25d5E88a1E9Ff6F6418109927675B658"
+    "wstETHWrapper": "0xb09e34dD25d5E88a1E9Ff6F6418109927675B658",
+    "StETHAndxETHWrapper": "0xC2BdBF323304eaBd9260b42E4d0d429Ca3481d6E"
   },
   "stETHGateway": "0x9bF5fFABbF97De0a47843A7Ba0A9DDB40f2e2ed5",
   "ChainlinkTwapOracle": {
@@ -31,7 +32,12 @@
   "FxETHTwapOracle": "0xa84360896cE9152d1780c546305BB54125F962d9",
   "ReservePool": "0x5d0Aacf75116d1645Db2B3d1Ca4b303ef0CA3752",
   "BoostableRebalancePool": {
-    "splitter": "0x79c5f5b0753acE25ecdBdA4c2Bc86Ab074B6c2Bb"
+    "splitter": "0x79c5f5b0753acE25ecdBdA4c2Bc86Ab074B6c2Bb",
+    "implementation": "0x37303d55fD8570c070BEDd9a0e64421f318Bb01b",
+    "APool": "0xc6dEe5913e010895F3702bc43a40d661B13a40BD",
+    "BPool": "0xB87A8332dFb1C76Bb22477dCfEdDeB69865cA9f9",
+    "APoolRebalancer": "0x74E9234A6e03c382A01Bb942B1aF05B639371309",
+    "BPoolRebalancer": "0x5a161B94c737326cA115eC46f4Eaf4eEC5037dBE"
   },
   "FxGateway": "0x5c28b966aB37cFB9397bBc04595f91F0fBf06d9b",
   "RebalancePoolRegistry": "0x4eEfea49e4D876599765d5375cF7314cD14C9d38"
