@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-interface IReservePool {
+interface IFxReservePool {
   /// @notice Request bonus token from Reserve Pool.
   /// @param token The address of token to request.
   /// @param receiver The address recipient for the bonus token.

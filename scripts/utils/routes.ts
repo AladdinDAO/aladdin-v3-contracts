@@ -1,5 +1,5 @@
 import { ADDRESS } from "./address";
-import { Action, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3 } from "./codec";
+import { Action, decodePoolV3, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3 } from "./codec";
 import { TOKENS } from "./tokens";
 
 export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
@@ -557,6 +557,17 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
     ],
   },
+  cvxPrisma: {
+    // cvxPrisma ==(Curve) ==> PRISMA ==(CurveV2)==> WETH
+    WETH: [
+      encodePoolHintV2(ADDRESS["CURVE_PRISMA/cvxPrisma_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_ETH/PRISMA_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+    ],
+  },
+  PRISMA: {
+    // PRISMA ==(CurveV2)==> WETH
+    WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/PRISMA_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap)],
+  },
 };
 
 export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = {
@@ -658,6 +669,7 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
     WETH: [
       encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, { use_eth: false }),
     ],
+    wstETH: [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
   },
   WETH: {
     CVX: [encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
@@ -669,9 +681,14 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
   },
 };
 
-export function showConverterRoute(src: string, dst: string) {
+export function showConverterRoute(src: string, dst: string, space?: number) {
+  const routes = CONVERTER_ROUTRS[src][dst];
   console.log(
-    `convert ${src}[${TOKENS[src].address}] => ${dst}[${TOKENS[dst].address}]:`,
-    `[${CONVERTER_ROUTRS[src][dst].map((r) => `"0x${r.toString(16)}"`).join(",")}]`
+    " ".repeat(space ?? 0),
+    `${src}[${TOKENS[src].address}] => ${dst}[${TOKENS[dst].address}]:`,
+    `[${routes.map((r) => `"0x${r.toString(16)}"`).join(",")}]`
   );
+  routes.forEach((route, index) => {
+    console.log(" ".repeat(space ?? 0), `  route #${index + 1}: ${decodePoolV3(route)}`);
+  });
 }

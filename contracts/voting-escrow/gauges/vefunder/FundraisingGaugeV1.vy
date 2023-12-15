@@ -32,9 +32,9 @@ event Checkpoint:
 ADMIN: immutable(address)
 
 
-CRV: constant(address) = 0x72953a5C32413614d24C29c84a66AE4B59581Bbf
-GAUGE_CONTROLLER: constant(address) = 0xB992E8E1943f40f89301aB89A5C254F567aF5b63
-MINTER: constant(address) = 0x4aa2afd5616bEEC2321a9EfD7349400d4F18566A
+CRV: immutable(address)
+GAUGE_CONTROLLER: immutable(address)
+MINTER: immutable(address)
 
 WEEK: constant(uint256) = 604800
 YEAR: constant(uint256) = 86400 * 365
@@ -57,8 +57,11 @@ max_emissions: public(uint256)
 
 
 @external
-def __init__(_admin: address):
+def __init__(_admin: address, _crv: address, _controller: address, _minter: address):
     ADMIN = _admin
+    CRV = _crv
+    GAUGE_CONTROLLER = _controller
+    MINTER = _minter
 
     # prevent initialization of the implementation contract
     self.last_checkpoint = MAX_UINT256

@@ -8,10 +8,10 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import { IReservePool } from "./interfaces/IReservePool.sol";
-import { IMarket } from "./interfaces/IMarket.sol";
+import { IFxReservePool } from "../interfaces/f(x)/IFxReservePool.sol";
+import { IFxMarket } from "../interfaces/f(x)/IFxMarket.sol";
 
-contract ReservePool is AccessControl, IReservePool {
+contract ReservePool is AccessControl, IFxReservePool {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
@@ -75,7 +75,7 @@ contract ReservePool is AccessControl, IReservePool {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc IReservePool
+  /// @inheritdoc IFxReservePool
   function requestBonus(
     address _token,
     address _recipient,

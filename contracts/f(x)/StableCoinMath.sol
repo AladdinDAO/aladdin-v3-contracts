@@ -18,6 +18,9 @@ library StableCoinMath {
   /// @dev The precision used to compute nav.
   int256 internal constant PRECISION_I256 = 1e18;
 
+  /// @dev The maximum value of leverage ratio.
+  uint256 internal constant MAX_LEVERAGE_RATIO = 100e18;
+
   /***********
    * Structs *
    ***********/
@@ -382,5 +385,22 @@ library StableCoinMath {
 
     _fDeltaNav = _fDeltaVal.mul(_incentiveRatio).div(PRECISION);
     _fDeltaNav = _fDeltaNav.div(state.fSupply.sub(_fTokenIn));
+  }
+
+  /// @notice Compute current leverage ratio for xToken.
+  /// @param state The current state.
+  /// @param beta The beta value for fToken.
+  /// @param earningRatio The current accumulated earnings ratio.
+  /// @return ratio The current leverage ratio.
+  function leverageRatio(
+    SwapState memory state,
+    uint256 beta,
+    int256 earningRatio
+  ) internal pure returns (uint256 ratio) {
+    // (1 - rho * beta * (1 + r)) / (1 - rho)
+    uint256 rho = state.fSupply.mul(state.fNav).mul(PRECISION).div(state.baseSupply.mul(state.baseNav));
+    uint256 x = rho.mul(beta).mul(uint256(PRECISION_I256 + earningRatio)).div(PRECISION * PRECISION);
+    ratio = PRECISION.sub(x).mul(PRECISION).div(PRECISION - rho);
+    if (ratio > MAX_LEVERAGE_RATIO) ratio = MAX_LEVERAGE_RATIO;
   }
 }

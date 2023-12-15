@@ -4,9 +4,9 @@ pragma solidity =0.8.20;
 
 import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol";
 
-import { IVotingEscrow } from "./interfaces/IVotingEscrow.sol";
-import { IVotingEscrowBoost } from "./interfaces/IVotingEscrowBoost.sol";
-import { IVotingEscrowProxy } from "./interfaces/IVotingEscrowProxy.sol";
+import { IVotingEscrow } from "../interfaces/voting-escrow/IVotingEscrow.sol";
+import { IVotingEscrowBoost } from "../interfaces/voting-escrow/IVotingEscrowBoost.sol";
+import { IVotingEscrowProxy } from "../interfaces/voting-escrow/IVotingEscrowProxy.sol";
 
 contract VotingEscrowProxy is Ownable2Step, IVotingEscrowProxy {
   /*************

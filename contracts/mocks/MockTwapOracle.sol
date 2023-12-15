@@ -3,8 +3,9 @@
 pragma solidity ^0.7.6;
 
 import { ITwapOracle } from "../price-oracle/interfaces/ITwapOracle.sol";
+import { IFxPriceOracle } from "../interfaces/f(x)/IFxPriceOracle.sol";
 
-contract MockTwapOracle is ITwapOracle {
+contract MockTwapOracle is ITwapOracle, IFxPriceOracle {
   uint256 public price;
 
   function setPrice(uint256 _price) external {
@@ -17,5 +18,20 @@ contract MockTwapOracle is ITwapOracle {
 
   function getLatest() external view override returns (uint256) {
     return price;
+  }
+
+  /// @inheritdoc IFxPriceOracle
+  function getPrice()
+    external
+    view
+    override
+    returns (
+      bool _isValid,
+      uint256 _safePrice,
+      uint256 _minUnsafePrice,
+      uint256 _maxUnsafePrice
+    )
+  {
+    return (true, price, price, price);
   }
 }

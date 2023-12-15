@@ -2,12 +2,12 @@
 
 pragma solidity ^0.7.6;
 
+import { IFxRateProvider } from "../../interfaces/f(x)/IFxRateProvider.sol";
 import { IWBETH } from "../../interfaces/IWBETH.sol";
-import { IRateProvider } from "../interfaces/IRateProvider.sol";
 
 // solhint-disable contract-name-camelcase
 
-contract wBETHProvider is IRateProvider {
+contract wBETHProvider is IFxRateProvider {
   /// @dev The address of wBETH contract.
   address public immutable wbeth;
 
@@ -15,7 +15,7 @@ contract wBETHProvider is IRateProvider {
     wbeth = _wbeth;
   }
 
-  /// @inheritdoc IRateProvider
+  /// @inheritdoc IFxRateProvider
   function getRate() external view override returns (uint256) {
     return IWBETH(wbeth).exchangeRate();
   }

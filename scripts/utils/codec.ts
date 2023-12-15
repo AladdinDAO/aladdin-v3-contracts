@@ -1,7 +1,9 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
 import { assert } from "console";
-import { toBigInt } from "ethers";
+import { getAddress, toBigInt } from "ethers";
+import { ethers } from "hardhat";
+import { TOKENS } from "./tokens";
 
 export enum PoolType {
   UniswapV2, // with fee 0.3%, add/remove liquidity not supported
@@ -136,4 +138,61 @@ export function encodePoolHintV3(
   encoding = (encoding << 2n) | toBigInt(action);
   encoding = (encoding << 8n) | toBigInt(poolType);
   return encoding;
+}
+
+export function decodePoolV3(encoding: bigint): string {
+  const poolType = Number(encoding & 255n);
+  const action = Number((encoding >> 8n) & 3n);
+  const pool = getAddress(((encoding >> 10n) & (2n ** 160n - 1n)).toString(16).padStart(40, "0"));
+  encoding >>= 170n;
+  let extra: string = "";
+  let actionDesc = Action[Number(action)];
+  let poolName = pool;
+  switch (poolType) {
+    case PoolTypeV3.UniswapV2:
+    case PoolTypeV3.UniswapV3: {
+      const fee = encoding & (2n ** 24n - 1n);
+      const zeroForOne = (encoding >> 24n) & 1n;
+      poolName = `${pool}/${ethers.formatUnits(10n ** 6n - fee, 6)}`;
+      extra = `tokenIn[${zeroForOne ^ 1n}] tokenOut[${zeroForOne}]`;
+      break;
+    }
+    case PoolTypeV3.BalancerV1:
+    case PoolTypeV3.BalancerV2:
+    case PoolTypeV3.CurveMetaPool:
+    case PoolTypeV3.CurvePlainPool:
+    case PoolTypeV3.CurveCryptoPool:
+    case PoolTypeV3.CurveAPool:
+    case PoolTypeV3.CurveYPool: {
+      const tokenIn = (encoding >> 3n) & 7n;
+      const tokenOut = (encoding >> 6n) & 7n;
+      if (action === Action.Add) {
+        extra = `tokenIn[${tokenIn}]`;
+      } else if (action === Action.Remove) {
+        extra = `tokenOut[${tokenOut}]`;
+      } else {
+        extra = `tokenIn[${tokenIn}] tokenOut[${tokenOut}]`;
+      }
+      break;
+    }
+    case PoolTypeV3.ERC4626: {
+      if (action === Action.Add) actionDesc = "Deposit";
+      else if (action === Action.Remove) actionDesc = "Withdraw";
+      const token = Object.entries(TOKENS).find(([symbol, metadata]) => getAddress(metadata.address) === pool);
+      if (token) {
+        poolName = `${token[0]}/${pool}`;
+      }
+      break;
+    }
+    case PoolTypeV3.Lido: {
+      if (action === Action.Add) actionDesc = "Wrap";
+      else if (action === Action.Remove) actionDesc = "Unwrap";
+      const token = Object.entries(TOKENS).find(([symbol, metadata]) => getAddress(metadata.address) === pool);
+      if (token) {
+        poolName = `${token[0]}/${pool}`;
+      }
+      break;
+    }
+  }
+  return `${PoolTypeV3[Number(poolType)]}[${poolName}].${actionDesc} ${extra}`;
 }

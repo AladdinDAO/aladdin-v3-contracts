@@ -234,6 +234,7 @@ describe("ConcentratorHarvesterPoolBase.spec", async () => {
     });
 
     it("should prevent reentrant on harvest", async () => {
+      await pool.updateHarvester(ZeroAddress);
       await expect(
         pool.reentrant(pool.getAddress(), pool.interface.encodeFunctionData("harvest", [ZeroAddress, 0n]))
       ).to.revertedWith("ReentrancyGuard: reentrant call");

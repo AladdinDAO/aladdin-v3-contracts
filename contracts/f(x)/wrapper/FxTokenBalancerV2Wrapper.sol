@@ -7,11 +7,11 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
+import { IFxTokenWrapper } from "../../interfaces/f(x)/IFxTokenWrapper.sol";
 import { IBalancerVault } from "../../interfaces/IBalancerVault.sol";
 import { IBalancerPool } from "../../interfaces/IBalancerPool.sol";
-import { ITokenWrapper } from "../interfaces/ITokenWrapper.sol";
 
-contract FxTokenBalancerV2Wrapper is ITokenWrapper {
+contract FxTokenBalancerV2Wrapper is IFxTokenWrapper {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
@@ -19,11 +19,11 @@ contract FxTokenBalancerV2Wrapper is ITokenWrapper {
    * Constants *
    *************/
 
-  /// @inheritdoc ITokenWrapper
+  /// @inheritdoc IFxTokenWrapper
   /// @dev The src is FX token.
   address public immutable override src;
 
-  /// @inheritdoc ITokenWrapper
+  /// @inheritdoc IFxTokenWrapper
   /// @dev The dst is balancer LP token.
   address public immutable override dst;
 
@@ -62,7 +62,7 @@ contract FxTokenBalancerV2Wrapper is ITokenWrapper {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc ITokenWrapper
+  /// @inheritdoc IFxTokenWrapper
   function wrap(uint256 _amount) external override returns (uint256) {
     address[] memory _assets = new address[](2);
     uint256[] memory _amounts = new uint256[](2);
@@ -85,7 +85,7 @@ contract FxTokenBalancerV2Wrapper is ITokenWrapper {
     return IERC20(dst).balanceOf(msg.sender).sub(_balance);
   }
 
-  /// @inheritdoc ITokenWrapper
+  /// @inheritdoc IFxTokenWrapper
   function unwrap(uint256 _amount) external override returns (uint256) {
     address[] memory _assets = new address[](2);
     uint256[] memory _amounts = new uint256[](2);

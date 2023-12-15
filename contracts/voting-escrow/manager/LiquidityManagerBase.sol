@@ -7,7 +7,7 @@ import { Initializable } from "@openzeppelin/contracts-v4/proxy/utils/Initializa
 
 import { WordCodec } from "../../common/codec/WordCodec.sol";
 
-import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { ILiquidityManager } from "../../interfaces/voting-escrow/ILiquidityManager.sol";
 
 // solhint-disable func-name-mixedcase
 

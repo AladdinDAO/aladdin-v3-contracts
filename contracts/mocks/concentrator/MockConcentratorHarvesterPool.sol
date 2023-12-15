@@ -6,10 +6,6 @@ import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable-v
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
 
-import { IMarket } from "../../f(x)/interfaces/IMarket.sol";
-import { IConcentratorCompounder } from "../../interfaces/concentrator/IConcentratorCompounder.sol";
-import { IConcentratorHarvesterPool } from "../../interfaces/concentrator/IConcentratorHarvesterPool.sol";
-
 import { LinearRewardDistributor } from "../../common/rewards/distributor/LinearRewardDistributor.sol";
 import { ConcentratorHarvesterPoolBase } from "../../concentrator/permissionless/ConcentratorHarvesterPoolBase.sol";
 

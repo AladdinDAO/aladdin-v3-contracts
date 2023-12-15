@@ -7,7 +7,7 @@ import { ensureDeployer } from "@/contracts/helpers";
 import * as FxGovernance from "@/contracts/FxGovernance";
 import * as FxStETH from "@/contracts/FxStETH";
 
-const maxFeePerGas = ethers.parseUnits("30", "gwei");
+const maxFeePerGas = ethers.parseUnits("35", "gwei");
 const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 async function main() {
@@ -17,13 +17,14 @@ async function main() {
   };
   const deployer = await ensureDeployer(network.name);
 
+  console.log("\nFx Convert Routes:");
   for (const [src, dst] of [
     ["stETH", "WETH"],
     ["stETH", "USDC"],
     ["stETH", "USDT"],
     ["stETH", "wstETH"],
   ]) {
-    showConverterRoute(src, dst);
+    showConverterRoute(src, dst, 2);
   }
 
   const governance = await FxGovernance.deploy(deployer, overrides);

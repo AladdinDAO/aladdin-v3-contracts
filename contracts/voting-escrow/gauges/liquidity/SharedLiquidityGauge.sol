@@ -4,9 +4,9 @@ pragma solidity =0.8.20;
 
 import { LiquidityGauge } from "./LiquidityGauge.sol";
 
-import { ISharedLiquidityGauge } from "../../interfaces/ISharedLiquidityGauge.sol";
-import { IVotingEscrow } from "../../interfaces/IVotingEscrow.sol";
-import { IVotingEscrowProxy } from "../../interfaces/IVotingEscrowProxy.sol";
+import { ISharedLiquidityGauge } from "../../../interfaces/voting-escrow/ISharedLiquidityGauge.sol";
+import { IVotingEscrow } from "../../../interfaces/voting-escrow/IVotingEscrow.sol";
+import { IVotingEscrowProxy } from "../../../interfaces/voting-escrow/IVotingEscrowProxy.sol";
 
 contract SharedLiquidityGauge is LiquidityGauge, ISharedLiquidityGauge {
   /*************

@@ -2,9 +2,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
 import { network } from "hardhat";
 
-import { selectDeployments } from "@/utils/deploys";
-
-import { contractDeploy } from "./helpers";
+import { DeploymentHelper } from "./helpers";
 
 export interface VotingEscrowDeployment {
   GovernanceToken: string;
@@ -15,15 +13,10 @@ export interface VotingEscrowDeployment {
 }
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<VotingEscrowDeployment> {
-  const deployment = selectDeployments(network.name, "VotingEscrow");
+  const deployment = new DeploymentHelper(network.name, "VotingEscrow", deployer, overrides);
 
   for (const name of ["GovernanceToken", "TokenMinter", "VotingEscrow", "GaugeController", "FeeDistributor"]) {
-    if (!deployment.get(name)) {
-      const address = await contractDeploy(deployer, `${name} implementation`, name, [], overrides);
-      deployment.set(name, address);
-    } else {
-      console.log(`Found ${name} implementation at:`, deployment.get(name));
-    }
+    await deployment.contractDeploy(name, `${name} implementation`, name, []);
   }
 
   return deployment.toObject() as VotingEscrowDeployment;

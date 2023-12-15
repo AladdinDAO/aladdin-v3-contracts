@@ -5,8 +5,8 @@ pragma solidity ^0.7.6;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
+import { IFxMarket } from "../../interfaces/f(x)/IFxMarket.sol";
 import { ILidoStETH } from "../../interfaces/ILidoStETH.sol";
-import { IMarket } from "../interfaces/IMarket.sol";
 
 // solhint-disable contract-name-camelcase
 
@@ -59,7 +59,7 @@ contract stETHGateway {
   function mintFToken(uint256 _minFTokenMinted) external payable returns (uint256 _fTokenMinted) {
     ILidoStETH(stETH).submit{ value: msg.value }(address(0));
 
-    _fTokenMinted = IMarket(market).mintFToken(msg.value, msg.sender, _minFTokenMinted);
+    _fTokenMinted = IFxMarket(market).mintFToken(msg.value, msg.sender, _minFTokenMinted);
 
     _refund(stETH, msg.sender);
   }
@@ -71,7 +71,7 @@ contract stETHGateway {
   function mintXToken(uint256 _minXTokenMinted) external payable returns (uint256 _xTokenMinted, uint256 _bonus) {
     ILidoStETH(stETH).submit{ value: msg.value }(address(0));
 
-    (_xTokenMinted, _bonus) = IMarket(market).mintXToken(msg.value, msg.sender, _minXTokenMinted);
+    (_xTokenMinted, _bonus) = IFxMarket(market).mintXToken(msg.value, msg.sender, _minXTokenMinted);
 
     _refund(stETH, msg.sender);
   }
@@ -82,7 +82,7 @@ contract stETHGateway {
   function addBaseToken(uint256 _minXTokenMinted) external payable returns (uint256 _xTokenMinted) {
     ILidoStETH(stETH).submit{ value: msg.value }(address(0));
 
-    _xTokenMinted = IMarket(market).addBaseToken(msg.value, msg.sender, _minXTokenMinted);
+    _xTokenMinted = IFxMarket(market).addBaseToken(msg.value, msg.sender, _minXTokenMinted);
 
     _refund(stETH, msg.sender);
   }

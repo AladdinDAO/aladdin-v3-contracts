@@ -5,9 +5,9 @@ pragma solidity ^0.7.6;
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-import { IFractionalToken } from "./interfaces/IFractionalToken.sol";
+import { IFxFractionalToken } from "../interfaces/f(x)/IFxFractionalToken.sol";
 
-contract FractionalToken is ERC20Upgradeable, IFractionalToken {
+contract FractionalToken is ERC20Upgradeable, IFxFractionalToken {
   using SafeMathUpgradeable for uint256;
 
   /**********
@@ -33,7 +33,7 @@ contract FractionalToken is ERC20Upgradeable, IFractionalToken {
   /// @notice The address of Treasury contract.
   address public treasury;
 
-  /// @inheritdoc IFractionalToken
+  /// @inheritdoc IFxFractionalToken
   uint256 public override nav;
 
   /*************
@@ -64,7 +64,7 @@ contract FractionalToken is ERC20Upgradeable, IFractionalToken {
    * Public View Functions *
    *************************/
 
-  /// @inheritdoc IFractionalToken
+  /// @inheritdoc IFxFractionalToken
   /// @dev Normally `multiple/1e18` should be in the range `(-1, 1e18)`.
   function getNav(int256 multiple) public view override returns (uint256) {
     if (multiple < 0) {
@@ -82,7 +82,7 @@ contract FractionalToken is ERC20Upgradeable, IFractionalToken {
    * Public Mutated Functions *
    ****************************/
 
-  /// @inheritdoc IFractionalToken
+  /// @inheritdoc IFxFractionalToken
   /// @dev Normally `multiple/1e18` should be in the range `(-1, 1e18)`.
   function updateNav(int256 multiple) external override onlyTreasury returns (uint256) {
     uint256 _oldNav = nav;
@@ -94,7 +94,7 @@ contract FractionalToken is ERC20Upgradeable, IFractionalToken {
     return _newNav;
   }
 
-  /// @inheritdoc IFractionalToken
+  /// @inheritdoc IFxFractionalToken
   function setNav(uint256 _newNav) external override onlyTreasury {
     uint256 _oldNav = nav;
     nav = _newNav;
@@ -102,12 +102,12 @@ contract FractionalToken is ERC20Upgradeable, IFractionalToken {
     emit UpdateNav(_oldNav, _newNav);
   }
 
-  /// @inheritdoc IFractionalToken
+  /// @inheritdoc IFxFractionalToken
   function mint(address _to, uint256 _amount) external override onlyTreasury {
     _mint(_to, _amount);
   }
 
-  /// @inheritdoc IFractionalToken
+  /// @inheritdoc IFxFractionalToken
   function burn(address _from, uint256 _amount) external override onlyTreasury {
     _burn(_from, _amount);
   }
