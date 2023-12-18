@@ -2,6 +2,7 @@
 
 pragma solidity =0.8.20;
 
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/access/AccessControlUpgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
@@ -12,14 +13,16 @@ import { LinearMultipleRewardDistributor } from "../../common/rewards/distributo
 
 import { IFxBoostableRebalancePool } from "../../interfaces/f(x)/IFxBoostableRebalancePool.sol";
 import { IFxMarket } from "../../interfaces/f(x)/IFxMarket.sol";
+import { IFxShareableRebalancePool } from "../../interfaces/f(x)/IFxShareableRebalancePool.sol";
 import { IFxTokenWrapper } from "../../interfaces/f(x)/IFxTokenWrapper.sol";
 import { IFxTreasury } from "../../interfaces/f(x)/IFxTreasury.sol";
 import { IVotingEscrow } from "../../interfaces/voting-escrow/IVotingEscrow.sol";
+import { IVotingEscrowHelper } from "../../interfaces/voting-escrow/IVotingEscrowHelper.sol";
 import { ICurveTokenMinter } from "../../interfaces/ICurveTokenMinter.sol";
 
 // solhint-disable not-rely-on-time
 
-/// @title BoostableRebalancePool
+/// @title ShareableRebalancePool
 /// @notice To add boost for FXN, we maintain a time-weighted boost ratio for each user.
 ///   boost[u][i] = min(balance[u][i], 0.4 * balance[u][i] + ve[u][i] * totalSupply[i] / veTotal[i] * 0.6)
 ///   ratio[u][x -> y] = sum(boost[u][i] / balance[u][i] * (t[i] - t[i - 1])) / (t[y] - t[x])
@@ -28,7 +31,9 @@ import { ICurveTokenMinter } from "../../interfaces/ICurveTokenMinter.sol";
 ///   2. veSupply[w] is the total ve supply at the beginning of week `w`.
 ///   3. ve[u][w] is the ve balance for user `u` at the beginning of week `w`.
 ///   4. balance[u][w] is the amount of token staked for user `u` at the beginning of week `w`.
-contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoostableRebalancePool {
+///
+/// @notice To add share for veFXN, we also keep
+contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShareableRebalancePool {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using DecrementalFloatingPoint for uint112;
 
@@ -38,6 +43,9 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
 
   /// @notice The role for liquidator.
   bytes32 public constant LIQUIDATOR_ROLE = keccak256("LIQUIDATOR_ROLE");
+
+  /// @notice The role for ve balance sharing.
+  bytes32 public constant VE_SHARING_ROLE = keccak256("VE_SHARING_ROLE");
 
   /// @dev The precison use to calculation.
   uint256 private constant PRECISION = 1e18;
@@ -53,6 +61,9 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
 
   /// @notice The address of Voting Escrow FXN.
   address public immutable ve;
+
+  /// @notice The address of VotingEscrowHelper contract.
+  address public immutable veHelper;
 
   /// @notice The address of FXN token minter.
   address public immutable minter;
@@ -81,14 +92,16 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     uint64 claimAt;
   }
 
-  /// @dev The boost checkpoint struct. The compiler will pack this into single `uint256`.
+  /// @dev The boost checkpoint struct. The compiler will pack this into two `uint256`.
   /// @param veBalance The ve balance at checkpoint.
   /// @param veSupply The ve supply at checkpoint.
-  /// @param historyIndex The index of supply in totalSupplyHistory at checkpoint.
+  /// @param supplyHistoryIndex The index of supply in totalSupplyHistory at checkpoint.
+  /// @param shareHistoryIndex The index of share balance at checkpoint.
   struct BoostCheckpoint {
-    uint112 veBalance;
-    uint112 veSupply;
-    uint32 historyIndex;
+    uint88 veBalance;
+    uint88 veSupply;
+    uint40 supplyHistoryIndex;
+    uint40 shareHistoryIndex;
   }
 
   /*************
@@ -137,6 +150,16 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   /// @notice Error trackers for the error correction in the loss calculation.
   uint256 public lastAssetLossError;
 
+  mapping(address => TokenBalance) public sharerBalances;
+
+  mapping(address => mapping(uint256 => uint256)) public sharerHistoryBalances;
+
+  /// @notice Mapping from owner address to staker address to the vote sharing status.
+  mapping(address => mapping(address => bool)) public isStakerAllowed;
+
+  /// @notice Mapping from staker address to owner address.
+  mapping(address => address) private _stakerVoteOwner;
+
   /***************
    * Constructor *
    ***************/
@@ -144,10 +167,12 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   constructor(
     address _fxn,
     address _ve,
+    address _veHelper,
     address _minter
   ) LinearMultipleRewardDistributor(1 weeks) {
     fxn = _fxn;
     ve = _ve;
+    veHelper = _veHelper;
     minter = _minter;
   }
 
@@ -201,21 +226,9 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     return _getBoostRatio(_account);
   }
 
-  /// @notice Get boost ratio for the given account with custom ve balance and ve supply.
-  ///
-  /// @param _account The address of the account to query.
-  /// @param _veBalance The current ve balance of the account.
-  /// @param _veSupply The current ve total supply.
-  function getBoostRatioWithVeBalanceAndSupply(
-    address _account,
-    uint256 _veBalance,
-    uint256 _veSupply
-  ) public view returns (uint256) {
-    TokenBalance memory _balance = _balances[_account];
-    // no deposit before
-    if (_balance.amount == 0) return 0;
-
-    return _getBoostRatioWithVeBalanceAndSupply(_account, _balance, _veBalance, _veSupply);
+  /// @inheritdoc IFxShareableRebalancePool
+  function getStakerVoteOwner(address _account) external view override returns (address) {
+    return _stakerVoteOwner[_account];
   }
 
   /// @inheritdoc IMultipleRewardAccumulator
@@ -237,6 +250,8 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
 
   /// @inheritdoc IFxBoostableRebalancePool
   function deposit(uint256 _amount, address _receiver) external override {
+    if (hasRole(VE_SHARING_ROLE, _receiver)) revert ErrorStakerCannotShare();
+
     address _sender = _msgSender();
     // transfer asset token to this contract
     address _asset = asset;
@@ -350,6 +365,58 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     _notifyLoss(_liquidated);
   }
 
+  /// @inheritdoc IFxShareableRebalancePool
+  function toggleVoteSharing(address _staker) external override onlyRole(VE_SHARING_ROLE) {
+    address _owner = _msgSender();
+    if (_staker == _owner) {
+      revert ErrorSelfSharingIsNotAllowed();
+    }
+    if (_stakerVoteOwner[_owner] != address(0)) {
+      revert ErrorCascadedSharingIsNotAllowed();
+    }
+
+    if (isStakerAllowed[_owner][_staker]) {
+      isStakerAllowed[_owner][_staker] = false;
+
+      emit CancelShareVote(_owner, _staker);
+    } else {
+      isStakerAllowed[_owner][_staker] = true;
+
+      emit ShareVote(_owner, _staker);
+    }
+
+    if (_stakerVoteOwner[_staker] == _owner) {
+      // @todo update shared balance
+      _stakerVoteOwner[_staker] = address(0);
+
+      emit AcceptSharedVote(_staker, _owner, address(0));
+    }
+  }
+
+  /// @inheritdoc IFxShareableRebalancePool
+  function acceptSharedVote(address _newOwner) external override {
+    address _staker = _msgSender();
+    if (!isStakerAllowed[_newOwner][_staker]) {
+      revert ErrorVoteShareNotAllowed();
+    }
+
+    address _oldOwner = _stakerVoteOwner[_staker];
+    uint256 _balance = balanceOf(_staker);
+    _stakerVoteOwner[_staker] = _newOwner;
+
+    emit AcceptSharedVote(_staker, _oldOwner, _newOwner);
+  }
+
+  /// @inheritdoc IFxShareableRebalancePool
+  function rejectSharedVote() external override {
+    address _staker = _msgSender();
+    address _owner = _stakerVoteOwner[_staker];
+    if (_owner == address(0)) revert ErrorNoAcceptedSharedVote();
+    _stakerVoteOwner[_staker] = address(0);
+
+    emit AcceptSharedVote(_staker, _owner, address(0));
+  }
+
   /************************
    * Restricted Functions *
    ************************/
@@ -384,6 +451,15 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
    * Internal Functions *
    **********************/
 
+  /// @inheritdoc AccessControlUpgradeable
+  function _revokeRole(bytes32 _role, address _account) internal virtual override {
+    if (_role == VE_SHARING_ROLE) {
+      // @todo
+    }
+
+    AccessControlUpgradeable._revokeRole(_role, _account);
+  }
+
   /// @inheritdoc MultipleRewardCompoundingAccumulator
   function _checkpoint(address _account) internal virtual override {
     // fetch FXN from gauge every 24h
@@ -396,13 +472,15 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
       _notifyReward(fxn, _minted);
     }
 
+    IVotingEscrowHelper(veHelper).checkpoint(_account);
     MultipleRewardCompoundingAccumulator._checkpoint(_account);
 
     if (_account != address(0)) {
       boostCheckpoint[_account] = BoostCheckpoint(
-        uint112(IVotingEscrow(ve).balanceOf(_account)),
-        uint112(IVotingEscrow(ve).totalSupply()),
-        uint32(numTotalSupplyHistory)
+        uint88(IVotingEscrow(ve).balanceOf(_account)),
+        uint88(IVotingEscrow(ve).totalSupply()),
+        uint40(numTotalSupplyHistory),
+        uint40(numTotalSupplyHistory)
       );
 
       TokenBalance memory _balance = _balances[_account];
@@ -572,9 +650,7 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     // no deposit before
     if (_balance.amount == 0) return 0;
 
-    uint256 _currentVeBalance = IVotingEscrow(ve).balanceOf(_account);
-    uint256 _currentVeSupply = IVotingEscrow(ve).totalSupply();
-    return _getBoostRatioWithVeBalanceAndSupply(_account, _balance, _currentVeBalance, _currentVeSupply);
+    return _getBoostRatioWithVeBalanceAndSupply(_account, _balance);
   }
 
   /// @dev Internal function to get boost ratio for the given account with custom ve balance and ve supply.
@@ -582,30 +658,23 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   ///
   /// @param _account The address of the account to query.
   /// @param _balance The token balance structs of the account.
-  /// @param _currentVeBalance The current ve balance of the account.
-  /// @param _currentVeSupply The current ve total supply.
   /// @return _boostRatio The computed boost ratio, multiplied with 1e18.
-  function _getBoostRatioWithVeBalanceAndSupply(
-    address _account,
-    TokenBalance memory _balance,
-    uint256 _currentVeBalance,
-    uint256 _currentVeSupply
-  ) internal view returns (uint256 _boostRatio) {
+  function _getBoostRatioWithVeBalanceAndSupply(address _account, TokenBalance memory _balance)
+    internal
+    view
+    returns (uint256 _boostRatio)
+  {
     BoostCheckpoint memory _boostCheckpoint = boostCheckpoint[_account];
     (uint256 _currentRatio, uint256 _nextIndex) = _boostRatioAt(
       _balance,
       _boostCheckpoint.veBalance,
       _boostCheckpoint.veSupply,
-      _boostCheckpoint.historyIndex,
+      _boostCheckpoint.supplyHistoryIndex,
       _balance.updateAt
     );
     if (uint256(_balance.updateAt) == block.timestamp) {
       return _currentRatio;
     }
-
-    int256 _deltaVeBalance = int256(_currentVeBalance) - int256(uint256(_boostCheckpoint.veBalance));
-    int256 _deltaVeSupply = int256(_currentVeSupply) - int256(uint256(_boostCheckpoint.veSupply));
-    int256 _duration = int256(block.timestamp - _balance.updateAt);
 
     uint256 _prevTs = _balance.updateAt;
     // compute the time weighted boost from _balance.updateAt to now.
@@ -615,18 +684,13 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
       if (_nowTs > block.timestamp) _nowTs = block.timestamp;
       _boostRatio += _currentRatio * (_nowTs - _prevTs);
       if (_nowTs == block.timestamp) break;
-      uint256 _veBalance;
-      uint256 _veSupply;
-      {
-        int256 dt = int256(_nowTs - _balance.updateAt);
-        _veBalance = uint256((_deltaVeBalance * dt) / _duration + int256(uint256(_boostCheckpoint.veBalance)));
-        _veSupply = uint256((_deltaVeSupply * dt) / _duration + int256(uint256(_boostCheckpoint.veSupply)));
-      }
+      uint256 _veBalance = IVotingEscrowHelper(veHelper).balanceOf(_account, _nowTs);
+      uint256 _veSupply = IVotingEscrowHelper(veHelper).totalSupply(_nowTs);
       (_currentRatio, _nextIndex) = _boostRatioAt(_balance, _veBalance, _veSupply, _nextIndex, _nowTs);
       _prevTs = _nowTs;
       _nowTs += WEEK;
     }
-    _boostRatio /= uint256(_duration);
+    _boostRatio /= uint256(block.timestamp - _balance.updateAt);
   }
 
   /// @dev Internal function to get boost ratio at specific time point.

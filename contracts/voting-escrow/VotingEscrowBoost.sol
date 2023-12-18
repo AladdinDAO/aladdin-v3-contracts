@@ -229,11 +229,18 @@ contract VotingEscrowBoost is EIP712, Context, IVotingEscrowBoost {
   }
 
   /// @inheritdoc IVotingEscrowBoost
-  function unboost(uint256 _index, uint128 _amount) external {
-    address _owner = _msgSender();
+  function unboost(
+    address _owner,
+    uint256 _index,
+    uint128 _amount
+  ) external {
+    address _caller = _msgSender();
     if (_index >= boostLength(_owner)) revert IndexOutOfBound();
 
     BoostItem memory _item = boosts[_owner][_index];
+    // we only allow receiver to return boost.
+    if (_item.receiver != _caller) revert ErrorOnlyCancelByReceiver();
+
     _item.cancelAmount += _amount;
     if (_item.cancelAmount > _item.initialAmount) revert CancelBoostExceedBalance();
     if (_item.endTime <= block.timestamp) revert CancelExpiredBoost();
