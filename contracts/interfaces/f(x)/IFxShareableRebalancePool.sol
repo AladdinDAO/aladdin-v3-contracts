@@ -42,7 +42,7 @@ interface IFxShareableRebalancePool is IFxBoostableRebalancePool {
   error ErrorNoAcceptedSharedVote();
 
   /// @dev Thrown when the staker has ability to share ve balance.
-  error ErrorStakerCannotShare();
+  error ErrorVoteOwnerCannotStake();
 
   /*************************
    * Public View Functions *
