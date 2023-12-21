@@ -1,12 +1,12 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { MaxUint256, Overrides, ZeroAddress } from "ethers";
+import { Overrides, ZeroAddress } from "ethers";
 import { network, ethers } from "hardhat";
 
 import { TOKENS } from "@/utils/tokens";
 
 import { DeploymentHelper, contractCall, ownerContractCall } from "./helpers";
 import * as FxGovernance from "./FxGovernance";
-import * as Multisig from "./Multisig";
+// import * as Multisig from "./Multisig";
 import * as ProxyAdmin from "./ProxyAdmin";
 
 const ReservePoolBonusRatio = ethers.parseEther("0.05"); // 5%
@@ -63,8 +63,10 @@ const ChainlinkPriceFeed: { [name: string]: string } = {
   stETH: "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8",
 };
 
+const LiquidatableCollateralRatio: bigint = 1305500000000000000n;
+
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxStETHDeployment> {
-  const multisig = Multisig.deploy(network.name);
+  // const multisig = Multisig.deploy(network.name);
   const admin = await ProxyAdmin.deploy(deployer);
   const governance = await FxGovernance.deploy(deployer, overrides);
 
@@ -126,12 +128,14 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
       [deployment.get(`BoostableRebalancePool.${pool}`), governance.FXN]
     );
   }
+  /*
   // deploy FundraiseGauge for BoostableRebalancePool
   await deployment.minimalProxyDeploy(
     "BoostableRebalancePool.gauge",
     "BoostableRebalancePool (fETH) FundraiseGauge",
     governance.FundraiseGauge.implementation.FundraisingGaugeFx
   );
+  */
   // deploy RebalancePoolSplitter for BoostableRebalancePool
   await deployment.contractDeploy(
     "BoostableRebalancePool.splitter",
@@ -139,6 +143,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "RebalancePoolSplitter",
     []
   );
+  /*
   // deploy RebalancePoolGaugeClaimer for BoostableRebalancePool
   await deployment.contractDeploy(
     "BoostableRebalancePool.claimer",
@@ -151,6 +156,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
       deployment.get("BoostableRebalancePool.splitter"),
     ]
   );
+  */
 
   // deploy stETHGateway
   await deployment.contractDeploy("stETHGateway", "stETHGateway", "stETHGateway", [
@@ -310,12 +316,12 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
     deployment.BoostableRebalancePool.splitter,
     deployer
   );
+  /*
   const boostableGauge = await ethers.getContractAt(
     "FundraisingGaugeFx",
     deployment.BoostableRebalancePool.gauge,
     deployer
   );
-  /*
   const rebalancePoolClaimer = await ethers.getContractAt(
     "RebalancePoolGaugeClaimer",
     deployment.BoostableRebalancePool.claimer,
@@ -323,7 +329,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   );
   */
 
-  const controller = await ethers.getContractAt("GaugeController", governance.GaugeController, deployer);
+  // const controller = await ethers.getContractAt("GaugeController", governance.GaugeController, deployer);
 
   // Initialize RebalancePool APool
   if ((await rebalancePoolA.treasury()) === ZeroAddress) {
@@ -396,6 +402,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
     );
   }
 
+  /*
   // Setup BoostableRebalancePool.gauge
   if ((await boostableGauge.receiver()) !== deployment.BoostableRebalancePool.claimer) {
     await contractCall(
@@ -407,6 +414,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
     );
   }
   await FxGovernance.addGauge(controller, "BoostableRebalancePool (fETH)", deployment.BoostableRebalancePool.gauge, 3);
+  */
 
   const LIQUIDATOR_ROLE = await boostableRebalancePoolB.LIQUIDATOR_ROLE();
   // Setup BoostableRebalancePool APool
@@ -437,6 +445,16 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
+  if ((await boostableRebalancePoolA.liquidatableCollateralRatio()) !== LiquidatableCollateralRatio) {
+    await ownerContractCall(
+      boostableRebalancePoolA,
+      "BoostableRebalancePool.APool update LiquidatableCollateralRatio",
+      "updateLiquidatableCollateralRatio",
+      [LiquidatableCollateralRatio],
+      overrides
+    );
+  }
+  /*
   if ((await boostableRebalancePoolA.distributors(TOKENS.FXN.address)) === ZeroAddress) {
     await ownerContractCall(
       boostableRebalancePoolA,
@@ -446,6 +464,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
+  */
   // Setup BoostableRebalancePool BPool
   if ((await boostableRebalancePoolB.wrapper()) !== deployment.wrapper.StETHAndxETHWrapper) {
     await ownerContractCall(
@@ -474,6 +493,25 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
+  if ((await boostableRebalancePoolB.distributors(TOKENS.xETH.address)) === ZeroAddress) {
+    await ownerContractCall(
+      boostableRebalancePoolB,
+      "BoostableRebalancePool.BPool add xETH as reward",
+      "registerRewardToken",
+      [TOKENS.xETH.address, deployment.BoostableRebalancePool.BPool],
+      overrides
+    );
+  }
+  if ((await boostableRebalancePoolB.liquidatableCollateralRatio()) !== LiquidatableCollateralRatio) {
+    await ownerContractCall(
+      boostableRebalancePoolB,
+      "BoostableRebalancePool.BPool update LiquidatableCollateralRatio",
+      "updateLiquidatableCollateralRatio",
+      [LiquidatableCollateralRatio],
+      overrides
+    );
+  }
+  /*
   if ((await boostableRebalancePoolB.distributors(TOKENS.FXN.address)) === ZeroAddress) {
     await ownerContractCall(
       boostableRebalancePoolB,
@@ -483,6 +521,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
+  */
 
   // Setup RebalancePoolRegistry
   const pools = await rebalancePoolRegistry.getPools();
@@ -525,22 +564,22 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
     );
   }
   // Setup BoostableRebalancePool APoolRebalancer
-  if ((await boostableRebalancerA.bonus()) !== ethers.parseEther("2")) {
+  if ((await boostableRebalancerA.bonus()) !== ethers.parseEther("1")) {
     await ownerContractCall(
       boostableRebalancerA,
-      "BoostableRebalancePool.APoolRebalancer set bonus to 2 FXN",
+      "BoostableRebalancePool.APoolRebalancer set bonus to 1 FXN",
       "updateBonus",
-      [ethers.parseEther("2")],
+      [ethers.parseEther("1")],
       overrides
     );
   }
   // Setup BoostableRebalancePool BPoolRebalancer
-  if ((await boostableRebalancerB.bonus()) !== ethers.parseEther("2")) {
+  if ((await boostableRebalancerB.bonus()) !== ethers.parseEther("1")) {
     await ownerContractCall(
       boostableRebalancerB,
-      "BoostableRebalancePool.BPoolRebalancer set bonus to 2 FXN",
+      "BoostableRebalancePool.BPoolRebalancer set bonus to 1 FXN",
       "updateBonus",
-      [ethers.parseEther("2")],
+      [ethers.parseEther("1")],
       overrides
     );
   }
@@ -602,6 +641,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       }
     }
   }
+  /*
   // Setup FXN for BoostableRebalancePool.RebalancePoolSplitter
   if ((await rebalancePoolSplitter.splitter(TOKENS.FXN.address)) !== deployment.BoostableRebalancePool.claimer) {
     await ownerContractCall(
@@ -633,6 +673,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       );
     }
   }
+  */
 
   // Setup ReservePool
   if ((await reservePool.bonusRatio(TOKENS.stETH.address)) !== ReservePoolBonusRatio) {
