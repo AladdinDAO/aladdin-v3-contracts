@@ -261,10 +261,22 @@ export async function initialize(
 
   // setup ConcentratorStakeDAOLocker
   if ((await locker.operators(SDCRV_GAUGE)) !== deployment.ConcentratorSdCrvGaugeWrapper.proxy) {
-    await ownerContractCall(locker, "ConcentratorStakeDAOLocker.updateOperator", "updateOperator", [
-      SDCRV_GAUGE,
-      deployment.ConcentratorSdCrvGaugeWrapper.proxy,
-    ]);
+    await ownerContractCall(
+      locker,
+      "ConcentratorStakeDAOLocker.updateOperator",
+      "updateOperator",
+      [SDCRV_GAUGE, deployment.ConcentratorSdCrvGaugeWrapper.proxy],
+      overrides
+    );
+  }
+  if ((await wrapper.treasury()) === ZeroAddress) {
+    await contractCall(
+      wrapper,
+      "ConcentratorSdCrvGaugeWrapper initialize",
+      "initialize",
+      [multisig.Concentrator, deployment.SdCRVBribeBurnerV2],
+      overrides
+    );
   }
   const gauge = await ethers.getContractAt("ICurveGauge", SDCRV_GAUGE, deployer);
   const stash = await wrapper.stash();
@@ -273,67 +285,90 @@ export async function initialize(
       locker,
       "ConcentratorStakeDAOLocker.updateGaugeRewardReceiver",
       "updateGaugeRewardReceiver",
-      [SDCRV_GAUGE, stash]
+      [SDCRV_GAUGE, stash],
+      overrides
     );
   }
   if ((await locker.claimer()) !== deployment.ConcentratorSdCrvGaugeWrapper.proxy) {
-    await ownerContractCall(locker, "ConcentratorStakeDAOLocker.updateClaimer", "updateClaimer", [
-      deployment.ConcentratorSdCrvGaugeWrapper.proxy,
-    ]);
+    await ownerContractCall(
+      locker,
+      "ConcentratorStakeDAOLocker.updateClaimer",
+      "updateClaimer",
+      [deployment.ConcentratorSdCrvGaugeWrapper.proxy],
+      overrides
+    );
   }
 
   // setup ConcentratorSdCrvGaugeWrapper
   const REWARD_MANAGER_ROLE = await wrapper.REWARD_MANAGER_ROLE();
-  if ((await wrapper.treasury()) === ZeroAddress) {
-    await contractCall(wrapper, "ConcentratorSdCrvGaugeWrapper initialize", "initialize", [
-      multisig.Concentrator,
-      deployment.SdCRVBribeBurnerV2,
-    ]);
-  }
   if (!(await wrapper.hasRole(REWARD_MANAGER_ROLE, deployer.address))) {
-    await ownerContractCall(wrapper, "ConcentratorSdCrvGaugeWrapper grant REWARD_MANAGER_ROLE", "grantRole", [
-      REWARD_MANAGER_ROLE,
-      deployer.address,
-    ]);
+    await ownerContractCall(
+      wrapper,
+      "ConcentratorSdCrvGaugeWrapper grant REWARD_MANAGER_ROLE",
+      "grantRole",
+      [REWARD_MANAGER_ROLE, deployer.address],
+      overrides
+    );
   }
   if ((await wrapper.distributors(TOKENS.sdCRV.address)) !== deployment.SdCRVBribeBurnerV2) {
-    await ownerContractCall(wrapper, "ConcentratorSdCrvGaugeWrapper add sdCRV distributor", "updateRewardDistributor", [
-      TOKENS.sdCRV.address,
-      deployment.SdCRVBribeBurnerV2,
-    ]);
+    await ownerContractCall(
+      wrapper,
+      "ConcentratorSdCrvGaugeWrapper add sdCRV distributor",
+      "updateRewardDistributor",
+      [TOKENS.sdCRV.address, deployment.SdCRVBribeBurnerV2],
+      overrides
+    );
   }
   if ((await wrapper.distributors(TOKENS.CRV.address)) !== deployment.SdCRVBribeBurnerV2) {
-    await ownerContractCall(wrapper, "ConcentratorSdCrvGaugeWrapper add CRV distributor", "updateRewardDistributor", [
-      TOKENS.CRV.address,
-      deployment.SdCRVBribeBurnerV2,
-    ]);
+    await ownerContractCall(
+      wrapper,
+      "ConcentratorSdCrvGaugeWrapper add CRV distributor",
+      "updateRewardDistributor",
+      [TOKENS.CRV.address, deployment.SdCRVBribeBurnerV2],
+      overrides
+    );
   }
   // 5% platform
   if ((await wrapper.getExpenseRatio()) !== 50000000n) {
-    await ownerContractCall(wrapper, "ConcentratorSdCrvGaugeWrapper updateExpenseRatio", "updateExpenseRatio", [
-      50000000n,
-    ]);
+    await ownerContractCall(
+      wrapper,
+      "ConcentratorSdCrvGaugeWrapper updateExpenseRatio",
+      "updateExpenseRatio",
+      [50000000n],
+      overrides
+    );
   }
   // 2% harvester
   if ((await wrapper.getHarvesterRatio()) !== 20000000n) {
-    await ownerContractCall(wrapper, "ConcentratorSdCrvGaugeWrapper updateHarvesterRatio", "updateHarvesterRatio", [
-      20000000n,
-    ]);
+    await ownerContractCall(
+      wrapper,
+      "ConcentratorSdCrvGaugeWrapper updateHarvesterRatio",
+      "updateHarvesterRatio",
+      [20000000n],
+      overrides
+    );
   }
   // 10% booster
   if ((await wrapper.getBoosterRatio()) !== 100000000n) {
-    await ownerContractCall(wrapper, "ConcentratorSdCrvGaugeWrapper updateBoosterRatio", "updateBoosterRatio", [
-      100000000n,
-    ]);
+    await ownerContractCall(
+      wrapper,
+      "ConcentratorSdCrvGaugeWrapper updateBoosterRatio",
+      "updateBoosterRatio",
+      [100000000n],
+      overrides
+    );
   }
 
   // setup SdCRVBribeBurnerV2
   const WHITELIST_BURNER_ROLE = await burner.WHITELIST_BURNER_ROLE();
   if (!(await burner.hasRole(WHITELIST_BURNER_ROLE, KEEPER))) {
-    await ownerContractCall(burner, "SdCRVBribeBurnerV2 grant WHITELIST_BURNER_ROLE", "grantRole", [
-      WHITELIST_BURNER_ROLE,
-      KEEPER,
-    ]);
+    await ownerContractCall(
+      burner,
+      "SdCRVBribeBurnerV2 grant WHITELIST_BURNER_ROLE",
+      "grantRole",
+      [WHITELIST_BURNER_ROLE, KEEPER],
+      overrides
+    );
   }
 
   // upgrade and setup SdCrvCompounder
