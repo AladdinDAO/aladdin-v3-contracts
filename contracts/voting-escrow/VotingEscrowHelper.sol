@@ -66,6 +66,8 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
 
     uint256 epoch = IVotingEscrow(_ve).epoch();
     uint256 week = (block.timestamp / WEEK) * WEEK;
+    require(week >= start, "VotingEscrow not ready");
+
     (uint256 nowEpoch, IVotingEscrow.Point memory nowPoint) = _binarySearchSupplyPoint(week, 1, epoch);
     _supply[week] = Balance(uint128(_computeValue(nowPoint, week)), uint128(nowEpoch));
   }
@@ -128,11 +130,13 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
     Balance memory nowSupply = _supply[week];
     if (nowSupply.epoch == 0) {
       Balance memory prevSupply = _supply[week - WEEK];
-      (uint256 epoch, IVotingEscrow.Point memory point) = _binarySearchSupplyPoint(
-        week,
-        prevSupply.epoch,
-        IVotingEscrow(ve).epoch()
-      );
+      uint256 epoch;
+      IVotingEscrow.Point memory point;
+      if (prevSupply.epoch == 0) {
+        (epoch, point) = _binarySearchSupplyPoint(week, 1, IVotingEscrow(ve).epoch());
+      } else {
+        (epoch, point) = _binarySearchSupplyPoint(week, prevSupply.epoch, IVotingEscrow(ve).epoch());
+      }
 
       nowSupply.value = uint128(_computeValue(point, week));
       nowSupply.epoch = uint128(epoch);
@@ -179,9 +183,6 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
     uint256 startEpoch,
     uint256 endEpoch
   ) internal view returns (uint256 epoch, IVotingEscrow.Point memory point) {
-    if (startEpoch == endEpoch) {
-      point = IVotingEscrow(ve).point_history(startEpoch);
-    }
     unchecked {
       while (startEpoch < endEpoch) {
         uint256 mid = (startEpoch + endEpoch + 1) / 2;
@@ -195,6 +196,10 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
       }
     }
     epoch = startEpoch;
+    // in case, the `p.ts <= timestamp` never hit in the binary search
+    if (point.ts == 0) {
+      point = IVotingEscrow(ve).point_history(epoch);
+    }
   }
 
   /// @dev Internal function to find largest `epoch` belongs to `[startEpoch, endEpoch]` and
@@ -214,9 +219,6 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
     uint256 startEpoch,
     uint256 endEpoch
   ) internal view returns (uint256 epoch, IVotingEscrow.Point memory point) {
-    if (startEpoch == endEpoch) {
-      point = IVotingEscrow(ve).user_point_history(account, startEpoch);
-    }
     unchecked {
       while (startEpoch < endEpoch) {
         uint256 mid = (startEpoch + endEpoch + 1) / 2;
@@ -230,12 +232,19 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
       }
     }
     epoch = startEpoch;
+    // in case, the `p.ts <= timestamp` never hit in the binary search
+    if (point.ts == 0) {
+      point = IVotingEscrow(ve).user_point_history(account, epoch);
+    }
   }
 
   /// @dev Internal function to compute the value. Caller should make sure `timestamp` is not less than `point.ts`.
   /// @param point The point for ve.
   /// @param timestamp The timestamp to compute.
   function _computeValue(IVotingEscrow.Point memory point, uint256 timestamp) internal pure returns (uint256) {
-    return uint256(point.bias - point.slope * int256(timestamp - point.ts));
+    int256 bias = point.bias - point.slope * int256(timestamp - point.ts);
+    if (bias < 0) bias = 0; // the lock has expired, only happens when it is the last point
+
+    return uint256(bias);
   }
 }

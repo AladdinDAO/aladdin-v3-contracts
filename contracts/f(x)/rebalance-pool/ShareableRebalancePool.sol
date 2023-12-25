@@ -189,8 +189,8 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     __MultipleRewardCompoundingAccumulator_init(); // from MultipleRewardCompoundingAccumulator
 
     // access control
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    _grantRole(REWARD_MANAGER_ROLE, _msgSender());
+    AccessControlUpgradeable._grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    AccessControlUpgradeable._grantRole(REWARD_MANAGER_ROLE, _msgSender());
 
     treasury = _treasury;
     market = _market;
@@ -413,6 +413,8 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     TokenBalance memory _ownerBalance = voteOwnerBalances[_newOwner];
     _ownerBalance.amount = uint104(_getCompoundedBalance(_ownerBalance.amount, _ownerBalance.product, _supply.product));
     _ownerBalance.amount += _balance.amount;
+    _ownerBalance.product = _supply.product;
+    _ownerBalance.updateAt = uint40(block.timestamp);
 
     voteOwnerBalances[_newOwner] = _ownerBalance;
     getStakerVoteOwner[_staker] = _newOwner;
@@ -471,7 +473,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
       revert ErrorVoteOwnerCannotStake();
     }
 
-    AccessControlUpgradeable._revokeRole(_role, _account);
+    AccessControlUpgradeable._grantRole(_role, _account);
   }
 
   /// @inheritdoc MultipleRewardCompoundingAccumulator
@@ -588,6 +590,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     TokenBalance memory _ownerBalance;
     if (_owner != address(0)) {
       _ownerBalance = voteOwnerBalances[_owner];
+      uint256 prevWeekTs = ((uint256(_ownerBalance.updateAt) + WEEK - 1) / WEEK) * WEEK;
       _ownerBalance.amount = uint104(
         _getCompoundedBalance(_ownerBalance.amount, _ownerBalance.product, _supply.product)
       );
@@ -595,8 +598,17 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
       _ownerBalance.updateAt = uint40(block.timestamp);
       voteOwnerBalances[_owner] = _ownerBalance;
 
-      uint256 weekTs = ((block.timestamp + WEEK - 1) / WEEK) * WEEK;
-      voteOwnerHistoryBalances[_owner][weekTs] = _ownerBalance.amount;
+      // Normally, `prevWeekTs` equals to `nextWeekTs` so we will only sstore 1 time in most of the time.
+      //
+      // When `prevWeekTs < nextWeekTs`, there are some extreme situation that liquidation happens between
+      // `_ownerBalance.updateAt` and `prevWeekTs`, also some time between `prevWeekTs` and `block.timestamp`.
+      // Then we cannot calculate the amount at `prevWeekTs` correctly. Since the situation rarely happens,
+      // it is ok to use `_ownerBalance.amount` only.
+      uint256 nextWeekTs = ((block.timestamp + WEEK - 1) / WEEK) * WEEK;
+      while (prevWeekTs <= nextWeekTs) {
+        voteOwnerHistoryBalances[_owner][prevWeekTs] = _ownerBalance.amount;
+        prevWeekTs += 1;
+      }
     } else {
       _ownerBalance = _balance;
     }
