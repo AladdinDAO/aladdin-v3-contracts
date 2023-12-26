@@ -494,8 +494,13 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
     // CNC ==(CurveV2)==> WETH
     WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap)],
     CVX: [
+      /* CNC ==(CurveV2)==> WETH ==(CurveV2)==> CVX
       encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      */
+      // CNC ==(CurveV2)==> WETH ==(Sushi)==> CVX
+      encodePoolHintV2(ADDRESS["CURVE_ETH/CNC_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.CVX_WETH_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
     ],
   },
   sdCRV: {
