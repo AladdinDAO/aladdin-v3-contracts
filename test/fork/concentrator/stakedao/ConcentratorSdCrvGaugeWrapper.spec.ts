@@ -95,12 +95,12 @@ describe("ConcentratorSdCrvGaugeWrapper.spec", async () => {
     await locker.connect(owner).updateOperator(SDCRV_GAUGE, wrapper.getAddress());
 
     const sdCRV = await ethers.getContractAt("MockERC20", TOKENS.sdCRV.address, deployer);
-    const before = await sdCRV.balanceOf(DEPLOYMENT.SdCRVCompounder.proxy);
+    const before = await sdCRV.balanceOf(DEPLOYMENT.SdCrvCompounder.proxy);
     await wrapper.initialize(MULTISIG.Concentrator, burner.getAddress());
-    const locks = await legacyVault.getUserLocks(DEPLOYMENT.SdCRVCompounder.proxy);
+    const locks = await legacyVault.getUserLocks(DEPLOYMENT.SdCrvCompounder.proxy);
     let sum = 0n;
     for (const lock of locks) sum += lock.amount;
-    expect(await sdCRV.balanceOf(DEPLOYMENT.SdCRVCompounder.proxy)).to.eq(sum + before);
+    expect(await sdCRV.balanceOf(DEPLOYMENT.SdCrvCompounder.proxy)).to.eq(sum + before);
     await locker.connect(owner).updateGaugeRewardReceiver(SDCRV_GAUGE, await wrapper.stash());
     await locker.connect(owner).updateClaimer(wrapper.getAddress());
   });
@@ -129,8 +129,8 @@ describe("ConcentratorSdCrvGaugeWrapper.spec", async () => {
       expect(await wrapper.locker()).to.eq(DEPLOYMENT.ConcentratorStakeDAOLocker.proxy);
       expect(await wrapper.delegation()).to.eq(DEPLOYMENT.VeSDTDelegation.proxy);
       expect(await wrapper.totalSupply()).to.eq(await legacyVault.totalSupply());
-      expect(await wrapper.balanceOf(DEPLOYMENT.SdCRVCompounder.proxy)).to.eq(
-        await legacyVault.balanceOf(DEPLOYMENT.SdCRVCompounder.proxy)
+      expect(await wrapper.balanceOf(DEPLOYMENT.SdCrvCompounder.proxy)).to.eq(
+        await legacyVault.balanceOf(DEPLOYMENT.SdCrvCompounder.proxy)
       );
       expect(await wrapper.stash()).to.not.eq(ZeroAddress);
 

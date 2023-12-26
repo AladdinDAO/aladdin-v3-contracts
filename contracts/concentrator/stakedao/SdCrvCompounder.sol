@@ -293,15 +293,13 @@ contract SdCrvCompounder is AladdinCompounder, SdCRVLocker, ISdCrvCompounder {
   }
 
   /// @notice Deposit extra rewards from stash contract.
-  /// @param token The address of token, must be sdCRV.
   /// @param amount The amount of token to deposit.
-  function depositReward(address token, uint256 amount) external {
-    require(token == sdCRV, "asdCRV: deposit non-sdCRV token");
+  function depositReward(uint256 amount) external {
     require(msg.sender == stash, "asdCRV: caller not stash");
 
     _distributePendingReward();
 
-    IERC20Upgradeable(token).safeTransferFrom(msg.sender, address(this), amount);
+    IERC20Upgradeable(sdCRV).safeTransferFrom(msg.sender, address(this), amount);
     IWrapper_SdCrvCompounder(wrapper).deposit(amount, address(this));
 
     _notifyHarvestedReward(amount);

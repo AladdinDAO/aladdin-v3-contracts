@@ -105,8 +105,8 @@ describe("SdCrvCompounder.spec", async () => {
     const SdCrvCompounder = await ethers.getContractFactory("SdCrvCompounder", deployer);
     compounderImpl = await SdCrvCompounder.deploy(legacyVault.getAddress(), wrapper.getAddress());
 
-    compounder = await ethers.getContractAt("SdCrvCompounder", DEPLOYMENT.SdCRVCompounder.proxy);
-    asdcrv = await ethers.getContractAt("AladdinSdCRV", DEPLOYMENT.SdCRVCompounder.proxy);
+    compounder = await ethers.getContractAt("SdCrvCompounder", DEPLOYMENT.SdCrvCompounder.proxy);
+    asdcrv = await ethers.getContractAt("AladdinSdCRV", DEPLOYMENT.SdCrvCompounder.proxy);
 
     const LegacyCompounderStash = await ethers.getContractFactory("LegacyCompounderStash", deployer);
     stash = await LegacyCompounderStash.deploy(asdcrv.getAddress());

@@ -30,7 +30,7 @@ contract MultiPathConverter {
       uint256 _length = (_encoding >> 20) & 0xfff;
       if (_ratio == 0) break;
 
-      uint256 _amountIn = (_amount * _ratio) >> 20;
+      uint256 _amountIn = (_amount * _ratio) / 0xfffff;
       for (uint256 j = 0; j < _length; j++) {
         address _recipient = j < _length - 1 ? converter : msg.sender;
         _amountIn = ITokenConverter(converter).convert(_routes[_offset], _amountIn, _recipient);

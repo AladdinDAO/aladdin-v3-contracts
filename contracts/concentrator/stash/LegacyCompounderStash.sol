@@ -87,6 +87,8 @@ contract LegacyCompounderStash is AccessControl {
 
     compounder = _compounder;
     asset = _asset;
+
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
   }
 
   /****************************

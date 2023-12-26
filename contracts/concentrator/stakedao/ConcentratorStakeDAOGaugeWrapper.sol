@@ -164,8 +164,10 @@ abstract contract ConcentratorStakeDAOGaugeWrapper is
     uint256 _harvesterRatio = getHarvesterRatio();
     uint256 _boosterRatio = getBoosterRatio();
     for (uint256 i = 0; i < _tokens.length; i++) {
-      address _token = _tokens[i];
       uint256 _assets = _amounts[i];
+      if (_assets == 0) continue; // save gas
+
+      address _token = _tokens[i];
       uint256 _performanceFee;
       uint256 _harvesterBounty;
       uint256 _boosterFee;
