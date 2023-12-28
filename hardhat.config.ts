@@ -32,6 +32,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
+          evmVersion: "istanbul",
         },
       },
       {
@@ -41,6 +42,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
+          evmVersion: "shanghai",
         },
       },
     ],
