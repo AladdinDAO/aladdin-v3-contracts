@@ -1,7 +1,7 @@
 {
-  "StakeDAOLockerProxy": {
+  "ConcentratorStakeDAOLocker": {
     "proxy": "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09",
-    "implementation": "0x98626a8E560014B6d25336ef72969D8ec1188E2D"
+    "implementation": "0x353e11ab2Da88BfC57fd42C2871301C1F123D4DB"
   },
   "VeSDTDelegation": {
     "proxy": "0x6037Bb1BBa598bf88D816cAD90A28cC00fE3ff64",
@@ -11,13 +11,19 @@
     "proxy": "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6",
     "implementation": "0xF29FAFCA79cAa5EA426b03014D653f2361d254C1"
   },
-  "SdCRVCompounder": {
+  "SdCrvCompounder": {
     "proxy": "0x43E54C2E7b3e294De3A155785F52AB49d87B9922",
-    "implementation": "0x43E54C2E7b3e294De3A155785F52AB49d87B9922"
+    "implementation": "0xe3695cba51ac4BcEc71b23C0b403091022Feb0a1",
+    "stash": "0x2Dd0f50c5bdA25db8BBB65Ce0a721f13D1B20CE2"
   },
   "ConcentratorVault": {
     "proxy": "0x59866EC5650e9BA00c51f6D681762b48b0AdA3de",
     "implementation": "0x0a6E1167c9b8599EE1decCB331AaC176E2aA0b97"
   },
-  "SdCRVBribeBurner": "0x9D6Dc3dbC7Cc5e1d7241601473FD63d2bD1573f9"
+  "SdCRVBribeBurner": "0x9D6Dc3dbC7Cc5e1d7241601473FD63d2bD1573f9",
+  "ConcentratorSdCrvGaugeWrapper": {
+    "implementation": "0xCCcB97F23666C75Aee0aABDdb180C2DF68B03154",
+    "proxy": "0x09B0E3A114135F528F762DB8363b4f5eae3F3bF1"
+  },
+  "SdCRVBribeBurnerV2": "0x680f26dbc8Fa2B463607ebb49A68A69c33476665"
 }

@@ -1,20 +1,19 @@
 /* eslint-disable camelcase */
-/* eslint-disable node/no-missing-import */
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { BigNumber, constants } from "ethers";
-import { ethers } from "hardhat";
-import * as hre from "hardhat";
-import { IVotiumMultiMerkleStash, SdCRVBribeBurner, StakeDAOCRVVault } from "../../../typechain";
-import { request_fork } from "../../utils";
-import { DEPLOYED_CONTRACTS, TOKENS, ZAP_ROUTES } from "../../../scripts/utils";
+import { MaxUint256, toBigInt } from "ethers";
+import { ethers, network } from "hardhat";
+
+import { request_fork } from "@/test/utils";
+import { IMultiMerkleStash, SdCRVBribeBurner, StakeDAOCRVVault } from "@/types/index";
+import { DEPLOYED_CONTRACTS, TOKENS, ZAP_ROUTES } from "@/utils/index";
 
 const FORK_BLOCK_NUMBER = 17978170;
 
 const sdCRV_HOLDER = "0x25431341A5800759268a6aC1d3CD91C029D7d9CA";
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 
-const claimParam: IVotiumMultiMerkleStash.ClaimParamStruct = {
+const claimParam: IMultiMerkleStash.ClaimParamStruct = {
   token: TOKENS.sdCRV.address,
   index: 382,
   amount: "81940777581000000000000",
@@ -31,17 +30,17 @@ const claimParam: IVotiumMultiMerkleStash.ClaimParamStruct = {
 };
 
 describe("StakeDAOCRVVault.upgrade.spec", async () => {
-  let deployer: SignerWithAddress;
+  let deployer: HardhatEthersSigner;
 
   let vault: StakeDAOCRVVault;
   let burner: SdCRVBribeBurner;
 
   beforeEach(async () => {
-    request_fork(FORK_BLOCK_NUMBER, [DEPLOYED_CONTRACTS.Concentrator.Treasury, DEPLOYER, sdCRV_HOLDER]);
+    await request_fork(FORK_BLOCK_NUMBER, [DEPLOYED_CONTRACTS.Concentrator.Treasury, DEPLOYER, sdCRV_HOLDER]);
     deployer = await ethers.getSigner(DEPLOYER);
     const owner = await ethers.getSigner(DEPLOYED_CONTRACTS.Concentrator.Treasury);
 
-    await deployer.sendTransaction({ to: owner.address, value: ethers.utils.parseEther("10") });
+    await deployer.sendTransaction({ to: owner.address, value: ethers.parseEther("10") });
 
     const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin, owner);
 
@@ -56,41 +55,39 @@ describe("StakeDAOCRVVault.upgrade.spec", async () => {
       DEPLOYED_CONTRACTS.Concentrator.StakeDAO.StakeDAOLockerProxy,
       DEPLOYED_CONTRACTS.Concentrator.StakeDAO.VeSDTDelegation
     );
-    await impl.deployed();
 
     const SdCRVBribeBurner = await ethers.getContractFactory("SdCRVBribeBurner", deployer);
     burner = await SdCRVBribeBurner.deploy(DEPLOYED_CONTRACTS.TokenZapLogic);
-    await burner.deployed();
 
-    await vault.updateBribeBurner(burner.address);
-    await proxyAdmin.upgrade(vault.address, impl.address);
+    await vault.updateBribeBurner(burner.getAddress());
+    await proxyAdmin.upgrade(vault.getAddress(), impl.getAddress());
     await burner.updateWhitelist(deployer.address, true);
   });
 
   it("should succeed claim sdCRV", async () => {
     const holder = await ethers.getSigner(sdCRV_HOLDER);
-    await deployer.sendTransaction({ to: holder.address, value: ethers.utils.parseEther("10") });
+    await deployer.sendTransaction({ to: holder.address, value: ethers.parseEther("10") });
 
     const sdCRV = await ethers.getContractAt("MockERC20", TOKENS.sdCRV.address, holder);
-    await sdCRV.approve(vault.address, constants.MaxUint256);
-    await vault.connect(holder).deposit(ethers.utils.parseEther("10000"), holder.address);
+    await sdCRV.approve(vault.getAddress(), MaxUint256);
+    await vault.connect(holder).deposit(ethers.parseEther("10000"), holder.address);
 
     await vault.harvestBribes([claimParam]);
-    expect(await sdCRV.balanceOf(burner.address)).to.eq(BigNumber.from(claimParam.amount));
+    expect(await sdCRV.balanceOf(burner.getAddress())).to.eq(toBigInt(claimParam.amount));
 
     const sdt = await ethers.getContractAt("MockERC20", TOKENS.SDT.address, deployer);
     const delegationBefore = await sdt.balanceOf(DEPLOYED_CONTRACTS.Concentrator.StakeDAO.VeSDTDelegation);
     const treasuryBefore = await sdCRV.balanceOf(DEPLOYED_CONTRACTS.Concentrator.Treasury);
-    await burner.burn(sdCRV.address, ZAP_ROUTES.sdCRV.SDT, 0, ZAP_ROUTES.sdCRV.CRV, 0);
-    expect(await sdCRV.balanceOf(burner.address)).to.eq(constants.Zero);
+    await burner.burn(sdCRV.getAddress(), ZAP_ROUTES.sdCRV.SDT, 0, ZAP_ROUTES.sdCRV.CRV, 0);
+    expect(await sdCRV.balanceOf(burner.getAddress())).to.eq(0n);
     const delegationAfter = await sdt.balanceOf(DEPLOYED_CONTRACTS.Concentrator.StakeDAO.VeSDTDelegation);
     const treasuryAfter = await sdCRV.balanceOf(DEPLOYED_CONTRACTS.Concentrator.Treasury);
     expect(delegationAfter).to.gt(delegationBefore);
     expect(treasuryAfter).to.gt(treasuryBefore);
 
-    const timestamp = (await ethers.provider.getBlock("latest")).timestamp;
-    await hre.network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
-    await hre.network.provider.send("evm_mine");
+    const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
+    await network.provider.send("evm_setNextBlockTimestamp", [timestamp + 86400 * 7]);
+    await network.provider.send("evm_mine");
 
     const sdCRVBefore = await sdCRV.balanceOf(holder.address);
     await vault.claim(holder.address, holder.address);

@@ -170,7 +170,7 @@ async function main(round: string) {
         );
 
         console.log(`Burn token[${symbol}] address[${item.token}] to SDT`);
-        const minSDT = (amountSDT * 99n) / 100n;
+        const minSDT = (amountSDT * 98n) / 100n;
         const minCRV = (amountCRV * 99n) / 100n;
         const gas = await burner.burn.estimateGas(
           item.token,
