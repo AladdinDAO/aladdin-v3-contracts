@@ -3,21 +3,25 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { MerkleProofUpgradeable } from "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "../../interfaces/stakedao/IStakeDAOGauge.sol";
-import "../../interfaces/stakedao/IStakeDAOLockerProxy.sol";
-import "../../interfaces/IMultiMerkleStash.sol";
-import "../../interfaces/ISnapshotDelegateRegistry.sol";
-import "../../voting/ISignatureVerifier.sol";
+import { IConcentratorStakeDAOLocker } from "../../interfaces/concentrator/IConcentratorStakeDAOLocker.sol";
+import { ICurveGauge } from "../../interfaces/ICurveGauge.sol";
+import { IMultiMerkleStash } from "../../interfaces/IMultiMerkleStash.sol";
+import { ISnapshotDelegateRegistry } from "../../interfaces/ISnapshotDelegateRegistry.sol";
+import { ISignatureVerifier } from "../../voting/ISignatureVerifier.sol";
 
-/// @title StakeDaoLockerProxy
+/// @title ConcentratorStakeDAOLocker
 /// @notice This contract is the main entry for stake tokens in StakeDAO.
-contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
+contract ConcentratorStakeDAOLocker is OwnableUpgradeable, IConcentratorStakeDAOLocker {
   using SafeERC20Upgradeable for IERC20Upgradeable;
+
+  /**********
+   * Events *
+   **********/
 
   /// @notice Emitted when the operator for gauge is updated.
   /// @param _gauge The address of gauge updated.
@@ -29,12 +33,23 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
   /// @param _status The status of executor updated.
   event UpdateExecutor(address _executor, bool _status);
 
-  /// @notice Emitted when claimer for sdCRV bribe rewards is update.
+  /// @notice Emitted when claimer for sdCRV bribe rewards is updated.
   /// @param _claimer The address of claimer updated.
   event UpdateClaimer(address _claimer);
 
+  /// @notice Emitted when the reward receiver is updated.
+  event UpdateGaugeRewardReceiver(address indexed gauge, address indexed oldReceiver, address indexed newReceiver);
+
+  /*************
+   * Constants *
+   *************/
+
   /// @dev The address of StakeDAO MultiMerkleStash contract.
   address private constant MULTI_MERKLE_STASH = 0x03E34b085C52985F6a5D27243F20C84bDdc01Db4;
+
+  /*************
+   * Variables *
+   *************/
 
   /// @notice Mapping from gauge address to operator address.
   mapping(address => address) public operators;
@@ -51,6 +66,10 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
   /// @notice The address of SignatureVerifier contract.
   ISignatureVerifier public verifier;
 
+  /*************
+   * Modifiers *
+   *************/
+
   modifier onlyOperator(address _gauge) {
     require(operators[_gauge] == msg.sender, "not operator");
     _;
@@ -61,13 +80,17 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     _;
   }
 
-  /********************************** Constructor **********************************/
+  /***************
+   * Constructor *
+   ***************/
 
   function initialize() external initializer {
     OwnableUpgradeable.__Ownable_init();
   }
 
-  /********************************** View Functions **********************************/
+  /*************************
+   * Public View Functions *
+   *************************/
 
   /// @notice Should return whether the signature provided is valid for the provided hash
   /// @dev See https://eips.ethereum.org/EIPS/eip-1271 for more details.
@@ -86,20 +109,22 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     }
   }
 
-  /********************************** Mutated Functions **********************************/
+  /****************************
+   * Public Mutated Functions *
+   ****************************/
 
-  /// @inheritdoc IStakeDAOLockerProxy
+  /// @inheritdoc IConcentratorStakeDAOLocker
   function deposit(address _gauge, address _token) external override onlyOperator(_gauge) returns (uint256 _amount) {
     _amount = IERC20Upgradeable(_token).balanceOf(address(this));
     if (_amount > 0) {
       IERC20Upgradeable(_token).safeApprove(_gauge, 0);
       IERC20Upgradeable(_token).safeApprove(_gauge, _amount);
       // deposit without claiming rewards
-      IStakeDAOGauge(_gauge).deposit(_amount);
+      ICurveGauge(_gauge).deposit(_amount);
     }
   }
 
-  /// @inheritdoc IStakeDAOLockerProxy
+  /// @inheritdoc IConcentratorStakeDAOLocker
   function withdraw(
     address _gauge,
     address _token,
@@ -109,12 +134,12 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
     if (_balance < _amount) {
       // withdraw without claiming rewards
-      IStakeDAOGauge(_gauge).withdraw(_amount - _balance);
+      ICurveGauge(_gauge).withdraw(_amount - _balance);
     }
     IERC20Upgradeable(_token).safeTransfer(_recipient, _amount);
   }
 
-  /// @inheritdoc IStakeDAOLockerProxy
+  /// @inheritdoc IConcentratorStakeDAOLocker
   function claimRewards(address _gauge, address[] calldata _tokens)
     external
     override
@@ -128,7 +153,7 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
       _amounts[i] = IERC20Upgradeable(_tokens[i]).balanceOf(address(this));
     }
     // This will claim all rewards including SDT.
-    IStakeDAOGauge(_gauge).claim_rewards();
+    ICurveGauge(_gauge).claim_rewards();
     for (uint256 i = 0; i < _length; i++) {
       _amounts[i] = IERC20Upgradeable(_tokens[i]).balanceOf(address(this)) - _amounts[i];
       if (_amounts[i] > 0) {
@@ -137,7 +162,7 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     }
   }
 
-  /// @inheritdoc IStakeDAOLockerProxy
+  /// @inheritdoc IConcentratorStakeDAOLocker
   function claimBribeRewards(IMultiMerkleStash.claimParam[] memory _claims, address _recipient) external override {
     require(msg.sender == claimer, "only bribe claimer");
     uint256 _length = _claims.length;
@@ -184,7 +209,9 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     return (success, result);
   }
 
-  /********************************** Restricted Functions **********************************/
+  /************************
+   * Restricted Functions *
+   ************************/
 
   /// @notice Update the operator for StakeDAO gauge.
   /// @param _gauge The address of gauge to update.
@@ -193,6 +220,16 @@ contract StakeDAOLockerProxy is OwnableUpgradeable, IStakeDAOLockerProxy {
     operators[_gauge] = _operator;
 
     emit UpdateOperator(_gauge, _operator);
+  }
+
+  /// @notice Update the reward receiver for the given gauge.
+  /// @param _gauge The address of gauge to update.
+  /// @param _newReceiver The address of reward receiver to update.
+  function updateGaugeRewardReceiver(address _gauge, address _newReceiver) external onlyOwner {
+    address _oldReceiver = ICurveGauge(_gauge).rewards_receiver(address(this));
+    ICurveGauge(_gauge).set_rewards_receiver(_newReceiver);
+
+    emit UpdateGaugeRewardReceiver(_gauge, _oldReceiver, _newReceiver);
   }
 
   /// @notice Update the executor.

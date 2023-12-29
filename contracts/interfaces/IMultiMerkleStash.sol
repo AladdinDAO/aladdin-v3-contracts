@@ -25,4 +25,6 @@ interface IMultiMerkleStash {
   ) external;
 
   function claimMulti(address account, claimParam[] calldata claims) external;
+
+  function updateMerkleRoot(address token, bytes32 _merkleRoot) external;
 }

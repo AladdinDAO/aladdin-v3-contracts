@@ -78,6 +78,11 @@ contract AladdinSdCRV is AladdinCompounder, SdCRVLocker, ISdCrvCompounder {
   /********************************** Mutated Functions **********************************/
 
   /// @inheritdoc ISdCrvCompounder
+  function depositWithGauge(uint256 assets, address receiver) external override returns (uint256 shares) {
+    // do nothing, just for interface compatible
+  }
+
+  /// @inheritdoc ISdCrvCompounder
   function depositWithCRV(
     uint256 _assets,
     address _receiver,

@@ -22,7 +22,7 @@ contract CvxCrvCompounderStash is LegacyCompounderStash {
    * Constructor *
    ***************/
 
-  constructor(address _harvester) LegacyCompounderStash(0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884, _harvester) {}
+  constructor() LegacyCompounderStash(0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884) {}
 
   /**********************
    * Internal Functions *
@@ -38,7 +38,7 @@ contract CvxCrvCompounderStash is LegacyCompounderStash {
     uint256 _minAsset,
     address _receiver
   ) internal virtual override {
-    if (_assets < _minAsset) revert InsufficientHarvestedAssets();
+    if (_assets < _minAsset) revert ErrorInsufficientHarvestedAssets();
 
     // incentive to harvester
     uint256 _harvesterBounty;

@@ -42,7 +42,7 @@ abstract contract LinearMultipleRewardDistributor is AccessControlUpgradeable, I
   mapping(address => LinearReward.RewardData) public rewardData;
 
   /// @dev The list of active reward tokens.
-  EnumerableSetUpgradeable.AddressSet private activeRewardTokens;
+  EnumerableSetUpgradeable.AddressSet internal activeRewardTokens;
 
   /// @dev The list of historical reward tokens.
   EnumerableSetUpgradeable.AddressSet private historicalRewardTokens;

@@ -152,7 +152,7 @@ describe("ConcentratorGeneralVault.asdCRV.add.spec", async () => {
 
     context(`asdCRV vault for pool: ${name}`, async () => {
       beforeEach(async () => {
-        request_fork(fork.height, [
+        await request_fork(fork.height, [
           fork.deployer,
           fork.holder,
           "0x07dA2d30E26802ED65a52859a50872cfA615bD0A",

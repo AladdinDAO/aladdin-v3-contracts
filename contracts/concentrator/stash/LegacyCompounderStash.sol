@@ -2,7 +2,7 @@
 
 pragma solidity =0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts-v4/access/Ownable.sol";
+import { AccessControl } from "@openzeppelin/contracts-v4/access/AccessControl.sol";
 
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
@@ -24,8 +24,6 @@ interface ILegacyCompounder {
 
   function asset() external view returns (address);
 
-  function zap() external view returns (address);
-
   function feeInfo() external view returns (FeeInfo memory);
 
   /// @notice Deposit new rewards to this contract.
@@ -34,22 +32,28 @@ interface ILegacyCompounder {
   function depositReward(uint256 amount) external;
 }
 
-contract LegacyCompounderStash is Ownable {
+contract LegacyCompounderStash is AccessControl {
   using SafeERC20 for IERC20;
 
   /**********
    * Errors *
    **********/
 
-  /// @dev Thrown when the caller is not harvester.
-  error CallerNotHarvester();
-
   /// @dev Thrown when the harvested assets is not enough compared to off-chain computation.
-  error InsufficientHarvestedAssets();
+  error ErrorInsufficientHarvestedAssets();
+
+  /// @dev Thrown when the length of arrays mismatch.
+  error ErrorLengthMismatch();
+
+  /// @dev Thrown when asset is not in the first entry of the array.
+  error ErrorAssetIndexNotZero();
 
   /*************
    * Constants *
    *************/
+
+  /// @notice The role for harvester burner.
+  bytes32 public constant HARVESTER_ROLE = keccak256("HARVESTER_ROLE");
 
   /// @notice The address of comounder.
   address public immutable compounder;
@@ -57,68 +61,67 @@ contract LegacyCompounderStash is Ownable {
   /// @notice The address of underlying asset for the compounder.
   address public immutable asset;
 
-  /// @notice The address of harvester contract.
-  address public immutable harvester;
-
   /// @dev The fee denominator used for rate calculation.
   uint256 internal constant FEE_PRECISION = 1e9;
+
+  /*************
+   * Structs *
+   *************/
+
+  /// @notice The struct for convert parameters.
+  ///
+  /// @param target The address of converter contract.
+  /// @param data The calldata passing to the target contract.
+  struct ConvertParams {
+    address target;
+    bytes data;
+  }
 
   /***************
    * Constructor *
    ***************/
 
-  constructor(address _compounder, address _harvester) {
+  constructor(address _compounder) {
     address _asset = ILegacyCompounder(_compounder).asset();
     IERC20(_asset).safeApprove(_compounder, type(uint256).max);
 
     compounder = _compounder;
     asset = _asset;
-    harvester = _harvester;
+
+    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
   }
 
   /****************************
    * Public Mutated Functions *
    ****************************/
 
-  /// @notice Batch convert stashed reward tokens to underlying assets.
+  /// @notice Convert stashed reward tokens to underlying assets.
   ///
   /// @dev All the tokens should be converted to intermediate token first and then to underlying asset.
   ///
   /// @param _tokens The address list of tokens to convert.
-  /// @param _intermediateToken The address of intermediate token.
+  /// @param _params The address of intermediate token.
   /// @param _receiver The address of harvester bounty recipient.
   /// @param _minAsset The minimum amount of underlying assets should be converted, used as slippage control.
   /// @return _assets The amount of underlying assets converted.
-  function processBatch(
+  function convert(
     address[] memory _tokens,
-    address _intermediateToken,
+    ConvertParams[] memory _params,
     address _receiver,
     uint256 _minAsset
-  ) external returns (uint256 _assets) {
-    if (harvester != msg.sender) revert CallerNotHarvester();
-
-    address _zap = ILegacyCompounder(compounder).zap();
+  ) external onlyRole(HARVESTER_ROLE) returns (uint256 _assets) {
+    if (_tokens.length != _params.length) revert ErrorLengthMismatch();
 
     uint256 _length = _tokens.length;
-    uint256 _imAmount;
     for (uint256 i = 0; i < _length; i++) {
-      if (_tokens[i] == asset) {
-        _assets = IERC20(_tokens[i]).balanceOf(address(this));
-      } else {
-        uint256 _amount = IERC20(_tokens[i]).balanceOf(address(this));
-        if (_amount > 0) {
-          IERC20(_tokens[i]).safeTransfer(_zap, _amount);
-          if (_intermediateToken == asset) {
-            _imAmount += IZap(_zap).zap(_tokens[i], _amount, _intermediateToken, 0);
-          } else {
-            _assets += IZap(_zap).zap(_tokens[i], _amount, asset, 0);
-          }
-        }
+      address _token = _tokens[i];
+      uint256 _balance = IERC20(_token).balanceOf(address(this));
+      if (_token == asset) {
+        if (i != 0) revert ErrorAssetIndexNotZero();
+        _assets = _balance;
+      } else if (_balance > 0) {
+        _assets += _convert(_token, asset, _balance, _params[i]);
       }
-    }
-    if (_imAmount > 0) {
-      IERC20(_intermediateToken).safeTransfer(_zap, _imAmount);
-      _assets += IZap(_zap).zap(_intermediateToken, _imAmount, asset, 0);
     }
 
     _distribute(_assets, _minAsset, _receiver);
@@ -139,7 +142,7 @@ contract LegacyCompounderStash is Ownable {
     address _to,
     uint256 _value,
     bytes calldata _data
-  ) external payable onlyOwner returns (bool, bytes memory) {
+  ) external payable onlyRole(DEFAULT_ADMIN_ROLE) returns (bool, bytes memory) {
     // solhint-disable-next-line avoid-low-level-calls
     (bool success, bytes memory result) = _to.call{ value: _value }(_data);
     return (success, result);
@@ -148,6 +151,41 @@ contract LegacyCompounderStash is Ownable {
   /**********************
    * Internal Functions *
    **********************/
+
+  /// @dev Internal function to convert token with routes.
+  /// @param _srcToken The address of source token.
+  /// @param _dstToken The address of destination token.
+  /// @param _amountIn The amount of input token.
+  /// @param _params The token converting paramaters.
+  /// @return _amountOut The amount of output token received.
+  function _convert(
+    address _srcToken,
+    address _dstToken,
+    uint256 _amountIn,
+    ConvertParams memory _params
+  ) internal returns (uint256 _amountOut) {
+    if (_srcToken == _dstToken) return _amountIn;
+
+    _amountOut = IERC20(_dstToken).balanceOf(address(this));
+
+    IERC20(_srcToken).safeApprove(_params.target, 0);
+    IERC20(_srcToken).safeApprove(_params.target, _amountIn);
+
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool _success, ) = _params.target.call(_params.data);
+    // below lines will propagate inner error up
+    if (!_success) {
+      // solhint-disable-next-line no-inline-assembly
+      assembly {
+        let ptr := mload(0x40)
+        let size := returndatasize()
+        returndatacopy(ptr, 0, size)
+        revert(ptr, size)
+      }
+    }
+
+    _amountOut = IERC20(_dstToken).balanceOf(address(this)) - _amountOut;
+  }
 
   /// @dev Internal function to distribute converted assets.
   ///
@@ -159,7 +197,7 @@ contract LegacyCompounderStash is Ownable {
     uint256 _minAsset,
     address _receiver
   ) internal virtual {
-    if (_assets < _minAsset) revert InsufficientHarvestedAssets();
+    if (_assets < _minAsset) revert ErrorInsufficientHarvestedAssets();
 
     ILegacyCompounder.FeeInfo memory _feeInfo = ILegacyCompounder(compounder).feeInfo();
 

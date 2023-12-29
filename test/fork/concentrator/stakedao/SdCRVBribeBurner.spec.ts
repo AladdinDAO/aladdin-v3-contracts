@@ -1,20 +1,19 @@
 /* eslint-disable camelcase */
-/* eslint-disable node/no-missing-import */
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { BigNumber, constants } from "ethers";
+import { toBigInt } from "ethers";
 import { ethers } from "hardhat";
-import { TOKENS, ZAP_ROUTES } from "../../../scripts/utils";
-import { DEPLOYED_CONTRACTS } from "../../../scripts/utils/deploys";
-import { IVotiumMultiMerkleStash, SdCRVBribeBurner, StakeDAOCRVVault } from "../../../typechain";
-import { request_fork } from "../../utils";
+
+import { request_fork } from "@/test/utils";
+import { IMultiMerkleStash, SdCRVBribeBurner, StakeDAOCRVVault } from "@/types/index";
+import { ADDRESS, Action, DEPLOYED_CONTRACTS, PoolType, TOKENS, encodePoolHintV2 } from "@/utils/index";
 
 const DEPLOYER = "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf";
 const VAULT = "0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6";
 const PROXY = "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09";
 const DELEGATOR = "0x6037Bb1BBa598bf88D816cAD90A28cC00fE3ff64";
 
-const claimParam: IVotiumMultiMerkleStash.ClaimParamStruct = {
+const claimParam: IMultiMerkleStash.ClaimParamStruct = {
   token: TOKENS.sdCRV.address,
   index: 338,
   amount: "0x01479dcb48f3fc736000",
@@ -32,52 +31,59 @@ const claimParam: IVotiumMultiMerkleStash.ClaimParamStruct = {
 };
 
 describe("SdCRVBribeBurner.spec", async () => {
-  let deployer: SignerWithAddress;
+  let deployer: HardhatEthersSigner;
   let vault: StakeDAOCRVVault;
   let burner: SdCRVBribeBurner;
 
   beforeEach(async () => {
-    request_fork(16789529, [DEPLOYED_CONTRACTS.Concentrator.Treasury, DEPLOYER]);
+    await request_fork(16789529, [DEPLOYED_CONTRACTS.Concentrator.Treasury, DEPLOYER]);
     deployer = await ethers.getSigner(DEPLOYER);
     const owner = await ethers.getSigner(DEPLOYED_CONTRACTS.Concentrator.Treasury);
 
-    await deployer.sendTransaction({ to: owner.address, value: ethers.utils.parseEther("10") });
+    await deployer.sendTransaction({ to: owner.address, value: ethers.parseEther("10") });
 
     const proxyAdmin = await ethers.getContractAt("ProxyAdmin", DEPLOYED_CONTRACTS.Concentrator.ProxyAdmin, owner);
     vault = await ethers.getContractAt("StakeDAOCRVVault", VAULT, deployer);
 
     const StakeDAOCRVVault = await ethers.getContractFactory("StakeDAOCRVVault", deployer);
     const impl = await StakeDAOCRVVault.deploy(PROXY, DELEGATOR);
-    await impl.deployed();
 
-    await proxyAdmin.upgrade(VAULT, impl.address);
+    await proxyAdmin.upgrade(VAULT, impl.getAddress());
 
     const SdCRVBribeBurner = await ethers.getContractFactory("SdCRVBribeBurner", deployer);
     burner = await SdCRVBribeBurner.deploy("0x858D62CE483B8ab538d1f9254C3Fd3Efe1c5346F");
-    await burner.deployed();
 
     await burner.updateWhitelist(deployer.address, true);
-    await vault.connect(owner).updateBribeBurner(burner.address);
+    await vault.connect(owner).updateBribeBurner(burner.getAddress());
   });
 
   it("should succeed", async () => {
-    const amount = BigNumber.from(claimParam.amount);
+    const amount = toBigInt(claimParam.amount);
     const sdcrv = await ethers.getContractAt("ERC20", TOKENS.sdCRV.address, deployer);
     const sdt = await ethers.getContractAt("ERC20", TOKENS.SDT.address, deployer);
-    const crv = await ethers.getContractAt("ERC20", TOKENS.CRV.address, deployer);
     await expect(vault.harvestBribes([claimParam]))
       .to.emit(vault, "HarvestBribe")
-      .withArgs(TOKENS.sdCRV.address, amount, constants.Zero, amount.div(10));
+      .withArgs(TOKENS.sdCRV.address, amount, 0n, amount / 10n);
 
-    expect(await sdcrv.balanceOf(burner.address)).to.eq(amount);
+    expect(await sdcrv.balanceOf(burner.getAddress())).to.eq(amount);
 
     const beforeSDT = await sdt.balanceOf(DELEGATOR);
-    const beforeCRV = await crv.balanceOf(VAULT);
-    await burner.burn(sdcrv.address, ZAP_ROUTES.sdCRV.SDT, 0, ZAP_ROUTES.sdCRV.CRV, 0);
+    const beforeSdCRV = await sdcrv.balanceOf(VAULT);
+    await burner.burn(
+      sdcrv.getAddress(),
+      [
+        encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS.CURVE_CRVETH_POOL, PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+        encodePoolHintV2(ADDRESS["CURVE_ETH/SDT_POOL"], PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      ],
+      1,
+      [encodePoolHintV2(ADDRESS["CURVE_CRV/sdCRV_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap)],
+      1
+    );
     const afterSDT = await sdt.balanceOf(DELEGATOR);
-    const afterCRV = await crv.balanceOf(VAULT);
+    const afterSdCRV = await sdcrv.balanceOf(VAULT);
 
     expect(beforeSDT).to.lt(afterSDT);
-    expect(beforeCRV).to.lt(afterCRV);
+    expect(beforeSdCRV).to.lt(afterSdCRV);
   });
 });
