@@ -6,7 +6,7 @@ import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/Sa
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { StableCoinMath } from "./StableCoinMath.sol";
+import { FxLowVolatilityMath } from "../math/FxLowVolatilityMath.sol";
 import { Treasury } from "./Treasury.sol";
 
 // solhint-disable const-name-snakecase
@@ -79,7 +79,7 @@ abstract contract HarvestableTreasury is Treasury {
 
   /// @notice Harvest pending rewards to stability pool.
   function harvest() external {
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.None);
     _updateEMALeverageRatio(_state);
 
     address _baseToken = baseToken;

@@ -8,10 +8,10 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import { IFxMarket } from "../interfaces/f(x)/IFxMarket.sol";
-import { IFxRebalancePoolRegistry } from "../interfaces/f(x)/IFxRebalancePoolRegistry.sol";
-import { IFxReservePool } from "../interfaces/f(x)/IFxReservePool.sol";
-import { IFxTreasury } from "../interfaces/f(x)/IFxTreasury.sol";
+import { IFxMarket } from "../../interfaces/f(x)/IFxMarket.sol";
+import { IFxRebalancePoolRegistry } from "../../interfaces/f(x)/IFxRebalancePoolRegistry.sol";
+import { IFxReservePool } from "../../interfaces/f(x)/IFxReservePool.sol";
+import { IFxTreasury } from "../../interfaces/f(x)/IFxTreasury.sol";
 
 // solhint-disable max-states-count
 

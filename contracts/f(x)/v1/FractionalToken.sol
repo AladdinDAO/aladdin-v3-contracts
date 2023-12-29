@@ -5,7 +5,7 @@ pragma solidity ^0.7.6;
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-import { IFxFractionalToken } from "../interfaces/f(x)/IFxFractionalToken.sol";
+import { IFxFractionalToken } from "../../interfaces/f(x)/IFxFractionalToken.sol";
 
 contract FractionalToken is ERC20Upgradeable, IFxFractionalToken {
   using SafeMathUpgradeable for uint256;

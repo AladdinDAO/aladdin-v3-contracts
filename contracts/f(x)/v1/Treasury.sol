@@ -9,17 +9,17 @@ import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/m
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { ExponentialMovingAverage } from "../common/math/ExponentialMovingAverage.sol";
+import { ExponentialMovingAverage } from "../../common/math/ExponentialMovingAverage.sol";
 
-import { IFxPriceOracle } from "../interfaces/f(x)/IFxPriceOracle.sol";
-import { IAssetStrategy } from "../interfaces/f(x)/IAssetStrategy.sol";
-import { IFxFractionalToken } from "../interfaces/f(x)/IFxFractionalToken.sol";
-import { IFxLeveragedToken } from "../interfaces/f(x)/IFxLeveragedToken.sol";
-import { IFxMarket } from "../interfaces/f(x)/IFxMarket.sol";
-import { IFxRateProvider } from "../interfaces/f(x)/IFxRateProvider.sol";
-import { IFxTreasury } from "../interfaces/f(x)/IFxTreasury.sol";
+import { IFxPriceOracle } from "../../interfaces/f(x)/IFxPriceOracle.sol";
+import { IAssetStrategy } from "../../interfaces/f(x)/IAssetStrategy.sol";
+import { IFxFractionalToken } from "../../interfaces/f(x)/IFxFractionalToken.sol";
+import { IFxLeveragedToken } from "../../interfaces/f(x)/IFxLeveragedToken.sol";
+import { IFxMarket } from "../../interfaces/f(x)/IFxMarket.sol";
+import { IFxRateProvider } from "../../interfaces/f(x)/IFxRateProvider.sol";
+import { IFxTreasury } from "../../interfaces/f(x)/IFxTreasury.sol";
 
-import { StableCoinMath } from "./StableCoinMath.sol";
+import { FxLowVolatilityMath } from "../math/FxLowVolatilityMath.sol";
 
 // solhint-disable no-empty-blocks
 // solhint-disable not-rely-on-time
@@ -28,7 +28,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using SafeMathUpgradeable for uint256;
   using SignedSafeMathUpgradeable for int256;
-  using StableCoinMath for StableCoinMath.SwapState;
+  using FxLowVolatilityMath for FxLowVolatilityMath.SwapState;
   using ExponentialMovingAverage for ExponentialMovingAverage.EMAStorage;
 
   /**********
@@ -200,7 +200,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
 
   /// @inheritdoc IFxTreasury
   function collateralRatio() external view override returns (uint256) {
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.None);
 
     if (_state.baseSupply == 0) return PRECISION;
     if (_state.fSupply == 0 || _state.fNav == 0) return PRECISION * PRECISION;
@@ -219,7 +219,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
       uint256 _xNav
     )
   {
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.None);
 
     _baseNav = _state.baseNav;
     _fNav = _state.fNav;
@@ -236,7 +236,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.MintFToken);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.MintFToken);
     (_maxBaseIn, _maxFTokenMintable) = _state.maxMintableFToken(_newCollateralRatio);
   }
 
@@ -250,7 +250,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
     (_maxBaseIn, _maxXTokenMintable) = _state.maxMintableXToken(_newCollateralRatio);
   }
 
@@ -264,7 +264,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
     (_maxBaseIn, _maxXTokenMintable) = _state.maxMintableXTokenWithIncentive(_newCollateralRatio, _incentiveRatio);
   }
 
@@ -278,7 +278,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
     (_maxBaseOut, _maxFTokenRedeemable) = _state.maxRedeemableFToken(_newCollateralRatio);
   }
 
@@ -292,7 +292,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemXToken);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemXToken);
     (_maxBaseOut, _maxXTokenRedeemable) = _state.maxRedeemableXToken(_newCollateralRatio);
   }
 
@@ -306,7 +306,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   {
     require(_newCollateralRatio > PRECISION, "collateral ratio too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
     (_maxBaseOut, _maxFTokenLiquidatable) = _state.maxLiquidatable(_newCollateralRatio, _incentiveRatio);
   }
 
@@ -343,7 +343,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     address _recipient,
     MintOption _option
   ) external override onlyMarket returns (uint256 _fTokenOut, uint256 _xTokenOut) {
-    StableCoinMath.SwapState memory _state;
+    FxLowVolatilityMath.SwapState memory _state;
 
     if (_option == MintOption.FToken) {
       _state = _loadSwapState(SwapKind.MintFToken);
@@ -386,7 +386,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     uint256 _xTokenIn,
     address _owner
   ) external override onlyMarket returns (uint256 _baseOut) {
-    StableCoinMath.SwapState memory _state;
+    FxLowVolatilityMath.SwapState memory _state;
 
     if (_fTokenIn > 0) {
       _state = _loadSwapState(SwapKind.RedeemFToken);
@@ -416,7 +416,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     uint256 _incentiveRatio,
     address _recipient
   ) external override onlyMarket returns (uint256 _xTokenOut) {
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.MintXToken);
     _updateEMALeverageRatio(_state);
 
     uint256 _fDeltaNav;
@@ -440,7 +440,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     uint256 _incentiveRatio,
     address _owner
   ) external override onlyMarket returns (uint256 _baseOut) {
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.RedeemFToken);
     _updateEMALeverageRatio(_state);
 
     uint256 _fDeltaNav;
@@ -473,7 +473,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
     lastPermissionedPrice = _newPrice;
 
     // update leverage ratio at the end
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.None);
     _updateEMALeverageRatio(_state);
   }
 
@@ -556,7 +556,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   function updateEMASampleInterval(uint24 _sampleInterval) external onlyOwner {
     require(_sampleInterval >= 1 minutes, "EMA sample interval too small");
 
-    StableCoinMath.SwapState memory _state = _loadSwapState(SwapKind.None);
+    FxLowVolatilityMath.SwapState memory _state = _loadSwapState(SwapKind.None);
     _updateEMALeverageRatio(_state);
 
     emaLeverageRatio.sampleInterval = _sampleInterval;
@@ -592,7 +592,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   }
 
   /// @dev Internal function to load swap variable to memory
-  function _loadSwapState(SwapKind _kind) internal view returns (StableCoinMath.SwapState memory _state) {
+  function _loadSwapState(SwapKind _kind) internal view returns (FxLowVolatilityMath.SwapState memory _state) {
     _state.baseSupply = totalBaseToken;
     _state.baseNav = _fetchTwapPrice(_kind);
 
@@ -616,7 +616,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   }
 
   /// @dev Internal function to update ema leverage ratio.
-  function _updateEMALeverageRatio(StableCoinMath.SwapState memory _state) internal {
+  function _updateEMALeverageRatio(FxLowVolatilityMath.SwapState memory _state) internal {
     ExponentialMovingAverage.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
     int256 _lastPermissionedPrice = int256(lastPermissionedPrice);
     int256 _earningRatio = int256(_state.baseNav).sub(_lastPermissionedPrice).mul(PRECISION_I256).div(

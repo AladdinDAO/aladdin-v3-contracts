@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.6;
 
-import { IFxRebalancePool } from "../interfaces/f(x)/IFxRebalancePool.sol";
+import { IFxRebalancePool } from "../../interfaces/f(x)/IFxRebalancePool.sol";
 
 import { HarvestableTreasury } from "./HarvestableTreasury.sol";
 

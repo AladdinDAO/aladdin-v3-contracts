@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
-library StableCoinMath {
+library FxLowVolatilityMath {
   using SafeMathUpgradeable for uint256;
 
   /*************
