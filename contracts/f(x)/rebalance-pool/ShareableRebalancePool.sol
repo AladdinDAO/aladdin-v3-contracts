@@ -266,6 +266,14 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     _supply.updateAt = uint40(block.timestamp);
     _balance.amount += uint104(_amount);
 
+    // @note after checkpoint, the voteOwnerBalances are correct.
+    address _owner = getStakerVoteOwner[_receiver];
+    if (_owner != address(0)) {
+      TokenBalance memory _ownerBalance = voteOwnerBalances[_owner];
+      _ownerBalance.amount += uint104(_amount);
+      voteOwnerBalances[_owner] = _ownerBalance;
+    }
+
     // this is already updated in `_checkpoint(_receiver)`.
     // _balance.updateAt = uint40(block.timestamp);
 
@@ -301,6 +309,14 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
 
       // this is already updated in `_checkpoint(_sender)`.
       // _balance.updateAt = uint40(block.timestamp);
+    }
+
+    // @note after checkpoint, the voteOwnerBalances are correct.
+    address _owner = getStakerVoteOwner[_receiver];
+    if (_owner != address(0)) {
+      TokenBalance memory _ownerBalance = voteOwnerBalances[_owner];
+      _ownerBalance.amount -= uint104(_amount);
+      voteOwnerBalances[_owner] = _ownerBalance;
     }
 
     _recordTotalSupply(_supply);
@@ -590,6 +606,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     TokenBalance memory _ownerBalance;
     if (_owner != address(0)) {
       _ownerBalance = voteOwnerBalances[_owner];
+      // @note the value of `_ownerBalance.updateAt` should never be zero, since it will be updated before this call.
       uint256 prevWeekTs = ((uint256(_ownerBalance.updateAt) + WEEK - 1) / WEEK) * WEEK;
       _ownerBalance.amount = uint104(
         _getCompoundedBalance(_ownerBalance.amount, _ownerBalance.product, _supply.product)

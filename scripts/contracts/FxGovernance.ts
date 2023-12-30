@@ -50,6 +50,7 @@ export interface FxGovernanceDeployment {
   FXN: string;
   veFXN: string;
   VotingEscrowBoost: string;
+  VotingEscrowHelper: string;
   VotingEscrowProxy: string;
   TokenMinter: string;
   GaugeController: string;
@@ -149,6 +150,9 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   // VotingEscrow related contracts
   await deployment.minimalProxyDeploy("veFXN", "veFXN", implementationDeployment.VotingEscrow);
   await deployment.contractDeploy("SmartWalletWhitelist", "SmartWalletWhitelist", "SmartWalletWhitelist", []);
+  await deployment.contractDeploy("VotingEscrowHelper", "VotingEscrowHelper", "VotingEscrowHelper", [
+    deployment.get("veFXN"),
+  ]);
   /*
   await deployment.contractDeploy("VotingEscrowBoost", "VotingEscrowBoost", "VotingEscrowBoost", [
     deployment.get("veFXN"),

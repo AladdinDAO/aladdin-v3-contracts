@@ -530,5 +530,18 @@ describe("ShareableRebalancePool.spec", async () => {
         expect((await rebalancePool.voteOwnerBalances(deployer.address)).amount).to.eq(0n);
       });
     });
+
+    context("#deposit and #withdraw", async () => {
+      await rebalancePool.toggleVoteSharing(signer.address);
+      await rebalancePool.connect(signer).acceptSharedVote(deployer.address);
+      await fToken.connect(deployer).transfer(signer.address, ethers.parseEther("10000"));
+      await fToken.connect(signer).approve(rebalancePool.getAddress(), MaxUint256);
+
+      expect((await rebalancePool.voteOwnerBalances(deployer.address)).amount).to.eq(0n);
+      await rebalancePool.connect(signer).deposit(ethers.parseEther("123"), signer.address);
+      expect((await rebalancePool.voteOwnerBalances(deployer.address)).amount).to.eq(ethers.parseEther("123"));
+      await rebalancePool.connect(signer).withdraw(ethers.parseEther("100"), signer.address);
+      expect((await rebalancePool.voteOwnerBalances(deployer.address)).amount).to.eq(ethers.parseEther("23"));
+    });
   });
 });
