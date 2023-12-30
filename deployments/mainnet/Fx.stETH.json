@@ -31,7 +31,7 @@
   },
   "FxETHTwapOracle": "0xa84360896cE9152d1780c546305BB54125F962d9",
   "ReservePool": "0x5d0Aacf75116d1645Db2B3d1Ca4b303ef0CA3752",
-  "BoostableRebalancePool": {
+  "ShareableRebalancePool": {
     "splitter": "0x79c5f5b0753acE25ecdBdA4c2Bc86Ab074B6c2Bb",
     "implementation": "0x37303d55fD8570c070BEDd9a0e64421f318Bb01b",
     "APool": "0xc6dEe5913e010895F3702bc43a40d661B13a40BD",

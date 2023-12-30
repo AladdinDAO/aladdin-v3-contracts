@@ -181,9 +181,9 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     address _market,
     address _gauge
   ) external initializer {
-    __Context_init(); // from ContextUpgradeable
-    __ERC165_init(); // from ERC165Upgradeable
-    __AccessControl_init(); // from AccessControlUpgradeable
+    // __Context_init(); // from ContextUpgradeable, comment out to reduce codesize
+    // __ERC165_init(); // from ERC165Upgradeable, comment out to reduce codesize
+    // __AccessControl_init(); // from AccessControlUpgradeable, comment out to reduce codesize
     __ReentrancyGuard_init(); // from ReentrancyGuardUpgradeable
 
     __MultipleRewardCompoundingAccumulator_init(); // from MultipleRewardCompoundingAccumulator
@@ -269,9 +269,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     // @note after checkpoint, the voteOwnerBalances are correct.
     address _owner = getStakerVoteOwner[_receiver];
     if (_owner != address(0)) {
-      TokenBalance memory _ownerBalance = voteOwnerBalances[_owner];
-      _ownerBalance.amount += uint104(_amount);
-      voteOwnerBalances[_owner] = _ownerBalance;
+      voteOwnerBalances[_owner].amount += uint104(_amount);
     }
 
     // this is already updated in `_checkpoint(_receiver)`.
@@ -312,11 +310,9 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     }
 
     // @note after checkpoint, the voteOwnerBalances are correct.
-    address _owner = getStakerVoteOwner[_receiver];
+    address _owner = getStakerVoteOwner[_sender];
     if (_owner != address(0)) {
-      TokenBalance memory _ownerBalance = voteOwnerBalances[_owner];
-      _ownerBalance.amount -= uint104(_amount);
-      voteOwnerBalances[_owner] = _ownerBalance;
+      voteOwnerBalances[_owner].amount -= uint104(_amount);
     }
 
     _recordTotalSupply(_supply);

@@ -540,7 +540,7 @@ describe("ShareableRebalancePool.spec", async () => {
       expect((await rebalancePool.voteOwnerBalances(deployer.address)).amount).to.eq(0n);
       await rebalancePool.connect(signer).deposit(ethers.parseEther("123"), signer.address);
       expect((await rebalancePool.voteOwnerBalances(deployer.address)).amount).to.eq(ethers.parseEther("123"));
-      await rebalancePool.connect(signer).withdraw(ethers.parseEther("100"), signer.address);
+      await rebalancePool.connect(signer).withdraw(ethers.parseEther("100"), deployer.address);
       expect((await rebalancePool.voteOwnerBalances(deployer.address)).amount).to.eq(ethers.parseEther("23"));
     });
   });
