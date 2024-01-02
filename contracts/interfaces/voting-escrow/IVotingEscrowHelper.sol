@@ -3,6 +3,13 @@
 pragma solidity ^0.8.0;
 
 interface IVotingEscrowHelper {
+  /**********
+   * Errors *
+   **********/
+
+  /// @dev Thrown when try to checkpoint a future timestamp.
+  error ErrorCheckpointFutureTime();
+
   /*************************
    * Public View Functions *
    *************************/
@@ -21,5 +28,11 @@ interface IVotingEscrowHelper {
    ****************************/
 
   /// @notice Snapshot the state of some user.
+  /// @param account The address of user to checkpoint.
   function checkpoint(address account) external;
+
+  /// @notice Snapshot the state of some user.
+  /// @param account The address of user to checkpoint.
+  /// @param timestamp The timestamp to checkpoint, should not less than current timestamp.
+  function checkpoint(address account, uint256 timestamp) external;
 }

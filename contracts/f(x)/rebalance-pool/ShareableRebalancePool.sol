@@ -262,6 +262,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     // It should never exceed `type(uint104).max`.
     TokenBalance memory _supply = _totalSupply;
     TokenBalance memory _balance = _balances[_receiver];
+    TokenBalance memory _ownerBalance;
     _supply.amount += uint104(_amount);
     _supply.updateAt = uint40(block.timestamp);
     _balance.amount += uint104(_amount);
@@ -269,18 +270,19 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     // @note after checkpoint, the voteOwnerBalances are correct.
     address _owner = getStakerVoteOwner[_receiver];
     if (_owner != address(0)) {
-      voteOwnerBalances[_owner].amount += uint104(_amount);
+      _ownerBalance = voteOwnerBalances[_owner];
+      _ownerBalance.amount += uint104(_amount);
     }
 
     // this is already updated in `_checkpoint(_receiver)`.
     // _balance.updateAt = uint40(block.timestamp);
+    // _ownerBalance.updateAt = uint40(block.timestamp);
 
     _recordTotalSupply(_supply);
-    _totalSupply = _supply;
     _balances[_receiver] = _balance;
 
     // update boost checkpoint at last
-    _updateBoostCheckpoint(_receiver, _balance, _supply);
+    _updateBoostCheckpoint(_receiver, _owner, _balance, _ownerBalance, _supply);
 
     emit Deposit(_sender, _receiver, _amount);
     emit UserDepositChange(_receiver, _balance.amount, 0);
@@ -295,32 +297,32 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
 
     TokenBalance memory _supply = _totalSupply;
     TokenBalance memory _balance = _balances[_sender];
-    if (_amount > _balance.amount) {
-      _amount = _balance.amount;
-    }
+    TokenBalance memory _ownerBalance;
+    if (_amount > _balance.amount) _amount = _balance.amount;
     if (_amount == 0) revert WithdrawZeroAmount();
 
     unchecked {
       _supply.amount -= uint104(_amount);
       _supply.updateAt = uint40(block.timestamp);
       _balance.amount -= uint104(_amount);
-
-      // this is already updated in `_checkpoint(_sender)`.
-      // _balance.updateAt = uint40(block.timestamp);
     }
 
     // @note after checkpoint, the voteOwnerBalances are correct.
     address _owner = getStakerVoteOwner[_sender];
     if (_owner != address(0)) {
-      voteOwnerBalances[_owner].amount -= uint104(_amount);
+      _ownerBalance = voteOwnerBalances[_owner];
+      _ownerBalance.amount -= uint104(_amount);
     }
+
+    // this is already updated in `_checkpoint(_sender)`.
+    // _balance.updateAt = uint40(block.timestamp);
+    // _ownerBalance.updateAt = uint40(block.timestamp);
 
     _recordTotalSupply(_supply);
     _balances[_sender] = _balance;
-    _totalSupply = _supply;
 
     // update boost checkpoint at last
-    _updateBoostCheckpoint(_sender, _balance, _supply);
+    _updateBoostCheckpoint(_sender, _owner, _balance, _ownerBalance, _supply);
 
     IERC20Upgradeable(asset).safeTransfer(_receiver, _amount);
 
@@ -411,6 +413,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     }
 
     address _oldOwner = getStakerVoteOwner[_staker];
+    if (_oldOwner == _newOwner) revert ErrorRepeatAcceptSharedVote();
     if (_oldOwner != address(0)) {
       _revokeVoteSharing(_oldOwner, _staker);
     } else {
@@ -418,20 +421,14 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
       // are on the latest epoch, we can safely to do add or subtract.
       _checkpoint(_staker);
     }
-
-    // update voteOwnerBalances[_newOwner] to latest epoch
-    TokenBalance memory _balance = _balances[_staker];
-    TokenBalance memory _supply = _totalSupply;
-    TokenBalance memory _ownerBalance = voteOwnerBalances[_newOwner];
-    _ownerBalance.amount = uint104(_getCompoundedBalance(_ownerBalance.amount, _ownerBalance.product, _supply.product));
-    _ownerBalance.amount += _balance.amount;
-    _ownerBalance.product = _supply.product;
-    _ownerBalance.updateAt = uint40(block.timestamp);
-
-    voteOwnerBalances[_newOwner] = _ownerBalance;
     getStakerVoteOwner[_staker] = _newOwner;
 
-    _updateBoostCheckpoint(_staker, _balance, _supply);
+    // update boost ratio for staker.
+    TokenBalance memory _balance = _balances[_staker];
+    TokenBalance memory _supply = _totalSupply;
+    TokenBalance memory _ownerBalance = _updateVoteOwnerBalance(_newOwner, _supply);
+    _ownerBalance.amount += _balance.amount;
+    _updateBoostCheckpoint(_staker, _newOwner, _balance, _ownerBalance, _supply);
 
     emit AcceptSharedVote(_staker, address(0), _newOwner);
   }
@@ -500,25 +497,17 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
       _notifyReward(fxn, _minted);
     }
 
-    IVotingEscrowHelper(veHelper).checkpoint(_account);
+    address _owner = getStakerVoteOwner[_account];
+    if (_account != address(0)) {
+      IVotingEscrowHelper(veHelper).checkpoint(_owner == address(0) ? _account : _owner);
+    }
     MultipleRewardCompoundingAccumulator._checkpoint(_account);
 
     if (_account != address(0)) {
-      TokenBalance memory _balance = _balances[_account];
       TokenBalance memory _supply = _totalSupply;
-
-      uint104 _newBalance = uint104(_getCompoundedBalance(_balance.amount, _balance.product, _supply.product));
-      if (_newBalance != _balance.amount) {
-        // no unchecked here, just in case
-        emit UserDepositChange(_account, _newBalance, _balance.amount - _newBalance);
-      }
-
-      _balance.amount = _newBalance;
-      _balance.product = _supply.product;
-      _balance.updateAt = uint40(block.timestamp);
-      _balances[_account] = _balance;
-
-      _updateBoostCheckpoint(_account, _balance, _supply);
+      TokenBalance memory _balance = _updateUserBalance(_account, _supply);
+      TokenBalance memory _ownerBalance = _updateVoteOwnerBalance(_owner, _supply);
+      _updateBoostCheckpoint(_account, _owner, _balance, _ownerBalance, _supply);
     }
   }
 
@@ -582,9 +571,64 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     voteOwnerBalances[_owner] = _ownerBalance;
     getStakerVoteOwner[_staker] = address(0);
 
-    _updateBoostCheckpoint(_staker, _balance, _totalSupply);
+    // @note it is ok to pass a random `_ownerBalance` to this function
+    _updateBoostCheckpoint(_staker, address(0), _balance, _ownerBalance, _totalSupply);
 
     emit AcceptSharedVote(_staker, _owner, address(0));
+  }
+
+  /// @dev Internal function to update the balance of vote owner.
+  /// @param _owner The address of vote owner.
+  /// @param _supply The latest total supply struct.
+  /// @return _balance The updated token balance for vote owner.
+  function _updateVoteOwnerBalance(address _owner, TokenBalance memory _supply)
+    internal
+    virtual
+    returns (TokenBalance memory _balance)
+  {
+    // update `voteOwnerBalances[_owner]` to latest epoch and record history value
+    if (_owner == address(0)) return _balance;
+    _balance = voteOwnerBalances[_owner];
+    // @note the value of `_ownerBalance.updateAt` should never be zero, since it will be updated before this call.
+    uint256 prevWeekTs = _getWeekTs(_balance.updateAt);
+    _balance.amount = uint104(_getCompoundedBalance(_balance.amount, _balance.product, _supply.product));
+    _balance.product = _supply.product;
+    _balance.updateAt = uint40(block.timestamp);
+    voteOwnerBalances[_owner] = _balance;
+
+    // Normally, `prevWeekTs` equals to `nextWeekTs` so we will only sstore 1 time in most of the time.
+    //
+    // When `prevWeekTs < nextWeekTs`, there are some extreme situation that liquidation happens between
+    // `_ownerBalance.updateAt` and `prevWeekTs`, also some time between `prevWeekTs` and `block.timestamp`.
+    // Then we cannot calculate the amount at `prevWeekTs` correctly. Since the situation rarely happens,
+    // it is ok to use `_ownerBalance.amount` only.
+    uint256 nextWeekTs = _getWeekTs(block.timestamp);
+    while (prevWeekTs <= nextWeekTs) {
+      voteOwnerHistoryBalances[_owner][prevWeekTs] = _balance.amount;
+      prevWeekTs += WEEK;
+    }
+  }
+
+  /// @dev Internal function to update the balance of user.
+  /// @param _account The address of user to update.
+  /// @param _supply The latest total supply struct.
+  /// @return _balance The updated token balance for the user.
+  function _updateUserBalance(address _account, TokenBalance memory _supply)
+    internal
+    virtual
+    returns (TokenBalance memory _balance)
+  {
+    _balance = _balances[_account];
+    uint104 _newBalance = uint104(_getCompoundedBalance(_balance.amount, _balance.product, _supply.product));
+    if (_newBalance != _balance.amount) {
+      // no unchecked here, just in case
+      emit UserDepositChange(_account, _newBalance, _balance.amount - _newBalance);
+    }
+
+    _balance.amount = _newBalance;
+    _balance.product = _supply.product;
+    _balance.updateAt = uint40(block.timestamp);
+    _balances[_account] = _balance;
   }
 
   /// @dev Internal function update boost checkpoint for the user.
@@ -593,44 +637,25 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   /// @param _supply The latest total supply struct.
   function _updateBoostCheckpoint(
     address _account,
+    address _owner,
     TokenBalance memory _balance,
+    TokenBalance memory _ownerBalance,
     TokenBalance memory _supply
   ) internal {
-    // update `voteOwnerBalances[_owner]` to latest epoch and record history value
-    address _owner = getStakerVoteOwner[_account];
-    address _veHolder = _owner == address(0) ? _account : _owner;
-    TokenBalance memory _ownerBalance;
-    if (_owner != address(0)) {
-      _ownerBalance = voteOwnerBalances[_owner];
-      // @note the value of `_ownerBalance.updateAt` should never be zero, since it will be updated before this call.
-      uint256 prevWeekTs = ((uint256(_ownerBalance.updateAt) + WEEK - 1) / WEEK) * WEEK;
-      _ownerBalance.amount = uint104(
-        _getCompoundedBalance(_ownerBalance.amount, _ownerBalance.product, _supply.product)
-      );
-      _ownerBalance.product = _supply.product;
-      _ownerBalance.updateAt = uint40(block.timestamp);
-      voteOwnerBalances[_owner] = _ownerBalance;
-
-      // Normally, `prevWeekTs` equals to `nextWeekTs` so we will only sstore 1 time in most of the time.
-      //
-      // When `prevWeekTs < nextWeekTs`, there are some extreme situation that liquidation happens between
-      // `_ownerBalance.updateAt` and `prevWeekTs`, also some time between `prevWeekTs` and `block.timestamp`.
-      // Then we cannot calculate the amount at `prevWeekTs` correctly. Since the situation rarely happens,
-      // it is ok to use `_ownerBalance.amount` only.
-      uint256 nextWeekTs = ((block.timestamp + WEEK - 1) / WEEK) * WEEK;
-      while (prevWeekTs <= nextWeekTs) {
-        voteOwnerHistoryBalances[_owner][prevWeekTs] = _ownerBalance.amount;
-        prevWeekTs += 1;
-      }
-    } else {
+    if (_owner == address(0)) {
       _ownerBalance = _balance;
+      _owner = _account;
+    } else {
+      voteOwnerBalances[_owner] = _ownerBalance;
+      uint256 nextWeekTs = _getWeekTs(block.timestamp);
+      voteOwnerHistoryBalances[_owner][nextWeekTs] = _ownerBalance.amount;
     }
 
     uint256 _ratio = _computeBoostRatio(
       _ownerBalance.amount,
       _balance.amount,
       _supply.amount,
-      IVotingEscrow(ve).balanceOf(_veHolder),
+      IVotingEscrow(ve).balanceOf(_owner),
       IVotingEscrow(ve).totalSupply()
     );
     boostCheckpoint[_account] = BoostCheckpoint(uint64(_ratio), uint64(numTotalSupplyHistory));
@@ -664,7 +689,6 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     _supply.updateAt = uint40(block.timestamp);
 
     _recordTotalSupply(_supply);
-    _totalSupply = _supply;
   }
 
   /// @dev Internal function to record the historical total supply.
@@ -672,13 +696,13 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   function _recordTotalSupply(TokenBalance memory _supply) internal {
     unchecked {
       uint256 _numTotalSupplyHistory = numTotalSupplyHistory;
-      TokenBalance memory _last = totalSupplyHistory[_numTotalSupplyHistory - 1];
-      if (_last.updateAt == _supply.updateAt) {
+      if (totalSupplyHistory[_numTotalSupplyHistory - 1].updateAt == _supply.updateAt) {
         totalSupplyHistory[_numTotalSupplyHistory - 1] = _supply;
       } else {
         totalSupplyHistory[_numTotalSupplyHistory] = _supply;
         numTotalSupplyHistory = _numTotalSupplyHistory + 1;
       }
+      _totalSupply = _supply;
     }
   }
 
@@ -754,7 +778,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     uint256 _currentRatio = _boostCheckpoint.boostRatio;
     uint256 _prevTs = _balance.updateAt;
     // compute the time weighted boost from _balance.updateAt to now.
-    uint256 _nowTs = ((_prevTs + WEEK - 1) / WEEK) * WEEK;
+    uint256 _nowTs = _getWeekTs(_prevTs);
     for (uint256 i = 0; i < 256; ++i) {
       // it is more than 4 years, should be enough
       if (_nowTs > block.timestamp) _nowTs = block.timestamp;
@@ -801,6 +825,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     return (_computeBoostRatio(_ownerBalance, _realBalance, _supply.amount, _veBalance, _veSupply), startIndex);
   }
 
+  /// @dev Internal function to compute boost ratio with given parameters.
   function _computeBoostRatio(
     uint256 _ownerBalance,
     uint256 _balance,
@@ -808,19 +833,29 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     uint256 _veBalance,
     uint256 _veSupply
   ) internal pure returns (uint256) {
-    if (_balance == 0) return (PRECISION * 4) / 10;
+    unchecked {
+      if (_balance == 0) return (PRECISION * 4) / 10;
 
-    // Compute boost ratio with Curve's rule: min(balance, balance * 0.4 + 0.6 * veBalance * supply / veSupply) / balance
-    uint256 _boostedBalance = (_ownerBalance * 4) / 10;
-    if (_veSupply > 0) {
-      _boostedBalance += (((_veBalance * _supply) / _veSupply) * 6) / 10;
+      // Compute boost ratio with Curve's rule: min(balance, balance * 0.4 + 0.6 * veBalance * supply / veSupply) / balance
+      uint256 _boostedBalance = (_ownerBalance * 4) / 10;
+      if (_veSupply > 0) {
+        _boostedBalance += (((_veBalance * _supply) / _veSupply) * 6) / 10;
+      }
+      _boostedBalance = (_boostedBalance * _balance) / _ownerBalance;
+
+      if (_boostedBalance > _balance) {
+        _boostedBalance = _balance;
+      }
+
+      return (_boostedBalance * PRECISION) / _balance;
     }
-    _boostedBalance = (_boostedBalance * _balance) / _ownerBalance;
+  }
 
-    if (_boostedBalance > _balance) {
-      _boostedBalance = _balance;
+  /// @dev Internal function to compute the smallest week aligned timestamp after given timestamp.
+  /// @param timestamp The given timestamp.
+  function _getWeekTs(uint256 timestamp) internal pure returns (uint256) {
+    unchecked {
+      return ((timestamp + WEEK - 1) / WEEK) * WEEK;
     }
-
-    return (_boostedBalance * PRECISION) / _balance;
   }
 }

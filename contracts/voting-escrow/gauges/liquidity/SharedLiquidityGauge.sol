@@ -92,6 +92,8 @@ contract SharedLiquidityGauge is LiquidityGauge, ISharedLiquidityGauge {
     }
 
     address _oldOwner = _stakerVoteOwner[_staker];
+    if (_oldOwner == _newOwner) revert ErrorRepeatAcceptSharedVote();
+
     uint256 _balance = balanceOf(_staker);
     if (_oldOwner != address(0)) {
       unchecked {

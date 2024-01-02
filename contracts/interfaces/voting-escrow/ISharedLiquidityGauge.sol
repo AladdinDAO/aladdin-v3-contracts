@@ -41,6 +41,9 @@ interface ISharedLiquidityGauge is ILiquidityGauge {
   /// @dev Thrown when staker try to reject a non-existed vote sharing.
   error NoAcceptedSharedVote();
 
+  /// @dev Thrown when staker try to accept twice.
+  error ErrorRepeatAcceptSharedVote();
+
   /*************************
    * Public View Functions *
    *************************/

@@ -69,7 +69,7 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
     require(week >= start, "VotingEscrow not ready");
 
     (uint256 nowEpoch, IVotingEscrow.Point memory nowPoint) = _binarySearchSupplyPoint(week, 1, epoch);
-    _supply[week] = Balance(uint128(_computeValue(nowPoint, week)), uint128(nowEpoch));
+    _supply[week] = Balance(uint128(_veSupplyAt(nowPoint, week)), uint128(nowEpoch));
   }
 
   /*************************
@@ -92,7 +92,7 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
     } else {
       (, point) = _binarySearchSupplyPoint(timestamp, 1, IVotingEscrow(ve).epoch());
     }
-    return _computeValue(point, timestamp);
+    return _veSupplyAt(point, timestamp);
   }
 
   /// @inheritdoc IVotingEscrowHelper
@@ -116,7 +116,7 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
     } else {
       (, point) = _binarySearchBalancePoint(account, timestamp, 1, epoch);
     }
-    return _computeValue(point, timestamp);
+    return _veBalanceAt(point, timestamp);
   }
 
   /****************************
@@ -127,6 +127,29 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
   function checkpoint(address account) external override {
     // checkpoint supply
     uint256 week = (block.timestamp / WEEK) * WEEK;
+    _checkpoint(account, week);
+  }
+
+  /// @inheritdoc IVotingEscrowHelper
+  function checkpoint(address account, uint256 timestamp) external override {
+    if (timestamp > block.timestamp) revert ErrorCheckpointFutureTime();
+
+    // checkpoint supply
+    uint256 week = (timestamp / WEEK) * WEEK;
+    _checkpoint(account, week);
+  }
+
+  /**********************
+   * Internal Functions *
+   **********************/
+
+  /// @dev Internal function to checkpoint ve balance and supply at timestamp week.
+  /// @param account The address of user to checkpoint.
+  /// @param week The timestamp to checkpoint, should not less than current timestamp.
+  function _checkpoint(address account, uint256 week) internal {
+    IVotingEscrow(ve).checkpoint();
+
+    // checkpoint supply
     Balance memory nowSupply = _supply[week];
     if (nowSupply.epoch == 0) {
       Balance memory prevSupply = _supply[week - WEEK];
@@ -138,12 +161,13 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
         (epoch, point) = _binarySearchSupplyPoint(week, prevSupply.epoch, IVotingEscrow(ve).epoch());
       }
 
-      nowSupply.value = uint128(_computeValue(point, week));
+      nowSupply.value = uint128(_veSupplyAt(point, week));
       nowSupply.epoch = uint128(epoch);
       _supply[week] = nowSupply;
     }
 
-    // checkpoint balance
+    // checkpoint balance for nonzero address
+    if (account == address(0)) return;
     uint256 userPointEpoch = IVotingEscrow(ve).user_point_epoch(account);
     if (userPointEpoch == 0) return;
 
@@ -158,15 +182,15 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
         (epoch, point) = _binarySearchBalancePoint(account, week, prevBalance.epoch, userPointEpoch);
       }
 
-      nowBalance.value = uint128(_computeValue(point, week));
+      // @note `week < point.ts` can happen if user create lock after week timestamp
+      if (week >= point.ts) {
+        nowBalance.value = uint128(_veBalanceAt(point, week));
+      }
+
       nowBalance.epoch = uint128(epoch);
       _balances[account][week] = nowBalance;
     }
   }
-
-  /**********************
-   * Internal Functions *
-   **********************/
 
   /// @dev Internal function to find largest `epoch` belongs to `[startEpoch, endEpoch]` and
   /// `ve.point_history(epoch) <= timestamp`.
@@ -238,10 +262,35 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
     }
   }
 
-  /// @dev Internal function to compute the value. Caller should make sure `timestamp` is not less than `point.ts`.
+  /// @dev Internal function to compute the ve supply. Caller should make sure `timestamp` is not less than `point.ts`.
   /// @param point The point for ve.
   /// @param timestamp The timestamp to compute.
-  function _computeValue(IVotingEscrow.Point memory point, uint256 timestamp) internal pure returns (uint256) {
+  function _veSupplyAt(IVotingEscrow.Point memory point, uint256 timestamp) internal view returns (uint256) {
+    int256 bias = point.bias;
+    int256 slope = point.slope;
+    uint256 last = point.ts;
+    uint256 ti = (last / WEEK) * WEEK;
+    while (true) {
+      ti += WEEK;
+      int128 dslope = 0;
+      if (ti > timestamp) ti = timestamp;
+      else {
+        dslope = IVotingEscrow(ve).slope_changes(ti);
+      }
+      bias -= slope * int256(ti - last);
+      if (ti == timestamp) break;
+      slope += dslope;
+      last = ti;
+    }
+    if (bias < 0) bias = 0; // the lock has expired, only happens when it is the last point
+
+    return uint256(int256(bias));
+  }
+
+  /// @dev Internal function to compute the ve balance. Caller should make sure `timestamp` is not less than `point.ts`.
+  /// @param point The point for ve.
+  /// @param timestamp The timestamp to compute.
+  function _veBalanceAt(IVotingEscrow.Point memory point, uint256 timestamp) internal pure returns (uint256) {
     int256 bias = point.bias - point.slope * int256(timestamp - point.ts);
     if (bias < 0) bias = 0; // the lock has expired, only happens when it is the last point
 

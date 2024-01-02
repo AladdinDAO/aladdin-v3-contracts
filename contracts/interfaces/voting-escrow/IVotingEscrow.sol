@@ -52,6 +52,9 @@ interface IVotingEscrow {
   /// @return User voting power
   function balanceOf(address addr) external view returns (uint256);
 
+  /// @notice time -> signed slope change
+  function slope_changes(uint256 week) external view returns (int128);
+
   /****************************
    * Public Mutated Functions *
    ****************************/
@@ -80,4 +83,7 @@ interface IVotingEscrow {
   /// @notice Withdraw all tokens for `msg.sender`
   /// @dev Only possible if the lock has expired
   function withdraw() external;
+
+  /// @notice Record global data to checkpoint
+  function checkpoint() external;
 }

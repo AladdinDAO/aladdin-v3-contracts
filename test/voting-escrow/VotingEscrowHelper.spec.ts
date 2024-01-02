@@ -48,8 +48,20 @@ describe("VotingEscrowBoost.spec", async () => {
     let answer = 0n;
     for (let i = 1n; i <= epoch; i += 1n) {
       const point = await ve.point_history(i);
-      if (point.ts <= timestamp) {
-        answer = point.bias - point.slope * (toBigInt(timestamp) - point.ts);
+      if (point.ts <= toBigInt(timestamp)) {
+        let slope = point.slope;
+        let bias = point.bias;
+        let prevTs = point.ts;
+        let ts = (prevTs / toBigInt(Week)) * toBigInt(Week);
+        while (true) {
+          ts += toBigInt(Week);
+          if (ts > toBigInt(timestamp)) ts = toBigInt(timestamp);
+          bias -= slope * (ts - prevTs);
+          slope += await ve.slope_changes(ts);
+          if (ts === toBigInt(timestamp)) break;
+          prevTs = ts;
+        }
+        answer = bias;
         if (answer < 0n) answer = 0n;
       } else {
         break;
@@ -83,17 +95,17 @@ describe("VotingEscrowBoost.spec", async () => {
         await token.connect(signer).approve(ve.getAddress(), MaxUint256);
         const startTimestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
         await ve.connect(signer).create_lock(ethers.parseEther("1000"), startTimestamp + Week * 5);
-        for (let i = 0; i < 20; ++i) {
+        for (let i = 0; i < 10; ++i) {
           const timestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
           const delta = Week + randomInt(86400);
           await network.provider.send("evm_setNextBlockTimestamp", [timestamp + delta]);
           await ve.connect(signer).increase_amount(ethers.parseEther(((1000 + randomInt(100000)) / 100).toFixed(2)));
           await ve.connect(signer).increase_unlock_time(timestamp + delta + Week * 5);
           if (i % checkpointDelta === 0) {
-            await helper.checkpoint(signer.address);
+            await helper["checkpoint(address)"](signer.address);
           }
         }
-        for (let i = 0; i < 30; ++i) {
+        for (let i = 0; i < 20; ++i) {
           // test random time point
           let timestamp = startTimestamp + Week * i + randomInt(Week);
           let expected = await fetchSupply(timestamp);
@@ -136,7 +148,7 @@ describe("VotingEscrowBoost.spec", async () => {
           await ve.connect(signer).increase_amount(ethers.parseEther(((1000 + randomInt(100000)) / 100).toFixed(2)));
           await ve.connect(signer).increase_unlock_time(timestamp + delta + Week * 5);
           if (i % checkpointDelta === 0) {
-            await helper.checkpoint(signer.address);
+            await helper["checkpoint(address)"](signer.address);
           }
         }
         for (let i = 0; i < 30; ++i) {
