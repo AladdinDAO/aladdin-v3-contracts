@@ -130,11 +130,15 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
 TOKENS["CURVE_BASE_DAI/USDC/USDT"] = { decimals: 18, address: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490" };
 TOKENS["CURVE_BASE_ETH/stETH"] = { decimals: 18, address: "0x06325440D014e39736583c165C2963BA99fAf14E" };
 TOKENS["CURVE_BASE_ETH/frxETH"] = { decimals: 18, address: "0xf43211935C781D5ca1a41d2041F397B8A7366C7A" };
-// Curve Plain Factory LP
+// Curve Plain Factory LP, including
+// 1. old factory: 0xB9fC157394Af804a3578134A6585C0dc9cc990d4
+// 2. crvUSD factory: 0x4F8846Ae9380B90d2E71D5e3D042dff3E7ebb40d
+// 3. stable-ng factory: 0x6A8cbed756804B16E05E741eDaBd5cB544AE21bf
 TOKENS["CURVE_PLAIN_WETH/stETH_117"] = { decimals: 18, address: "0x828b154032950C8ff7CF8085D841723Db2696056" };
 TOKENS["CURVE_PLAIN_ETH/stETH_303"] = { decimals: 18, address: "0x21E27a5E5513D6e65C4f830167390997aA84843a" };
 TOKENS["CURVE_PLAIN_FXN/cvxFXN_358"] = { decimals: 18, address: "0x1062FD8eD633c1f080754c19317cb3912810B5e5" };
 TOKENS["CURVE_PLAIN_FXN/sdFXN_359"] = { decimals: 18, address: "0x28Ca243dc0aC075dD012fCf9375C25D18A844d96" };
+TOKENS["CURVE_CRVUSD_WETH/frxETH_15"] = { decimals: 18, address: "0x9c3B46C0Ceb5B9e304FCd6D88Fc50f7DD24B31Bc" };
 // Curve Crypto LP (including factory pools)
 TOKENS["CURVE_CRYPTO_crvUSD/fETH_299"] = { decimals: 18, address: "0x19033d99A7b7010157b81e5eE5A8E63A583fB735" };
 TOKENS["CURVE_CRYPTO_fETH/FRAXBP_301"] = { decimals: 18, address: "0x3d28f9192E34e51414e69FBEE5b11B35590FB9Fb" };

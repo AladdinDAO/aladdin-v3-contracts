@@ -2,6 +2,7 @@ import { network } from "hardhat";
 import { toBigInt } from "ethers";
 
 import { ensureDeployer } from "@/contracts/helpers";
+import * as ConcentratorCvxCrv from "@/contracts/ConcentratorCvxCrv";
 import * as ConcentratorCVX from "@/contracts/ConcentratorCVX";
 import * as ConcentratorFrxETH from "@/contracts/ConcentratorFrxETH";
 import * as ConcentratorStakeDAO from "@/contracts/ConcentratorStakeDAO";
@@ -18,6 +19,11 @@ async function main() {
   const deployer = await ensureDeployer(network.name);
 
   const cmd = process.env.CMD;
+  if (cmd === "cvxcrv") {
+    const cvx = await ConcentratorCvxCrv.deploy(deployer, overrides);
+    await ConcentratorCvxCrv.initialize(deployer, cvx, overrides);
+  }
+
   if (cmd === "cvx") {
     showConverterRoute("aCVX", "aCRV");
     const cvx = await ConcentratorCVX.deploy(deployer, overrides);
