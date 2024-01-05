@@ -3507,6 +3507,82 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
+  "WETH/frxETH": {
+    token: "CURVE_CRVUSD_WETH/frxETH_15",
+    composition: "WETH+frxETH",
+    convexCurveID: 219,
+    convexFraxID: 63,
+    rewarder: "0xFafDE12dC476C4913e29F47B4747860C148c5E4f",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {
+      WETH: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          0,
+          0,
+          Action.Add
+        ),
+      ],
+      frxETH: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          1,
+          1,
+          Action.Add
+        ),
+      ],
+      // USDC ==(UniV3)==> WETH
+      USDC: [
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+        encodePoolHintV2(
+          ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          0,
+          0,
+          Action.Add
+        ),
+      ],
+    },
+    withdraw: {
+      WETH: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          0,
+          0,
+          Action.Remove
+        ),
+      ],
+      frxETH: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          1,
+          1,
+          Action.Remove
+        ),
+      ],
+      // WETH ==(UniV3)==> USDC
+      USDC: [
+        encodePoolHintV2(
+          ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+          PoolType.CurveFactoryPlainPool,
+          2,
+          0,
+          0,
+          Action.Remove
+        ),
+        encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      ],
+    },
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -3606,6 +3682,7 @@ export const DEPLOYED_VAULTS: {
     { name: "USDT/WBTC/ETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 64
     { name: "ETH/stETH-ng", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 65
     { name: "FXS/cvxFXS", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 66
+    { name: "WETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 67
   ],
   aFXS: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 0
