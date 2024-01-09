@@ -370,6 +370,22 @@ const POOL_FORK_CONFIG: {
     amount: "100",
     harvest: true,
   },
+  "FRAX/pyUSD": {
+    height: 18966650,
+    pid: 68,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0x5180db0237291A6449DdA9ed33aD90a38787621c",
+    amount: "10",
+    harvest: false,
+  },
+  "FRAX/sDAI": {
+    height: 18966650,
+    pid: 68,
+    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
+    holder: "0xC6EF452b0de9E95Ccb153c2A5A7a90154aab3419",
+    amount: "100",
+    harvest: true,
+  },
 };
 
 const BOOSTER = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
