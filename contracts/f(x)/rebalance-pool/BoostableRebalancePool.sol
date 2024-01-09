@@ -238,11 +238,15 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   /// @inheritdoc IFxBoostableRebalancePool
   function deposit(uint256 _amount, address _receiver) external override {
     address _sender = _msgSender();
+    
     // transfer asset token to this contract
     address _asset = asset;
-    if (_amount == type(uint256).max) {
-      _amount = IERC20Upgradeable(_asset).balanceOf(_sender);
+    uint256 _senderBalance = IERC20Upgradeable(_asset).balanceOf(_sender);
+
+    if (_amount > _senderBalance) {
+      _amount = _senderBalance;
     }
+
     if (_amount == 0) revert DepositZeroAmount();
     IERC20Upgradeable(_asset).safeTransferFrom(_sender, address(this), _amount);
 
