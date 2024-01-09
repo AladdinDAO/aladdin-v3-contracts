@@ -8,6 +8,7 @@ export interface ConverterDeployment {
   ConverterRegistry: string;
   GeneralTokenConverter: string;
   LidoConverter: string;
+  MultiPathConverter: string;
 }
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<ConverterDeployment> {
@@ -21,6 +22,10 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
 
   await deployment.contractDeploy("LidoConverter", "LidoConverter", "LidoConverter", [
     deployment.get("ConverterRegistry"),
+  ]);
+
+  await deployment.contractDeploy("MultiPathConverter", "MultiPathConverter", "MultiPathConverter", [
+    deployment.get("GeneralTokenConverter"),
   ]);
 
   return deployment.toObject() as ConverterDeployment;

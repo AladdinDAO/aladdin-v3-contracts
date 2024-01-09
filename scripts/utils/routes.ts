@@ -1,6 +1,8 @@
+import assert from "assert";
 import { ADDRESS } from "./address";
 import { Action, decodePoolV3, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3 } from "./codec";
 import { TOKENS } from "./tokens";
+import { toBigInt } from "ethers";
 
 export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
   ALCX: {
@@ -655,6 +657,26 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
     FXN: [encodePoolHintV3(ADDRESS["CURVE_ETH/FXN_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
   },
 };
+
+export function encodeMultiPath(
+  paths: bigint[][],
+  parts: bigint[]
+): {
+  encoding: bigint;
+  routes: bigint[];
+} {
+  assert(parts.length === paths.length, "mismatch array length");
+  const sum = parts.reduce((sum, v) => sum + v, 0n);
+  const routes = [];
+  let encoding = 0n;
+  for (let i = 0; i < parts.length; ++i) {
+    const ratio = (parts[i] * toBigInt(0xfffff)) / sum;
+    const length = toBigInt(paths[i].length);
+    encoding |= ((length << 20n) | ratio) << toBigInt(i * 32);
+    routes.push(...paths[i]);
+  }
+  return { encoding, routes };
+}
 
 export function showConverterRoute(src: string, dst: string, space?: number) {
   const routes = CONVERTER_ROUTRS[src][dst];
