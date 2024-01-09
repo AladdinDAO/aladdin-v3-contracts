@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Command } from "commander";
-import { toBigInt } from "ethers";
+import { ZeroAddress, toBigInt } from "ethers";
 import * as hre from "hardhat";
 import "@nomicfoundation/hardhat-ethers";
 
@@ -8,10 +8,17 @@ import { ConcentratorStakeDAODeployment } from "@/contracts/ConcentratorStakeDAO
 import { MultisigDeployment } from "@/contracts/Multisig";
 import { abiDecode } from "@/contracts/helpers";
 
-import { same } from "@/utils/address";
-import { selectDeployments } from "@/utils/deploys";
-import { ZAP_ROUTES } from "@/utils/routes";
-import { TOKENS } from "@/utils/tokens";
+import { SdCRVBribeBurnerV2 } from "@/types/index";
+import {
+  Action,
+  ADDRESS,
+  encodeMultiPath,
+  encodePoolHintV3,
+  PoolTypeV3,
+  same,
+  selectDeployments,
+  TOKENS,
+} from "@/utils/index";
 
 import { loadParams } from "./config";
 
@@ -34,6 +41,42 @@ const symbol2ids: { [symbol: string]: string } = {
   SDT: "stake-dao",
 };
 
+async function getSwapData(
+  src: string,
+  dst: string,
+  amountIn: bigint,
+  minOut: bigint
+): Promise<SdCRVBribeBurnerV2.ConvertParamsStruct> {
+  // @note should change before actually call
+  const converter = await ethers.getContractAt("MultiPathConverter", "0x4F96fe476e7dcD0404894454927b9885Eb8B57c3");
+  if (same(src, dst)) return { target: ZeroAddress, data: "0x", minOut };
+  if (same(src, TOKENS.sdCRV.address)) {
+    if (same(dst, TOKENS.SDT.address)) {
+      const path1 = [
+        // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV2)==> SDT
+        encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+        encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
+        encodePoolHintV3(ADDRESS.SDT_WETH_UNIV2, PoolTypeV3.UniswapV2, 2, 1, 0, Action.Swap, { fee_num: 997000 }),
+      ];
+      const path2 = [
+        // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV2)==> SDT
+        encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+        encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
+        encodePoolHintV3(ADDRESS.SDT_WETH_PancakeV3_2500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {
+          fee_num: 2500,
+        }),
+      ];
+      const encoding = encodeMultiPath([path1, path2], [16n, 84n]);
+      return {
+        target: await converter.getAddress(),
+        data: converter.interface.encodeFunctionData("convert", [src, amountIn, encoding.encoding, encoding.routes]),
+        minOut,
+      };
+    }
+  }
+  return { target: ZeroAddress, data: "0x", minOut };
+}
+
 async function main(round: string) {
   const multisig = selectDeployments("mainnet", "Multisig").toObject() as MultisigDeployment;
   const deployment = selectDeployments("mainnet", "Concentrator.StakeDAO").toObject() as ConcentratorStakeDAODeployment;
@@ -50,13 +93,22 @@ async function main(round: string) {
   }
 
   const [deployer] = await ethers.getSigners();
-  const vault = await ethers.getContractAt("StakeDAOCRVVault", deployment.StakeDAOCRVVault.proxy, deployer);
-  const locker = await ethers.getContractAt("StakeDAOLockerProxy", deployment.StakeDAOLockerProxy.proxy, deployer);
+  const wrapper = await ethers.getContractAt(
+    "ConcentratorSdCrvGaugeWrapper",
+    deployment.ConcentratorSdCrvGaugeWrapper.proxy,
+    deployer
+  );
+  const locker = await ethers.getContractAt(
+    "ConcentratorStakeDAOLocker",
+    deployment.ConcentratorStakeDAOLocker.proxy,
+    deployer
+  );
   const stash = await ethers.getContractAt("IMultiMerkleStash", STASH, deployer);
-  const burner = await ethers.getContractAt("SdCRVBribeBurner", deployment.SdCRVBribeBurner, deployer);
+  const burner = await ethers.getContractAt("SdCRVBribeBurnerV2", deployment.SdCRVBribeBurnerV2, deployer);
   const priceSDT = prices.SDT;
   const priceCRV = prices.CRV;
-  const fee = await vault.feeInfo();
+  const expenseRatio = await wrapper.getExpenseRatio();
+  const boosterRatio = await wrapper.getBoosterRatio();
 
   console.log("Harvest Round:", round);
   const claimParams = loadParams(round);
@@ -70,8 +122,8 @@ async function main(round: string) {
     );
 
     const amount = toBigInt(item.amount);
-    const platformFee = (amount * fee.platformPercentage) / toBigInt(1e7);
-    const boostFee = (amount * fee.boostPercentage) / toBigInt(1e7);
+    const platformFee = (amount * expenseRatio) / toBigInt(1e9);
+    const boostFee = (amount * boosterRatio) / toBigInt(1e9);
     if (symbol === "SDT") {
       console.log(
         `  + treasury[${ethers.formatEther(platformFee)} SDT]`,
@@ -107,18 +159,19 @@ async function main(round: string) {
 
   const root = await stash.merkleRoot.staticCall(claimParams[0].token);
   if (!(await locker.claimed(claimParams[0].token, root))) {
-    console.log("data:", vault.interface.encodeFunctionData("harvestBribes", [claimParams]));
+    const data = wrapper.interface.encodeFunctionData("harvestBribes", [claimParams]);
+    console.log("data:", data);
     const gasEstimate = await ethers.provider.estimateGas({
       from: KEEPER,
-      to: deployment.StakeDAOCRVVault.proxy,
-      data: vault.interface.encodeFunctionData("harvestBribes", [claimParams]),
+      to: await wrapper.getAddress(),
+      data,
     });
     console.log("gas estimate:", gasEstimate.toString());
   }
 
   if (KEEPER === deployer.address) {
     if (!(await locker.claimed(claimParams[0].token, root))) {
-      const tx = await vault.harvestBribes(claimParams);
+      const tx = await wrapper.harvestBribes(claimParams);
       console.log("waiting for tx:", tx.hash);
       const receipt = await tx.wait();
       console.log("confirmed, gas used:", receipt!.gasUsed.toString());
@@ -155,8 +208,8 @@ async function main(round: string) {
           ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
         )[0][0];
         const amount = toBigInt(item.amount);
-        const platformFee = (amount * fee.platformPercentage) / toBigInt(1e7);
-        const boostFee = (amount * fee.boostPercentage) / toBigInt(1e7);
+        const platformFee = (amount * expenseRatio) / toBigInt(1e9);
+        const boostFee = (amount * boosterRatio) / toBigInt(1e9);
 
         const amountSDT = ethers.parseEther(
           ((parseFloat(ethers.formatUnits(boostFee, TOKENS[symbol].decimals)) * prices[symbol]) / priceSDT).toFixed(18)
@@ -169,18 +222,15 @@ async function main(round: string) {
           ).toFixed(18)
         );
 
-        console.log(`Burn token[${symbol}] address[${item.token}] to SDT`);
-        const minSDT = (amountSDT * 98n) / 100n;
+        console.log(`Burn token[${symbol}] address[${item.token}] to SDT/CRV`);
+        const minSDT = (amountSDT * 99n) / 100n;
         const minCRV = (amountCRV * 99n) / 100n;
-        const gas = await burner.burn.estimateGas(
-          item.token,
-          ZAP_ROUTES[symbol].SDT,
-          minSDT,
-          ZAP_ROUTES[symbol].CRV,
-          minCRV
-        );
-        const tx = await burner.burn(item.token, ZAP_ROUTES[symbol].SDT, minSDT, ZAP_ROUTES[symbol].CRV, minCRV, {
-          gasLimit: (gas * 12n) / 10n,
+        const routeSDT = await getSwapData(item.token, TOKENS.SDT.address, boostFee, minSDT);
+        const routeCRV = await getSwapData(item.token, TOKENS.CRV.address, amount - platformFee - boostFee, minCRV);
+        const gasEstimate = await burner.burn.estimateGas(item.token, routeSDT, routeCRV);
+        console.log("  gas estimate:", gasEstimate.toString());
+        const tx = await burner.burn(item.token, routeSDT, routeCRV, {
+          gasLimit: (gasEstimate * 12n) / 10n,
         });
         console.log("  waiting for tx:", tx.hash);
         const receipt = await tx.wait();
@@ -195,28 +245,28 @@ async function main(round: string) {
             const [value] = abiDecode(["uint256"], log.data);
             if (
               same(log.address, item.token) &&
-              same(from, deployment.SdCRVBribeBurner) &&
+              same(from, deployment.SdCRVBribeBurnerV2) &&
               same(to, multisig.Concentrator)
             ) {
               treasuryAmount = value;
             }
             if (
               same(log.address, TOKENS.SDT.address) &&
-              same(from, deployment.SdCRVBribeBurner) &&
+              same(from, deployment.SdCRVBribeBurnerV2) &&
               same(to, deployment.VeSDTDelegation.proxy)
             ) {
               delegationAmount = value;
             }
             if (
               same(log.address, TOKENS.CRV.address) &&
-              same(from, deployment.SdCRVBribeBurner) &&
+              same(from, deployment.SdCRVBribeBurnerV2) &&
               same(to, deployment.StakeDAOCRVVault.proxy)
             ) {
               stakerAmount = value;
             }
             if (
               same(log.address, TOKENS.sdCRV.address) &&
-              same(from, deployment.SdCRVBribeBurner) &&
+              same(from, deployment.SdCRVBribeBurnerV2) &&
               same(to, deployment.StakeDAOCRVVault.proxy)
             ) {
               stakerAmount = value;

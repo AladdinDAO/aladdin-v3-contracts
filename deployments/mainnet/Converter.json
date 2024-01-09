@@ -1,5 +1,6 @@
 {
   "ConverterRegistry": "0x997B6F43c1c1e8630d03B8E3C11B60E98A1beA90",
   "GeneralTokenConverter": "0x11C907b3aeDbD863e551c37f21DD3F36b28A6784",
-  "LidoConverter": "0xFFD43edCcec1c27091cB2Aef57b313037E135987"
+  "LidoConverter": "0xFFD43edCcec1c27091cB2Aef57b313037E135987",
+  "MultiPathConverter": "0x4F96fe476e7dcD0404894454927b9885Eb8B57c3"
 }
