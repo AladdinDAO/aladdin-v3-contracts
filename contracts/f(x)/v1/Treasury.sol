@@ -9,7 +9,7 @@ import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/m
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { ExponentialMovingAverage } from "../../common/math/ExponentialMovingAverage.sol";
+import { ExponentialMovingAverageV7 } from "../../common/math/ExponentialMovingAverageV7.sol";
 
 import { IFxPriceOracle } from "../../interfaces/f(x)/IFxPriceOracle.sol";
 import { IAssetStrategy } from "../../interfaces/f(x)/IAssetStrategy.sol";
@@ -29,7 +29,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   using SafeMathUpgradeable for uint256;
   using SignedSafeMathUpgradeable for int256;
   using FxLowVolatilityMath for FxLowVolatilityMath.SwapState;
-  using ExponentialMovingAverage for ExponentialMovingAverage.EMAStorage;
+  using ExponentialMovingAverageV7 for ExponentialMovingAverageV7.EMAStorage;
 
   /**********
    * Events *
@@ -129,7 +129,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   address public rateProvider;
 
   /// @notice The ema storage of the leverage ratio.
-  ExponentialMovingAverage.EMAStorage public emaLeverageRatio;
+  ExponentialMovingAverageV7.EMAStorage public emaLeverageRatio;
 
   /// @dev Slots for future use.
   uint256[37] private _gap;
@@ -183,7 +183,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
   }
 
   function initializeV2(uint24 sampleInterval) external {
-    ExponentialMovingAverage.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
+    ExponentialMovingAverageV7.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
     require(cachedEmaLeverageRatio.lastTime == 0, "v2 initialized");
 
     cachedEmaLeverageRatio.lastTime = uint40(block.timestamp);
@@ -617,7 +617,7 @@ contract Treasury is OwnableUpgradeable, IFxTreasury {
 
   /// @dev Internal function to update ema leverage ratio.
   function _updateEMALeverageRatio(FxLowVolatilityMath.SwapState memory _state) internal {
-    ExponentialMovingAverage.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
+    ExponentialMovingAverageV7.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
     int256 _lastPermissionedPrice = int256(lastPermissionedPrice);
     int256 _earningRatio = int256(_state.baseNav).sub(_lastPermissionedPrice).mul(PRECISION_I256).div(
       _lastPermissionedPrice

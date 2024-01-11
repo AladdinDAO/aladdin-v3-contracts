@@ -30,7 +30,7 @@ pragma solidity ^0.7.0;
  * @author Sergio Yuhjtman - @sergioyuhjtman
  * @author Daniel Fernandez - @dmf7z
  */
-library LogExpMath {
+library LogExpMathV7 {
   // All fixed point multiplications and divisions are inlined. This means we need to divide by ONE when multiplying
   // two numbers, and multiply by ONE when dividing them.
 

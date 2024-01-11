@@ -3,19 +3,19 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 
-import { ExponentialMovingAverage } from "../../../common/math/ExponentialMovingAverage.sol";
+import { ExponentialMovingAverageV7 } from "../../../common/math/ExponentialMovingAverageV7.sol";
 
 contract MockExponentialMovingAverage {
-  using ExponentialMovingAverage for ExponentialMovingAverage.EMAStorage;
+  using ExponentialMovingAverageV7 for ExponentialMovingAverageV7.EMAStorage;
 
-  ExponentialMovingAverage.EMAStorage public state;
+  ExponentialMovingAverageV7.EMAStorage public state;
 
-  function setState(ExponentialMovingAverage.EMAStorage memory _state) external {
+  function setState(ExponentialMovingAverageV7.EMAStorage memory _state) external {
     state = _state;
   }
 
   function saveValue(uint96 value) external {
-    ExponentialMovingAverage.EMAStorage memory cachedState = state;
+    ExponentialMovingAverageV7.EMAStorage memory cachedState = state;
     cachedState.saveValue(value);
     state = cachedState;
   }

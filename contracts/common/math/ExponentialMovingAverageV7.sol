@@ -2,12 +2,12 @@
 
 pragma solidity ^0.7.6;
 
-import { LogExpMath } from "./LogExpMath.sol";
+import { LogExpMathV7 } from "./LogExpMathV7.sol";
 
 // solhint-disable not-rely-on-time
 
 /// @dev See https://en.wikipedia.org/wiki/Exponential_smoothing
-library ExponentialMovingAverage {
+library ExponentialMovingAverageV7 {
   /*************
    * Constants *
    *************/
@@ -49,7 +49,7 @@ library ExponentialMovingAverage {
       if (e > 41e18) {
         return s.lastValue;
       } else {
-        uint256 alpha = uint256(LogExpMath.exp(-int256(e)));
+        uint256 alpha = uint256(LogExpMathV7.exp(-int256(e)));
         return (s.lastValue * (PRECISION - alpha) + s.lastEmaValue * alpha) / PRECISION;
       }
     } else {

@@ -45,6 +45,9 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   /// @notice The role for ve balance sharing.
   bytes32 public constant VE_SHARING_ROLE = keccak256("VE_SHARING_ROLE");
 
+  /// @notice The role for ve balance sharing.
+  bytes32 public constant WITHDRAW_FROM_ROLE = keccak256("WITHDRAW_FROM_ROLE");
+
   /// @dev The precison use to calculation.
   uint256 private constant PRECISION = 1e18;
 
@@ -113,8 +116,8 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   /// @notice The gauge struct.
   Gauge public gauge;
 
-  /// @notice The address of base token.
-  address public baseToken;
+  /// @inheritdoc IFxBoostableRebalancePool
+  address public override baseToken;
 
   /// @inheritdoc IFxBoostableRebalancePool
   address public override asset;
@@ -290,44 +293,16 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
 
   /// @inheritdoc IFxBoostableRebalancePool
   function withdraw(uint256 _amount, address _receiver) external override {
-    address _sender = _msgSender();
+    _withdraw(_msgSender(), _amount, _receiver);
+  }
 
-    // @note after checkpoint, the account balances are correct, we can `_balances` safely.
-    _checkpoint(_sender);
-
-    TokenBalance memory _supply = _totalSupply;
-    TokenBalance memory _balance = _balances[_sender];
-    TokenBalance memory _ownerBalance;
-    if (_amount > _balance.amount) _amount = _balance.amount;
-    if (_amount == 0) revert WithdrawZeroAmount();
-
-    unchecked {
-      _supply.amount -= uint104(_amount);
-      _supply.updateAt = uint40(block.timestamp);
-      _balance.amount -= uint104(_amount);
-    }
-
-    // @note after checkpoint, the voteOwnerBalances are correct.
-    address _owner = getStakerVoteOwner[_sender];
-    if (_owner != address(0)) {
-      _ownerBalance = voteOwnerBalances[_owner];
-      _ownerBalance.amount -= uint104(_amount);
-    }
-
-    // this is already updated in `_checkpoint(_sender)`.
-    // _balance.updateAt = uint40(block.timestamp);
-    // _ownerBalance.updateAt = uint40(block.timestamp);
-
-    _recordTotalSupply(_supply);
-    _balances[_sender] = _balance;
-
-    // update boost checkpoint at last
-    _updateBoostCheckpoint(_sender, _owner, _balance, _ownerBalance, _supply);
-
-    IERC20Upgradeable(asset).safeTransfer(_receiver, _amount);
-
-    emit Withdraw(_sender, _receiver, _amount);
-    emit UserDepositChange(_sender, _balance.amount, 0);
+  /// @inheritdoc IFxShareableRebalancePool
+  function withdrawFrom(
+    address _owner,
+    uint256 _amount,
+    address _receiver
+  ) external override onlyRole(WITHDRAW_FROM_ROLE) {
+    _withdraw(_owner, _amount, _receiver);
   }
 
   /// @inheritdoc IFxBoostableRebalancePool
@@ -554,6 +529,53 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     TokenBalance memory _balance = _balances[_account];
     _previousProd = _balance.product;
     _share = _balance.amount;
+  }
+
+  /// @dev Internal function to withdraw assets from this contract.
+  /// @param _sender The address of owner to withdraw from.
+  /// @param _amount The amount of token to withdraw.
+  /// @param _receiver The address of token receiver.
+  function _withdraw(
+    address _sender,
+    uint256 _amount,
+    address _receiver
+  ) internal {
+    // @note after checkpoint, the account balances are correct, we can `_balances` safely.
+    _checkpoint(_sender);
+
+    TokenBalance memory _supply = _totalSupply;
+    TokenBalance memory _balance = _balances[_sender];
+    TokenBalance memory _ownerBalance;
+    if (_amount > _balance.amount) _amount = _balance.amount;
+    if (_amount == 0) revert WithdrawZeroAmount();
+
+    unchecked {
+      _supply.amount -= uint104(_amount);
+      _supply.updateAt = uint40(block.timestamp);
+      _balance.amount -= uint104(_amount);
+    }
+
+    // @note after checkpoint, the voteOwnerBalances are correct.
+    address _owner = getStakerVoteOwner[_sender];
+    if (_owner != address(0)) {
+      _ownerBalance = voteOwnerBalances[_owner];
+      _ownerBalance.amount -= uint104(_amount);
+    }
+
+    // this is already updated in `_checkpoint(_sender)`.
+    // _balance.updateAt = uint40(block.timestamp);
+    // _ownerBalance.updateAt = uint40(block.timestamp);
+
+    _recordTotalSupply(_supply);
+    _balances[_sender] = _balance;
+
+    // update boost checkpoint at last
+    _updateBoostCheckpoint(_sender, _owner, _balance, _ownerBalance, _supply);
+
+    IERC20Upgradeable(asset).safeTransfer(_receiver, _amount);
+
+    emit Withdraw(_sender, _receiver, _amount);
+    emit UserDepositChange(_sender, _balance.amount, 0);
   }
 
   /// @dev Internal function to revoke vote sharing.

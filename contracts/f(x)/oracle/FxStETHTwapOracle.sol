@@ -11,7 +11,7 @@ import { ITwapOracle } from "../../price-oracle/interfaces/ITwapOracle.sol";
 
 // solhint-disable var-name-mixedcase
 
-contract FxETHTwapOracle is IFxPriceOracle {
+contract FxStETHTwapOracle is IFxPriceOracle {
   using SafeMath for uint256;
 
   /*************

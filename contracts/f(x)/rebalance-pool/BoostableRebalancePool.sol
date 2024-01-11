@@ -104,8 +104,8 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   /// @notice The gauge struct.
   Gauge public gauge;
 
-  /// @notice The address of base token.
-  address public baseToken;
+  /// @inheritdoc IFxBoostableRebalancePool
+  address public override baseToken;
 
   /// @inheritdoc IFxBoostableRebalancePool
   address public override asset;

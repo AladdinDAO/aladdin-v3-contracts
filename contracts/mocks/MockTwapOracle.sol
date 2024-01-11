@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity =0.8.20;
 
 import { ITwapOracle } from "../price-oracle/interfaces/ITwapOracle.sol";
 import { IFxPriceOracle } from "../interfaces/f(x)/IFxPriceOracle.sol";
