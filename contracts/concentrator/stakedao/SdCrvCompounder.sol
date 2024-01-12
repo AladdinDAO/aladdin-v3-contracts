@@ -249,7 +249,7 @@ contract SdCrvCompounder is AladdinCompounder, SdCRVLocker, ISdCrvCompounder {
           _amountCRV += _amount;
         } else if (_token == sdCRV) {
           _amountSdCRV += _amount;
-        } else {
+        } else if (_amount > 0) {
           // convert to ETH
           IERC20Upgradeable(_token).safeTransfer(_zap, _amount);
           _amountETH += IZap(zap).zap(_token, _amount, address(0), 0);
@@ -261,7 +261,9 @@ contract SdCrvCompounder is AladdinCompounder, SdCRVLocker, ISdCrvCompounder {
       _amountCRV += IZap(_zap).zap{ value: _amountETH }(address(0), _amountETH, CRV, 0);
     }
     // 1.3 deposit CRV as sdCRV
-    assets = IWrapper_SdCrvCompounder(wrapper).depositWithCRV(_amountCRV, address(this), 0);
+    if (_amountCRV > 0) {
+      assets = IWrapper_SdCrvCompounder(wrapper).depositWithCRV(_amountCRV, address(this), 0);
+    }
     // 1.4 deposit sdCRV to vault
     if (_amountSdCRV > 0) {
       IWrapper_SdCrvCompounder(wrapper).deposit(_amountSdCRV, address(this));
