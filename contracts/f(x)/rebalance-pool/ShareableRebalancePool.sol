@@ -658,7 +658,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
       IVotingEscrow(ve).balanceOf(_owner),
       IVotingEscrow(ve).totalSupply()
     );
-    boostCheckpoint[_account] = BoostCheckpoint(uint64(_ratio), uint64(numTotalSupplyHistory));
+    boostCheckpoint[_account] = BoostCheckpoint(uint64(_ratio), uint64(numTotalSupplyHistory - 1));
   }
 
   /// @dev Internal function to reduce asset loss due to liquidation.
