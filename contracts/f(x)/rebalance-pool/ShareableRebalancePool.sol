@@ -589,7 +589,9 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     // update `voteOwnerBalances[_owner]` to latest epoch and record history value
     if (_owner == address(0)) return _balance;
     _balance = voteOwnerBalances[_owner];
-    // @note the value of `_ownerBalance.updateAt` should never be zero, since it will be updated before this call.
+    // it happens the owner has no update before
+    if (_balance.updateAt == 0) _balance.updateAt = uint40(block.timestamp);
+
     uint256 prevWeekTs = _getWeekTs(_balance.updateAt);
     _balance.amount = uint104(_getCompoundedBalance(_balance.amount, _balance.product, _supply.product));
     _balance.product = _supply.product;
