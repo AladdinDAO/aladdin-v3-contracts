@@ -10,6 +10,9 @@ interface IVotingEscrowHelper {
   /// @dev Thrown when try to checkpoint a future timestamp.
   error ErrorCheckpointFutureTime();
 
+  /// @dev Thrown when try to checkpoint a timestamp before start.
+  error ErrorCheckpointInvalidPastTime();
+
   /*************************
    * Public View Functions *
    *************************/

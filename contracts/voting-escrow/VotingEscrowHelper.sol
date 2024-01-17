@@ -133,6 +133,7 @@ contract VotingEscrowHelper is IVotingEscrowHelper {
   /// @inheritdoc IVotingEscrowHelper
   function checkpoint(address account, uint256 timestamp) external override {
     if (timestamp > block.timestamp) revert ErrorCheckpointFutureTime();
+    if (timestamp < start) revert ErrorCheckpointInvalidPastTime();
 
     // checkpoint supply
     uint256 week = (timestamp / WEEK) * WEEK;

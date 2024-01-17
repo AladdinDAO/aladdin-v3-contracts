@@ -596,16 +596,18 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     _balance.amount = uint104(_getCompoundedBalance(_balance.amount, _balance.product, _supply.product));
     _balance.product = _supply.product;
     _balance.updateAt = uint40(block.timestamp);
-    voteOwnerBalances[_owner] = _balance;
 
-    // Normally, `prevWeekTs` equals to `nextWeekTs` so we will only sstore 1 time in most of the time.
+    // @note since it will be updated in `_updateBoostCheckpoint`, we don't need to update it now.
+    // voteOwnerBalances[_owner] = _balance;
+
+    // @note Normally, `prevWeekTs` equals to `nextWeekTs` so we will only sstore 1 time in most of the time.
     //
     // When `prevWeekTs < nextWeekTs`, there are some extreme situation that liquidation happens between
     // `_ownerBalance.updateAt` and `prevWeekTs`, also some time between `prevWeekTs` and `block.timestamp`.
     // Then we cannot calculate the amount at `prevWeekTs` correctly. Since the situation rarely happens,
     // it is ok to use `_ownerBalance.amount` only.
     uint256 nextWeekTs = _getWeekTs(block.timestamp);
-    while (prevWeekTs <= nextWeekTs) {
+    while (prevWeekTs < nextWeekTs) {
       voteOwnerHistoryBalances[_owner][prevWeekTs] = _balance.amount;
       prevWeekTs += WEEK;
     }
