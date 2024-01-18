@@ -648,7 +648,23 @@ describe("VotingEscrowBoost.spec", async () => {
     });
 
     it("should revert, when index out of bound", async () => {
-      await expect(boost.unboost(1, 0n)).to.revertedWithCustomError(boost, "IndexOutOfBound");
+      await expect(boost.unboost(deployer.address, 1, 0n)).to.revertedWithCustomError(boost, "IndexOutOfBound");
+    });
+
+    it("should revert, when call not by receiver", async () => {
+      const t0 = (await ethers.provider.getBlock("latest"))!.timestamp;
+      const s1 = t0 + Week;
+      const e1 = Math.floor(t0 / Week) * Week + Week * 52;
+
+      const slope1 = ethers.parseEther("100") / toBigInt(e1 - s1);
+      const bias1 = slope1 * toBigInt(e1 - s1);
+      await network.provider.send("evm_setNextBlockTimestamp", [s1]);
+      await boost.boost(holder0.address, ethers.parseEther("100"), e1);
+
+      await expect(boost.unboost(deployer.address, 0, bias1)).to.revertedWithCustomError(
+        boost,
+        "ErrorOnlyCancelByReceiver"
+      );
     });
 
     it("should revert, when unboost exceed balance", async () => {
@@ -661,7 +677,10 @@ describe("VotingEscrowBoost.spec", async () => {
       await network.provider.send("evm_setNextBlockTimestamp", [s1]);
       await boost.boost(holder0.address, ethers.parseEther("100"), e1);
 
-      await expect(boost.unboost(0, bias1 + 1n)).to.revertedWithCustomError(boost, "CancelBoostExceedBalance");
+      await expect(boost.connect(holder0).unboost(deployer.address, 0, bias1 + 1n)).to.revertedWithCustomError(
+        boost,
+        "CancelBoostExceedBalance"
+      );
     });
 
     it("should revert, when unboost expired", async () => {
@@ -675,7 +694,10 @@ describe("VotingEscrowBoost.spec", async () => {
       await boost.boost(holder0.address, ethers.parseEther("100"), e1);
 
       await network.provider.send("evm_setNextBlockTimestamp", [e1]);
-      await expect(boost.unboost(0, bias1)).to.revertedWithCustomError(boost, "CancelExpiredBoost");
+      await expect(boost.connect(holder0).unboost(deployer.address, 0, bias1)).to.revertedWithCustomError(
+        boost,
+        "CancelExpiredBoost"
+      );
     });
 
     it("should succeed", async () => {
@@ -700,7 +722,7 @@ describe("VotingEscrowBoost.spec", async () => {
       const u1 = t0 + Week * 30 + 233;
       // cancel half of boost1
       await network.provider.send("evm_setNextBlockTimestamp", [u1]);
-      await expect(boost.unboost(0, bias1 / 2n))
+      await expect(boost.connect(holder0).unboost(deployer.address, 0, bias1 / 2n))
         .to.emit(boost, "Transfer")
         .withArgs(holder0.address, ZeroAddress, slope1 * toBigInt(u1 - s2) + slope2 * toBigInt(u1 - s2))
         .to.emit(boost, "Transfer")

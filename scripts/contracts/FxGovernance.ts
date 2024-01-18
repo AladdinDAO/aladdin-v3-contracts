@@ -1,6 +1,6 @@
 /* eslint-disable node/no-missing-import */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { ZeroAddress, Overrides, Contract, MaxUint256 } from "ethers";
+import { ZeroAddress, Overrides, Contract } from "ethers";
 import { network, ethers } from "hardhat";
 
 import { GaugeController } from "@/types/index";
@@ -12,6 +12,7 @@ import * as Converter from "./Converter";
 import * as Multisig from "./Multisig";
 import * as VotingEscrow from "./VotingEscrow";
 
+/*
 const DeployedGauges: { [name: string]: { token: string; rewarder: string; immutable: boolean } } = {
   "ETH+xETH": {
     token: TOKENS["CURVE_CRYPTO_ETH/xETH_302"].address,
@@ -34,6 +35,7 @@ const DeployedGauges: { [name: string]: { token: string; rewarder: string; immut
     immutable: true,
   },
 };
+*/
 
 const GaugeTypeLists: Array<{ name: string; weight: bigint }> = [
   { name: "Liquidity", weight: ethers.parseEther("0.3") },
@@ -50,6 +52,7 @@ export interface FxGovernanceDeployment {
   FXN: string;
   veFXN: string;
   VotingEscrowBoost: string;
+  VotingEscrowHelper: string;
   VotingEscrowProxy: string;
   TokenMinter: string;
   GaugeController: string;
@@ -149,16 +152,22 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   // VotingEscrow related contracts
   await deployment.minimalProxyDeploy("veFXN", "veFXN", implementationDeployment.VotingEscrow);
   await deployment.contractDeploy("SmartWalletWhitelist", "SmartWalletWhitelist", "SmartWalletWhitelist", []);
+  await deployment.contractDeploy("VotingEscrowHelper", "VotingEscrowHelper", "VotingEscrowHelper", [
+    deployment.get("veFXN"),
+  ]);
+  /*
   await deployment.contractDeploy("VotingEscrowBoost", "VotingEscrowBoost", "VotingEscrowBoost", [
     deployment.get("veFXN"),
   ]);
   await deployment.contractDeploy("VotingEscrowProxy", "VotingEscrowProxy", "VotingEscrowProxy", [
     deployment.get("veFXN"),
   ]);
+  */
 
   // GaugeController
   await deployment.minimalProxyDeploy("GaugeController", "GaugeController", implementationDeployment.GaugeController);
 
+  /*
   // LiquidityGauge related contracts
   await deployment.contractDeploy(
     "LiquidityGauge.implementation.SharedLiquidityGauge",
@@ -197,6 +206,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
       );
     }
   }
+  */
   // Fundraising related contracts
   await deployment.contractDeploy(
     "FundraiseGauge.implementation.FundraisingGaugeFx",
@@ -204,11 +214,13 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "FundraisingGaugeFx",
     [multisig.Fx]
   );
+  /*
   await deployment.minimalProxyDeploy(
     "FundraiseGauge.Gauge.FxTreasury",
     "FundraisingGaugeFx for FxTreasury",
     deployment.get("FundraiseGauge.implementation.FundraisingGaugeFx")
   );
+  */
 
   // Vesting related contracts
   await deployment.contractDeploy("MultipleVestHelper", "FXN MultipleVestHelper", "MultipleVestHelper", []);
@@ -545,6 +557,7 @@ export async function initialize(
       );
     }
   }
+  /*
   // Setup LiquidityGauge
   for (const name of ["ETH+xETH", "ETH+FXN", "crvUSD+fETH", "fETH+FRAXBP"]) {
     const manager = await ethers.getContractAt(
@@ -630,4 +643,5 @@ export async function initialize(
     }
     await addGauge(controller, "FundraisingGaugeFx.FxTreasury", await gauge.getAddress(), 2);
   }
+  */
 }

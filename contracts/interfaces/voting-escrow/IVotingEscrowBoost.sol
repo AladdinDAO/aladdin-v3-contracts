@@ -43,6 +43,9 @@ interface IVotingEscrowBoost {
   /// @dev Thrown when unboost a non-existed boost.
   error IndexOutOfBound();
 
+  /// @dev Thrown when caller try to cancel a boost not belong to him.
+  error ErrorOnlyCancelByReceiver();
+
   /// @dev Thrown when cancel more than boosted.
   error CancelBoostExceedBalance();
 
@@ -228,9 +231,14 @@ interface IVotingEscrowBoost {
   ) external;
 
   /// @notice Cancel an existing boost.
+  /// @param owner The owner of the boost.
   /// @param index The index of in the boost lists.
   /// @param amount The amount of boost to cancel.
-  function unboost(uint256 index, uint128 amount) external;
+  function unboost(
+    address owner,
+    uint256 index,
+    uint128 amount
+  ) external;
 
   /// @notice Update the user balance snapshot.
   /// @param account The address of the user to update.

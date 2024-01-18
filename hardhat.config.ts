@@ -51,6 +51,9 @@ const config: HardhatUserConfig = {
     compilers: [{ version: "0.3.1" }, { version: "0.2.7" }],
   },
   networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+    },
     mainnet: {
       url: process.env.MAINNET_URL || "https://rpc.ankr.com/eth",
       chainId: 1,

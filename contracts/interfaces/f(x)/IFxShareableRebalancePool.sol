@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import { ILiquidityGauge } from "./ILiquidityGauge.sol";
+import { IFxBoostableRebalancePool } from "./IFxBoostableRebalancePool.sol";
 
-interface ISharedLiquidityGauge is ILiquidityGauge {
+interface IFxShareableRebalancePool is IFxBoostableRebalancePool {
   /**********
    * Events *
    **********/
@@ -30,16 +30,19 @@ interface ISharedLiquidityGauge is ILiquidityGauge {
    **********/
 
   /// @dev Thrown when caller shares votes to self.
-  error SelfSharingIsNotAllowed();
+  error ErrorSelfSharingIsNotAllowed();
 
   /// @dev Thrown when a staker with shared votes try to share its votes to others.
-  error CascadedSharingIsNotAllowed();
+  error ErrorCascadedSharingIsNotAllowed();
 
   /// @dev Thrown when staker try to accept non-allowed vote sharing.
-  error VoteShareNotAllowed();
+  error ErrorVoteShareNotAllowed();
 
   /// @dev Thrown when staker try to reject a non-existed vote sharing.
-  error NoAcceptedSharedVote();
+  error ErrorNoAcceptedSharedVote();
+
+  /// @dev Thrown when the staker has ability to share ve balance.
+  error ErrorVoteOwnerCannotStake();
 
   /// @dev Thrown when staker try to accept twice.
   error ErrorRepeatAcceptSharedVote();
@@ -47,10 +50,6 @@ interface ISharedLiquidityGauge is ILiquidityGauge {
   /*************************
    * Public View Functions *
    *************************/
-
-  /// @notice Return the total amount of liquidity shared.
-  /// @param account The address of user to query.
-  function sharedBalanceOf(address account) external view returns (uint256);
 
   /// @notice Return the owner of votes of some staker.
   /// @param account The address of user to query.
