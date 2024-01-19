@@ -33,7 +33,9 @@
   "ReservePool": "0x5d0Aacf75116d1645Db2B3d1Ca4b303ef0CA3752",
   "ShareableRebalancePool": {
     "splitter": "0x79c5f5b0753acE25ecdBdA4c2Bc86Ab074B6c2Bb",
-    "implementation": "0x37303d55fD8570c070BEDd9a0e64421f318Bb01b",
+    "claimer": "0x81243a88Dd9Fb963c643bD3f2194c2cA9CCFc428",
+    "gauge": "0x9710ca7f3edd4893f399c89ea184d92cc7172e28",
+    "implementation": "0xD5e047e4DDc2C5b0E5ca66BeB4DD0853afC4fa0D",
     "APool": "0xc6dEe5913e010895F3702bc43a40d661B13a40BD",
     "BPool": "0xB87A8332dFb1C76Bb22477dCfEdDeB69865cA9f9",
     "APoolRebalancer": "0x74E9234A6e03c382A01Bb942B1aF05B639371309",
