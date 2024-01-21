@@ -120,8 +120,8 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   "ETH+": { decimals: 18, address: "0xE72B141DF173b999AE7c1aDcbF60Cc9833Ce56a8" },
   PRISMA: { decimals: 18, address: "0xdA47862a83dac0c112BA89c6abC2159b95afd71C" },
   cvxPrisma: { decimals: 18, address: "0x34635280737b5bfe6c7dc2fc3065d60d66e78185" },
-  pyUSD: { decimals: 18, address: "0x6c3ea9036406852006290770bedfcaba0e23a0e8" },
   sDAI: { decimals: 18, address: "0x83f20f44975d03b1b09e64809b757c47f942beea" },
+  PYUSD: { decimals: 6, address: "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8" },
 };
 
 /* eslint-disable prettier/prettier */
@@ -142,7 +142,7 @@ TOKENS["CURVE_PLAIN_FXN/cvxFXN_358"] = { decimals: 18, address: "0x1062FD8eD633c
 TOKENS["CURVE_PLAIN_FXN/sdFXN_359"] = { decimals: 18, address: "0x28Ca243dc0aC075dD012fCf9375C25D18A844d96" };
 TOKENS["CURVE_CRVUSD_WETH/frxETH_15"] = { decimals: 18, address: "0x9c3B46C0Ceb5B9e304FCd6D88Fc50f7DD24B31Bc" };
 TOKENS["CURVE_STABLE_NG_FRAX/sDAI_32"] = { decimals: 18, address: "0xce6431d21e3fb1036ce9973a3312368ed96f5ce7" };
-TOKENS["CURVE_STABLE_NG_FRAX/pyUSD_34"] = { decimals: 18, address: "0xa5588f7cdf560811710a2d82d3c9c99769db1dcb" };
+TOKENS["CURVE_STABLE_NG_FRAX/PYUSD_34"] = { decimals: 18, address: "0xa5588f7cdf560811710a2d82d3c9c99769db1dcb" };
 // Curve Crypto LP (including factory pools)
 TOKENS["CURVE_CRYPTO_crvUSD/fETH_299"] = { decimals: 18, address: "0x19033d99A7b7010157b81e5eE5A8E63A583fB735" };
 TOKENS["CURVE_CRYPTO_fETH/FRAXBP_301"] = { decimals: 18, address: "0x3d28f9192E34e51414e69FBEE5b11B35590FB9Fb" };

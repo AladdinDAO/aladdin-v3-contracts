@@ -370,7 +370,7 @@ const POOL_FORK_CONFIG: {
     amount: "100",
     harvest: true,
   },
-  "FRAX/pyUSD": {
+  "FRAX/PYUSD": {
     height: 18966650,
     pid: 68,
     deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
