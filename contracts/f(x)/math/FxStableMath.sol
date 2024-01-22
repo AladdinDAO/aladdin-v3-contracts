@@ -172,27 +172,6 @@ library FxStableMath {
     }
   }
 
-  /// @notice Mint fToken and xToken according to current collateral ratio.
-  /// @param state The current state.
-  /// @param _baseIn The amount of base token supplied.
-  /// @return _fTokenOut The amount of fToken expected.
-  /// @return _xTokenOut The amount of xToken expected.
-  function mint(SwapState memory state, uint256 _baseIn)
-    internal
-    pure
-    returns (uint256 _fTokenOut, uint256 _xTokenOut)
-  {
-    //  n * v = nf * vf + nx * vx
-    //  (n + dn) * v = (nf + df) * vf + (nx + dx) * vx
-    //  ((nf + df) * vf) / ((n + dn) * v) = (nf * vf) / (n * v)
-    //  ((nx + dx) * vx) / ((n + dn) * v) = (nx * vx) / (n * v)
-    // =>
-    //   df = nf * dn / n
-    //   dx = nx * dn / n
-    _fTokenOut = (state.fSupply * _baseIn) / (state.baseSupply);
-    _xTokenOut = (state.xSupply * _baseIn) / (state.baseSupply);
-  }
-
   /// @notice Mint fToken.
   /// @param state The current state.
   /// @param _baseIn The amount of base token supplied.
@@ -248,9 +227,15 @@ library FxStableMath {
   /// @param state The current state.
   /// @return ratio The current leverage ratio.
   function leverageRatio(SwapState memory state) internal pure returns (uint256 ratio) {
-    // (1 - rho * beta * (1 + r)) / (1 - rho)
+    // ratio = (1 - rho * beta * (1 + r)) / (1 - rho), and beta = 0
+    // ratio = 1 / (1 - rho)
     uint256 rho = (state.fSupply * PRECISION * PRECISION) / (state.baseSupply * state.baseNav);
-    ratio = (PRECISION * PRECISION) / (PRECISION - rho);
-    if (ratio > MAX_LEVERAGE_RATIO) ratio = MAX_LEVERAGE_RATIO;
+    if (rho >= PRECISION) {
+      // under collateral, assume infinite leverage
+      ratio = MAX_LEVERAGE_RATIO;
+    } else {
+      ratio = (PRECISION * PRECISION) / (PRECISION - rho);
+      if (ratio > MAX_LEVERAGE_RATIO) ratio = MAX_LEVERAGE_RATIO;
+    }
   }
 }

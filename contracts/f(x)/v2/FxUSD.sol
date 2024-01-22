@@ -29,6 +29,11 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
    * Structs *
    ***********/
 
+  /// @param fToken The address of Fractional Token.
+  /// @param treasury The address of treasury contract.
+  /// @param market The address of market contract.
+  /// @param mintCap The maximum amount of fToken can be minted.
+  /// @param managed The amount of fToken managed in this contract.
   struct FxMarketStruct {
     address fToken;
     address treasury;
@@ -316,6 +321,7 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     address _market = markets[_baseToken].market;
     uint256 _mintCap = markets[_baseToken].mintCap;
     uint256 _balance = IERC20Upgradeable(_baseToken).balanceOf(address(this));
+    // @note approved in `addMarket`.
     _amountOut = IFxMarketV2(_market).mintFToken(_amountIn, address(this), _minOut);
 
     if (IERC20Upgradeable(_fToken).totalSupply() > _mintCap) revert ErrorExceedMintCap();

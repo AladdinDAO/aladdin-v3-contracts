@@ -24,13 +24,6 @@ contract WrappedTokenTreasuryV2 is TreasuryV2 {
   /// @param newRateProvider The address of current rate provider.
   event UpdateRateProvider(address indexed oldRateProvider, address indexed newRateProvider);
 
-  /**********
-   * Errors *
-   **********/
-
-  /// @dev Thrown when the given address is zero.
-  error ErrorZeroAddress();
-
   /*************
    * Variables *
    *************/
@@ -49,6 +42,8 @@ contract WrappedTokenTreasuryV2 is TreasuryV2 {
   ) TreasuryV2(_baseToken, _fToken, _xToken) {}
 
   function initialize(
+    address _platform,
+    address _rebalancePoolSplitter,
     address _rateProvider,
     address _priceOracle,
     uint256 _baseTokenCap,
@@ -58,7 +53,7 @@ contract WrappedTokenTreasuryV2 is TreasuryV2 {
     __ERC165_init();
     __AccessControl_init();
 
-    __TreasuryV2_init(_priceOracle, _baseTokenCap, sampleInterval);
+    __TreasuryV2_init(_platform, _rebalancePoolSplitter, _priceOracle, _baseTokenCap, sampleInterval);
 
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
@@ -75,7 +70,7 @@ contract WrappedTokenTreasuryV2 is TreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
-  function getUnderlyingValue(uint256 _amount) external view virtual override returns (uint256) {
+  function getUnderlyingValue(uint256 _amount) public view virtual override returns (uint256) {
     return (_amount * IFxRateProvider(rateProvider).getRate()) / PRECISION;
   }
 

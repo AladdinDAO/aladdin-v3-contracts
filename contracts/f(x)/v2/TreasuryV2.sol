@@ -146,10 +146,14 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   function __TreasuryV2_init(
+    address _platform,
+    address _rebalancePoolSplitter,
     address _priceOracle,
     uint256 _baseTokenCap,
     uint24 sampleInterval
   ) internal onlyInitializing {
+    _updatePlatform(_platform);
+    _updateRebalancePoolSplitter(_rebalancePoolSplitter);
     _updatePriceOracle(_priceOracle);
     _updateBaseTokenCap(_baseTokenCap);
     _updateEMASampleInterval(sampleInterval);
@@ -176,7 +180,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
     if (_state.baseSupply == 0) return PRECISION;
     if (_state.fSupply == 0) return PRECISION * PRECISION;
 
-    return (_state.baseSupply * _state.baseNav * PRECISION) / (_state.fSupply * PRECISION);
+    return (_state.baseSupply * _state.baseNav) / _state.fSupply;
   }
 
   /// @inheritdoc IFxTreasuryV2
@@ -257,8 +261,16 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
-  function getUnderlyingValue(uint256 amount) external view virtual returns (uint256) {
+  function getUnderlyingValue(uint256 amount) public view virtual returns (uint256) {
     return amount;
+  }
+
+  /// @notice Return then amount of base token can be harvested.
+  function harvestable() public view returns (uint256) {
+    uint256 balance = IERC20Upgradeable(baseToken).balanceOf(address(this));
+    uint256 managed = getWrapppedValue(totalBaseToken);
+    if (balance < managed) return 0;
+    else return balance - managed;
   }
 
   /****************************
@@ -369,7 +381,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
     FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
     _updateEMALeverageRatio(_state);
 
-    uint256 _totalRewards = IERC20Upgradeable(baseToken).balanceOf(address(this)) - getWrapppedValue(totalBaseToken);
+    uint256 _totalRewards = harvestable();
     uint256 _harvestBounty = (getHarvesterRatio() * _totalRewards) / FEE_PRECISION;
     uint256 _rebalancePoolRewards = (getRebalancePoolRatio() * _totalRewards) / FEE_PRECISION;
 
@@ -405,6 +417,9 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
     returns (uint256 fTokenOut, uint256 xTokenOut)
   {
     if (referenceBaseTokenPrice > 0) revert ErrorProtocolInitialized();
+    if (getUnderlyingValue(IERC20Upgradeable(baseToken).balanceOf(address(this))) < _baseIn) {
+      revert ErrorInsufficientInitialBaseToken();
+    }
 
     // initialize reference price
     address _sender = _msgSender();
@@ -414,7 +429,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
     // mint fToken and xToken
     totalBaseToken = _baseIn;
-    fTokenOut = (_baseIn * _price) / 2;
+    fTokenOut = (_baseIn * _price) / (2 * PRECISION);
     xTokenOut = fTokenOut;
     IFxFractionalTokenV2(fToken).mint(_sender, fTokenOut);
     IFxLeveragedTokenV2(xToken).mint(_sender, xTokenOut);
@@ -422,8 +437,8 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
     // initialize EMA leverage
     ExponentialMovingAverageV8.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
     cachedEmaLeverageRatio.lastTime = uint40(block.timestamp);
-    cachedEmaLeverageRatio.lastValue = uint96(PRECISION);
-    cachedEmaLeverageRatio.lastEmaValue = uint96(PRECISION);
+    cachedEmaLeverageRatio.lastValue = uint96(PRECISION * 2);
+    cachedEmaLeverageRatio.lastEmaValue = uint96(PRECISION * 2);
     emaLeverageRatio = cachedEmaLeverageRatio;
   }
 
@@ -452,6 +467,18 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
     _updateEMALeverageRatio(_state);
 
     _updateEMASampleInterval(_sampleInterval);
+  }
+
+  /// @notice Change address of platform contract.
+  /// @param _platform The new address of platform contract.
+  function updatePlatform(address _platform) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _updatePlatform(_platform);
+  }
+
+  /// @notice Change address of RebalancePoolSplitter contract.
+  /// @param _splitter The new address of RebalancePoolSplitter contract.
+  function updateRebalancePoolSplitter(address _splitter) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _updateRebalancePoolSplitter(_splitter);
   }
 
   /// @notice Update the fee ratio distributed to treasury.
@@ -498,6 +525,8 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   /// @dev Internal function to change the address of price oracle contract.
   /// @param _newPriceOracle The new address of price oracle contract.
   function _updatePriceOracle(address _newPriceOracle) internal {
+    if (_newPriceOracle == address(0)) revert ErrorZeroAddress();
+
     address _oldPriceOracle = priceOracle;
     priceOracle = _newPriceOracle;
 
@@ -522,6 +551,27 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
     emaLeverageRatio.sampleInterval = _newSampleInterval;
 
     emit UpdateEMASampleInterval(_oldSampleInterval, _newSampleInterval);
+  }
+
+  /// @dev Internal function to change the address of platform contract.
+  /// @param _newPlatform The new address of platform contract.
+  function _updatePlatform(address _newPlatform) internal {
+    if (_newPlatform == address(0)) revert ErrorZeroAddress();
+
+    address _oldPlatform = platform;
+    platform = _newPlatform;
+
+    emit UpdatePlatform(_oldPlatform, _newPlatform);
+  }
+
+  /// @dev Internal function to change the address of RebalancePoolSplitter contract.
+  /// @param _newRebalancePoolSplitter The new address of RebalancePoolSplitter contract.
+  function _updateRebalancePoolSplitter(address _newRebalancePoolSplitter) internal {
+    if (_newRebalancePoolSplitter == address(0)) revert ErrorZeroAddress();
+    address _oldRebalancePoolSplitter = rebalancePoolSplitter;
+    rebalancePoolSplitter = _newRebalancePoolSplitter;
+
+    emit UpdateRebalancePoolSplitter(_oldRebalancePoolSplitter, _newRebalancePoolSplitter);
   }
 
   /// @dev Internal function to transfer base token to receiver.

@@ -137,7 +137,6 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
 
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
-    _updateStabilityRatio(1.3e18);
     _updatePlatform(_platform);
     _updateReservePool(_reservePool);
     _updateRebalancePoolRegistry(_registry);
@@ -238,8 +237,8 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     }
 
     uint256 _amountWithoutFee = _deductFTokenMintFee(_baseIn, _maxBaseInBeforeSystemStabilityMode);
-
     IERC20Upgradeable(baseToken).safeTransferFrom(_msgSender(), treasury, _amountWithoutFee);
+
     _fTokenMinted = IFxTreasuryV2(treasury).mintFToken(
       IFxTreasuryV2(treasury).getUnderlyingValue(_amountWithoutFee),
       _recipient
@@ -267,8 +266,8 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     _maxBaseInBeforeSystemStabilityMode = IFxTreasuryV2(treasury).getWrapppedValue(_maxBaseInBeforeSystemStabilityMode);
 
     uint256 _amountWithoutFee = _deductXTokenMintFee(_baseIn, _maxBaseInBeforeSystemStabilityMode);
-
     IERC20Upgradeable(baseToken).safeTransferFrom(_msgSender(), treasury, _amountWithoutFee);
+
     _xTokenMinted = IFxTreasuryV2(treasury).mintXToken(
       IFxTreasuryV2(treasury).getUnderlyingValue(_amountWithoutFee),
       _recipient
@@ -508,7 +507,9 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
 
   /// @notice Enable fxUSD mint.
   /// @param _fxUSD The address of fxUSD token.
-  function enablefxUSD(address _fxUSD) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function enableFxUSD(address _fxUSD) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (_fxUSD == address(0)) revert ErrorZeroAddress();
+
     if (fxUSD == address(0)) fxUSD = _fxUSD;
   }
 
@@ -520,9 +521,9 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   function _validateFeeRatio(uint256 _defaultFeeRatio, int256 _extraFeeRatio) internal pure {
     if (_defaultFeeRatio > FEE_PRECISION) revert ErrorDefaultFeeTooLarge();
     if (_extraFeeRatio < 0) {
-      if (uint256(-_extraFeeRatio) < _defaultFeeRatio) revert ErrorDeltaFeeTooSmall();
+      if (uint256(-_extraFeeRatio) > _defaultFeeRatio) revert ErrorDeltaFeeTooSmall();
     } else {
-      if (uint256(_extraFeeRatio) < FEE_PRECISION - _defaultFeeRatio) revert ErrorTotalFeeTooLarge();
+      if (uint256(_extraFeeRatio) > FEE_PRECISION - _defaultFeeRatio) revert ErrorTotalFeeTooLarge();
     }
   }
 
@@ -551,6 +552,8 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   /// @notice Change address of platform contract.
   /// @param _newPlatform The new address of platform contract.
   function _updatePlatform(address _newPlatform) private {
+    if (_newPlatform == address(0)) revert ErrorZeroAddress();
+
     address _oldPlatform = platform;
     platform = _newPlatform;
 
@@ -560,6 +563,8 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   /// @notice Change address of reserve pool contract.
   /// @param _newReservePool The new address of reserve pool contract.
   function _updateReservePool(address _newReservePool) private {
+    if (_newReservePool == address(0)) revert ErrorZeroAddress();
+
     address _oldReservePool = reservePool;
     reservePool = _newReservePool;
 
@@ -569,6 +574,8 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   /// @notice Change address of RebalancePoolRegistry contract.
   /// @param _newRegistry The new address of RebalancePoolRegistry contract.
   function _updateRebalancePoolRegistry(address _newRegistry) private {
+    if (_newRegistry == address(0)) revert ErrorZeroAddress();
+
     address _oldRegistry = registry;
     registry = _newRegistry;
 

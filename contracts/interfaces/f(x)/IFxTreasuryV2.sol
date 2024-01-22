@@ -7,6 +7,16 @@ interface IFxTreasuryV2 {
    * Events *
    **********/
 
+  /// @notice Emitted when the platform contract is updated.
+  /// @param oldPlatform The address of previous platform contract.
+  /// @param newPlatform The address of current platform contract.
+  event UpdatePlatform(address indexed oldPlatform, address indexed newPlatform);
+
+  /// @notice Emitted when the RebalancePoolSplitter contract is updated.
+  /// @param oldRebalancePoolSplitter The address of previous RebalancePoolSplitter contract.
+  /// @param newRebalancePoolSplitter The address of current RebalancePoolSplitter.
+  event UpdateRebalancePoolSplitter(address indexed oldRebalancePoolSplitter, address indexed newRebalancePoolSplitter);
+
   /// @notice Emitted when the price oracle contract is updated.
   /// @param oldPriceOracle The address of previous price oracle.
   /// @param newPriceOracle The address of current price oracle.
@@ -68,6 +78,9 @@ interface IFxTreasuryV2 {
   /// @dev Thrown when initialize protocol twice.
   error ErrorProtocolInitialized();
 
+  /// @dev Thrown when the initial amount of base token is not enough.
+  error ErrorInsufficientInitialBaseToken();
+
   /// @dev Thrown when current is under collateral.
   error ErrorUnderCollateral();
 
@@ -79,6 +92,9 @@ interface IFxTreasuryV2 {
 
   /// @dev Thrown when the harvester ratio exceeds `MAX_HARVESTER_RATIO`.
   error ErrorHarvesterRatioTooLarge();
+
+  /// @dev Thrown when the given address is zero.
+  error ErrorZeroAddress();
 
   /*********
    * Enums *
@@ -111,7 +127,7 @@ interface IFxTreasuryV2 {
   /// @notice The current base token price.
   function currentBaseTokenPrice() external view returns (uint256);
 
-  /// @notice Return the total amount of base token deposited.
+  /// @notice Return the total amount of underlying value of base token deposited.
   function totalBaseToken() external view returns (uint256);
 
   /// @notice Return the address of strategy contract.
@@ -128,7 +144,7 @@ interface IFxTreasuryV2 {
 
   /// @notice Compute the amount of base token needed to reach the new collateral ratio.
   /// @param newCollateralRatio The target collateral ratio, multipled by 1e18.
-  /// @return maxBaseIn The amount of base token needed.
+  /// @return maxBaseIn The amount of underlying value of base token needed.
   /// @return maxFTokenMintable The amount of fToken can be minted.
   function maxMintableFToken(uint256 newCollateralRatio)
     external
@@ -137,7 +153,7 @@ interface IFxTreasuryV2 {
 
   /// @notice Compute the amount of base token needed to reach the new collateral ratio.
   /// @param newCollateralRatio The target collateral ratio, multipled by 1e18.
-  /// @return maxBaseIn The amount of base token needed.
+  /// @return maxBaseIn The amount of underlying value of base token needed.
   /// @return maxXTokenMintable The amount of xToken can be minted.
   function maxMintableXToken(uint256 newCollateralRatio)
     external
@@ -146,7 +162,7 @@ interface IFxTreasuryV2 {
 
   /// @notice Compute the amount of fToken needed to reach the new collateral ratio.
   /// @param newCollateralRatio The target collateral ratio, multipled by 1e18.
-  /// @return maxBaseOut The amount of base token redeemed.
+  /// @return maxBaseOut The amount of underlying value of base token redeemed.
   /// @return maxFTokenRedeemable The amount of fToken needed.
   function maxRedeemableFToken(uint256 newCollateralRatio)
     external
@@ -155,7 +171,7 @@ interface IFxTreasuryV2 {
 
   /// @notice Compute the amount of xToken needed to reach the new collateral ratio.
   /// @param newCollateralRatio The target collateral ratio, multipled by 1e18.
-  /// @return maxBaseOut The amount of base token redeemed.
+  /// @return maxBaseOut The amount of underlying value of base token redeemed.
   /// @return maxXTokenRedeemable The amount of xToken needed.
   function maxRedeemableXToken(uint256 newCollateralRatio)
     external
@@ -184,17 +200,17 @@ interface IFxTreasuryV2 {
    ****************************/
 
   /// @notice Initialize the protocol.
-  /// @param baseIn The amount of base token used to initialize.
+  /// @param baseIn The amount of underlying value of the base token used to initialize.
   function initializeProtocol(uint256 baseIn) external returns (uint256 fTokenOut, uint256 xTokenOut);
 
   /// @notice Mint fToken with some base token.
-  /// @param baseIn The amount of base token deposited.
+  /// @param baseIn The amount of underlying value of base token deposited.
   /// @param recipient The address of receiver.
   /// @return fTokenOut The amount of fToken minted.
   function mintFToken(uint256 baseIn, address recipient) external returns (uint256 fTokenOut);
 
   /// @notice Mint xToken with some base token.
-  /// @param baseIn The amount of base token deposited.
+  /// @param baseIn The amount of underlying value of base token deposited.
   /// @param recipient The address of receiver.
   /// @return xTokenOut The amount of xToken minted.
   function mintXToken(uint256 baseIn, address recipient) external returns (uint256 xTokenOut);
@@ -203,7 +219,7 @@ interface IFxTreasuryV2 {
   /// @param fTokenIn The amount of fToken to redeem.
   /// @param xTokenIn The amount of xToken to redeem.
   /// @param owner The owner of the fToken or xToken.
-  /// @param baseOut The amount of base token redeemed.
+  /// @param baseOut The amount of underlying value of base token redeemed.
   function redeem(
     uint256 fTokenIn,
     uint256 xTokenIn,

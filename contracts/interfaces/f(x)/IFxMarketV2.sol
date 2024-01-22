@@ -173,6 +173,9 @@ interface IFxMarketV2 {
   /// @dev Thrown when the sum of default fee and delta fee is too large.
   error ErrorTotalFeeTooLarge();
 
+  /// @dev Thrown when the given address is zero.
+  error ErrorZeroAddress();
+
   /*************************
    * Public View Functions *
    *************************/
@@ -194,7 +197,7 @@ interface IFxMarketV2 {
    ****************************/
 
   /// @notice Mint some fToken with some base token.
-  /// @param baseIn The amount of base token supplied, use `uint256(-1)` to supply all base token.
+  /// @param baseIn The amount of wrapped value of base token supplied, use `uint256(-1)` to supply all base token.
   /// @param recipient The address of receiver for fToken.
   /// @param minFTokenMinted The minimum amount of fToken should be received.
   /// @return fTokenMinted The amount of fToken should be received.
@@ -205,11 +208,11 @@ interface IFxMarketV2 {
   ) external returns (uint256 fTokenMinted);
 
   /// @notice Mint some xToken with some base token.
-  /// @param baseIn The amount of base token supplied, use `uint256(-1)` to supply all base token.
+  /// @param baseIn The amount of wrapped value of base token supplied, use `uint256(-1)` to supply all base token.
   /// @param recipient The address of receiver for xToken.
   /// @param minXTokenMinted The minimum amount of xToken should be received.
   /// @return xTokenMinted The amount of xToken should be received.
-  /// @return bonus The amount of base token as bonus.
+  /// @return bonus The amount of wrapped value of base token as bonus.
   function mintXToken(
     uint256 baseIn,
     address recipient,
@@ -219,9 +222,9 @@ interface IFxMarketV2 {
   /// @notice Redeem base token with fToken.
   /// @param fTokenIn the amount of fToken to redeem, use `uint256(-1)` to redeem all fToken.
   /// @param recipient The address of receiver for base token.
-  /// @param minBaseOut The minimum amount of base token should be received.
-  /// @return baseOut The amount of base token should be received.
-  /// @return bonus The amount of base token as bonus.
+  /// @param minBaseOut The minimum amount of wrapped value of base token should be received.
+  /// @return baseOut The amount of wrapped value of base token should be received.
+  /// @return bonus The amount of wrapped value of base token as bonus.
   function redeemFToken(
     uint256 fTokenIn,
     address recipient,
@@ -231,8 +234,8 @@ interface IFxMarketV2 {
   /// @notice Redeem base token with xToken.
   /// @param xTokenIn the amount of xToken to redeem, use `uint256(-1)` to redeem all xToken.
   /// @param recipient The address of receiver for base token.
-  /// @param minBaseOut The minimum amount of base token should be received.
-  /// @return baseOut The amount of base token should be received.
+  /// @param minBaseOut The minimum amount of wrapped value of base token should be received.
+  /// @return baseOut The amount of wrapped value of base token should be received.
   function redeemXToken(
     uint256 xTokenIn,
     address recipient,
