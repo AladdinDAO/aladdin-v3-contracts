@@ -3583,9 +3583,9 @@ export const AVAILABLE_VAULTS: {
       ],
     },
   },
-  "FRAX/pyUSD": {
-    token: "CURVE_STABLE_NG_FRAX/pyUSD_34",
-    composition: "FRAX+pyUSD",
+  "FRAX/PYUSD": {
+    token: "CURVE_STABLE_NG_FRAX/PYUSD_34",
+    composition: "FRAX+PYUSD",
     convexCurveID: 280,
     rewarder: "0xB10a6e39Ed8a66fEd3aAef3866a95611a49B9a95",
     rewards: [ADDRESS.CRV, ADDRESS.CVX],
@@ -3701,7 +3701,7 @@ export const DEPLOYED_VAULTS: {
     { name: "ETH/stETH-ng", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 65
     { name: "FXS/cvxFXS", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 66
     { name: "WETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 67
-    { name: "FRAX/pyUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 68
+    { name: "FRAX/PYUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 68
     { name: "FRAX/sDAI", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 69
   ],
   aFXS: [
