@@ -42,10 +42,13 @@ contract FxMarketV1Facet {
     fToken = _fToken;
     xToken = _xToken;
     market = _market;
+  }
 
-    IERC20Upgradeable(_baseToken).safeApprove(_market, type(uint256).max);
-    IERC20Upgradeable(_fToken).safeApprove(_market, type(uint256).max);
-    IERC20Upgradeable(_xToken).safeApprove(_market, type(uint256).max);
+  /// @dev It is ok to call this function multiple times.
+  function initalizeFxMarketV1Facet() external {
+    IERC20Upgradeable(baseToken).safeApprove(market, type(uint256).max);
+    IERC20Upgradeable(fToken).safeApprove(market, type(uint256).max);
+    IERC20Upgradeable(xToken).safeApprove(market, type(uint256).max);
   }
 
   /****************************

@@ -321,6 +321,7 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     address _market = markets[_baseToken].market;
     uint256 _mintCap = markets[_baseToken].mintCap;
     uint256 _balance = IERC20Upgradeable(_baseToken).balanceOf(address(this));
+    IERC20Upgradeable(_baseToken).safeTransferFrom(_msgSender(), address(this), _amountIn);
     // @note approved in `addMarket`.
     _amountOut = IFxMarketV2(_market).mintFToken(_amountIn, address(this), _minOut);
 

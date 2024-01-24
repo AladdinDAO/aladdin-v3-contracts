@@ -37,22 +37,6 @@ contract FxUSDFacet {
    * Public Mutated Functions *
    ****************************/
 
-  /// @notice Mint some fxUSD and earn in rebalance pool with given token and convert parameters.
-  /// @param _params The token converting parameters.
-  /// @param _pool The address of rebalance pool used to earn.
-  /// @param _minFxUSDMinted The minimum amount of fxUSD should be received.
-  /// @return _fxUSDMinted The amount of fxUSD received.
-  function fxMintFxUSDAndEarn(
-    LibGatewayRouter.ConvertInParams memory _params,
-    address _pool,
-    uint256 _minFxUSDMinted
-  ) external payable returns (uint256 _fxUSDMinted) {
-    address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
-    uint256 _amount = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
-    _fxUSDMinted = IFxUSD(fxUSD).mintAndEarn(_pool, _amount, msg.sender, _minFxUSDMinted);
-    LibGatewayRouter.refundERC20(_baseToken, msg.sender);
-  }
-
   /// @notice Mint some fToken with given token and convert parameters.
   /// @param _params The token converting parameters.
   /// @param _market The address of market to use.
@@ -188,6 +172,23 @@ contract FxUSDFacet {
     uint256 _amount = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
     LibGatewayRouter.approve(_baseToken, fxUSD, _amount);
     _fxUSDMinted = IFxUSD(fxUSD).mint(_baseToken, _amount, msg.sender, _minFxUSDMinted);
+    LibGatewayRouter.refundERC20(_baseToken, msg.sender);
+  }
+
+  /// @notice Mint some fxUSD and earn in rebalance pool with given token and convert parameters.
+  /// @param _params The token converting parameters.
+  /// @param _pool The address of rebalance pool used to earn.
+  /// @param _minFxUSDMinted The minimum amount of fxUSD should be received.
+  /// @return _fxUSDMinted The amount of fxUSD received.
+  function fxMintFxUSDAndEarn(
+    LibGatewayRouter.ConvertInParams memory _params,
+    address _pool,
+    uint256 _minFxUSDMinted
+  ) external payable returns (uint256 _fxUSDMinted) {
+    address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
+    uint256 _amount = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
+    LibGatewayRouter.approve(_baseToken, fxUSD, _amount);
+    _fxUSDMinted = IFxUSD(fxUSD).mintAndEarn(_pool, _amount, msg.sender, _minFxUSDMinted);
     LibGatewayRouter.refundERC20(_baseToken, msg.sender);
   }
 
