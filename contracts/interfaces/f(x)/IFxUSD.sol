@@ -39,14 +39,17 @@ interface IFxUSD {
   /// @dev Thrown when someone tries to interact with unsupported market.
   error ErrorUnsupportedMarket();
 
+  /// @dev Thrown when someone tries to interact with market in stability mode.
+  error ErrorMarketInStabilityMode();
+
+  /// @dev Thrown when someone tries to interact with market has invalid price.
+  error ErrorMarketWithInvalidPrice();
+
   /// @dev Thrown when someone tries to add a supported market.
   error ErrorMarketAlreadySupported();
 
   /// @dev Thrown when the total supply of fToken exceed mint capacity.
   error ErrorExceedMintCap();
-
-  /// @dev Thrown when the amount of output token is not enough.
-  error ErrorInsufficientOutput();
 
   /// @dev Thrown when the amount of fToken is not enough for redeem.
   error ErrorInsufficientLiquidity();
@@ -141,7 +144,7 @@ interface IFxUSD {
   /// @return baseTokens The list of base token received by the receiver.
   /// @return amountOuts The list of amount of base token received by the receiver.
   /// @return bonusOuts The list of amount of bonus base token received by the receiver.
-  function redeem(
+  function autoRedeem(
     uint256 amountIn,
     address receiver,
     uint256[] memory minOuts

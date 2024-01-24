@@ -14,11 +14,14 @@ contract TokenConvertManagementFacet {
    * Public View Functions *
    *************************/
 
-  function getSpender(address target) external view returns (address) {
+  /// @notice Return the token approve spender for the given target.
+  function getSpender(address target) external view returns (address _spender) {
     LibGatewayRouter.GatewayStorage storage gs = LibGatewayRouter.gatewayStorage();
-    return gs.spenders[target];
+    _spender = gs.spenders[target];
+    if (_spender == address(0)) _spender = target;
   }
 
+  /// @notice Return the list of approved targets.
   function getApprovedTargets() external view returns (address[] memory _targets) {
     LibGatewayRouter.GatewayStorage storage gs = LibGatewayRouter.gatewayStorage();
     uint256 _numTargets = gs.approvedTargets.length();
@@ -32,11 +35,13 @@ contract TokenConvertManagementFacet {
    * Restricted Functions *
    ************************/
 
+  /// @notice Approve contract to be used in token converting.
   function approveTarget(address target, address spender) external {
     LibDiamond.enforceIsContractOwner();
     LibGatewayRouter.approveTarget(target, spender);
   }
 
+  /// @notice Remove approve contract in token converting.
   function removeTarget(address target) external {
     LibDiamond.enforceIsContractOwner();
     LibGatewayRouter.removeTarget(target);

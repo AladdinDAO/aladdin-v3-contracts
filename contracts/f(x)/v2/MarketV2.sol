@@ -166,7 +166,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     return marketConfigData.decodeBool(REDEEM_FLAG_STABILITY_OFFSET);
   }
 
-  /// @notice Return the collateral ratio to enter stability mode, multiplied by 1e18.
+  /// @inheritdoc IFxMarketV2
   function stabilityRatio() public view returns (uint256) {
     return marketConfigData.decodeUint(STABILITY_RATIO_OFFSET, 64);
   }

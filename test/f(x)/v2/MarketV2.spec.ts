@@ -18,7 +18,7 @@ import {
 
 const PRECISION = ethers.parseEther("1");
 
-describe("WrappedTokenTreasuryV2.spec", async () => {
+describe("MarketV2.spec", async () => {
   let deployer: HardhatEthersSigner;
   let platform: HardhatEthersSigner;
   let signer: HardhatEthersSigner;
@@ -452,6 +452,7 @@ describe("WrappedTokenTreasuryV2.spec", async () => {
   context("mint and redeem", async () => {
     beforeEach(async () => {
       await oracle.setPrice(ethers.parseEther("2000"));
+      await oracle.setIsValid(true);
       await rateProvider.setRate(ethers.parseEther("1.01"));
       await baseToken.mint(treasury.getAddress(), ethers.parseEther("100"));
       await treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), signer.address);

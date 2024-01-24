@@ -63,6 +63,12 @@ interface IFxBoostableRebalancePool {
    * Public View Functions *
    *************************/
 
+  /// @notice Return the address of treasury contract.
+  function treasury() external view returns (address);
+
+  /// @notice Return the address of market contract.
+  function market() external view returns (address);
+
   /// @notice Return the address of base token.
   function baseToken() external view returns (address);
 

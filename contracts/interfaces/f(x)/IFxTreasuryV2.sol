@@ -127,6 +127,9 @@ interface IFxTreasuryV2 {
   /// @notice The current base token price.
   function currentBaseTokenPrice() external view returns (uint256);
 
+  /// @notice Return whether the price is valid.
+  function isBaseTokenPriceValid() external view returns (bool);
+
   /// @notice Return the total amount of underlying value of base token deposited.
   function totalBaseToken() external view returns (uint256);
 

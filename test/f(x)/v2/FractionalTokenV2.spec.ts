@@ -75,6 +75,7 @@ describe("FractionalTokenV2.spec", async () => {
     );
 
     await oracle.setPrice(ethers.parseEther("2000"));
+    await oracle.setIsValid(true);
     await baseToken.mint(treasury.getAddress(), ethers.parseEther("1"));
     await treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), deployer.address);
     await treasury.initializeProtocol(ethers.parseEther("1"));

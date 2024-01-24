@@ -151,17 +151,16 @@ contract FxMarketV1Facet {
       _amountIn = LibGatewayRouter.transferTokenIn(fToken, address(this), _amountIn);
       (uint256 _baseOut, uint256 _redeemBonus) = IFxMarket(market).redeem(_amountIn, 0, address(this), 0);
       _bonusOut = _redeemBonus;
-      (_amountOut, _redeemBonus) = IFxMarket(market).mintXToken(_baseOut, msg.sender, 0);
+      (_amountOut, _redeemBonus) = IFxMarket(market).mintXToken(_baseOut, msg.sender, _minOut);
       _bonusOut += _redeemBonus;
       LibGatewayRouter.refundERC20(fToken, msg.sender);
     } else {
       _amountIn = LibGatewayRouter.transferTokenIn(xToken, address(this), _amountIn);
       (uint256 _baseOut, uint256 _redeemBonus) = IFxMarket(market).redeem(0, _amountIn, address(this), 0);
       _bonusOut = _redeemBonus;
-      _amountOut = IFxMarket(market).mintFToken(_baseOut, msg.sender, 0);
+      _amountOut = IFxMarket(market).mintFToken(_baseOut, msg.sender, _minOut);
       LibGatewayRouter.refundERC20(xToken, msg.sender);
     }
-    if (_amountOut < _minOut) revert LibGatewayRouter.ErrorInsufficientOutput();
 
     LibGatewayRouter.refundERC20(baseToken, msg.sender);
   }

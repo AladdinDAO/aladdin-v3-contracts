@@ -69,6 +69,7 @@ describe("LeveragedTokenV2.spec", async () => {
     );
 
     await oracle.setPrice(ethers.parseEther("2000"));
+    await oracle.setIsValid(true);
     await baseToken.mint(treasury.getAddress(), ethers.parseEther("1"));
     await treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), deployer.address);
     expect(await xToken.nav()).to.eq(PRECISION);

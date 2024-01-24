@@ -192,6 +192,9 @@ interface IFxMarketV2 {
   /// @notice Return the address leveraged base token.
   function xToken() external view returns (address);
 
+  /// @notice Return the collateral ratio to enter stability mode, multiplied by 1e18.
+  function stabilityRatio() external view returns (uint256);
+
   /****************************
    * Public Mutated Functions *
    ****************************/

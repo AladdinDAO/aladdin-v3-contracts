@@ -251,6 +251,11 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
+  function isBaseTokenPriceValid() external view returns (bool _isValid) {
+    (_isValid, , , ) = IFxPriceOracle(priceOracle).getPrice();
+  }
+
+  /// @inheritdoc IFxTreasuryV2
   function leverageRatio() external view override returns (uint256) {
     return emaLeverageRatio.emaValue();
   }

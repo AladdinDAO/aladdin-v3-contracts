@@ -16,10 +16,13 @@ library LibGatewayRouter {
    * Errors *
    **********/
 
+  /// @dev Thrown when use unapproved target contract.
   error ErrorTargetNotApproved();
 
+  /// @dev Thrown when msg.value is different from amount.
   error ErrorMsgValueMismatch();
 
+  /// @dev Thrown when the output token is not enough.
   error ErrorInsufficientOutput();
 
   /*************
@@ -69,6 +72,7 @@ library LibGatewayRouter {
    * Internal Functions *
    **********************/
 
+  /// @dev Return the GatewayStorage reference.
   function gatewayStorage() internal pure returns (GatewayStorage storage gs) {
     bytes32 position = GATEWAY_STORAGE_POSITION;
     assembly {
@@ -76,6 +80,7 @@ library LibGatewayRouter {
     }
   }
 
+  /// @dev Approve contract to be used in token converting.
   function approveTarget(address target, address spender) internal {
     GatewayStorage storage gs = gatewayStorage();
 
@@ -84,6 +89,7 @@ library LibGatewayRouter {
     }
   }
 
+  /// @dev Remove approve contract in token converting.
   function removeTarget(address target) internal {
     GatewayStorage storage gs = gatewayStorage();
 
@@ -92,23 +98,27 @@ library LibGatewayRouter {
     }
   }
 
-  function transferInAndConvert(ConvertInParams memory _params, address tokenOut) internal returns (uint256 amountOut) {
+  /// @dev Transfer token into this contract and convert to `tokenOut`.
+  /// @param params The parameters used in token converting.
+  /// @param tokenOut The address of final converted token.
+  /// @return amountOut The amount of token received.
+  function transferInAndConvert(ConvertInParams memory params, address tokenOut) internal returns (uint256 amountOut) {
     GatewayStorage storage gs = gatewayStorage();
-    if (!gs.approvedTargets.contains(_params.target)) revert ErrorTargetNotApproved();
+    if (!gs.approvedTargets.contains(params.target)) revert ErrorTargetNotApproved();
+
+    transferTokenIn(params.src, address(this), params.amount);
 
     amountOut = IERC20Upgradeable(tokenOut).balanceOf(address(this));
-    transferTokenIn(_params.src, address(this), _params.amount);
-
     bool _success;
-    if (_params.src == address(0)) {
-      (_success, ) = _params.target.call{ value: _params.amount }(_params.data);
+    if (params.src == address(0)) {
+      (_success, ) = params.target.call{ value: params.amount }(params.data);
     } else {
-      address _spender = gs.spenders[_params.target];
-      if (_spender == address(0)) _spender = _params.target;
+      address _spender = gs.spenders[params.target];
+      if (_spender == address(0)) _spender = params.target;
 
-      IERC20Upgradeable(_params.src).safeApprove(_spender, 0);
-      IERC20Upgradeable(_params.src).safeApprove(_spender, _params.amount);
-      (_success, ) = _params.target.call(_params.data);
+      IERC20Upgradeable(params.src).safeApprove(_spender, 0);
+      IERC20Upgradeable(params.src).safeApprove(_spender, params.amount);
+      (_success, ) = params.target.call(params.data);
     }
 
     // below lines will propagate inner error up
@@ -125,49 +135,57 @@ library LibGatewayRouter {
     amountOut = IERC20Upgradeable(tokenOut).balanceOf(address(this)) - amountOut;
   }
 
+  /// @dev Convert `tokenIn` to other token and transfer out.
+  /// @param params The parameters used in token converting.
+  /// @param tokenIn The address of token to convert.
+  /// @param amountIn The amount of token to convert.
+  /// @return amountOut The amount of token received.
   function convertAndTransferOut(
-    ConvertOutParams memory _params,
+    ConvertOutParams memory params,
     address tokenIn,
     uint256 amountIn,
     address receiver
   ) internal returns (uint256 amountOut) {
+    GatewayStorage storage gs = gatewayStorage();
+    if (!gs.approvedTargets.contains(params.converter)) revert ErrorTargetNotApproved();
+
     amountOut = amountIn;
-    if (_params.routes.length == 0) {
+    if (params.routes.length == 0) {
       IERC20Upgradeable(tokenIn).safeTransfer(receiver, amountOut);
     } else {
-      IERC20Upgradeable(tokenIn).safeTransfer(_params.converter, amountOut);
+      IERC20Upgradeable(tokenIn).safeTransfer(params.converter, amountOut);
     }
-    for (uint256 i = 0; i < _params.routes.length; i++) {
-      address _recipient = i == _params.routes.length - 1 ? receiver : _params.converter;
-      amountOut = ITokenConverter(_params.converter).convert(_params.routes[i], amountOut, _recipient);
+    for (uint256 i = 0; i < params.routes.length; i++) {
+      address _recipient = i == params.routes.length - 1 ? receiver : params.converter;
+      amountOut = ITokenConverter(params.converter).convert(params.routes[i], amountOut, _recipient);
     }
-    if (amountOut < _params.minOut) revert ErrorInsufficientOutput();
+    if (amountOut < params.minOut) revert ErrorInsufficientOutput();
   }
 
   /// @dev Internal function to transfer token to this contract.
-  /// @param _token The address of token to transfer.
-  /// @param _amount The amount of token to transfer.
+  /// @param token The address of token to transfer.
+  /// @param amount The amount of token to transfer.
   /// @return uint256 The amount of token transfered.
   function transferTokenIn(
-    address _token,
-    address _receiver,
-    uint256 _amount
+    address token,
+    address receiver,
+    uint256 amount
   ) internal returns (uint256) {
-    if (_token == address(0)) {
-      if (msg.value != _amount) revert ErrorMsgValueMismatch();
+    if (token == address(0)) {
+      if (msg.value != amount) revert ErrorMsgValueMismatch();
     } else {
-      IERC20Upgradeable(_token).safeTransferFrom(msg.sender, _receiver, _amount);
+      IERC20Upgradeable(token).safeTransferFrom(msg.sender, receiver, amount);
     }
-    return _amount;
+    return amount;
   }
 
   /// @dev Internal function to refund extra token.
-  /// @param _token The address of token to refund.
-  /// @param _recipient The address of the token receiver.
-  function refundERC20(address _token, address _recipient) internal {
-    uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
+  /// @param token The address of token to refund.
+  /// @param recipient The address of the token receiver.
+  function refundERC20(address token, address recipient) internal {
+    uint256 _balance = IERC20Upgradeable(token).balanceOf(address(this));
     if (_balance > 0) {
-      IERC20Upgradeable(_token).safeTransfer(_recipient, _balance);
+      IERC20Upgradeable(token).safeTransfer(recipient, _balance);
     }
   }
 

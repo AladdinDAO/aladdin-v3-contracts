@@ -49,6 +49,7 @@ contract FxUSDFacet {
   ) external payable returns (uint256 _fTokenMinted) {
     address _baseToken = IFxMarketV2(_market).baseToken();
     uint256 _amount = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
+    LibGatewayRouter.approve(_baseToken, _market, _amount);
     _fTokenMinted = IFxMarketV2(_market).mintFToken(_amount, msg.sender, _minFTokenMinted);
     LibGatewayRouter.refundERC20(_baseToken, msg.sender);
   }
@@ -66,6 +67,7 @@ contract FxUSDFacet {
   ) external payable returns (uint256 _xTokenMinted, uint256 _bonusOut) {
     address _baseToken = IFxMarketV2(_market).baseToken();
     uint256 _amount = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
+    LibGatewayRouter.approve(_baseToken, _market, _amount);
     (_xTokenMinted, _bonusOut) = IFxMarketV2(_market).mintXToken(_amount, msg.sender, _minXTokenMinted);
     LibGatewayRouter.refundERC20(_baseToken, msg.sender);
   }
@@ -151,10 +153,9 @@ contract FxUSDFacet {
       _amountIn = LibGatewayRouter.transferTokenIn(_xToken, address(this), _amountIn);
       uint256 _baseOut = IFxMarketV2(_market).redeemXToken(_amountIn, address(this), 0);
       LibGatewayRouter.approve(_baseToken, _market, _baseOut);
-      _amountOut = IFxMarketV2(_market).mintFToken(_baseOut, msg.sender, 0);
+      _amountOut = IFxMarketV2(_market).mintFToken(_baseOut, msg.sender, _minOut);
       LibGatewayRouter.refundERC20(_xToken, msg.sender);
     }
-    if (_amountOut < _minOut) revert LibGatewayRouter.ErrorInsufficientOutput();
 
     LibGatewayRouter.refundERC20(_baseToken, msg.sender);
   }
@@ -190,6 +191,38 @@ contract FxUSDFacet {
     LibGatewayRouter.approve(_baseToken, fxUSD, _amount);
     _fxUSDMinted = IFxUSD(fxUSD).mintAndEarn(_pool, _amount, msg.sender, _minFxUSDMinted);
     LibGatewayRouter.refundERC20(_baseToken, msg.sender);
+  }
+
+  /// @notice Withdraw fToken from rebalance pool as fxUSD
+  /// @param _pool The address of rebalance pool used.
+  /// @param _amountIn the amount of fToken to withdraw, use `uint256(-1)` to withdraw all fToken.
+  /// @return _amountOut The amount of fxUSD received.
+  function fxRebalancePoolWithdraw(address _pool, uint256 _amountIn) external payable returns (uint256 _amountOut) {
+    address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
+    address _fToken = IFxShareableRebalancePool(_pool).asset();
+    _amountOut = IERC20Upgradeable(_fToken).balanceOf(address(this));
+    IFxShareableRebalancePool(_pool).withdrawFrom(msg.sender, _amountIn, address(this));
+    _amountOut = IERC20Upgradeable(_fToken).balanceOf(address(this)) - _amountOut;
+    LibGatewayRouter.approve(_fToken, fxUSD, _amountOut);
+    IFxUSD(fxUSD).wrap(_baseToken, _amountOut, msg.sender);
+  }
+
+  /// @notice Withdraw fToken from rebalance pool as target token.
+  /// @return _amountOut The amount of target token received.
+  function fxRebalancePoolWithdraw(
+    LibGatewayRouter.ConvertOutParams memory _params,
+    address _pool,
+    uint256 _amountIn
+  ) external payable returns (uint256 _amountOut) {
+    address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
+    address _fToken = IFxShareableRebalancePool(_pool).asset();
+    address _market = IFxShareableRebalancePool(_pool).market();
+    _amountOut = IERC20Upgradeable(_fToken).balanceOf(address(this));
+    IFxShareableRebalancePool(_pool).withdrawFrom(msg.sender, _amountIn, address(this));
+    _amountOut = IERC20Upgradeable(_fToken).balanceOf(address(this)) - _amountOut;
+    // assume all fToken will be redeem for simplicity
+    (uint256 _baseOut, uint256 _bonusOut) = IFxMarketV2(_market).redeemFToken(_amountOut, address(this), 0);
+    _amountOut = LibGatewayRouter.convertAndTransferOut(_params, _baseToken, _baseOut + _bonusOut, msg.sender);
   }
 
   /// @notice Redeem fxUSD and convert to some other token.
@@ -242,7 +275,7 @@ contract FxUSDFacet {
   {
     _fxUSDIn = LibGatewayRouter.transferTokenIn(fxUSD, address(this), _fxUSDIn);
     address[] memory _baseTokens;
-    (_baseTokens, _baseOuts, _bonusOuts) = IFxUSD(fxUSD).redeem(_fxUSDIn, address(this), _minBaseTokens);
+    (_baseTokens, _baseOuts, _bonusOuts) = IFxUSD(fxUSD).autoRedeem(_fxUSDIn, address(this), _minBaseTokens);
     if (_params.length != _baseOuts.length) revert ErrorLengthMismatch();
     for (uint256 i = 0; i < _params.length; i++) {
       _dstOut = LibGatewayRouter.convertAndTransferOut(

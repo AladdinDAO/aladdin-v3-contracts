@@ -56,8 +56,13 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
    * Modifiers *
    *************/
 
-  modifier OnlySupportedMarket(address _baseToken) {
+  modifier onlySupportedMarket(address _baseToken) {
     _checkBaseToken(_baseToken);
+    _;
+  }
+
+  modifier onlyMintableMarket(address _baseToken) {
+    _checkMarketMintable(_baseToken);
     _;
   }
 
@@ -123,7 +128,9 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     address _baseToken,
     uint256 _amount,
     address _receiver
-  ) external override OnlySupportedMarket(_baseToken) {
+  ) external override onlySupportedMarket(_baseToken) onlyMintableMarket(_baseToken) {
+    if (isUnderCollateral()) revert ErrorUnderCollateral();
+
     address _fToken = markets[_baseToken].fToken;
     IERC20Upgradeable(_fToken).safeTransferFrom(_msgSender(), address(this), _amount);
 
@@ -138,7 +145,9 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     uint256 _amountIn,
     address _receiver,
     uint256 _minOut
-  ) external override OnlySupportedMarket(_baseToken) returns (uint256 _amountOut) {
+  ) external override onlySupportedMarket(_baseToken) onlyMintableMarket(_baseToken) returns (uint256 _amountOut) {
+    if (isUnderCollateral()) revert ErrorUnderCollateral();
+
     address _fToken = markets[_baseToken].fToken;
     _amountOut = _mintFToken(_baseToken, _fToken, _amountIn, _minOut);
     _mintShares(_baseToken, _receiver, _amountOut);
@@ -152,6 +161,8 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     uint256 _amount,
     address _receiver
   ) external override {
+    if (isUnderCollateral()) revert ErrorUnderCollateral();
+
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     _checkBaseToken(_baseToken);
 
@@ -168,8 +179,11 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     address _receiver,
     uint256 _minOut
   ) external override returns (uint256 _amountOut) {
+    if (isUnderCollateral()) revert ErrorUnderCollateral();
+
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     _checkBaseToken(_baseToken);
+    _checkMarketMintable(_baseToken);
 
     address _fToken = markets[_baseToken].fToken;
     _amountOut = _mintFToken(_baseToken, _fToken, _amountIn, _minOut);
@@ -182,7 +196,7 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     uint256 _amountIn,
     address _receiver,
     uint256 _minOut
-  ) external override OnlySupportedMarket(_baseToken) returns (uint256 _amountOut, uint256 _bonusOut) {
+  ) external override onlySupportedMarket(_baseToken) returns (uint256 _amountOut, uint256 _bonusOut) {
     if (isUnderCollateral()) revert ErrorUnderCollateral();
 
     address _market = markets[_baseToken].market;
@@ -198,7 +212,7 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
   }
 
   /// @inheritdoc IFxUSD
-  function redeem(
+  function autoRedeem(
     uint256 _amountIn,
     address _receiver,
     uint256[] memory _minOuts
@@ -256,7 +270,8 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     }
 
     for (uint256 i = 0; i < _numMarkets; i++) {
-      emit Unwrap(_baseTokens[i], _msgSender(), _receiver, _amountIn);
+      if (_amountOuts[i] == 0) continue;
+      emit Unwrap(_baseTokens[i], _msgSender(), _receiver, _amountOuts[i]);
 
       markets[_baseTokens[i]].managed -= _amountOuts[i];
       address _market = markets[_baseTokens[i]].market;
@@ -306,6 +321,18 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     if (!supportedTokens.contains(_baseToken)) revert ErrorUnsupportedMarket();
   }
 
+  /// @dev Internal function to check market.
+  /// @param _baseToken The address of the base token.
+  function _checkMarketMintable(address _baseToken) private view {
+    address _treasury = markets[_baseToken].treasury;
+    uint256 _collateralRatio = IFxTreasuryV2(_treasury).collateralRatio();
+    uint256 _stabilityRatio = IFxMarketV2(markets[_baseToken].market).stabilityRatio();
+    // not allow to mint when collateral ratio <= stability ratio
+    if (_collateralRatio <= _stabilityRatio) revert ErrorMarketInStabilityMode();
+    // not allow to mint when price is invalid
+    if (!IFxTreasuryV2(_treasury).isBaseTokenPriceValid()) revert ErrorMarketWithInvalidPrice();
+  }
+
   /// @dev Internal function to mint fToken.
   /// @param _baseToken The address of the base token.
   /// @param _fToken The address of the corresponding fToken.
@@ -320,13 +347,12 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
   ) private returns (uint256 _amountOut) {
     address _market = markets[_baseToken].market;
     uint256 _mintCap = markets[_baseToken].mintCap;
-    uint256 _balance = IERC20Upgradeable(_baseToken).balanceOf(address(this));
     IERC20Upgradeable(_baseToken).safeTransferFrom(_msgSender(), address(this), _amountIn);
+    uint256 _balance = IERC20Upgradeable(_baseToken).balanceOf(address(this));
     // @note approved in `addMarket`.
     _amountOut = IFxMarketV2(_market).mintFToken(_amountIn, address(this), _minOut);
 
     if (IERC20Upgradeable(_fToken).totalSupply() > _mintCap) revert ErrorExceedMintCap();
-    if (_amountOut < _minOut) revert ErrorInsufficientOutput();
 
     // refund exceeding base token
     uint256 _baseTokenUsed = _balance - IERC20Upgradeable(_baseToken).balanceOf(address(this));

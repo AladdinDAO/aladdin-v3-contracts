@@ -7,9 +7,14 @@ import { IFxPriceOracle } from "../interfaces/f(x)/IFxPriceOracle.sol";
 
 contract MockTwapOracle is ITwapOracle, IFxPriceOracle {
   uint256 public price;
+  bool public isValid;
 
   function setPrice(uint256 _price) external {
     price = _price;
+  }
+
+  function setIsValid(bool _isValid) external {
+    isValid = _isValid;
   }
 
   function getTwap(uint256) external view override returns (uint256) {
@@ -32,6 +37,6 @@ contract MockTwapOracle is ITwapOracle, IFxPriceOracle {
       uint256 _maxUnsafePrice
     )
   {
-    return (true, price, price, price);
+    return (isValid, price, price, price);
   }
 }

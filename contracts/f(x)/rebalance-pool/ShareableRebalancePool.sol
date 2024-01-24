@@ -107,10 +107,10 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
    * Variables *
    *************/
 
-  /// @notice The address of treasury contract.
+  /// @inheritdoc IFxBoostableRebalancePool
   address public treasury;
 
-  /// @notice The address of market contract.
+  /// @inheritdoc IFxBoostableRebalancePool
   address public market;
 
   /// @notice The gauge struct.

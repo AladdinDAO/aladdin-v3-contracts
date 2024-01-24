@@ -42,6 +42,7 @@ describe("WrappedTokenTreasuryV2.spec", async () => {
 
     const MockTwapOracle = await ethers.getContractFactory("MockTwapOracle", deployer);
     oracle = await MockTwapOracle.deploy();
+    await oracle.setIsValid(true);
 
     const RebalancePoolSplitter = await ethers.getContractFactory("RebalancePoolSplitter", deployer);
     splitter = await RebalancePoolSplitter.deploy();
