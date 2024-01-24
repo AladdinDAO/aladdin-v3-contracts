@@ -52,21 +52,21 @@ async function getSwapData(
   if (same(src, dst)) return { target: ZeroAddress, data: "0x", minOut };
   if (same(src, TOKENS.sdCRV.address)) {
     if (same(dst, TOKENS.SDT.address)) {
+      // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV2)==> SDT
       const path1 = [
-        // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV2)==> SDT
         encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
         encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
         encodePoolHintV3(ADDRESS.SDT_WETH_UNIV2, PoolTypeV3.UniswapV2, 2, 1, 0, Action.Swap, { fee_num: 997000 }),
       ];
+      // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV2)==> SDT
       const path2 = [
-        // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV2)==> SDT
         encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
         encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
         encodePoolHintV3(ADDRESS.SDT_WETH_PancakeV3_2500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {
           fee_num: 2500,
         }),
       ];
-      const encoding = encodeMultiPath([path1, path2], [16n, 84n]);
+      const encoding = encodeMultiPath([path1, path2], [0n, 0n]);
       return {
         target: await converter.getAddress(),
         data: converter.interface.encodeFunctionData("convert", [src, amountIn, encoding.encoding, encoding.routes]),

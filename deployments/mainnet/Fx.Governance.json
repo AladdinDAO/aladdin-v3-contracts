@@ -27,5 +27,11 @@
       "CvxFxnVestingManager": "0x43fCFe9F128b5e4271c7E25C47eFe91bA8896220",
       "SdFxnVestingManager": "0xA2FaffE31153e5E60F2352e3ed28ff973309C156"
     }
+  },
+  "VotingEscrowHelper": "0xd766f2b87DE4b08c2239580366e49710180aba02",
+  "FundraiseGauge": {
+    "implementation": {
+      "FundraisingGaugeFx": "0x28ED637C5e3371c2678C2d346dF04Fb634ED832d"
+    }
   }
 }
