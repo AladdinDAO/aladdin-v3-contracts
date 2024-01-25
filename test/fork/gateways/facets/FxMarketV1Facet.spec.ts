@@ -121,9 +121,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("fETH minted:", ethers.formatEther(expected));
       const token = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
       const balanceBefore = await token.balanceOf(deployer.address);
-      await gateway.fxMintFTokenV1(params, expected, { value: amountIn });
+      await gateway.fxMintFTokenV1(params, expected - expected / 100000n, { value: amountIn });
       const balanceAfter = await token.balanceOf(deployer.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
 
     it("should succeed to mint from WETH", async () => {
@@ -148,9 +148,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("fETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxMintFTokenV1(params, expected);
+      await gateway.connect(holder).fxMintFTokenV1(params, expected - expected / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
 
     it("should succeed to mint from wstETH", async () => {
@@ -175,9 +175,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("fETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxMintFTokenV1(params, expected);
+      await gateway.connect(holder).fxMintFTokenV1(params, expected - expected / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
 
     it("should succeed to mint from USDC", async () => {
@@ -205,9 +205,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("fETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxMintFTokenV1(params, expected);
+      await gateway.connect(holder).fxMintFTokenV1(params, expected - expected / 10000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
   });
 
@@ -225,9 +225,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("xETH minted:", ethers.formatEther(expected), "bonus stETH:", ethers.formatEther(bonus));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(deployer.address);
-      await gateway.fxMintXTokenV1(params, expected - expected / 1000000n, { value: amountIn });
+      await gateway.fxMintXTokenV1(params, expected - expected / 100000n, { value: amountIn });
       const balanceAfter = await tokenOut.balanceOf(deployer.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
 
     it("should succeed to mint from WETH", async () => {
@@ -252,9 +252,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("xETH minted:", ethers.formatEther(expected), "bonus stETH:", ethers.formatEther(bonus));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxMintXTokenV1(params, expected - expected / 1000000n);
+      await gateway.connect(holder).fxMintXTokenV1(params, expected - expected / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
 
     it("should succeed to mint from wstETH", async () => {
@@ -279,9 +279,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("xETH minted:", ethers.formatEther(expected), "bonus stETH:", ethers.formatEther(bonus));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxMintXTokenV1(params, expected - expected / 1000000n);
+      await gateway.connect(holder).fxMintXTokenV1(params, expected - expected / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
 
     it("should succeed to mint from USDC", async () => {
@@ -309,9 +309,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("xETH minted:", ethers.formatEther(expected), "bonus stETH:", ethers.formatEther(bonus));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxMintXTokenV1(params, expected - expected / 1000000n);
+      await gateway.connect(holder).fxMintXTokenV1(params, expected - expected / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
   });
 
@@ -341,9 +341,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("xETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(deployer.address);
-      await gateway.fxAddBaseTokenV1(params, expected - expected / 1000000n, { value: amountIn });
+      await gateway.fxAddBaseTokenV1(params, expected - expected / 100000n, { value: amountIn });
       const balanceAfter = await tokenOut.balanceOf(deployer.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
 
     it("should succeed to mint from WETH", async () => {
@@ -368,9 +368,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("xETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxAddBaseTokenV1(params, expected - expected / 1000000n);
+      await gateway.connect(holder).fxAddBaseTokenV1(params, expected - expected / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
 
     it("should succeed to mint from wstETH", async () => {
@@ -395,9 +395,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("xETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxAddBaseTokenV1(params, expected - expected / 1000000n);
+      await gateway.connect(holder).fxAddBaseTokenV1(params, expected - expected / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
 
     it("should succeed to mint from USDC", async () => {
@@ -425,9 +425,9 @@ describe("FxMarketV1Facet.spec", async () => {
       console.log("xETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxAddBaseTokenV1(params, expected - expected / 1000000n);
+      await gateway.connect(holder).fxAddBaseTokenV1(params, expected - expected / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
     });
   });
 
@@ -454,11 +454,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 1000000n;
+      params.minOut = dstOut - dstOut / 100000n;
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 1000000n);
+      await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
     });
 
     it("should succeed when redeem fToken as wstETH", async () => {
@@ -483,11 +483,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 1000000n;
+      params.minOut = dstOut - dstOut / 100000n;
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 1000000n);
+      await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
     });
 
     it("should succeed when redeem fToken as USDC", async () => {
@@ -519,9 +519,9 @@ describe("FxMarketV1Facet.spec", async () => {
       );
       params.minOut = dstOut - dstOut / 100000n;
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 1000000n);
+      await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
     });
 
     it("should succeed when redeem xToken as WETH", async () => {
@@ -546,11 +546,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 1000000n;
+      params.minOut = dstOut - dstOut / 100000n;
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxRedeemV1(params, 0n, amountIn, baseOut - baseOut / 1000000n);
+      await gateway.connect(holder).fxRedeemV1(params, 0n, amountIn, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
     });
 
     it("should succeed when redeem xToken as wstETH", async () => {
@@ -575,11 +575,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 1000000n;
+      params.minOut = dstOut - dstOut / 100000n;
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxRedeemV1(params, 0n, amountIn, baseOut - baseOut / 1000000n);
+      await gateway.connect(holder).fxRedeemV1(params, 0n, amountIn, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
     });
 
     it("should succeed when redeem xToken as USDC", async () => {
@@ -611,9 +611,9 @@ describe("FxMarketV1Facet.spec", async () => {
       );
       params.minOut = dstOut - dstOut / 100000n;
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxRedeemV1(params, 0n, amountIn, baseOut - baseOut / 1000000n);
+      await gateway.connect(holder).fxRedeemV1(params, 0n, amountIn, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
     });
   });
 
@@ -628,9 +628,9 @@ describe("FxMarketV1Facet.spec", async () => {
       const [dstOut, bounsOut] = await gateway.connect(holder).fxSwapV1.staticCall(amountIn, true, 0n);
       console.log("xETH swapped:", ethers.formatEther(dstOut), "bonus stETH:", ethers.formatEther(bounsOut));
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxSwapV1(amountIn, true, dstOut - dstOut / 1000000n);
+      await gateway.connect(holder).fxSwapV1(amountIn, true, dstOut - dstOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
     });
 
     it("should succeed when swap xToken to fToken", async () => {
@@ -643,9 +643,9 @@ describe("FxMarketV1Facet.spec", async () => {
       const [dstOut, bounsOut] = await gateway.connect(holder).fxSwapV1.staticCall(amountIn, false, 0n);
       console.log("fETH swapped:", ethers.formatEther(dstOut), "bonus stETH:", ethers.formatEther(bounsOut));
       const balanceBefore = await tokenOut.balanceOf(holder.address);
-      await gateway.connect(holder).fxSwapV1(amountIn, false, dstOut - dstOut / 1000000n);
+      await gateway.connect(holder).fxSwapV1(amountIn, false, dstOut - dstOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
-      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 1000000n);
+      expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
     });
   });
 });

@@ -209,7 +209,7 @@ contract FxUSDFacet {
 
   /// @notice Withdraw fToken from rebalance pool as target token.
   /// @return _amountOut The amount of target token received.
-  function fxRebalancePoolWithdraw(
+  function fxRebalancePoolWithdrawAs(
     LibGatewayRouter.ConvertOutParams memory _params,
     address _pool,
     uint256 _amountIn
@@ -278,7 +278,7 @@ contract FxUSDFacet {
     (_baseTokens, _baseOuts, _bonusOuts) = IFxUSD(fxUSD).autoRedeem(_fxUSDIn, address(this), _minBaseTokens);
     if (_params.length != _baseOuts.length) revert ErrorLengthMismatch();
     for (uint256 i = 0; i < _params.length; i++) {
-      _dstOut = LibGatewayRouter.convertAndTransferOut(
+      _dstOut += LibGatewayRouter.convertAndTransferOut(
         _params[i],
         _baseTokens[i],
         _baseOuts[i] + _bonusOuts[i],
@@ -302,7 +302,7 @@ contract FxUSDFacet {
   ) external returns (uint256 _amountOut, uint256 _bonusOut) {
     _amountIn = LibGatewayRouter.transferTokenIn(_baseTokenIn, address(this), _amountIn);
     LibGatewayRouter.approve(_baseTokenIn, fxUSD, _amountIn);
-    uint256 _fxUSDMinted = IFxUSD(fxUSD).mint(_baseTokenIn, _amountIn, msg.sender, 0);
+    uint256 _fxUSDMinted = IFxUSD(fxUSD).mint(_baseTokenIn, _amountIn, address(this), 0);
     (_amountOut, _bonusOut) = IFxUSD(fxUSD).redeem(_baseTokenOut, _fxUSDMinted, msg.sender, _minOut);
   }
 }
