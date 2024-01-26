@@ -292,7 +292,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   }
 
   /// @inheritdoc IFxBoostableRebalancePool
-  function withdraw(uint256 _amount, address _receiver) external override {
+  function withdraw(uint256 _amount, address _receiver) external virtual override {
     _withdraw(_msgSender(), _amount, _receiver);
   }
 
