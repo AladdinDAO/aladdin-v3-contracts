@@ -5,7 +5,9 @@ import { showConverterRoute } from "@/utils/routes";
 
 import { ensureDeployer } from "@/contracts/helpers";
 import * as FxGovernance from "@/contracts/FxGovernance";
+import * as FxOracle from "@/contracts/FxOracle";
 import * as FxStETH from "@/contracts/FxStETH";
+import * as FxUSD from "@/contracts/FxUSD";
 
 const maxFeePerGas = ethers.parseUnits("60", "gwei");
 const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
@@ -30,8 +32,13 @@ async function main() {
   const governance = await FxGovernance.deploy(deployer, overrides);
   await FxGovernance.initialize(deployer, governance, overrides);
 
+  await FxOracle.deploy(deployer, overrides);
+
   const fxsteth = await FxStETH.deploy(deployer, overrides);
   await FxStETH.initialize(deployer, fxsteth);
+
+  const fxusd = await FxUSD.deploy(deployer, overrides);
+  await FxUSD.initialize(deployer, fxusd, overrides);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

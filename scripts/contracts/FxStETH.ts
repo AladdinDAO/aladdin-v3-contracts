@@ -7,6 +7,7 @@ import { TOKENS } from "@/utils/tokens";
 import { DeploymentHelper, contractCall, ownerContractCall } from "./helpers";
 import * as FxGovernance from "./FxGovernance";
 import * as Multisig from "./Multisig";
+import * as FxOracle from "./FxOracle";
 import * as ProxyAdmin from "./ProxyAdmin";
 
 const ReservePoolBonusRatio = ethers.parseEther("0.05"); // 5%
@@ -48,20 +49,10 @@ export interface FxStETHDeployment {
     StETHAndxETHWrapper: string;
   };
   stETHGateway: string;
-  ChainlinkTwapOracle: {
-    ETH: string;
-    stETH: string;
-  };
-  FxETHTwapOracle: string;
   FxGateway: string;
   ReservePool: string;
   RebalancePoolRegistry: string;
 }
-
-const ChainlinkPriceFeed: { [name: string]: string } = {
-  ETH: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-  stETH: "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8",
-};
 
 const LiquidatableCollateralRatio: bigint = 1305500000000000000n;
 
@@ -171,23 +162,6 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     governance.PlatformFeeSpliter,
   ]);
 
-  // deploy chainlink twap oracle
-  for (const symbol of ["ETH", "stETH"]) {
-    await deployment.contractDeploy(
-      "ChainlinkTwapOracle." + symbol,
-      "ChainlinkTwapOracleV3 for " + symbol,
-      "ChainlinkTwapOracleV3",
-      [ChainlinkPriceFeed[symbol], 1, 10800, symbol]
-    );
-  }
-
-  // deploy FxETHTwapOracle
-  await deployment.contractDeploy("FxETHTwapOracle", "FxETHTwapOracle", "FxETHTwapOracle", [
-    deployment.get("ChainlinkTwapOracle.stETH"),
-    deployment.get("ChainlinkTwapOracle.ETH"),
-    "0x21e27a5e5513d6e65c4f830167390997aa84843a", // Curve ETH/stETH pool
-  ]);
-
   // deploy FxGateway
   await deployment.contractDeploy("FxGateway", "FxGateway", "FxGateway", [
     deployment.get("Market.proxy"),
@@ -268,6 +242,7 @@ async function upgrade(
 export async function initialize(deployer: HardhatEthersSigner, deployment: FxStETHDeployment, overrides?: Overrides) {
   const admin = await ProxyAdmin.deploy(deployer);
   const governance = await FxGovernance.deploy(deployer, overrides);
+  const oracle = await FxOracle.deploy(deployer, overrides);
 
   await upgrade(deployer, deployment, admin.Fx, overrides);
 
@@ -675,12 +650,12 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   }
 
   // Setup stETHTreasury
-  if ((await treasury.priceOracle()) !== deployment.FxETHTwapOracle) {
+  if ((await treasury.priceOracle()) !== oracle.FxStETHTwapOracle) {
     await ownerContractCall(
       treasury,
       "stETHTreasury update price oracle",
       "updatePriceOracle",
-      [deployment.FxETHTwapOracle],
+      [oracle.FxStETHTwapOracle],
       overrides
     );
   }
