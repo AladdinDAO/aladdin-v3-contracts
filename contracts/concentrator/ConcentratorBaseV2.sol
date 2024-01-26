@@ -25,7 +25,7 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
   uint256 private constant MAX_EXPENSE_RATIO = 5e8; // 50%
 
   /// @dev The maximum harvester ratio.
-  uint256 private constant MAX_HARVESTER_RATIO = 1e8; // 20%
+  uint256 private constant MAX_HARVESTER_RATIO = 1e8; // 10%
 
   /// @dev The maximum withdraw fee percentage.
   uint256 private constant MAX_WITHDRAW_FEE_PERCENTAGE = 1e8; // 10%
