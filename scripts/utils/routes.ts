@@ -710,6 +710,18 @@ export function encodeMultiPath(
   return { encoding, routes };
 }
 
+export function showZapRoute(src: string, dst: string, space?: number) {
+  const routes = ZAP_ROUTES[src][dst];
+  console.log(
+    " ".repeat(space ?? 0),
+    `${src}[${TOKENS[src].address}] => ${dst}[${TOKENS[dst].address}]:`,
+    `[${routes.map((r) => `"0x${r.toString(16)}"`).join(",")}]`
+  );
+  routes.forEach((route, index) => {
+    console.log(" ".repeat(space ?? 0), `  route #${index + 1}: ${decodePoolV3(route)}`);
+  });
+}
+
 export function showConverterRoute(src: string, dst: string, space?: number) {
   const routes = CONVERTER_ROUTRS[src][dst];
   console.log(
