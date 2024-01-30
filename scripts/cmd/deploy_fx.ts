@@ -21,10 +21,26 @@ async function main() {
 
   console.log("\nFx Convert Routes:");
   for (const [src, dst] of [
+    // stETH market
     ["stETH", "WETH"],
     ["stETH", "USDC"],
     ["stETH", "USDT"],
     ["stETH", "wstETH"],
+    // wstETH market
+    ["wstETH", "stETH"],
+    ["wstETH", "WETH"],
+    ["wstETH", "USDC"],
+    ["stETH", "wstETH"],
+    ["WETH", "wstETH"],
+    ["USDC", "wstETH"],
+    // sfrxETH market
+    ["sfrxETH", "frxETH"],
+    ["sfrxETH", "WETH"],
+    ["sfrxETH", "USDC"],
+    ["sfrxETH", "wstETH"],
+    ["frxETH", "sfrxETH"],
+    ["WETH", "sfrxETH"],
+    ["USDC", "sfrxETH"],
   ]) {
     showConverterRoute(src, dst, 2);
   }

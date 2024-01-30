@@ -8,6 +8,8 @@ import { IFxMarketV2 } from "../../interfaces/f(x)/IFxMarketV2.sol";
 import { IFxShareableRebalancePool } from "../../interfaces/f(x)/IFxShareableRebalancePool.sol";
 import { IFxUSD } from "../../interfaces/f(x)/IFxUSD.sol";
 
+import { FxInitialFund } from "../../f(x)/v2/FxInitialFund.sol";
+
 import { LibGatewayRouter } from "../libraries/LibGatewayRouter.sol";
 
 contract FxUSDFacet {
@@ -36,6 +38,21 @@ contract FxUSDFacet {
   /****************************
    * Public Mutated Functions *
    ****************************/
+
+  /// @notice Deposit to initial fund with given token and convert parameters.
+  /// @param _params The token converting parameters.
+  /// @param _vault The address of vault to use.
+  /// @return _baseOut The amount of base token received.
+  function fxInitialFundDeposit(LibGatewayRouter.ConvertInParams memory _params, address _vault)
+    external
+    payable
+    returns (uint256 _baseOut)
+  {
+    address _baseToken = FxInitialFund(_vault).baseToken();
+    _baseOut = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
+    LibGatewayRouter.approve(_baseToken, _vault, _baseOut);
+    FxInitialFund(_vault).deposit(_baseOut, msg.sender);
+  }
 
   /// @notice Mint some fToken with given token and convert parameters.
   /// @param _params The token converting parameters.

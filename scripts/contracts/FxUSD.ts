@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { Overrides, ZeroAddress, getAddress } from "ethers";
+import { Overrides, ZeroAddress, getAddress, id } from "ethers";
 import { network, ethers } from "hardhat";
 
 import { FxUSD__factory } from "@/types/index";
@@ -33,6 +33,7 @@ const MarketConfig: {
       StabilityRatio: bigint;
     };
     MintCapacity: bigint;
+    ReservePoolBonusRatio: bigint;
   };
 } = {
   wstETH: {
@@ -50,6 +51,7 @@ const MarketConfig: {
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
     MintCapacity: ethers.parseEther("1000000"),
+    ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
   sfrxETH: {
     FractionalToken: { name: "Fractional frxETH", symbol: "ffrxETH" },
@@ -66,6 +68,7 @@ const MarketConfig: {
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
     MintCapacity: ethers.parseEther("1000000"),
+    ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
 };
 
@@ -100,7 +103,6 @@ export interface FxUSDDeployment {
         APoolRebalancer: string;
         BPoolRebalancer: string;
       };
-      ReservePool: string;
       RebalancePoolRegistry: string;
     };
   };
@@ -250,12 +252,6 @@ async function deployMarket(deployment: DeploymentHelper, symbol: string) {
     admin.Fx
   );
 
-  // deploy reserve pool
-  await deployment.contractDeploy(`Markets.${symbol}.ReservePool`, `ReservePool for ${symbol}`, "ReservePool", [
-    deployment.get(`Markets.${symbol}.Market.proxy`),
-    deployment.get(`Markets.${symbol}.FractionalToken.proxy`),
-  ]);
-
   // deploy registry
   await deployment.contractDeploy(
     `Markets.${symbol}.RebalancePoolRegistry`,
@@ -318,7 +314,7 @@ async function initializeMarket(
   if ((await market.platform()) === ZeroAddress) {
     await contractCall(market, `Market for ${baseSymbol} initialize`, "initialize", [
       governance.PlatformFeeSpliter,
-      deployment.Markets[baseSymbol].ReservePool,
+      governance.ReservePool,
       deployment.Markets[baseSymbol].RebalancePoolRegistry,
     ]);
   }
@@ -339,6 +335,15 @@ async function initializeMarket(
   }
 
   // setup Market
+  if ((await market.reservePool()) !== governance.ReservePool) {
+    await ownerContractCall(
+      treasury,
+      "Market update reserve pool",
+      "updateReservePool",
+      [governance.ReservePool],
+      overrides
+    );
+  }
   if ((await market.stabilityRatio()) !== marketConfig.Market.StabilityRatio) {
     await ownerContractCall(market, `Market for ${baseSymbol} updateStabilityRatio`, "updateStabilityRatio", [
       marketConfig.Market.StabilityRatio,
@@ -423,10 +428,15 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
 }
 
 export async function initialize(deployer: HardhatEthersSigner, deployment: FxUSDDeployment, overrides?: Overrides) {
+  const governance = await FxGovernance.deploy(deployer, overrides);
+
   await initializeMarket(deployer, deployment, "wstETH", overrides);
   await initializeMarket(deployer, deployment, "sfrxETH", overrides);
 
   const fxUSD = await ethers.getContractAt("FxUSD", deployment.FxUSD.proxy, deployer);
+  const reservePool = await ethers.getContractAt("ReservePoolV2", governance.ReservePool, deployer);
+  const platformFeeSpliter = await ethers.getContractAt("PlatformFeeSpliter", governance.PlatformFeeSpliter, deployer);
+
   // setup fxUSD
   const markets = await fxUSD.getMarkets();
   if (!markets.includes(getAddress(TOKENS.wstETH.address))) {
@@ -440,5 +450,89 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxUS
       deployment.Markets.sfrxETH.Market.proxy,
       MarketConfig.sfrxETH.MintCapacity,
     ]);
+  }
+
+  // Setup ReservePool
+  if ((await reservePool.bonusRatio(TOKENS.wstETH.address)) !== MarketConfig.wstETH.ReservePoolBonusRatio) {
+    await ownerContractCall(
+      reservePool,
+      "ReservePool updateBonusRatio for wstETH",
+      "updateBonusRatio",
+      [TOKENS.wstETH.address, MarketConfig.wstETH.ReservePoolBonusRatio],
+      overrides
+    );
+    if ((await reservePool.bonusRatio(TOKENS.sfrxETH.address)) !== MarketConfig.sfrxETH.ReservePoolBonusRatio) {
+      await ownerContractCall(
+        reservePool,
+        "ReservePool updateBonusRatio for sfrxETH",
+        "updateBonusRatio",
+        [TOKENS.sfrxETH.address, MarketConfig.sfrxETH.ReservePoolBonusRatio],
+        overrides
+      );
+    }
+  }
+  if (!(await reservePool.hasRole(id("MARKET_ROLE"), deployment.Markets.wstETH.Market.proxy))) {
+    await ownerContractCall(
+      reservePool,
+      "reservePool add wstETH Market",
+      "grantRole",
+      [id("MARKET_ROLE"), deployment.Markets.wstETH.Market.proxy],
+      overrides
+    );
+  }
+  if (!(await reservePool.hasRole(id("MARKET_ROLE"), deployment.Markets.sfrxETH.Market.proxy))) {
+    await ownerContractCall(
+      reservePool,
+      "reservePool add sfrxETH Market",
+      "grantRole",
+      [id("MARKET_ROLE"), deployment.Markets.sfrxETH.Market.proxy],
+      overrides
+    );
+  }
+
+  // Setup PlatformFeeSpliter
+  const length = await platformFeeSpliter.getRewardCount();
+  const rewardToken: Array<string> = [];
+  for (let i = 0; i < length; i++) {
+    rewardToken.push((await platformFeeSpliter.rewards(i)).token);
+  }
+  if (!rewardToken.includes(getAddress(TOKENS.wstETH.address))) {
+    await ownerContractCall(
+      platformFeeSpliter,
+      "PlatformFeeSpliter add wstETH",
+      "addRewardToken",
+      [
+        TOKENS.wstETH.address,
+        governance.FeeDistributor.wstETH,
+        0n,
+        ethers.parseUnits("0.25", 9),
+        ethers.parseUnits("0.75", 9),
+      ],
+      overrides
+    );
+  }
+  if (!rewardToken.includes(getAddress(TOKENS.sfrxETH.address))) {
+    await ownerContractCall(
+      platformFeeSpliter,
+      "PlatformFeeSpliter add sfrxETH",
+      "addRewardToken",
+      [
+        TOKENS.sfrxETH.address,
+        governance.Burner.PlatformFeeBurner,
+        0n,
+        ethers.parseUnits("0.25", 9),
+        ethers.parseUnits("0.75", 9),
+      ],
+      overrides
+    );
+  }
+  if ((await platformFeeSpliter.burners(TOKENS.stETH.address)) !== governance.Burner.PlatformFeeBurner) {
+    await ownerContractCall(
+      platformFeeSpliter,
+      "PlatformFeeSpliter set burner for stETH",
+      "updateRewardTokenBurner",
+      [TOKENS.stETH.address, governance.Burner.PlatformFeeBurner],
+      overrides
+    );
   }
 }

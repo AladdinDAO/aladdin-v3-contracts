@@ -17,7 +17,7 @@ import {
   FractionalTokenV2,
   LeveragedTokenV2,
   MarketV2,
-  ReservePool,
+  ReservePoolV2,
   RebalancePoolRegistry,
   WrappedTokenTreasuryV2,
   MockFxRateProvider,
@@ -26,6 +26,7 @@ import {
   ShareableRebalancePool,
   IFxRateProvider,
   IFxPriceOracle,
+  FxInitialFund,
 } from "@/types/index";
 import { LibGatewayRouter } from "@/types/contracts/gateways/facets/FxUSDFacet";
 import { TOKENS, Action, PoolTypeV3, encodePoolHintV3, ADDRESS } from "@/utils/index";
@@ -48,7 +49,7 @@ interface FxMarket {
   fToken: FractionalTokenV2;
   xToken: LeveragedTokenV2;
   market: MarketV2;
-  reservePool: ReservePool;
+  reservePool: ReservePoolV2;
   registry: RebalancePoolRegistry;
   treasury: WrappedTokenTreasuryV2;
   splitter: RebalancePoolSplitter;
@@ -58,7 +59,7 @@ interface FxMarket {
   oracle: IFxPriceOracle;
 }
 
-describe("FxMarketV1Facet.spec", async () => {
+describe("FxUSDFacet.spec", async () => {
   let deployer: HardhatEthersSigner;
   let admin: HardhatEthersSigner;
   let signer: HardhatEthersSigner;
@@ -81,7 +82,11 @@ describe("FxMarketV1Facet.spec", async () => {
     return sigs;
   };
 
-  const deployFxMarket = async (token: string, holder: HardhatEthersSigner): Promise<FxMarket> => {
+  const deployFxMarket = async (
+    token: string,
+    holder: HardhatEthersSigner,
+    doInitialize: boolean
+  ): Promise<FxMarket> => {
     await mockETHBalance(holder.address, ethers.parseEther("100"));
     let baseToken: MockERC20;
     let rateProvider: IFxRateProvider;
@@ -90,7 +95,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const WstETHRateProvider = await ethers.getContractFactory("WstETHRateProvider", deployer);
       rateProvider = await WstETHRateProvider.deploy(token);
       oracle = (await ethers.getContractAt(
-        "FxFrxETHTwapOracle",
+        "FxStETHTwapOracle",
         "0xa84360896cE9152d1780c546305BB54125F962d9",
         deployer
       )) as any as IFxPriceOracle;
@@ -155,8 +160,8 @@ describe("FxMarketV1Facet.spec", async () => {
     const xTokenImpl = await LeveragedTokenV2.deploy(treasury.getAddress(), fToken.getAddress());
     await xTokenProxy.connect(admin).upgradeTo(xTokenImpl.getAddress());
 
-    const ReservePool = await ethers.getContractFactory("ReservePool", deployer);
-    const reservePool = await ReservePool.deploy(market.getAddress(), fToken.getAddress());
+    const ReservePoolV2 = await ethers.getContractFactory("ReservePoolV2", deployer);
+    const reservePool = await ReservePoolV2.deploy();
 
     const RebalancePoolRegistry = await ethers.getContractFactory("RebalancePoolRegistry", deployer);
     const registry = await RebalancePoolRegistry.deploy();
@@ -173,10 +178,13 @@ describe("FxMarketV1Facet.spec", async () => {
     );
     await market.initialize(deployer.address, reservePool.getAddress(), registry.getAddress());
     await treasury.grantRole(id("FX_MARKET_ROLE"), market.getAddress());
+    await reservePool.grantRole(id("MARKET_ROLE"), market.getAddress());
 
-    await baseToken.transfer(treasury.getAddress(), ethers.parseEther("1"));
-    await treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), signer.address);
-    await treasury.connect(signer).initializeProtocol(ethers.parseEther("1"));
+    if (doInitialize) {
+      await baseToken.transfer(treasury.getAddress(), ethers.parseEther("1"));
+      await treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), signer.address);
+      await treasury.connect(signer).initializeProtocol(ethers.parseEther("1"));
+    }
     await market.updateStabilityRatio(ethers.parseEther("1.3"));
 
     const ShareableRebalancePool = await ethers.getContractFactory("ShareableRebalancePool", deployer);
@@ -271,8 +279,8 @@ describe("FxMarketV1Facet.spec", async () => {
     await manage.approveTarget(TOKENS.stETH.address, ZeroAddress);
     await manage.approveTarget(TOKENS.wstETH.address, ZeroAddress);
 
-    sfrxETHMarket = await deployFxMarket(TOKENS.sfrxETH.address, await ethers.getSigner(SFRXETH_HOLDER));
-    wstETHMarket = await deployFxMarket(TOKENS.wstETH.address, await ethers.getSigner(WSTETH_HOLDER));
+    sfrxETHMarket = await deployFxMarket(TOKENS.sfrxETH.address, await ethers.getSigner(SFRXETH_HOLDER), true);
+    wstETHMarket = await deployFxMarket(TOKENS.wstETH.address, await ethers.getSigner(WSTETH_HOLDER), true);
     await fxUSD.addMarket(wstETHMarket.market.getAddress(), MaxUint256);
     await fxUSD.addMarket(sfrxETHMarket.market.getAddress(), MaxUint256);
   });
@@ -1902,6 +1910,241 @@ describe("FxMarketV1Facet.spec", async () => {
         );
       const balanceAfter = await tokenOut.balanceOf(holder.address);
       expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
+    });
+  });
+
+  const checkFxInitialFundDeposit = async (
+    fund: FxInitialFund,
+    holder: HardhatEthersSigner,
+    amountIn: bigint,
+    tokenOut: MockERC20,
+    params: LibGatewayRouter.ConvertInParamsStruct,
+    tokenIn?: MockERC20
+  ) => {
+    if (tokenIn) {
+      await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
+    }
+    const expected = await gateway.connect(holder).fxInitialFundDeposit.staticCall(params, fund.getAddress(), {
+      value: tokenIn ? 0n : amountIn,
+    });
+    console.log("base swapped:", ethers.formatEther(expected));
+    params.minOut = expected - expected / 100000n;
+    const balanceBefore = await fund.shares(holder.address);
+    await gateway.connect(holder).fxInitialFundDeposit(params, fund.getAddress(), { value: tokenIn ? 0n : amountIn });
+    const balanceAfter = await fund.shares(holder.address);
+    expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
+  };
+
+  context("fxInitialFundDeposit", async () => {
+    let fund: FxInitialFund;
+
+    context("wstETH market", async () => {
+      beforeEach(async () => {
+        const FxInitialFund = await ethers.getContractFactory("FxInitialFund", deployer);
+        fund = await FxInitialFund.deploy(wstETHMarket.market.getAddress(), fxUSD.getAddress());
+      });
+
+      it("should succeed to mint from ETH", async () => {
+        const amountIn = ethers.parseEther("10");
+        await checkFxInitialFundDeposit(fund, deployer, amountIn, wstETHMarket.fToken, {
+          src: ZeroAddress,
+          amount: amountIn,
+          target: TOKENS.wstETH.address,
+          data: "0x",
+          minOut: 0,
+        });
+      });
+
+      it("should succeed to mint from WETH", async () => {
+        const holder = await ethers.getSigner(WETH_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, holder);
+        const amountIn = ethers.parseEther("10");
+        await checkFxInitialFundDeposit(
+          fund,
+          holder,
+          amountIn,
+          wstETHMarket.fToken,
+          {
+            src: TOKENS.WETH.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.WETH.address,
+              amountIn,
+              1048575n + (2n << 20n),
+              [
+                encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+                encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+              ],
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
+
+      it("should succeed to mint from stETH", async () => {
+        const holder = await ethers.getSigner(STETH_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.stETH.address, holder);
+        const amountIn = ethers.parseEther("10");
+        await checkFxInitialFundDeposit(
+          fund,
+          holder,
+          amountIn,
+          wstETHMarket.fToken,
+          {
+            src: TOKENS.stETH.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.stETH.address,
+              amountIn,
+              1048575n + (1n << 20n),
+              [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
+
+      it("should succeed to mint from USDC", async () => {
+        const holder = await ethers.getSigner(USDC_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.USDC.address, holder);
+        const amountIn = ethers.parseUnits("10000", 6);
+        await checkFxInitialFundDeposit(
+          fund,
+          holder,
+          amountIn,
+          wstETHMarket.fToken,
+          {
+            src: TOKENS.USDC.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.USDC.address,
+              amountIn,
+              1048575n + (3n << 20n),
+              [
+                encodePoolHintV3(ADDRESS.USDC_WETH_UNIV3, PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, { fee_num: 500 }),
+                encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+                encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+              ],
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
+    });
+
+    context("sfrxETH market", async () => {
+      beforeEach(async () => {
+        const FxInitialFund = await ethers.getContractFactory("FxInitialFund", deployer);
+        fund = await FxInitialFund.deploy(sfrxETHMarket.market.getAddress(), fxUSD.getAddress());
+      });
+
+      it("should succeed to mint from WETH", async () => {
+        const holder = await ethers.getSigner(WETH_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, holder);
+        const amountIn = ethers.parseEther("10");
+        await checkFxInitialFundDeposit(
+          fund,
+          holder,
+          amountIn,
+          sfrxETHMarket.fToken,
+          {
+            src: TOKENS.WETH.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.WETH.address,
+              amountIn,
+              1048575n + (2n << 20n),
+              [
+                encodePoolHintV3(
+                  ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+                  PoolTypeV3.CurvePlainPool,
+                  2,
+                  0,
+                  1,
+                  Action.Swap
+                ),
+                encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
+              ],
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
+
+      it("should succeed to mint from frxETH", async () => {
+        const holder = await ethers.getSigner(FRXETH_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.frxETH.address, holder);
+        const amountIn = ethers.parseEther("10");
+        await checkFxInitialFundDeposit(
+          fund,
+          holder,
+          amountIn,
+          sfrxETHMarket.fToken,
+          {
+            src: TOKENS.frxETH.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.frxETH.address,
+              amountIn,
+              1048575n + (1n << 20n),
+              [encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)],
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
+
+      it("should succeed to mint from USDC", async () => {
+        const holder = await ethers.getSigner(USDC_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.USDC.address, holder);
+        const amountIn = ethers.parseUnits("10000", 6);
+        await checkFxInitialFundDeposit(
+          fund,
+          holder,
+          amountIn,
+          sfrxETHMarket.fToken,
+          {
+            src: TOKENS.USDC.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.USDC.address,
+              amountIn,
+              1048575n + (3n << 20n),
+              [
+                encodePoolHintV3(ADDRESS.USDC_WETH_UNIV3, PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, { fee_num: 500 }),
+                encodePoolHintV3(
+                  ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+                  PoolTypeV3.CurvePlainPool,
+                  2,
+                  0,
+                  1,
+                  Action.Swap
+                ),
+                encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
+              ],
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
     });
   });
 });

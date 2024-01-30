@@ -12,7 +12,7 @@ import {
   LeveragedTokenV2,
   RebalancePoolSplitter,
   MarketV2,
-  ReservePool,
+  ReservePoolV2,
   RebalancePoolRegistry,
 } from "@/types/index";
 
@@ -26,7 +26,7 @@ describe("MarketV2.spec", async () => {
 
   let baseToken: MockERC20;
   let market: MarketV2;
-  let reservePool: ReservePool;
+  let reservePool: ReservePoolV2;
   let registry: RebalancePoolRegistry;
   let treasury: WrappedTokenTreasuryV2;
   let rateProvider: MockFxRateProvider;
@@ -83,8 +83,8 @@ describe("MarketV2.spec", async () => {
     const xTokenImpl = await LeveragedTokenV2.deploy(treasury.getAddress(), fToken.getAddress());
     await xTokenProxy.connect(admin).upgradeTo(xTokenImpl.getAddress());
 
-    const ReservePool = await ethers.getContractFactory("ReservePool", deployer);
-    reservePool = await ReservePool.deploy(market.getAddress(), fToken.getAddress());
+    const ReservePoolV2 = await ethers.getContractFactory("ReservePoolV2", deployer);
+    reservePool = await ReservePoolV2.deploy();
 
     const RebalancePoolRegistry = await ethers.getContractFactory("RebalancePoolRegistry", deployer);
     registry = await RebalancePoolRegistry.deploy();
@@ -101,6 +101,7 @@ describe("MarketV2.spec", async () => {
     );
     await market.initialize(platform.address, reservePool.getAddress(), registry.getAddress());
     await treasury.grantRole(id("FX_MARKET_ROLE"), market.getAddress());
+    await reservePool.grantRole(id("MARKET_ROLE"), market.getAddress());
   });
 
   context("constructor", async () => {

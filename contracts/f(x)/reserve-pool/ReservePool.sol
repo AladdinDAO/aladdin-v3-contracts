@@ -8,8 +8,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import { IFxReservePool } from "../interfaces/f(x)/IFxReservePool.sol";
-import { IFxMarket } from "../interfaces/f(x)/IFxMarket.sol";
+import { IFxReservePool } from "../../interfaces/f(x)/IFxReservePool.sol";
 
 contract ReservePool is AccessControl, IFxReservePool {
   using SafeERC20 for IERC20;

@@ -94,6 +94,7 @@ export interface FxGovernanceDeployment {
   Burner: {
     PlatformFeeBurner: string;
   };
+  ReservePool: string;
 }
 
 const SaleConfig: {
@@ -269,6 +270,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     converter.GeneralTokenConverter,
     deployment.get("FeeDistributor.wstETH"),
   ]);
+  await deployment.contractDeploy("ReservePool", "ReservePoolV2", "ReservePoolV2", []);
 
   return deployment.toObject() as FxGovernanceDeployment;
 }
@@ -349,6 +351,7 @@ export async function initialize(
   const fnxVesting = await ethers.getContractAt("Vesting", deployment.Vesting.FXN, deployer);
   const fethVesting = await ethers.getContractAt("Vesting", deployment.Vesting.fETH, deployer);
   const burner = await ethers.getContractAt("PlatformFeeBurner", deployment.Burner.PlatformFeeBurner, deployer);
+  const platformFeeSpliter = await ethers.getContractAt("PlatformFeeSpliter", deployment.PlatformFeeSpliter, deployer);
   const fnxManageableVesting = await ethers.getContractAt(
     "ManageableVesting",
     deployment.ManageableVesting.vesting.FXN,
@@ -644,4 +647,24 @@ export async function initialize(
     await addGauge(controller, "FundraisingGaugeFx.FxTreasury", await gauge.getAddress(), 2);
   }
   */
+
+  // Setup PlatformFeeSpliter
+  if ((await platformFeeSpliter.treasury()) !== deployment.ReservePool) {
+    await ownerContractCall(
+      platformFeeSpliter,
+      "PlatformFeeSpliter set ReservePool as Treasury",
+      "updateTreasury",
+      [deployment.ReservePool],
+      overrides
+    );
+  }
+  if ((await platformFeeSpliter.staker()) !== "0x11E91BB6d1334585AA37D8F4fde3932C7960B938") {
+    await ownerContractCall(
+      platformFeeSpliter,
+      "PlatformFeeSpliter set keeper as staker",
+      "updateStaker",
+      ["0x11E91BB6d1334585AA37D8F4fde3932C7960B938"],
+      overrides
+    );
+  }
 }

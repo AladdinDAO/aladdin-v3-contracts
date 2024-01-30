@@ -1,5 +1,5 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { MaxUint256, Overrides, ZeroAddress } from "ethers";
+import { MaxUint256, Overrides, ZeroAddress, id } from "ethers";
 import { network, ethers } from "hardhat";
 
 import { TOKENS } from "@/utils/tokens";
@@ -50,7 +50,6 @@ export interface FxStETHDeployment {
   };
   stETHGateway: string;
   FxGateway: string;
-  ReservePool: string;
   RebalancePoolRegistry: string;
 }
 
@@ -170,12 +169,6 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.get("LeveragedToken.proxy"),
   ]);
 
-  // deploy ReservePool
-  await deployment.contractDeploy("ReservePool", "ReservePool", "ReservePool", [
-    deployment.get("Market.proxy"),
-    deployment.get("FractionalToken.proxy"),
-  ]);
-
   // deploy RebalancePoolRegistry
   await deployment.contractDeploy("RebalancePoolRegistry", "RebalancePoolRegistry", "RebalancePoolRegistry", []);
 
@@ -248,7 +241,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
 
   const treasury = await ethers.getContractAt("stETHTreasury", deployment.stETHTreasury.proxy, deployer);
   const market = await ethers.getContractAt("Market", deployment.Market.proxy, deployer);
-  const reservePool = await ethers.getContractAt("ReservePool", deployment.ReservePool, deployer);
+  const reservePool = await ethers.getContractAt("ReservePoolV2", governance.ReservePool, deployer);
   const gateway = await ethers.getContractAt("FxGateway", deployment.FxGateway, deployer);
   const platformFeeSpliter = await ethers.getContractAt("PlatformFeeSpliter", governance.PlatformFeeSpliter, deployer);
   const rebalancePoolA = await ethers.getContractAt("RebalancePool", deployment.RebalancePool.APool, deployer);
@@ -648,6 +641,15 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
+  if (!(await reservePool.hasRole(id("MARKET_ROLE"), deployment.Market.proxy))) {
+    await ownerContractCall(
+      reservePool,
+      "reservePool add stETH Market",
+      "grantRole",
+      [id("MARKET_ROLE"), deployment.Market.proxy],
+      overrides
+    );
+  }
 
   // Setup stETHTreasury
   if ((await treasury.priceOracle()) !== oracle.FxStETHTwapOracle) {
@@ -682,12 +684,12 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   }
 
   // Setup Market
-  if ((await market.reservePool()) !== deployment.ReservePool) {
+  if ((await market.reservePool()) !== governance.ReservePool) {
     await ownerContractCall(
       treasury,
       "Market update reserve pool",
       "updateReservePool",
-      [deployment.ReservePool],
+      [governance.ReservePool],
       overrides
     );
   }
@@ -709,25 +711,6 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   }
 
   // Setup PlatformFeeSpliter
-  if ((await platformFeeSpliter.treasury()) !== deployment.ReservePool) {
-    await ownerContractCall(
-      platformFeeSpliter,
-      "PlatformFeeSpliter set ReservePool as Treasury",
-      "updateTreasury",
-      [deployment.ReservePool],
-      overrides
-    );
-  }
-  if ((await platformFeeSpliter.staker()) !== "0x11E91BB6d1334585AA37D8F4fde3932C7960B938") {
-    await ownerContractCall(
-      platformFeeSpliter,
-      "PlatformFeeSpliter set keeper as staker",
-      "updateStaker",
-      ["0x11E91BB6d1334585AA37D8F4fde3932C7960B938"],
-      overrides
-    );
-  }
-
   const length = await platformFeeSpliter.getRewardCount();
   let foundIndex = -1;
   for (let i = 0; i < length; i++) {
@@ -742,7 +725,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       "addRewardToken",
       [
         TOKENS.stETH.address,
-        governance.FeeDistributor.stETH,
+        governance.Burner.PlatformFeeBurner,
         0n,
         ethers.parseUnits("0.25", 9),
         ethers.parseUnits("0.75", 9),

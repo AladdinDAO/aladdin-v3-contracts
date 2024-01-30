@@ -224,7 +224,11 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
 
     uint256 _stabilityRatio = stabilityRatio();
     (uint256 _maxBaseInBeforeSystemStabilityMode, ) = IFxTreasuryV2(treasury).maxMintableFToken(_stabilityRatio);
-    _maxBaseInBeforeSystemStabilityMode = IFxTreasuryV2(treasury).getWrapppedValue(_maxBaseInBeforeSystemStabilityMode);
+    if (_maxBaseInBeforeSystemStabilityMode > 0) {
+      _maxBaseInBeforeSystemStabilityMode = IFxTreasuryV2(treasury).getWrapppedValue(
+        _maxBaseInBeforeSystemStabilityMode
+      );
+    }
 
     if (fTokenMintPausedInStabilityMode()) {
       uint256 _collateralRatio = IFxTreasuryV2(treasury).collateralRatio();
@@ -263,7 +267,11 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
 
     uint256 _stabilityRatio = stabilityRatio();
     (uint256 _maxBaseInBeforeSystemStabilityMode, ) = IFxTreasuryV2(treasury).maxMintableXToken(_stabilityRatio);
-    _maxBaseInBeforeSystemStabilityMode = IFxTreasuryV2(treasury).getWrapppedValue(_maxBaseInBeforeSystemStabilityMode);
+    if (_maxBaseInBeforeSystemStabilityMode > 0) {
+      _maxBaseInBeforeSystemStabilityMode = IFxTreasuryV2(treasury).getWrapppedValue(
+        _maxBaseInBeforeSystemStabilityMode
+      );
+    }
 
     uint256 _amountWithoutFee = _deductXTokenMintFee(_baseIn, _maxBaseInBeforeSystemStabilityMode);
     IERC20Upgradeable(baseToken).safeTransferFrom(_msgSender(), treasury, _amountWithoutFee);

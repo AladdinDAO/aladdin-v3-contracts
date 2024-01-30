@@ -27,6 +27,7 @@ describe("Market.spec", async () => {
 
     const MockTwapOracle = await ethers.getContractFactory("MockTwapOracle", deployer);
     oracle = await MockTwapOracle.deploy();
+    await oracle.setIsValid(true);
 
     const FractionalToken = await ethers.getContractFactory("FractionalToken", deployer);
     fToken = await FractionalToken.deploy();
