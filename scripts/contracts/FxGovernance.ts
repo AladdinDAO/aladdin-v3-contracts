@@ -1,6 +1,6 @@
 /* eslint-disable node/no-missing-import */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { ZeroAddress, Overrides, Contract } from "ethers";
+import { ZeroAddress, Overrides, Contract, MaxUint256 } from "ethers";
 import { network, ethers } from "hardhat";
 
 import { GaugeController } from "@/types/index";
@@ -10,39 +10,31 @@ import { TOKENS } from "@/utils/tokens";
 import { DeploymentHelper, contractCall, ownerContractCall } from "./helpers";
 import * as Converter from "./Converter";
 import * as Multisig from "./Multisig";
+import * as ProxyAdmin from "./ProxyAdmin";
 import * as VotingEscrow from "./VotingEscrow";
 
-/*
 const DeployedGauges: { [name: string]: { token: string; rewarder: string; immutable: boolean } } = {
-  "ETH+xETH": {
-    token: TOKENS["CURVE_CRYPTO_ETH/xETH_302"].address,
-    rewarder: "0x0831c171938033d0C5218B509502E2d95AC10cAb",
-    immutable: false,
-  },
   "ETH+FXN": {
     token: TOKENS["CURVE_CRYPTO_ETH/FXN_311"].address,
     rewarder: "0x2b732f0Eee9e1b4329C25Cbb8bdC0dc3bC1448E2",
-    immutable: false,
-  },
-  "crvUSD+fETH": {
-    token: TOKENS["CURVE_CRYPTO_crvUSD/fETH_299"].address,
-    rewarder: "0xFcef86a917fb2D0AB39D60e111a3763927Db485d",
     immutable: true,
   },
-  "fETH+FRAXBP": {
-    token: TOKENS["CURVE_CRYPTO_fETH/FRAXBP_301"].address,
-    rewarder: "0x2267b760Ce858617ff1Ef8E7c598397093c276bD",
+  "FXN+cvxFXN": {
+    token: TOKENS["CURVE_PLAIN_FXN/cvxFXN_358"].address,
+    rewarder: "0x19A0117a5bE27e4D3059Be13FB069eB8f1646d86",
+    immutable: true,
+  },
+  "FXN+sdFXN": {
+    token: TOKENS["CURVE_PLAIN_FXN/sdFXN_359"].address,
+    rewarder: "0x883D7AB9078970b0204c50B56e1c3F72AB5544f9",
     immutable: true,
   },
 };
-*/
 
 const GaugeTypeLists: Array<{ name: string; weight: bigint }> = [
-  { name: "Liquidity", weight: ethers.parseEther("0.3") },
-  { name: "Rebalance Pool", weight: ethers.parseEther("0.2") },
-  { name: "Fundraising", weight: ethers.parseEther("0.1") },
-  { name: "Rebalance Pool (fETH)", weight: ethers.parseEther("0.25") },
-  { name: "Rebalance Pool (fBTC)", weight: ethers.parseEther("0.15") },
+  { name: "Liquidity", weight: ethers.parseEther("1") },
+  { name: "Rebalance Pool", weight: ethers.parseEther("1") },
+  { name: "Fundraising", weight: ethers.parseEther("1") },
 ];
 
 export interface FxGovernanceDeployment {
@@ -56,6 +48,7 @@ export interface FxGovernanceDeployment {
   VotingEscrowProxy: string;
   TokenMinter: string;
   GaugeController: string;
+  GaugeControllerOwner: string;
   LiquidityGauge: {
     implementation: {
       LiquidityGauge: string;
@@ -133,6 +126,7 @@ const SaleConfig: {
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxGovernanceDeployment> {
   const multisig = Multisig.deploy(network.name);
+  const admin = await ProxyAdmin.deploy(deployer);
   const converter = await Converter.deploy(deployer, overrides);
   const implementationDeployment = await VotingEscrow.deploy(deployer, overrides);
   const deployment = new DeploymentHelper(network.name, "Fx.Governance", deployer, overrides);
@@ -156,19 +150,20 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   await deployment.contractDeploy("VotingEscrowHelper", "VotingEscrowHelper", "VotingEscrowHelper", [
     deployment.get("veFXN"),
   ]);
-  /*
   await deployment.contractDeploy("VotingEscrowBoost", "VotingEscrowBoost", "VotingEscrowBoost", [
     deployment.get("veFXN"),
   ]);
   await deployment.contractDeploy("VotingEscrowProxy", "VotingEscrowProxy", "VotingEscrowProxy", [
     deployment.get("veFXN"),
   ]);
-  */
 
   // GaugeController
   await deployment.minimalProxyDeploy("GaugeController", "GaugeController", implementationDeployment.GaugeController);
+  // GaugeControllerOwner
+  await deployment.contractDeploy("GaugeControllerOwner", "GaugeControllerOwner", "GaugeControllerOwner", [
+    deployment.get("GaugeController"),
+  ]);
 
-  /*
   // LiquidityGauge related contracts
   await deployment.contractDeploy(
     "LiquidityGauge.implementation.SharedLiquidityGauge",
@@ -182,11 +177,13 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "ConvexCurveManager",
     []
   );
-  for (const name of ["ETH+xETH", "ETH+FXN", "crvUSD+fETH", "fETH+FRAXBP"]) {
-    await deployment.minimalProxyDeploy(
+  for (const name of ["ETH+FXN", "FXN+cvxFXN", "FXN+sdFXN"]) {
+    await deployment.proxyDeploy(
       "LiquidityGauge.ConvexDualFarm." + name + ".gauge",
       `SharedLiquidityGauge of ${name}`,
-      deployment.get("LiquidityGauge.implementation.SharedLiquidityGauge")
+      deployment.get("LiquidityGauge.implementation.SharedLiquidityGauge"),
+      admin.Fx,
+      "0x"
     );
     if (DeployedGauges[name].immutable) {
       await deployment.contractDeploy(
@@ -207,7 +204,6 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
       );
     }
   }
-  */
   // Fundraising related contracts
   await deployment.contractDeploy(
     "FundraiseGauge.implementation.FundraisingGaugeFx",
@@ -215,13 +211,11 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "FundraisingGaugeFx",
     [multisig.Fx]
   );
-  /*
   await deployment.minimalProxyDeploy(
     "FundraiseGauge.Gauge.FxTreasury",
     "FundraisingGaugeFx for FxTreasury",
     deployment.get("FundraiseGauge.implementation.FundraisingGaugeFx")
   );
-  */
 
   // Vesting related contracts
   await deployment.contractDeploy("MultipleVestHelper", "FXN MultipleVestHelper", "MultipleVestHelper", []);
@@ -550,7 +544,7 @@ export async function initialize(
 
   // Setup GaugeController
   for (let i = 0; i < GaugeTypeLists.length; i++) {
-    if ((await controller.gauge_type_names(i)) !== "Liquidity") {
+    if ((await controller.gauge_type_names(i)) !== GaugeTypeLists[i].name) {
       await ownerContractCall(
         controller,
         "GaugeController add type: " + GaugeTypeLists[i].name,
@@ -560,9 +554,8 @@ export async function initialize(
       );
     }
   }
-  /*
   // Setup LiquidityGauge
-  for (const name of ["ETH+xETH", "ETH+FXN", "crvUSD+fETH", "fETH+FRAXBP"]) {
+  for (const name of ["ETH+FXN", "FXN+cvxFXN", "FXN+sdFXN"]) {
     const manager = await ethers.getContractAt(
       "ConvexCurveManager",
       deployment.LiquidityGauge.ConvexDualFarm[name].manager,
@@ -646,7 +639,6 @@ export async function initialize(
     }
     await addGauge(controller, "FundraisingGaugeFx.FxTreasury", await gauge.getAddress(), 2);
   }
-  */
 
   // Setup PlatformFeeSpliter
   if ((await platformFeeSpliter.treasury()) !== deployment.ReservePool) {

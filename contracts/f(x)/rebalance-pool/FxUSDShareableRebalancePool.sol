@@ -6,7 +6,7 @@ import { IFxBoostableRebalancePool } from "../../interfaces/f(x)/IFxBoostableReb
 
 import { ShareableRebalancePool } from "./ShareableRebalancePool.sol";
 
-contract FxShareableRebalancePool is ShareableRebalancePool {
+contract FxUSDShareableRebalancePool is ShareableRebalancePool {
   /***************
    * Constructor *
    ***************/

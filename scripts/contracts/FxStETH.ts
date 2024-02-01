@@ -376,7 +376,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
-  await FxGovernance.addGauge(controller, "ShareableRebalancePool (fETH)", deployment.ShareableRebalancePool.gauge, 3);
+  await FxGovernance.addGauge(controller, "ShareableRebalancePool (fETH)", deployment.ShareableRebalancePool.gauge, 1);
 
   const LIQUIDATOR_ROLE = await ShareableRebalancePoolB.LIQUIDATOR_ROLE();
   // Setup ShareableRebalancePool APool
@@ -686,7 +686,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   // Setup Market
   if ((await market.reservePool()) !== governance.ReservePool) {
     await ownerContractCall(
-      treasury,
+      market,
       "Market update reserve pool",
       "updateReservePool",
       [governance.ReservePool],
@@ -695,7 +695,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   }
   if ((await market.registry()) !== deployment.RebalancePoolRegistry) {
     await ownerContractCall(
-      treasury,
+      market,
       "Market update rebalance pool registry",
       "updateRebalancePoolRegistry",
       [deployment.RebalancePoolRegistry],

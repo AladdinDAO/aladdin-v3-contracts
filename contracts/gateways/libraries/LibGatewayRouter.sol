@@ -148,6 +148,7 @@ library LibGatewayRouter {
   ) internal returns (uint256 amountOut) {
     GatewayStorage storage gs = gatewayStorage();
     if (!gs.approvedTargets.contains(params.converter)) revert ErrorTargetNotApproved();
+    if (amountIn == 0) return 0;
 
     amountOut = amountIn;
     if (params.routes.length == 0) {
