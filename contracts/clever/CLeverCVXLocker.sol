@@ -42,7 +42,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   // The maximum value of repay fee percentage.
   uint256 private constant MAX_REPAY_FEE = 1e8; // 10%
   // The maximum value of platform fee percentage.
-  uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
+  uint256 private constant MAX_PLATFORM_FEE = 5e8; // 50%
   // The maximum value of harvest bounty percentage.
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
   // The length of epoch in CVX Locker.

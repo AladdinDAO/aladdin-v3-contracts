@@ -26,7 +26,7 @@ contract MetaFurnace is OwnableUpgradeable, IMetaFurnace {
 
   uint256 private constant E128 = 2**128;
   uint256 private constant PRECISION = 1e9;
-  uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
+  uint256 private constant MAX_PLATFORM_FEE = 5e8; // 50%
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
 
   /// @notice If the unrealised is not paid off,

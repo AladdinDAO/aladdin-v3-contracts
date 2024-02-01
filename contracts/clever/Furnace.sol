@@ -29,7 +29,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
 
   uint256 private constant E128 = 2**128;
   uint256 private constant FEE_PRECISION = 1e9;
-  uint256 private constant MAX_PLATFORM_FEE = 2e8; // 20%
+  uint256 private constant MAX_PLATFORM_FEE = 5e8; // 50%
   uint256 private constant MAX_HARVEST_BOUNTY = 1e8; // 10%
 
   address private constant CVX = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
