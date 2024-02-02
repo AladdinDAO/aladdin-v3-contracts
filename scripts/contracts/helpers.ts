@@ -1,10 +1,21 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import editJsonFile from "edit-json-file";
-import { BaseContract, BytesLike, Result, TransactionReceipt, ZeroAddress, ZeroHash, concat, id } from "ethers";
+import {
+  BaseContract,
+  BytesLike,
+  Result,
+  TransactionReceipt,
+  ZeroAddress,
+  ZeroHash,
+  concat,
+  getAddress,
+  id,
+} from "ethers";
 import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
 import { selectDeployments } from "@/utils/deploys";
+import { ProxyAdmin } from "../@types";
 
 function replacer(key: any, value: any) {
   if (typeof value === "bigint") return value.toString();
@@ -105,6 +116,18 @@ export async function ownerContractCall(
     console.log("  args:", JSON.stringify(args, replacer));
     console.log("  raw:", contract.interface.encodeFunctionData(method, args));
     return undefined;
+  }
+}
+
+export async function upgradeCall(
+  admin: ProxyAdmin,
+  desc: string,
+  proxy: string,
+  implementation: string,
+  overrides?: PayableOverrides
+) {
+  if ((await admin.getProxyImplementation(proxy)) !== getAddress(implementation)) {
+    await ownerContractCall(admin, "ProxyAdmin upgrade " + desc, "upgrade", [proxy, implementation], overrides);
   }
 }
 
