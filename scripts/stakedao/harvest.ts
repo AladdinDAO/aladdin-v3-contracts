@@ -58,15 +58,23 @@ async function getSwapData(
         encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
         encodePoolHintV3(ADDRESS.SDT_WETH_UNIV2, PoolTypeV3.UniswapV2, 2, 1, 0, Action.Swap, { fee_num: 997000 }),
       ];
-      // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV2)==> SDT
+      // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(Curve)==> SDT
       const path2 = [
+        encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+        encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
+        encodePoolHintV3(ADDRESS["CURVE_ETH/SDT_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap, {
+          use_eth: true,
+        }),
+      ];
+      // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV3)==> SDT
+      const path3 = [
         encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
         encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
         encodePoolHintV3(ADDRESS.SDT_WETH_PancakeV3_2500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {
           fee_num: 2500,
         }),
       ];
-      const encoding = encodeMultiPath([path1, path2], [0n, 0n]);
+      const encoding = encodeMultiPath([path1, path2, path3], [0n, 0n, 0n]);
       return {
         target: await converter.getAddress(),
         data: converter.interface.encodeFunctionData("convert", [src, amountIn, encoding.encoding, encoding.routes]),
@@ -223,8 +231,8 @@ async function main(round: string) {
         );
 
         console.log(`Burn token[${symbol}] address[${item.token}] to SDT/CRV`);
-        const minSDT = (amountSDT * 99n) / 100n;
-        const minCRV = (amountCRV * 99n) / 100n;
+        const minSDT = (amountSDT * 9990n) / 10000n;
+        const minCRV = (amountCRV * 9990n) / 10000n;
         const routeSDT = await getSwapData(item.token, TOKENS.SDT.address, boostFee, minSDT);
         const routeCRV = await getSwapData(item.token, TOKENS.CRV.address, amount - platformFee - boostFee, minCRV);
         const gasEstimate = await burner.burn.estimateGas(item.token, routeSDT, routeCRV);
