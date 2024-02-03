@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { Interface, Overrides, getAddress } from "ethers";
-import { ethers, network } from "hardhat";
+import { Interface, Overrides, getAddress, id } from "ethers";
+import { network } from "hardhat";
 
 import {
   DiamondCutFacet__factory,
@@ -10,11 +10,13 @@ import {
   FxUSDFacet__factory,
   IDiamond,
   OwnershipFacet__factory,
+  TokenConvertManagementFacet,
   TokenConvertManagementFacet__factory,
 } from "@/types/index";
 
-import { DeploymentHelper, contractCall } from "./helpers";
+import { ContractCallHelper, DeploymentHelper } from "./helpers";
 import * as ERC2535 from "./ERC2535";
+import * as FxUSD from "./FxUSD";
 
 const getAllSignatures = (e: Interface): string[] => {
   const sigs: string[] = [];
@@ -82,7 +84,13 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
 }
 
 export async function initialize(deployer: HardhatEthersSigner, deployment: GatewayDeployment, overrides?: Overrides) {
-  const manageFacet = await ethers.getContractAt("TokenConvertManagementFacet", deployment.GatewayRouter, deployer);
+  const caller = new ContractCallHelper(deployer, overrides);
+  const fxusd = await FxUSD.deploy(deployer, overrides);
+
+  const manageFacet = (await caller.getContract(
+    "TokenConvertManagementFacet",
+    deployment.GatewayRouter
+  )) as TokenConvertManagementFacet;
 
   const targets = [
     {
@@ -123,10 +131,36 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
   const approvedTargets = await manageFacet.getApprovedTargets();
   for (const target of targets) {
     if (!approvedTargets.includes(getAddress(target.target))) {
-      await contractCall(manageFacet, "GatewayRouter approve " + target.name, "approveTarget", [
+      await caller.call(manageFacet, "GatewayRouter approve " + target.name, "approveTarget", [
         target.target,
         target.spender ?? target.target,
       ]);
     }
   }
+
+  const WITHDRAW_FROM_ROLE = id("WITHDRAW_FROM_ROLE");
+  await caller.grantRole(
+    fxusd.Markets.wstETH.RebalancePool.wstETH.pool,
+    "FxUSDShareableRebalancePool/wstETH WITHDRAW_FROM_ROLE",
+    WITHDRAW_FROM_ROLE,
+    deployment.GatewayRouter
+  );
+  await caller.grantRole(
+    fxusd.Markets.wstETH.RebalancePool.xstETH.pool,
+    "FxUSDShareableRebalancePool/xstETH WITHDRAW_FROM_ROLE",
+    WITHDRAW_FROM_ROLE,
+    deployment.GatewayRouter
+  );
+  await caller.grantRole(
+    fxusd.Markets.sfrxETH.RebalancePool.sfrxETH.pool,
+    "FxUSDShareableRebalancePool/sfrxETH WITHDRAW_FROM_ROLE",
+    WITHDRAW_FROM_ROLE,
+    deployment.GatewayRouter
+  );
+  await caller.grantRole(
+    fxusd.Markets.sfrxETH.RebalancePool.xfrxETH.pool,
+    "FxUSDShareableRebalancePool/xfrxETH WITHDRAW_FROM_ROLE",
+    WITHDRAW_FROM_ROLE,
+    deployment.GatewayRouter
+  );
 }

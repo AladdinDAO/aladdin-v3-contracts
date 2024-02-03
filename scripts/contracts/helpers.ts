@@ -4,6 +4,7 @@ import { BaseContract, BytesLike, Result, TransactionReceipt, ZeroAddress, ZeroH
 import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
+import { AccessControl } from "@/types/index";
 import { selectDeployments } from "@/utils/deploys";
 
 function replacer(key: any, value: any) {
@@ -198,5 +199,47 @@ export class DeploymentHelper {
 
   public toObject(): object {
     return this.storage.toObject();
+  }
+}
+
+export class ContractCallHelper {
+  public readonly deployer: HardhatEthersSigner;
+  public readonly overrides?: PayableOverrides;
+
+  constructor(deployer: HardhatEthersSigner, overrides?: PayableOverrides) {
+    this.deployer = deployer;
+    this.overrides = overrides;
+  }
+
+  public async getContract(name: string, address: string): Promise<BaseContract> {
+    return ethers.getContractAt(name, address, this.deployer);
+  }
+
+  public async call(
+    contract: BaseContract,
+    desc: string,
+    method: string,
+    args: Array<any>
+  ): Promise<TransactionReceipt> {
+    return contractCall(contract, desc, method, args, this.overrides);
+  }
+
+  public async ownerCall(
+    contract: BaseContract,
+    desc: string,
+    method: string,
+    args: Array<any>
+  ): Promise<TransactionReceipt | undefined> {
+    return ownerContractCall(contract, desc, method, args, this.overrides);
+  }
+
+  public async grantRole(contract: string, desc: string, role: string, account: string) {
+    const control = (await this.getContract(
+      "@openzeppelin/contracts/access/AccessControl.sol:AccessControl",
+      contract
+    )) as AccessControl;
+    if (!(await control.hasRole(role, account))) {
+      await this.ownerCall(control, `${desc} grant to ${account}`, "grantRole", [role, account]);
+    }
   }
 }

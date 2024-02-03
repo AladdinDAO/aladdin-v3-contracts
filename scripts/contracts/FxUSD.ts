@@ -75,7 +75,6 @@ const MarketConfig: {
 
 export interface FxUSDDeployment {
   EmptyContract: string;
-  RebalancePoolSplitter: string;
   FxUSDRebalancer: string;
   FxUSDShareableRebalancePool: string;
   Markets: {
@@ -96,10 +95,13 @@ export interface FxUSDDeployment {
         implementation: string;
         proxy: string;
       };
+      FxInitialFund: string;
       RebalancePoolRegistry: string;
+      RebalancePoolSplitter: string;
+      RebalancePoolGauge: string;
+      RebalancePoolGaugeClaimer: string;
       RebalancePool: {
         [reward: string]: {
-          gauge: string;
           pool: string;
           wrapper?: string;
         };
@@ -254,12 +256,45 @@ async function deployMarket(deployment: DeploymentHelper, symbol: string) {
     admin.Fx
   );
 
+  // deploy FxInitialFund
+  await deployment.contractDeploy(`${selectorPrefix}.FxInitialFund`, `FxInitialFund for ${symbol}`, "FxInitialFund", [
+    deployment.get(`${selectorPrefix}.Market.proxy`),
+    deployment.get("FxUSD.proxy"),
+  ]);
+
   // deploy registry
   await deployment.contractDeploy(
     `${selectorPrefix}.RebalancePoolRegistry`,
     `RebalancePoolRegistry for ${symbol}`,
     "RebalancePoolRegistry",
     []
+  );
+
+  // deploy RebalancePoolSplitter
+  await deployment.contractDeploy(
+    `${selectorPrefix}.RebalancePoolSplitter`,
+    "RebalancePoolSplitter",
+    "RebalancePoolSplitter",
+    []
+  );
+  // deploy RebalancePoolGauge
+  await deployment.minimalProxyDeploy(
+    `${selectorPrefix}.RebalancePoolGauge`,
+    `${MarketConfig[symbol].FractionalToken.symbol} FxUSDShareableRebalancePool FundraiseGauge`,
+    governance.FundraiseGauge.implementation.FundraisingGaugeFx
+  );
+
+  // deploy RebalancePoolGaugeClaimer
+  await deployment.contractDeploy(
+    `${selectorPrefix}.RebalancePoolGaugeClaimer`,
+    "RebalancePoolGaugeClaimer",
+    "RebalancePoolGaugeClaimer",
+    [
+      governance.ReservePool,
+      governance.PlatformFeeSpliter,
+      deployment.get(`${selectorPrefix}.RebalancePoolGauge`),
+      deployment.get(`${selectorPrefix}.RebalancePoolSplitter`),
+    ]
   );
 
   // deploy rebalance pool whose liquidation reward is base token
@@ -271,11 +306,6 @@ async function deployMarket(deployment: DeploymentHelper, symbol: string) {
     admin.Fx,
     "0x"
   );
-  await deployment.minimalProxyDeploy(
-    `${selectorPrefix}.gauge`,
-    `FxUSDShareableRebalancePool/${symbol} FundraiseGauge`,
-    governance.FundraiseGauge.implementation.FundraisingGaugeFx
-  );
   // deploy rebalance pool whose liquidation reward is leveraged token
   selectorPrefix = `Markets.${symbol}.RebalancePool.${MarketConfig[symbol].LeveragedToken.symbol}`;
   await deployment.proxyDeploy(
@@ -284,11 +314,6 @@ async function deployMarket(deployment: DeploymentHelper, symbol: string) {
     deployment.get("FxUSDShareableRebalancePool"),
     admin.Fx,
     "0x"
-  );
-  await deployment.minimalProxyDeploy(
-    `${selectorPrefix}.gauge`,
-    `FxUSDShareableRebalancePool/${MarketConfig[symbol].LeveragedToken.symbol} FundraiseGauge`,
-    governance.FundraiseGauge.implementation.FundraisingGaugeFx
   );
   await deployment.contractDeploy(
     `${selectorPrefix}.wrapper`,
@@ -325,24 +350,24 @@ async function initializeMarket(
     marketDeployment.RebalancePoolRegistry,
     deployer
   );
+  const rebalancePoolSplitter = await ethers.getContractAt(
+    "RebalancePoolSplitter",
+    marketDeployment.RebalancePoolSplitter,
+    deployer
+  );
+  const rebalancePoolGauge = await ethers.getContractAt(
+    "FundraisingGaugeFx",
+    marketDeployment.RebalancePoolGauge,
+    deployer
+  );
   const rebalancePoolA = await ethers.getContractAt(
     "FxUSDShareableRebalancePool",
     marketDeployment.RebalancePool[baseSymbol].pool,
     deployer
   );
-  const rebalancePoolGaugeA = await ethers.getContractAt(
-    "FundraisingGaugeFx",
-    marketDeployment.RebalancePool[baseSymbol].gauge,
-    deployer
-  );
   const rebalancePoolB = await ethers.getContractAt(
     "FxUSDShareableRebalancePool",
     marketDeployment.RebalancePool[MarketConfig[baseSymbol].LeveragedToken.symbol].pool,
-    deployer
-  );
-  const rebalancePoolGaugeB = await ethers.getContractAt(
-    "FundraisingGaugeFx",
-    marketDeployment.RebalancePool[MarketConfig[baseSymbol].LeveragedToken.symbol].gauge,
     deployer
   );
   const controller = await ethers.getContractAt("GaugeController", governance.GaugeController, deployer);
@@ -363,7 +388,7 @@ async function initializeMarket(
   if ((await treasury.platform()) === ZeroAddress) {
     await contractCall(treasury, `Treasury for ${baseSymbol} initialize`, "initialize", [
       governance.PlatformFeeSpliter,
-      deployment.RebalancePoolSplitter,
+      marketDeployment.RebalancePoolSplitter,
       baseSymbol === "wstETH" ? oracle.WstETHRateProvider : oracle.ERC4626RateProvider.sfrxETH,
       baseSymbol === "wstETH" ? oracle.FxStETHTwapOracle : oracle.FxFrxETHTwapOracle,
       ethers.parseEther("10000"),
@@ -377,51 +402,33 @@ async function initializeMarket(
       marketDeployment.RebalancePoolRegistry,
     ]);
   }
-  if ((await rebalancePoolGaugeA.last_checkpoint()) === 0n) {
+  if ((await rebalancePoolGauge.last_checkpoint()) === 0n) {
     await contractCall(
-      rebalancePoolGaugeA,
-      `FxUSDShareableRebalancePool/${baseSymbol} FundraiseGauge initialize`,
+      rebalancePoolGauge,
+      `${marketConfig.FractionalToken.symbol} FxUSDShareableRebalancePool FundraiseGauge initialize`,
       "initialize",
-      [await rebalancePoolA.getAddress(), MaxUint256]
+      [marketDeployment.RebalancePoolGaugeClaimer, MaxUint256]
     );
   }
   await FxGovernance.addGauge(
     controller,
-    `FxUSDShareableRebalancePool/${baseSymbol}`,
-    await rebalancePoolGaugeA.getAddress(),
+    `${marketConfig.FractionalToken.symbol} FxUSDShareableRebalancePool`,
+    await rebalancePoolGauge.getAddress(),
     1
   );
   if ((await rebalancePoolA.treasury()) === ZeroAddress) {
     await contractCall(rebalancePoolA, `FxUSDShareableRebalancePool/${baseSymbol} initialize`, "initialize", [
       await treasury.getAddress(),
       await market.getAddress(),
-      marketDeployment.RebalancePool[baseSymbol].gauge,
+      ZeroAddress,
     ]);
   }
-  if ((await rebalancePoolGaugeB.last_checkpoint()) === 0n) {
-    await contractCall(
-      rebalancePoolGaugeB,
-      `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} FundraiseGauge initialize`,
-      "initialize",
-      [await rebalancePoolB.getAddress(), MaxUint256]
-    );
-  }
-  await FxGovernance.addGauge(
-    controller,
-    `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol}`,
-    await rebalancePoolGaugeB.getAddress(),
-    1
-  );
   if ((await rebalancePoolB.treasury()) === ZeroAddress) {
     await contractCall(
       rebalancePoolB,
       `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} initialize`,
       "initialize",
-      [
-        await treasury.getAddress(),
-        await market.getAddress(),
-        marketDeployment.RebalancePool[marketConfig.LeveragedToken.symbol].gauge,
-      ]
+      [await treasury.getAddress(), await market.getAddress(), ZeroAddress]
     );
   }
 
@@ -437,6 +444,24 @@ async function initializeMarket(
       `Treasury for ${baseSymbol} updateRebalancePoolRatio`,
       "updateRebalancePoolRatio",
       [marketConfig.Treasury.RebalancePoolRatio]
+    );
+  }
+  if (!(await treasury.hasRole(id("PROTOCOL_INITIALIZER_ROLE"), marketDeployment.FxInitialFund))) {
+    await ownerContractCall(
+      treasury,
+      `Treasury for ${baseSymbol} grant PROTOCOL_INITIALIZER_ROLE`,
+      "grantRole",
+      [id("PROTOCOL_INITIALIZER_ROLE"), marketDeployment.FxInitialFund],
+      overrides
+    );
+  }
+  if (!(await treasury.hasRole(id("FX_MARKET_ROLE"), marketDeployment.Market.proxy))) {
+    await ownerContractCall(
+      treasury,
+      `Treasury for ${baseSymbol} grant FX_MARKET_ROLE`,
+      "grantRole",
+      [id("FX_MARKET_ROLE"), marketDeployment.Market.proxy],
+      overrides
     );
   }
 
@@ -572,7 +597,7 @@ async function initializeMarket(
       rebalancePoolA,
       `FxUSDShareableRebalancePool/${baseSymbol} add ${baseSymbol} as reward`,
       "registerRewardToken",
-      [TOKENS[baseSymbol].address, deployment.RebalancePoolSplitter],
+      [TOKENS[baseSymbol].address, marketDeployment.RebalancePoolSplitter],
       overrides
     );
   }
@@ -581,7 +606,7 @@ async function initializeMarket(
       rebalancePoolA,
       `FxUSDShareableRebalancePool/${baseSymbol} add FXN as reward`,
       "registerRewardToken",
-      [TOKENS.FXN.address, multisig.Fx],
+      [TOKENS.FXN.address, marketDeployment.RebalancePoolSplitter],
       overrides
     );
   }
@@ -610,7 +635,7 @@ async function initializeMarket(
       rebalancePoolB,
       `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} add ${baseSymbol} as reward`,
       "registerRewardToken",
-      [TOKENS[baseSymbol].address, deployment.RebalancePoolSplitter],
+      [TOKENS[baseSymbol].address, marketDeployment.RebalancePoolSplitter],
       overrides
     );
   }
@@ -619,7 +644,7 @@ async function initializeMarket(
       rebalancePoolB,
       `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} add FXN as reward`,
       "registerRewardToken",
-      [TOKENS.FXN.address, multisig.Fx],
+      [TOKENS.FXN.address, marketDeployment.RebalancePoolSplitter],
       overrides
     );
   }
@@ -641,6 +666,40 @@ async function initializeMarket(
       overrides
     );
   }
+
+  const setupRebalancePoolSplitter = async (symbol: string, splitter: string) => {
+    if ((await rebalancePoolSplitter.splitter(TOKENS[symbol].address)) !== splitter) {
+      await ownerContractCall(
+        rebalancePoolSplitter,
+        "RebalancePoolSplitter set splitter for " + TOKENS[symbol].address,
+        "setSplitter",
+        [TOKENS[symbol].address, splitter],
+        overrides
+      );
+    }
+    const [receivers] = await rebalancePoolSplitter.getReceivers(TOKENS[symbol].address);
+    if (receivers.length < 1) {
+      await ownerContractCall(
+        rebalancePoolSplitter,
+        `RebalancePoolSplitter.${symbol} add FxUSDShareableRebalancePool/${baseSymbol}`,
+        "registerReceiver",
+        [TOKENS[symbol].address, await rebalancePoolA.getAddress(), [1e9]],
+        overrides
+      );
+    }
+    if (receivers.length < 2) {
+      await ownerContractCall(
+        rebalancePoolSplitter,
+        `RebalancePoolSplitter.${symbol} add FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol}`,
+        "registerReceiver",
+        [TOKENS[symbol].address, await rebalancePoolB.getAddress(), [5e8, 5e8]],
+        overrides
+      );
+    }
+  };
+
+  await setupRebalancePoolSplitter(baseSymbol, marketDeployment.Treasury.proxy);
+  await setupRebalancePoolSplitter("FXN", marketDeployment.RebalancePoolGaugeClaimer);
 }
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxUSDDeployment> {
@@ -650,8 +709,6 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
 
   // deploy placeholder
   await deployment.contractDeploy("EmptyContract", "EmptyContract", "EmptyContract", []);
-  // deploy RebalancePoolSplitter
-  await deployment.contractDeploy("RebalancePoolSplitter", "RebalancePoolSplitter", "RebalancePoolSplitter", []);
   // deploy FxUSDRebalancer
   await deployment.contractDeploy("FxUSDRebalancer", "FxUSDRebalancer", "FxUSDRebalancer", [governance.FXN]);
   // deploy FxUSDShareableRebalancePool
