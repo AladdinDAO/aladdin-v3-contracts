@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.0;
 
 interface ITwapOracle {
   /// @notice Return TWAP with 18 decimal places in the epoch ending at the specified timestamp.

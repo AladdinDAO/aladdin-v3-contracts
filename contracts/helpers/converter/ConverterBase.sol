@@ -24,6 +24,9 @@ abstract contract ConverterBase is ITokenConverter {
   /// @dev The address of WETH token.
   address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
+  /// @dev The address of referral contract.
+  address internal constant REFERRAL = 0x28c921adAC4c1072658eB01a28DA06b5F651eF62;
+
   /***************
    * Constructor *
    ***************/
@@ -69,6 +72,12 @@ abstract contract ConverterBase is ITokenConverter {
   /// @param encoding The route encoding.
   function _getAction(uint256 encoding) internal pure returns (uint256) {
     return (encoding >> 8) & 3;
+  }
+
+  /// @dev Internal function to get the address of pool.
+  /// @param encoding The route encoding.
+  function _getPool(uint256 encoding) internal pure returns (address) {
+    return address((encoding >> 10) & 1461501637330902918203684832716283019655932542975);
   }
 
   function _isETH(address _token) internal pure returns (bool) {

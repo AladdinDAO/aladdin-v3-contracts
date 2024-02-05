@@ -42,6 +42,9 @@ export enum PoolTypeV3 {
   CurveCryptoPool,
   ERC4626,
   Lido,
+  ETHLSDV1,
+  CurveStableSwapNG,
+  CurveStableSwapMetaNG,
 }
 
 export enum Action {
@@ -87,6 +90,7 @@ export function encodePoolHintV3(
     twamm?: boolean;
     use_eth?: boolean;
     use_underlying?: boolean;
+    protocol?: number;
   }
 ) {
   let encoding = toBigInt(poolAddress);
@@ -107,6 +111,8 @@ export function encodePoolHintV3(
     case PoolTypeV3.BalancerV1:
     case PoolTypeV3.BalancerV2:
     case PoolTypeV3.CurveMetaPool:
+    case PoolTypeV3.CurveStableSwapNG:
+    case PoolTypeV3.CurveStableSwapMetaNG:
       encoding |= toBigInt(tokens - 1) << 160n;
       encoding |= toBigInt(indexIn) << 163n;
       encoding |= toBigInt(indexOut) << 166n;
@@ -132,6 +138,13 @@ export function encodePoolHintV3(
     case PoolTypeV3.ERC4626:
       break;
     case PoolTypeV3.Lido:
+      break;
+    case PoolTypeV3.ETHLSDV1:
+      assert(options && options.protocol !== undefined, "no protocol");
+      encoding |= toBigInt(options!.protocol!) << 160n;
+      if (options!.protocol === 4) {
+        encoding |= toBigInt(indexIn) << 168n;
+      }
       break;
   }
 

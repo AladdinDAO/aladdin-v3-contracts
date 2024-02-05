@@ -69,6 +69,26 @@ interface ITokenConverter {
   /// + pool_type = 10: Lido, no action 0
   ///   customized = |   160 bits   | ... |
   ///                | pool address | ... |
+  /// + pool_type = 11:  ETHLSDConverter v1, no action 0
+  ///   supported in other pool type
+  ///     puffer: pufETH is ERC4626, base is stETH
+  ///     frax: sfrxETH is ERC4626, base is frxETH
+  ///     pirex: apxETH is ERC4626, base is pxETH
+  ///   supported in this pool type
+  ///     0=wBETH: mint wBETH from ETH
+  ///     1=RocketPool: mint rETH from ETH
+  ///     2=frax: mint frxETH from ETH
+  ///     3=pirex: mint pxETH from ETH
+  ///     4=renzo: mint ezETH from ETH, stETH, wBETH
+  ///     5=ether.fi: mint eETH from ETH, mint weETH from eETH, unwrap weETH to eETH
+  ///   customized = |   160 bits   |  8 bits  | ... |
+  ///                | pool address | protocol | ... |
+  /// + pool_type = 12: CurveStableSwapNG
+  ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  | ... |
+  ///                | pool address | tokens | index in | index out | ... |
+  /// + pool_type = 13: CurveStableSwapMetaNG
+  ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  | ... |
+  ///                | pool address | tokens | index in | index out | ... |
   ///
   /// Note: tokens + 1 is the number of tokens of the pool
   ///

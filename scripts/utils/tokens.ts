@@ -65,9 +65,11 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   TUSD: { decimals: 18, address: "0x0000000000085d4780B73119b644AE5ecd22b376" },
   USDC: { decimals: 6, address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   USDD: { decimals: 18, address: "0x0C10bF8FcB7Bf5412187A595ab97a3609160b5c6" },
+  USDM: { decimals: 18, address: "0x59d9356e565ab3a36dd77763fc0d87feaf85508c" },
   USDN: { decimals: 18, address: "0x674C6Ad92Fd080e4004b2312b45f796a192D27a0" },
   USDT: { decimals: 6, address: "0xdAC17F958D2ee523a2206206994597C13D831ec7" },
   USDP: { decimals: 18, address: "0x8e870d67f660d95d5be530380d0ec0bd388289e1" },
+  USDV: { decimals: 6, address: "0x0E573Ce2736Dd9637A0b21058352e1667925C7a8" },
   UST_WORMHOLE: { decimals: 6, address: "0xa693B19d2931d498c5B318dF961919BB4aee87a5" },
   UST_TERRA: { decimals: 18, address: "0xa47c8bf37f92aBed4A126BDA807A7b7498661acD" },
   UZD: { decimals: 18, address: "0xb40b6608b2743e691c9b54ddbdee7bf03cd79f1c" },
@@ -81,6 +83,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   agEUR: { decimals: 18, address: "0x1a7e4e63778B4f12a199C062f3eFdD288afCBce8" },
   alETH: { decimals: 18, address: "0x0100546F2cD4C9D97f798fFC9755E47865FF7Ee6" },
   alUSD: { decimals: 18, address: "0xBC6DA0FE9aD5f3b0d58160288917AA56653660E9" },
+  apxETH: { decimals: 18, address: "0x9Ba021B0a9b958B5E75cE9f6dff97C7eE52cb3E6" },
   asdCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.StakeDAO.sdCRV.asdCRV },
   auraBAL: { decimals: 18, address: "0x616e8bfa43f920657b3497dbf40d6b1a02d4608d" },
   bLUSD: { decimals: 18, address: "0xb9d7dddca9a4ac480991865efef82e01273f79c3" },
@@ -100,19 +103,25 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   cyUSDC: { decimals: 8, address: "0x76Eb2FE28b36B3ee97F3Adae0C69606eeDB2A37c" },
   cyUSDT: { decimals: 8, address: "0x48759F220ED983dB51fA7A8C0D2AAb8f3ce4166a" },
   eCFX: { decimals: 18, address: "0xa1f82e14bc09a1b42710df1a8a999b62f294e592" },
+  eETH: { decimals: 18, address: "0x35fA164735182de50811E8e2E824cFb9B6118ac2" },
   eUSD: { decimals: 18, address: "0xA0d69E286B938e21CBf7E51D71F6A4c8918f482F" },
+  ezETH: { decimals: 18, address: "0xbf5495Efe5DB9ce00f80364C8B423567e58d2110" },
   fETH: { decimals: 18, address: "0x53805a76e1f5ebbfe7115f16f9c87c2f7e633726" },
   frxETH: { decimals: 18, address: "0x5e8422345238f34275888049021821e8e08caa1f" },
   hyUSD: { decimals: 18, address: "0xacdf0dba4b9839b96221a8487e9ca660a48212be" },
   mkUSD: { decimals: 18, address: "0x4591DBfF62656E7859Afe5e45f6f47D3669fBB28" },
   multiBTC: { decimals: 8, address: "0x66eFF5221ca926636224650Fd3B9c497FF828F7D" },
   pETH: { decimals: 18, address: "0x836A808d4828586A69364065A1e064609F5078c7" },
+  pufETH: { decimals: 18, address: "0xD9A442856C234a39a81a089C06451EBAa4306a72" },
+  pxETH: { decimals: 18, address: "0x04C154b66CB340F3Ae24111CC767e0184Ed00Cc6" },
   rETH: { decimals: 18, address: "0xae78736Cd615f374D3085123A210448E74Fc6393" },
   renBTC: { decimals: 8, address: "0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D" },
   sBTC: { decimals: 18, address: "0xfE18be6b3Bd88A2D2A7f928d00292E7a9963CfC6" },
   sDAI: { decimals: 18, address: "0x83f20f44975d03b1b09e64809b757c47f942beea" },
   sETH: { decimals: 18, address: "0x5e74C9036fb86BD7eCdcb084a0673EFc32eA31cb" },
+  sFRAX: { decimals: 18, address: "0xa663b02cf0a4b149d2ad41910cb81e23e1c41c32" },
   sUSD: { decimals: 18, address: "0x57Ab1ec28D129707052df4dF418D58a2D46d5f51" },
+  sUSDe: { decimals: 18, address: "0x9d39a5de30e57443bff2a8307a4256c8797a3497" },
   sdCRV: { decimals: 18, address: "0xD1b5651E55D4CeeD36251c61c50C889B36F6abB5" },
   sdFXN: { decimals: 18, address: "0xe19d1c837B8A1C83A56cD9165b2c0256D39653aD" },
   sdFXS: { decimals: 18, address: "0x402f878bdd1f5c66fdaf0fababcf74741b68ac36" },
@@ -121,6 +130,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   stETH: { decimals: 18, address: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" },
   tBTC: { decimals: 18, address: "0x18084fba666a33d37592fa2633fd49a74dd93a88" },
   wBETH: { decimals: 18, address: "0xa2e3356610840701bdf5611a53974510ae27e2e1" },
+  weETH: { decimals: 18, address: "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee" },
   wstETH: { decimals: 18, address: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" },
   xETH: { decimals: 18, address: "0xe063f04f280c60aeca68b38341c2eecbec703ae2" },
 };
@@ -144,8 +154,12 @@ TOKENS["CURVE_PLAIN_FXN/sdFXN_359"] = { decimals: 18, address: "0x28Ca243dc0aC07
 TOKENS["CURVE_CRVUSD_WETH/frxETH_15"] = { decimals: 18, address: "0x9c3B46C0Ceb5B9e304FCd6D88Fc50f7DD24B31Bc" };
 TOKENS["CURVE_CRVUSD_mkUSD/crvUSD_17"] = { decimals: 18, address: "0x3de254a0f838a844f727fee81040e0fa7884b935" };
 TOKENS["CURVE_STABLE_NG_mkUSD/USDC_17"] = { decimals: 18, address: "0xf980b4a4194694913af231de69ab4593f5e0fcdc" };
+TOKENS["CURVE_STABLE_NG_USDM/3CRV_26"] = { decimals: 18, address: "0xc83b79c07ece44b8b99ffa0e235c00add9124f9e" };
+TOKENS["CURVE_STABLE_NG_pxETH/stETH_30"] = { decimals: 18, address: "0x6951bdc4734b9f7f3e1b74afebc670c736a0edb6" };
 TOKENS["CURVE_STABLE_NG_FRAX/sDAI_32"] = { decimals: 18, address: "0xce6431d21e3fb1036ce9973a3312368ed96f5ce7" };
 TOKENS["CURVE_STABLE_NG_FRAX/PYUSD_34"] = { decimals: 18, address: "0xa5588f7cdf560811710a2d82d3c9c99769db1dcb" };
+TOKENS["CURVE_STABLE_NG_USDV/3CRV_38"] = { decimals: 18, address: "0x00e6fd108c4640d21b40d02f18dd6fe7c7f725ca" };
+TOKENS["CURVE_STABLE_NG_sUSDe/sDAI/sFRAX_61"] = { decimals: 18, address: "0xc559f6716d8b1471fc2dc10aafeb0faa219fe9df" };
 // Curve Crypto LP (including factory pools)
 TOKENS["CURVE_CRYPTO_crvUSD/fETH_299"] = { decimals: 18, address: "0x19033d99A7b7010157b81e5eE5A8E63A583fB735" };
 TOKENS["CURVE_CRYPTO_fETH/FRAXBP_301"] = { decimals: 18, address: "0x3d28f9192E34e51414e69FBEE5b11B35590FB9Fb" };

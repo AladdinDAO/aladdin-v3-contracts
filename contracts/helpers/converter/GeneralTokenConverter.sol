@@ -27,6 +27,7 @@ import { IUniswapV3Quoter } from "../../interfaces/IUniswapV3Quoter.sol";
 import { IWETH } from "../../interfaces/IWETH.sol";
 
 import { ConverterBase } from "./ConverterBase.sol";
+import { GeneralTokenConverterStorage } from "./GeneralTokenConverterStorage.sol";
 
 // solhint-disable no-empty-blocks
 // solhint-disable no-inline-assembly
@@ -37,7 +38,7 @@ import { ConverterBase } from "./ConverterBase.sol";
 /// @notice This implements token converting for `pool_type` from 0 to 9 (both inclusive).
 /// For other types, it will retrieve the implementation from
 /// `ConverterRegistry` contract and delegate call.
-contract GeneralTokenConverter is Ownable, ConverterBase {
+contract GeneralTokenConverter is GeneralTokenConverterStorage {
   using SafeERC20 for IERC20;
 
   /*************
@@ -47,29 +48,11 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
   /// @dev The address of Balancer V2 Vault
   address private constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
-  /// @dev The address of Uniswap V3 Router
-  address private constant UNISWAP_V3_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-
   /// @dev The minimum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MIN_TICK)
   uint160 private constant MIN_SQRT_RATIO = 4295128739;
 
   /// @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
   uint160 private constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
-
-  /*************
-   * Variables *
-   *************/
-
-  /// @notice The mask of supported pool types.
-  /// @dev If the `i`-th bit is `1`, the `i`-th pool type is supported in this contract.
-  uint256 public supportedPoolTypes;
-
-  /// @notice Mapping from token address to token minter.
-  /// @dev It is used to determine the pool address for lp token address.
-  mapping(address => address) public tokenMinter;
-
-  /// @dev Execution context used in fallback function.
-  uint256 private context;
 
   /***************
    * Constructor *
@@ -117,38 +100,6 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
    * Public Mutated Functions *
    ****************************/
 
-  // solhint-disable-next-line no-complex-fallback
-  fallback() external payable {
-    uint256 _context = context;
-    if (address(_context) == _msgSender() || _context == 1) {
-      // handle uniswap v3 swap callback or uniswap v3 quote callback
-      // | 4 bytes |   32 bytes   |   32 bytes   |   32 bytes  |   32 bytes  | 32 bytes |
-      // |   sig   | amount0Delta | amount1Delta | data.offset | data.length |  tokenIn |
-      int256 amount0Delta;
-      int256 amount1Delta;
-      address tokenIn;
-      assembly {
-        amount0Delta := calldataload(4)
-        amount1Delta := calldataload(36)
-        tokenIn := calldataload(132)
-      }
-      (uint256 amountToPay, uint256 amountReceived) = amount0Delta > 0
-        ? (uint256(amount0Delta), uint256(-amount1Delta))
-        : (uint256(amount1Delta), uint256(-amount0Delta));
-      if (_context == 1) {
-        assembly {
-          let ptr := mload(0x40)
-          mstore(ptr, amountReceived)
-          revert(ptr, 32)
-        }
-      } else {
-        IERC20(tokenIn).safeTransfer(address(_context), amountToPay);
-      }
-    } else {
-      revert("invalid call");
-    }
-  }
-
   /// @inheritdoc ITokenConverter
   function convert(
     uint256 _encoding,
@@ -181,25 +132,6 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
         }
       }
       _amountOut = abi.decode(_result, (uint256));
-    }
-  }
-
-  /*******************************
-   * Public Restricted Functions *
-   *******************************/
-
-  /// @notice Update the pool types supported by this contract by default.
-  /// @param _supportedPoolTypes The mask of pool types supported.
-  function updateSupportedPoolTypes(uint256 _supportedPoolTypes) external onlyOwner {
-    supportedPoolTypes = _supportedPoolTypes;
-  }
-
-  /// @notice Update the token minter mapping.
-  /// @param _tokens The address list of tokens to update.
-  /// @param _minters The address list of corresponding minters.
-  function updateTokenMinter(address[] memory _tokens, address[] memory _minters) external onlyOwner {
-    for (uint256 i = 0; i < _tokens.length; i++) {
-      tokenMinter[_tokens[i]] = _minters[i];
     }
   }
 
@@ -479,7 +411,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
         _data
       );
       context = 0;
-      return zeroForOne ? uint256(-amount1) : uint256(amount0);
+      return zeroForOne ? uint256(-amount1) : uint256(-amount0);
     } else if (_poolType == 2) {
       // BalancerV1
       _approve(_tokenIn, _pool, _amountIn);
