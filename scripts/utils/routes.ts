@@ -603,6 +603,20 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
     ],
   },
+  mkUSD: {
+    WETH: [
+      // mkUSD ==(Curve)==> USDC ==(UniV3)==> WETH
+      encodePoolHintV2(
+        ADDRESS["CURVE_STABLE_NG_mkUSD/USDC_17_POOL"],
+        PoolType.CurveFactoryPlainPool,
+        2,
+        0,
+        1,
+        Action.Swap
+      ),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+    ],
+  },
   xETH: {
     // PRISMA ==(CurveV2)==> WETH
     WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/xETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap)],
