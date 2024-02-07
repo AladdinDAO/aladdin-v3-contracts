@@ -18,6 +18,16 @@ interface IFxUSD {
   /// @param newCap The value of current mint capacity.
   event UpdateMintCap(address indexed baseToken, uint256 oldCap, uint256 newCap);
 
+  /// @notice Emitted when a new rebalance pool is added.
+  /// @param baseToken The address of base token of the market.
+  /// @param pool The address of the rebalance pool.
+  event AddRebalancePool(address indexed baseToken, address indexed pool);
+
+  /// @notice Emitted when a new rebalance pool is removed.
+  /// @param baseToken The address of base token of the market.
+  /// @param pool The address of the rebalance pool.
+  event RemoveRebalancePool(address indexed baseToken, address indexed pool);
+
   /// @notice Emitted when someone wrap fToken as fxUSD.
   /// @param baseToken The address of base token of the market.
   /// @param owner The address of fToken owner.
@@ -38,6 +48,9 @@ interface IFxUSD {
 
   /// @dev Thrown when someone tries to interact with unsupported market.
   error ErrorUnsupportedMarket();
+
+  /// @dev Thrown when someone tries to interact with unsupported rebalance pool.
+  error ErrorUnsupportedRebalancePool();
 
   /// @dev Thrown when someone tries to interact with market in stability mode.
   error ErrorMarketInStabilityMode();
@@ -66,6 +79,9 @@ interface IFxUSD {
 
   /// @notice Return the list of supported markets.
   function getMarkets() external view returns (address[] memory);
+
+  /// @notice Return the list of supported rebalance pools.
+  function getRebalancePools() external view returns (address[] memory);
 
   /// @notice Return the nav of fxUSD.
   function nav() external view returns (uint256);

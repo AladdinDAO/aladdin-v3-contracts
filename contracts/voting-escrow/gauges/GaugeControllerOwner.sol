@@ -97,6 +97,7 @@ contract GaugeControllerOwner is AccessControl {
     uint256[] memory _typeWeights = new uint256[](_length);
     for (uint256 i = 0; i < _length; i++) {
       _gauges[i] = gauges.at(i);
+      IGaugeController(controller).checkpoint_gauge(_gauges[i]);
       _gaugeWeights[i] = IGaugeController(controller).get_gauge_weight(_gauges[i]);
       int128 _type = IGaugeController(controller).gauge_types(_gauges[i]);
       _typeWeights[i] = IGaugeController(controller).get_type_weight(_type);
@@ -104,11 +105,17 @@ contract GaugeControllerOwner is AccessControl {
     }
 
     if (_totalWeight == 0) {
+      // w[i] = tw[i] * x[i] / (sum_{j} tw[j] * x[j])
+      // where
+      //   w[i] is the expected relative weight
+      //   tw[i] is current type weight, which > 0
+      //   x[i] is the expected gauge weight to set
+      // a solution is x[i] = w[i] / tw[i], since sum_{i} w[i] = 1
       uint256 sum;
       for (uint256 i = 0; i < _length; i++) {
         uint256 w = weights[_gauges[i]];
         sum += w;
-        IGaugeController(controller).change_gauge_weight(_gauges[i], w);
+        IGaugeController(controller).change_gauge_weight(_gauges[i], (w * PRECISION) / _typeWeights[i]);
       }
       if (sum != PRECISION) revert ErrorNoSolution();
       return;
@@ -122,13 +129,13 @@ contract GaugeControllerOwner is AccessControl {
     //   x[i] is the expected gauge weight to set
     int256[][] memory a = new int256[][](_length);
     int256[] memory b = new int256[](_length);
-    for (uint256 i = 0; i < _length; i++) {
-      a[i] = new int256[](_length);
-      uint256 w = weights[_gauges[i]];
-      b[i] = int256((_totalWeight * w) / PRECISION);
-      for (uint256 j = 0; j < _length; j++) {
-        if (i == j) a[i][j] = int256(_typeWeights[i] - (_typeWeights[i] * w) / PRECISION);
-        else a[i][j] = -int256((_typeWeights[i] * w) / PRECISION);
+    for (uint256 r = 0; r < _length; r++) {
+      a[r] = new int256[](_length);
+      uint256 w = weights[_gauges[r]];
+      b[r] = int256((_totalWeight * w) / PRECISION);
+      for (uint256 c = 0; c < _length; c++) {
+        if (r == c) a[r][c] = int256(_typeWeights[r] - (_typeWeights[r] * w) / PRECISION);
+        else a[r][c] = -int256((_typeWeights[c] * w) / PRECISION);
       }
     }
     // solve the equation and save solution in b

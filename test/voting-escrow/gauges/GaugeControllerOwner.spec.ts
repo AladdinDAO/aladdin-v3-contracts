@@ -50,10 +50,13 @@ describe("GaugeControllerOwner.spec", async () => {
     await gov.update_mining_parameters();
 
     await controller["add_type(string)"]("1");
+    await controller["add_type(string)"]("2");
+    await controller["add_type(string)"]("3");
+    await controller["add_type(string)"]("4");
     await controller["add_gauge(address,int128)"](gauge0.address, 0);
-    await controller["add_gauge(address,int128)"](gauge1.address, 0);
-    await controller["add_gauge(address,int128)"](gauge2.address, 0);
-    await controller["add_gauge(address,int128)"](gauge3.address, 0);
+    await controller["add_gauge(address,int128)"](gauge1.address, 1);
+    await controller["add_gauge(address,int128)"](gauge2.address, 2);
+    await controller["add_gauge(address,int128)"](gauge3.address, 3);
 
     const GaugeControllerOwner = await ethers.getContractFactory("GaugeControllerOwner", deployer);
     owner = await GaugeControllerOwner.deploy(controller.getAddress());
@@ -203,19 +206,19 @@ describe("GaugeControllerOwner.spec", async () => {
       });
 
       it("should succeed without weight", async () => {
-        expect(await controller.gauge_type_names(1n)).to.eq("");
-        expect(await controller.get_type_weight(1n)).to.eq(0n);
-        await owner["addType(string)"]("2");
-        expect(await controller.gauge_type_names(1n)).to.eq("2");
-        expect(await controller.get_type_weight(1n)).to.eq(0n);
+        expect(await controller.gauge_type_names(4n)).to.eq("");
+        expect(await controller.get_type_weight(4n)).to.eq(0n);
+        await owner["addType(string)"]("5");
+        expect(await controller.gauge_type_names(4n)).to.eq("5");
+        expect(await controller.get_type_weight(4n)).to.eq(0n);
       });
 
       it("should succeed with weight", async () => {
-        expect(await controller.gauge_type_names(1n)).to.eq("");
-        expect(await controller.get_type_weight(1n)).to.eq(0n);
-        await owner["addType(string,uint256)"]("2", 123n);
-        expect(await controller.gauge_type_names(1n)).to.eq("2");
-        expect(await controller.get_type_weight(1n)).to.eq(123n);
+        expect(await controller.gauge_type_names(4n)).to.eq("");
+        expect(await controller.get_type_weight(4n)).to.eq(0n);
+        await owner["addType(string,uint256)"]("5", 123n);
+        expect(await controller.gauge_type_names(4n)).to.eq("5");
+        expect(await controller.get_type_weight(4n)).to.eq(123n);
       });
     });
 
@@ -251,6 +254,9 @@ describe("GaugeControllerOwner.spec", async () => {
   context("#normalizeGaugeWeight", async () => {
     beforeEach(async () => {
       await owner.changeTypeWeight(0, ethers.parseEther("1"));
+      await owner.changeTypeWeight(1, ethers.parseEther("2"));
+      await owner.changeTypeWeight(2, ethers.parseEther("3"));
+      await owner.changeTypeWeight(3, ethers.parseEther("4"));
     });
 
     it("should revert, when non-normalizer call", async () => {

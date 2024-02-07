@@ -52,6 +52,9 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
   /// @dev The list of supported base tokens.
   EnumerableSetUpgradeable.AddressSet private supportedTokens;
 
+  /// @dev The list of supported rebalance pools.
+  EnumerableSetUpgradeable.AddressSet private supportedPools;
+
   /*************
    * Modifiers *
    *************/
@@ -90,6 +93,15 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     _tokens = new address[](_numMarkets);
     for (uint256 i = 0; i < _numMarkets; ++i) {
       _tokens[i] = supportedTokens.at(i);
+    }
+  }
+
+  /// @inheritdoc IFxUSD
+  function getRebalancePools() external view override returns (address[] memory _pools) {
+    uint256 _numPools = supportedPools.length();
+    _pools = new address[](_numPools);
+    for (uint256 i = 0; i < _numPools; ++i) {
+      _pools[i] = supportedPools.at(i);
     }
   }
 
@@ -162,6 +174,7 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     address _receiver
   ) external override {
     if (isUnderCollateral()) revert ErrorUnderCollateral();
+    if (!supportedPools.contains(_pool)) revert ErrorUnsupportedRebalancePool();
 
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     _checkBaseToken(_baseToken);
@@ -180,6 +193,7 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     uint256 _minOut
   ) external override returns (uint256 _amountOut) {
     if (isUnderCollateral()) revert ErrorUnderCollateral();
+    if (!supportedPools.contains(_pool)) revert ErrorUnsupportedRebalancePool();
 
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     _checkBaseToken(_baseToken);
@@ -309,6 +323,29 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     IERC20Upgradeable(_baseToken).safeApprove(_market, type(uint256).max);
 
     emit AddMarket(_baseToken, _mintCap);
+  }
+
+  /// @notice Add new supported rebalance pools to fxUSD.
+  /// @param _pools The list of rebalance pools.
+  function addRebalancePools(address[] memory _pools) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    for (uint256 i = 0; i < _pools.length; ++i) {
+      address _baseToken = IFxShareableRebalancePool(_pools[i]).baseToken();
+      _checkBaseToken(_baseToken);
+      if (supportedPools.add(_pools[i])) {
+        emit AddRebalancePool(_baseToken, _pools[i]);
+      }
+    }
+  }
+
+  /// @notice Add new supported rebalance pools to fxUSD.
+  /// @param _pools The list of rebalance pools.
+  function removeRebalancePools(address[] memory _pools) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    for (uint256 i = 0; i < _pools.length; ++i) {
+      address _baseToken = IFxShareableRebalancePool(_pools[i]).baseToken();
+      if (supportedPools.remove(_pools[i])) {
+        emit RemoveRebalancePool(_baseToken, _pools[i]);
+      }
+    }
   }
 
   /**********************
