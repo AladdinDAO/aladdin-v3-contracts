@@ -252,6 +252,72 @@ describe("FxUSD.spec", async () => {
       });
     });
 
+    context("#addRebalancePools", async () => {
+      it("should revert when caller is not admin", async () => {
+        await expect(fxUSD.connect(signer).addRebalancePools([ZeroAddress])).to.revertedWith(
+          "AccessControl: account " + signer.address.toLowerCase() + " is missing role " + ZeroHash
+        );
+      });
+
+      it("should revert when no base token", async () => {
+        await expect(fxUSD.addRebalancePools([await m1.pool.getAddress()])).to.revertedWithCustomError(
+          fxUSD,
+          "ErrorUnsupportedMarket"
+        );
+      });
+
+      it("should succeed", async () => {
+        await fxUSD.addMarket(m1.market.getAddress(), 1n);
+        await expect(fxUSD.addRebalancePools([await m1.pool.getAddress()]))
+          .to.emit(fxUSD, "AddRebalancePool")
+          .withArgs(await m1.baseToken.getAddress(), await m1.pool.getAddress());
+        expect(await fxUSD.getRebalancePools()).to.deep.eq([await m1.pool.getAddress()]);
+        await expect(fxUSD.addRebalancePools([await m1.pool.getAddress()])).to.not.emit(fxUSD, "AddRebalancePool");
+        expect(await fxUSD.getRebalancePools()).to.deep.eq([await m1.pool.getAddress()]);
+
+        m2 = await deployFxMarket();
+        await fxUSD.addMarket(m2.market.getAddress(), 1n);
+        await expect(fxUSD.addRebalancePools([await m2.pool.getAddress()]))
+          .to.emit(fxUSD, "AddRebalancePool")
+          .withArgs(await m2.baseToken.getAddress(), await m2.pool.getAddress());
+        expect(await fxUSD.getRebalancePools()).to.deep.eq([await m1.pool.getAddress(), await m2.pool.getAddress()]);
+      });
+    });
+
+    context("#removeRebalancePools", async () => {
+      it("should revert when caller is not admin", async () => {
+        await expect(fxUSD.connect(signer).removeRebalancePools([ZeroAddress])).to.revertedWith(
+          "AccessControl: account " + signer.address.toLowerCase() + " is missing role " + ZeroHash
+        );
+      });
+
+      it("should succeed", async () => {
+        // add
+        m2 = await deployFxMarket();
+        await fxUSD.addMarket(m1.market.getAddress(), 1n);
+        await fxUSD.addMarket(m2.market.getAddress(), 1n);
+        await expect(fxUSD.addRebalancePools([await m1.pool.getAddress(), await m2.pool.getAddress()]))
+          .to.emit(fxUSD, "AddRebalancePool")
+          .withArgs(await m1.baseToken.getAddress(), await m1.pool.getAddress())
+          .to.emit(fxUSD, "AddRebalancePool")
+          .withArgs(await m2.baseToken.getAddress(), await m2.pool.getAddress());
+        expect(await fxUSD.getRebalancePools()).to.deep.eq([await m1.pool.getAddress(), await m2.pool.getAddress()]);
+
+        // remove
+        await expect(fxUSD.removeRebalancePools([await m1.pool.getAddress(), await m2.pool.getAddress()]))
+          .to.emit(fxUSD, "RemoveRebalancePool")
+          .withArgs(await m1.baseToken.getAddress(), await m1.pool.getAddress())
+          .to.emit(fxUSD, "RemoveRebalancePool")
+          .withArgs(await m2.baseToken.getAddress(), await m2.pool.getAddress());
+        expect(await fxUSD.getRebalancePools()).to.deep.eq([]);
+        await expect(fxUSD.removeRebalancePools([await m1.pool.getAddress(), await m2.pool.getAddress()])).to.not.emit(
+          fxUSD,
+          "RemoveRebalancePool"
+        );
+        expect(await fxUSD.getRebalancePools()).to.deep.eq([]);
+      });
+    });
+
     context("#updateMintCap", async () => {
       it("should revert when caller is not admin", async () => {
         await expect(fxUSD.connect(signer).updateMintCap(ZeroAddress, 0n)).to.revertedWith(
@@ -278,6 +344,7 @@ describe("FxUSD.spec", async () => {
       m2 = await deployFxMarket();
       await fxUSD.addMarket(m1.market.getAddress(), ethers.parseEther("100000"));
       await fxUSD.addMarket(m2.market.getAddress(), ethers.parseEther("100000"));
+      await fxUSD.addRebalancePools([await m1.pool.getAddress(), await m2.pool.getAddress()]);
     });
 
     context("#wrap", async () => {
@@ -418,7 +485,7 @@ describe("FxUSD.spec", async () => {
         );
         await expect(fxUSD.earn(pool.getAddress(), 0n, ZeroAddress)).to.revertedWithCustomError(
           fxUSD,
-          "ErrorUnsupportedMarket"
+          "ErrorUnsupportedRebalancePool"
         );
       });
 
@@ -466,9 +533,9 @@ describe("FxUSD.spec", async () => {
           helper.getAddress(),
           minter.getAddress()
         );
-        await expect(fxUSD.mintAndEarn(pool.getAddress(), 0n, ZeroAddress, 0n)).to.revertedWithCustomError(
+        await expect(fxUSD.earn(pool.getAddress(), 0n, ZeroAddress)).to.revertedWithCustomError(
           fxUSD,
-          "ErrorUnsupportedMarket"
+          "ErrorUnsupportedRebalancePool"
         );
       });
 

@@ -283,6 +283,7 @@ describe("FxUSDFacet.spec", async () => {
     wstETHMarket = await deployFxMarket(TOKENS.wstETH.address, await ethers.getSigner(WSTETH_HOLDER), true);
     await fxUSD.addMarket(wstETHMarket.market.getAddress(), MaxUint256);
     await fxUSD.addMarket(sfrxETHMarket.market.getAddress(), MaxUint256);
+    await fxUSD.addRebalancePools([await sfrxETHMarket.pool.getAddress(), await wstETHMarket.pool.getAddress()]);
   });
 
   const checkFxMintFTokenV2 = async (
