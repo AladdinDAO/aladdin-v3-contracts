@@ -64,8 +64,8 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     _;
   }
 
-  modifier onlyMintableMarket(address _baseToken) {
-    _checkMarketMintable(_baseToken);
+  modifier onlyMintableMarket(address _baseToken, bool isMint) {
+    _checkMarketMintable(_baseToken, isMint);
     _;
   }
 
@@ -140,7 +140,7 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     address _baseToken,
     uint256 _amount,
     address _receiver
-  ) external override onlySupportedMarket(_baseToken) onlyMintableMarket(_baseToken) {
+  ) external override onlySupportedMarket(_baseToken) onlyMintableMarket(_baseToken, false) {
     if (isUnderCollateral()) revert ErrorUnderCollateral();
 
     address _fToken = markets[_baseToken].fToken;
@@ -157,7 +157,13 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     uint256 _amountIn,
     address _receiver,
     uint256 _minOut
-  ) external override onlySupportedMarket(_baseToken) onlyMintableMarket(_baseToken) returns (uint256 _amountOut) {
+  )
+    external
+    override
+    onlySupportedMarket(_baseToken)
+    onlyMintableMarket(_baseToken, true)
+    returns (uint256 _amountOut)
+  {
     if (isUnderCollateral()) revert ErrorUnderCollateral();
 
     address _fToken = markets[_baseToken].fToken;
@@ -197,7 +203,7 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
 
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     _checkBaseToken(_baseToken);
-    _checkMarketMintable(_baseToken);
+    _checkMarketMintable(_baseToken, true);
 
     address _fToken = markets[_baseToken].fToken;
     _amountOut = _mintFToken(_baseToken, _fToken, _amountIn, _minOut);
@@ -360,12 +366,15 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
 
   /// @dev Internal function to check market.
   /// @param _baseToken The address of the base token.
-  function _checkMarketMintable(address _baseToken) private view {
+  /// @param _checkCollateralRatio Whether to check collateral ratio.
+  function _checkMarketMintable(address _baseToken, bool _checkCollateralRatio) private view {
     address _treasury = markets[_baseToken].treasury;
-    uint256 _collateralRatio = IFxTreasuryV2(_treasury).collateralRatio();
-    uint256 _stabilityRatio = IFxMarketV2(markets[_baseToken].market).stabilityRatio();
-    // not allow to mint when collateral ratio <= stability ratio
-    if (_collateralRatio <= _stabilityRatio) revert ErrorMarketInStabilityMode();
+    if (_checkCollateralRatio) {
+      uint256 _collateralRatio = IFxTreasuryV2(_treasury).collateralRatio();
+      uint256 _stabilityRatio = IFxMarketV2(markets[_baseToken].market).stabilityRatio();
+      // not allow to mint when collateral ratio <= stability ratio
+      if (_collateralRatio <= _stabilityRatio) revert ErrorMarketInStabilityMode();
+    }
     // not allow to mint when price is invalid
     if (!IFxTreasuryV2(_treasury).isBaseTokenPriceValid()) revert ErrorMarketWithInvalidPrice();
   }

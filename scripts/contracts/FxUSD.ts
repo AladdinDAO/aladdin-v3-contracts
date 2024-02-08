@@ -760,6 +760,19 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxUS
       MarketConfig.sfrxETH.MintCapacity,
     ]);
   }
+  const pools = await fxUSD.getRebalancePools();
+  const poolsToAdd = [];
+  for (const pool of [
+    deployment.Markets.wstETH.RebalancePool.wstETH.pool,
+    deployment.Markets.wstETH.RebalancePool.xstETH.pool,
+    deployment.Markets.sfrxETH.RebalancePool.sfrxETH.pool,
+    deployment.Markets.sfrxETH.RebalancePool.xfrxETH.pool,
+  ]) {
+    if (!pools.includes(getAddress(pool))) poolsToAdd.push(pool);
+  }
+  if (poolsToAdd.length > 0) {
+    await ownerContractCall(fxUSD, "addRebalancePools", "addRebalancePools", [poolsToAdd]);
+  }
 
   // Setup ReservePool
   if ((await reservePool.bonusRatio(TOKENS.wstETH.address)) !== MarketConfig.wstETH.ReservePoolBonusRatio) {

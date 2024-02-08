@@ -355,14 +355,6 @@ describe("FxUSD.spec", async () => {
         );
       });
 
-      it("should revert when in stability mode", async () => {
-        await m1.oracle.setPrice(ethers.parseEther("1001"));
-        await expect(fxUSD.wrap(m1.baseToken.getAddress(), 0n, deployer.address)).to.revertedWithCustomError(
-          fxUSD,
-          "ErrorMarketInStabilityMode"
-        );
-      });
-
       it("should revert when invalid price", async () => {
         await m1.oracle.setIsValid(false);
         await expect(fxUSD.wrap(m1.baseToken.getAddress(), 0n, deployer.address)).to.revertedWithCustomError(
@@ -379,7 +371,23 @@ describe("FxUSD.spec", async () => {
         );
       });
 
-      it("should succeed", async () => {
+      it("should succeed in normal mode", async () => {
+        await m1.fToken.connect(signer).approve(fxUSD.getAddress(), MaxUint256);
+        const beforeSigner = await m1.fToken.balanceOf(signer.address);
+        const beforeDeployer = await fxUSD.balanceOf(deployer.address);
+        await expect(fxUSD.connect(signer).wrap(m1.baseToken.getAddress(), ethers.parseEther("10"), deployer.address))
+          .to.emit(fxUSD, "Wrap")
+          .withArgs(await m1.baseToken.getAddress(), signer.address, deployer.address, ethers.parseEther("10"));
+        const afterSigner = await m1.fToken.balanceOf(signer.address);
+        const afterDeployer = await fxUSD.balanceOf(deployer.address);
+        expect(beforeSigner - afterSigner).to.eq(ethers.parseEther("10"));
+        expect(afterDeployer - beforeDeployer).to.eq(ethers.parseEther("10"));
+        expect(await fxUSD.totalSupply()).to.eq(ethers.parseEther("10"));
+        expect((await fxUSD.markets(m1.baseToken.getAddress())).managed).to.eq(ethers.parseEther("10"));
+      });
+
+      it("should succeed in stability mode", async () => {
+        await m1.oracle.setPrice(ethers.parseEther("1001"));
         await m1.fToken.connect(signer).approve(fxUSD.getAddress(), MaxUint256);
         const beforeSigner = await m1.fToken.balanceOf(signer.address);
         const beforeDeployer = await fxUSD.balanceOf(deployer.address);
