@@ -308,6 +308,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   /// @inheritdoc IFxBoostableRebalancePool
   function liquidate(uint256 _maxAmount, uint256 _minBaseOut)
     external
+    virtual
     override
     onlyRole(LIQUIDATOR_ROLE)
     returns (uint256 _liquidated, uint256 _baseOut)

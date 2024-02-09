@@ -4,9 +4,9 @@ pragma solidity =0.8.20;
 
 import { IFxBoostableRebalancePool } from "../../interfaces/f(x)/IFxBoostableRebalancePool.sol";
 
-import { ShareableRebalancePool } from "./ShareableRebalancePool.sol";
+import { ShareableRebalancePoolV2 } from "./ShareableRebalancePoolV2.sol";
 
-contract FxUSDShareableRebalancePool is ShareableRebalancePool {
+contract FxUSDShareableRebalancePool is ShareableRebalancePoolV2 {
   /***************
    * Constructor *
    ***************/
@@ -16,7 +16,7 @@ contract FxUSDShareableRebalancePool is ShareableRebalancePool {
     address _ve,
     address _veHelper,
     address _minter
-  ) ShareableRebalancePool(_fxn, _ve, _veHelper, _minter) {}
+  ) ShareableRebalancePoolV2(_fxn, _ve, _veHelper, _minter) {}
 
   /****************************
    * Public Mutated Functions *
