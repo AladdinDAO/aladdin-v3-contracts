@@ -140,6 +140,26 @@ export function encodePoolHintV3(
   return encoding;
 }
 
+export function decodePoolV2(encoding: bigint): string {
+  const pool = getAddress((encoding & (2n ** 160n - 1n)).toString(16).padStart(40, "0"));
+  const poolType = Number((encoding >> 160n) & 255n);
+  const action = Number((encoding >> 174n) & 3n);
+  const tokenIn = Number((encoding >> 170n) & 3n);
+  const tokenOut = Number((encoding >> 172n) & 3n);
+  encoding >>= 168n;
+  let extra: string = "";
+  const actionDesc = Action[Number(action)];
+  const poolName = pool;
+  if (action === Action.Add) {
+    extra = `tokenIn[${tokenIn}]`;
+  } else if (action === Action.Remove) {
+    extra = `tokenOut[${tokenOut}]`;
+  } else {
+    extra = `tokenIn[${tokenIn}] tokenOut[${tokenOut}]`;
+  }
+  return `${PoolTypeV3[Number(poolType)]}[${poolName}].${actionDesc} ${extra}`;
+}
+
 export function decodePoolV3(encoding: bigint): string {
   const poolType = Number(encoding & 255n);
   const action = Number((encoding >> 8n) & 3n);

@@ -248,7 +248,6 @@ export async function initialize(
     deployment.ConcentratorStakeDAOLocker.proxy,
     deployer
   );
-  const compounder = await ethers.getContractAt("SdCrvCompounder", deployment.SdCrvCompounder.proxy, deployer);
 
   // upgrade
   for (const name of ["ConcentratorStakeDAOLocker"]) {
@@ -300,16 +299,6 @@ export async function initialize(
   }
 
   // setup ConcentratorSdCrvGaugeWrapper
-  const REWARD_MANAGER_ROLE = await wrapper.REWARD_MANAGER_ROLE();
-  if (!(await wrapper.hasRole(REWARD_MANAGER_ROLE, deployer.address))) {
-    await ownerContractCall(
-      wrapper,
-      "ConcentratorSdCrvGaugeWrapper grant REWARD_MANAGER_ROLE",
-      "grantRole",
-      [REWARD_MANAGER_ROLE, deployer.address],
-      overrides
-    );
-  }
   if ((await wrapper.distributors(TOKENS.sdCRV.address)) !== deployment.SdCRVBribeBurnerV2) {
     await ownerContractCall(
       wrapper,
@@ -379,12 +368,8 @@ export async function initialize(
     await ownerContractCall(
       proxyAdmin,
       "ProxyAdmin upgrade SdCrvCompounder",
-      "upgradeAndCall",
-      [
-        deployment.SdCrvCompounder.proxy,
-        deployment.SdCrvCompounder.implementation,
-        compounder.interface.encodeFunctionData("initializeV2", [deployment.SdCrvCompounder.stash]),
-      ],
+      "upgrade",
+      [deployment.SdCrvCompounder.proxy, deployment.SdCrvCompounder.implementation],
       overrides
     );
   }

@@ -603,6 +603,20 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
     ],
   },
+  mkUSD: {
+    WETH: [
+      // mkUSD ==(Curve)==> USDC ==(UniV3)==> WETH
+      encodePoolHintV2(
+        ADDRESS["CURVE_STABLE_NG_mkUSD/USDC_17_POOL"],
+        PoolType.CurveFactoryPlainPool,
+        2,
+        0,
+        1,
+        Action.Swap
+      ),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+    ],
+  },
   xETH: {
     // PRISMA ==(CurveV2)==> WETH
     WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/xETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap)],
@@ -765,6 +779,18 @@ export function encodeMultiPath(
     routes.push(...paths[i]);
   }
   return { encoding, routes };
+}
+
+export function showZapRoute(src: string, dst: string, space?: number) {
+  const routes = ZAP_ROUTES[src][dst];
+  console.log(
+    " ".repeat(space ?? 0),
+    `${src}[${TOKENS[src].address}] => ${dst}[${TOKENS[dst].address}]:`,
+    `[${routes.map((r) => `"0x${r.toString(16)}"`).join(",")}]`
+  );
+  routes.forEach((route, index) => {
+    console.log(" ".repeat(space ?? 0), `  route #${index + 1}: ${decodePoolV3(route)}`);
+  });
 }
 
 export function showConverterRoute(src: string, dst: string, space?: number) {

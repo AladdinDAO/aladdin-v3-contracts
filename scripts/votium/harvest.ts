@@ -59,7 +59,7 @@ async function main(round: number, manualStr: string) {
   }
 
   const [deployer] = await ethers.getSigners();
-  const locker = await ethers.getContractAt("CLeverCVXLocker", deployment.CVXLocker, deployer);
+  const locker = await ethers.getContractAt("CLeverCVXLocker", deployment.CVXLocker.proxy, deployer);
 
   const manualTokens = manualStr === "" ? [] : manualStr.split(",");
   console.log("Harvest Round:", round);
@@ -74,7 +74,7 @@ async function main(round: number, manualStr: string) {
     const estimate = toBigInt(
       await ethers.provider.call({
         from: KEEPER,
-        to: deployment.CVXLocker,
+        to: deployment.CVXLocker.proxy,
         data: locker.interface.encodeFunctionData("harvestVotium", [[item], [routeToETH, routeToCVX], 0]),
       })
     );
@@ -126,9 +126,9 @@ async function main(round: number, manualStr: string) {
         const [from] = ethers.AbiCoder.defaultAbiCoder().decode(["address"], log.topics[1]);
         const [to] = ethers.AbiCoder.defaultAbiCoder().decode(["address"], log.topics[2]);
         const [value] = ethers.AbiCoder.defaultAbiCoder().decode(["uint256"], log.data);
-        if (same(from, deployment.CVXLocker)) {
+        if (same(from, deployment.CVXLocker.proxy)) {
           if (same(to, DEPLOYED_CONTRACTS.CLever.PlatformFeeDistributor)) treasuryCVX = value;
-          if (same(to, deployment.Furnace)) furnaceCVX = value;
+          if (same(to, deployment.Furnace.proxy)) furnaceCVX = value;
         }
       }
     }
@@ -141,7 +141,7 @@ async function main(round: number, manualStr: string) {
     for (const symbol of manualTokens) {
       const { address, decimals } = TOKENS[symbol];
       const token = await ethers.getContractAt("IERC20", address, deployer);
-      const balance = await token.balanceOf(deployment.CVXLocker);
+      const balance = await token.balanceOf(deployment.CVXLocker.proxy);
       console.log(`harvested ${symbol}:`, ethers.formatUnits(balance, decimals));
     }
   }
