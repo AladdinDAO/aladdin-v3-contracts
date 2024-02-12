@@ -2,7 +2,7 @@ import { network } from "hardhat";
 import { toBigInt } from "ethers";
 
 import { ensureDeployer } from "@/contracts/helpers";
-import * as ConcentratorCvxCrv from "@/contracts/ConcentratorCvxCrv";
+import * as ConcentratorCvxCrv from "@/contracts/ConcentratorCvxCRV";
 import * as ConcentratorCVX from "@/contracts/ConcentratorCVX";
 import * as ConcentratorFrxETH from "@/contracts/ConcentratorFrxETH";
 import * as ConcentratorStakeDAO from "@/contracts/ConcentratorStakeDAO";

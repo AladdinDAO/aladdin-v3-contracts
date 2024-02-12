@@ -3601,6 +3601,33 @@ export const AVAILABLE_VAULTS: {
     deposit: {},
     withdraw: {},
   },
+  "weETH/rswETH": {
+    token: "CURVE_STABLE_NG_weETH/rswETH_80",
+    composition: "weETH+rswETH",
+    convexCurveID: 294,
+    rewarder: "0xc72dA58342e6bE07858B12c0AFE3Db9aF098b849",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {},
+    withdraw: {},
+  },
+  "eUSD/crvUSD": {
+    token: "CURVE_STABLE_NG_eUSD/crvUSD_65",
+    composition: "eUSD+crvUSD",
+    convexCurveID: 293,
+    rewarder: "0x01099Fe2c82C6F5Dc7485697fBC234f034E3329A",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {},
+    withdraw: {},
+  },
+  "eUSD/mkUSD": {
+    token: "CURVE_STABLE_NG_eUSD/mkUSD_60",
+    composition: "eUSD+crvUSD",
+    convexCurveID: 292,
+    rewarder: "0xBdeb10ed4FE95a2f79A9D60F9C16206BfcBA6Ef7",
+    rewards: [ADDRESS.CRV, ADDRESS.CVX],
+    deposit: {},
+    withdraw: {},
+  },
 };
 
 export const DEPLOYED_VAULTS: {
@@ -3703,6 +3730,9 @@ export const DEPLOYED_VAULTS: {
     { name: "WETH/frxETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 67
     { name: "FRAX/PYUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 68
     { name: "FRAX/sDAI", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 69
+    { name: "weETH/rswETH", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 70
+    { name: "eUSD/crvUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 71
+    { name: "eUSD/mkUSD", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 72
   ],
   aFXS: [
     { name: "frax", strategy: "ConvexCurve", fees: { withdraw: 0, harvest: 2e7, platform: 10e7 } }, // 0
