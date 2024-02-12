@@ -64,6 +64,11 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     _;
   }
 
+  modifier onlySupportedPool(address _pool) {
+    if (!supportedPools.contains(_pool)) revert ErrorUnsupportedRebalancePool();
+    _;
+  }
+
   modifier onlyMintableMarket(address _baseToken, bool isMint) {
     _checkMarketMintable(_baseToken, isMint);
     _;
@@ -152,6 +157,24 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
   }
 
   /// @inheritdoc IFxUSD
+  function wrapFrom(
+    address _pool,
+    uint256 _amount,
+    address _receiver
+  ) external override onlySupportedPool(_pool) {
+    if (isUnderCollateral()) revert ErrorUnderCollateral();
+
+    address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
+    _checkBaseToken(_baseToken);
+    _checkMarketMintable(_baseToken, false);
+
+    IFxShareableRebalancePool(_pool).withdrawFrom(_msgSender(), _amount, address(this));
+    _mintShares(_baseToken, _receiver, _amount);
+
+    emit Wrap(_baseToken, _msgSender(), _receiver, _amount);
+  }
+
+  /// @inheritdoc IFxUSD
   function mint(
     address _baseToken,
     uint256 _amountIn,
@@ -178,9 +201,8 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     address _pool,
     uint256 _amount,
     address _receiver
-  ) external override {
+  ) external override onlySupportedPool(_pool) {
     if (isUnderCollateral()) revert ErrorUnderCollateral();
-    if (!supportedPools.contains(_pool)) revert ErrorUnsupportedRebalancePool();
 
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     _checkBaseToken(_baseToken);
@@ -197,9 +219,8 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     uint256 _amountIn,
     address _receiver,
     uint256 _minOut
-  ) external override returns (uint256 _amountOut) {
+  ) external override onlySupportedPool(_pool) returns (uint256 _amountOut) {
     if (isUnderCollateral()) revert ErrorUnderCollateral();
-    if (!supportedPools.contains(_pool)) revert ErrorUnsupportedRebalancePool();
 
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     _checkBaseToken(_baseToken);

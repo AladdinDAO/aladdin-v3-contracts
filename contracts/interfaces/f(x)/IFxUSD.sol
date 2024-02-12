@@ -103,6 +103,16 @@ interface IFxUSD {
     address receiver
   ) external;
 
+  /// @notice Wrap fToken from rebalance pool to fxUSD.
+  /// @param pool The address of rebalance pool.
+  /// @param amount The amount of fToken to wrap.
+  /// @param receiver The address of fxUSD recipient.
+  function wrapFrom(
+    address pool,
+    uint256 amount,
+    address receiver
+  ) external;
+
   /// @notice Mint fxUSD with base token.
   /// @param baseToken The address of the base token.
   /// @param amountIn The amount of base token to use.

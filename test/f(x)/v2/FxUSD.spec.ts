@@ -403,6 +403,74 @@ describe("FxUSD.spec", async () => {
       });
     });
 
+    context("#wrapFrom", async () => {
+      it("should revert when unsupported", async () => {
+        await expect(fxUSD.wrapFrom(ZeroAddress, 0n, ZeroAddress)).to.revertedWithCustomError(
+          fxUSD,
+          "ErrorUnsupportedRebalancePool"
+        );
+      });
+
+      it("should revert when under collateral", async () => {
+        await m1.oracle.setPrice(ethers.parseEther("1000"));
+        await expect(fxUSD.wrapFrom(m2.pool.getAddress(), 0n, deployer.address)).to.revertedWithCustomError(
+          fxUSD,
+          "ErrorUnderCollateral"
+        );
+      });
+
+      it("should revert when invalid price", async () => {
+        await m1.oracle.setIsValid(false);
+        await expect(fxUSD.wrapFrom(m1.pool.getAddress(), 0n, deployer.address)).to.revertedWithCustomError(
+          fxUSD,
+          "ErrorMarketWithInvalidPrice"
+        );
+      });
+
+      it("should succeed in normal mode", async () => {
+        await m1.pool.grantRole(id("WITHDRAW_FROM_ROLE"), fxUSD.getAddress());
+        // deposit to rebalance pool first.
+        await m1.fToken.connect(signer).approve(fxUSD.getAddress(), MaxUint256);
+        await fxUSD.connect(signer).wrap(m1.baseToken.getAddress(), ethers.parseEther("10"), signer.address);
+        await fxUSD.connect(signer).earn(m1.pool.getAddress(), ethers.parseEther("10"), signer.address);
+        expect(await fxUSD.totalSupply()).to.eq(0n);
+
+        const beforeSigner = await m1.pool.balanceOf(signer.address);
+        const beforeDeployer = await fxUSD.balanceOf(deployer.address);
+        await expect(fxUSD.connect(signer).wrapFrom(m1.pool.getAddress(), ethers.parseEther("10"), deployer.address))
+          .to.emit(fxUSD, "Wrap")
+          .withArgs(await m1.baseToken.getAddress(), signer.address, deployer.address, ethers.parseEther("10"));
+        const afterSigner = await m1.pool.balanceOf(signer.address);
+        const afterDeployer = await fxUSD.balanceOf(deployer.address);
+        expect(beforeSigner - afterSigner).to.eq(ethers.parseEther("10"));
+        expect(afterDeployer - beforeDeployer).to.eq(ethers.parseEther("10"));
+        expect(await fxUSD.totalSupply()).to.eq(ethers.parseEther("10"));
+        expect((await fxUSD.markets(m1.baseToken.getAddress())).managed).to.eq(ethers.parseEther("10"));
+      });
+
+      it("should succeed in stability mode", async () => {
+        await m1.pool.grantRole(id("WITHDRAW_FROM_ROLE"), fxUSD.getAddress());
+        // deposit to rebalance pool first.
+        await m1.fToken.connect(signer).approve(fxUSD.getAddress(), MaxUint256);
+        await fxUSD.connect(signer).wrap(m1.baseToken.getAddress(), ethers.parseEther("10"), signer.address);
+        await fxUSD.connect(signer).earn(m1.pool.getAddress(), ethers.parseEther("10"), signer.address);
+        expect(await fxUSD.totalSupply()).to.eq(0n);
+
+        await m1.oracle.setPrice(ethers.parseEther("1001"));
+        const beforeSigner = await m1.pool.balanceOf(signer.address);
+        const beforeDeployer = await fxUSD.balanceOf(deployer.address);
+        await expect(fxUSD.connect(signer).wrapFrom(m1.pool.getAddress(), ethers.parseEther("10"), deployer.address))
+          .to.emit(fxUSD, "Wrap")
+          .withArgs(await m1.baseToken.getAddress(), signer.address, deployer.address, ethers.parseEther("10"));
+        const afterSigner = await m1.pool.balanceOf(signer.address);
+        const afterDeployer = await fxUSD.balanceOf(deployer.address);
+        expect(beforeSigner - afterSigner).to.eq(ethers.parseEther("10"));
+        expect(afterDeployer - beforeDeployer).to.eq(ethers.parseEther("10"));
+        expect(await fxUSD.totalSupply()).to.eq(ethers.parseEther("10"));
+        expect((await fxUSD.markets(m1.baseToken.getAddress())).managed).to.eq(ethers.parseEther("10"));
+      });
+    });
+
     context("#mint", async () => {
       it("should revert when unsupported", async () => {
         await expect(fxUSD.mint(ZeroAddress, 0n, ZeroAddress, 0n)).to.revertedWithCustomError(

@@ -582,6 +582,7 @@ async function initializeMarket(
   }
 
   const LIQUIDATOR_ROLE = await rebalancePoolA.LIQUIDATOR_ROLE();
+  const WITHDRAW_FROM_ROLE = await rebalancePoolA.WITHDRAW_FROM_ROLE();
   // Setup Rebalance Pool A
   if (!(await rebalancePoolA.hasRole(LIQUIDATOR_ROLE, fxUSDRebalancer.getAddress()))) {
     await ownerContractCall(
@@ -589,6 +590,15 @@ async function initializeMarket(
       `FxUSDShareableRebalancePool/${baseSymbol} add liquidator`,
       "grantRole",
       [LIQUIDATOR_ROLE, await fxUSDRebalancer.getAddress()],
+      overrides
+    );
+  }
+  if (!(await rebalancePoolA.hasRole(WITHDRAW_FROM_ROLE, deployment.FxUSD.proxy))) {
+    await ownerContractCall(
+      rebalancePoolA,
+      `FxUSDShareableRebalancePool/${baseSymbol} grant WITHDRAW_FROM_ROLE to fxUSD`,
+      "grantRole",
+      [WITHDRAW_FROM_ROLE, deployment.FxUSD.proxy],
       overrides
     );
   }
@@ -627,6 +637,15 @@ async function initializeMarket(
       `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} add liquidator`,
       "grantRole",
       [LIQUIDATOR_ROLE, await fxUSDRebalancer.getAddress()],
+      overrides
+    );
+  }
+  if (!(await rebalancePoolB.hasRole(WITHDRAW_FROM_ROLE, deployment.FxUSD.proxy))) {
+    await ownerContractCall(
+      rebalancePoolB,
+      `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} grant WITHDRAW_FROM_ROLE to fxUSD`,
+      "grantRole",
+      [WITHDRAW_FROM_ROLE, deployment.FxUSD.proxy],
       overrides
     );
   }
