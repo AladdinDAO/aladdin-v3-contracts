@@ -177,6 +177,39 @@ contract FxUSDFacet {
     LibGatewayRouter.refundERC20(_baseToken, msg.sender);
   }
 
+  /// @notice Swap between fxUSD and xToken
+  /// @param _market The address of market to use.
+  /// @param _amountIn The amount of input token.
+  /// @param _fxUSDForXToken Whether swap fxUSD for xToken.
+  /// @param _minOut The minimum amount of token should be received.
+  /// @return _amountOut The amount of token received.
+  /// @return _bonusOut The amount of bonus token received.
+  function fxSwapFxUSD(
+    address _market,
+    uint256 _amountIn,
+    bool _fxUSDForXToken,
+    uint256 _minOut
+  ) external returns (uint256 _amountOut, uint256 _bonusOut) {
+    address _xToken = IFxMarketV2(_market).xToken();
+    address _baseToken = IFxMarketV2(_market).baseToken();
+    if (_fxUSDForXToken) {
+      _amountIn = LibGatewayRouter.transferTokenIn(fxUSD, address(this), _amountIn);
+      (uint256 _baseOut, uint256 _redeemBonus) = IFxUSD(fxUSD).redeem(_baseToken, _amountIn, address(this), 0);
+      _bonusOut = _redeemBonus;
+      LibGatewayRouter.approve(_baseToken, _market, _baseOut);
+      (_amountOut, _redeemBonus) = IFxMarketV2(_market).mintXToken(_baseOut, msg.sender, 0);
+      _bonusOut += _redeemBonus;
+      LibGatewayRouter.refundERC20(fxUSD, msg.sender);
+    } else {
+      _amountIn = LibGatewayRouter.transferTokenIn(_xToken, address(this), _amountIn);
+      uint256 _baseOut = IFxMarketV2(_market).redeemXToken(_amountIn, address(this), 0);
+      LibGatewayRouter.approve(_baseToken, fxUSD, _baseOut);
+      _amountOut = IFxUSD(fxUSD).mint(_baseToken, _baseOut, msg.sender, _minOut);
+      LibGatewayRouter.refundERC20(_xToken, msg.sender);
+    }
+    LibGatewayRouter.refundERC20(_baseToken, msg.sender);
+  }
+
   /// @notice Mint some fxUSD with given token and convert parameters.
   /// @param _params The token converting parameters.
   /// @param _baseToken The address of base token used to mint.

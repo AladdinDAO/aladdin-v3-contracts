@@ -287,11 +287,11 @@ async function deployMarket(deployment: DeploymentHelper, symbol: string) {
   // deploy RebalancePoolGaugeClaimer
   await deployment.contractDeploy(
     `${selectorPrefix}.RebalancePoolGaugeClaimer`,
-    "RebalancePoolGaugeClaimer",
+    `RebalancePoolGaugeClaimer for ${symbol}`,
     "RebalancePoolGaugeClaimer",
     [
       governance.ReservePool,
-      governance.PlatformFeeSpliter,
+      deployment.get(`${selectorPrefix}.Treasury.proxy`),
       deployment.get(`${selectorPrefix}.RebalancePoolGauge`),
       deployment.get(`${selectorPrefix}.RebalancePoolSplitter`),
     ]
@@ -682,6 +682,15 @@ async function initializeMarket(
       `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} update LiquidatableCollateralRatio`,
       "updateLiquidatableCollateralRatio",
       [marketConfig.Market.StabilityRatio],
+      overrides
+    );
+  }
+  if ((await rebalancePoolB.wrapper()) !== marketDeployment.RebalancePool[marketConfig.LeveragedToken.symbol].wrapper) {
+    await ownerContractCall(
+      rebalancePoolB,
+      `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} update updateWrapper`,
+      "updateWrapper",
+      [marketDeployment.RebalancePool[marketConfig.LeveragedToken.symbol].wrapper],
       overrides
     );
   }

@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Interface, MaxUint256, ZeroAddress, id } from "ethers";
+import { Interface, MaxUint256, ZeroAddress, id, toBigInt } from "ethers";
 import { ethers } from "hardhat";
 
 import { mockETHBalance, request_fork } from "@/test/utils";
@@ -29,7 +29,7 @@ import {
   FxInitialFund,
 } from "@/types/index";
 import { LibGatewayRouter } from "@/types/contracts/gateways/facets/FxUSDFacet";
-import { TOKENS, Action, PoolTypeV3, encodePoolHintV3, ADDRESS } from "@/utils/index";
+import { TOKENS, Action, PoolTypeV3, encodePoolHintV3, ADDRESS, CONVERTER_ROUTRS } from "@/utils/index";
 
 const FORK_BLOCK_NUMBER = 19082800;
 
@@ -38,6 +38,9 @@ const ADMIN = "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF";
 const OPERATOR = "0x66c57bF505A85A74609D2C83E94Aabb26d691E1F";
 const WETH_HOLDER = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28";
 const USDC_HOLDER = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28";
+const USDT_HOLDER = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28";
+const FRAX_HOLDER = "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27";
+const crvUSD_HOLDER = "0x0a7b9483030994016567b3B1B4bbB865578901Cb";
 const STETH_HOLDER = "0x18709E89BD403F470088aBDAcEbE86CC60dda12e";
 const WSTETH_HOLDER = "0x176F3DAb24a159341c0509bB36B833E7fdd0a132";
 const FRXETH_HOLDER = "0x8306300ffd616049FD7e4b0354a64Da835c1A81C";
@@ -219,6 +222,9 @@ describe("FxUSDFacet.spec", async () => {
       OPERATOR,
       WETH_HOLDER,
       USDC_HOLDER,
+      USDT_HOLDER,
+      FRAX_HOLDER,
+      crvUSD_HOLDER,
       WSTETH_HOLDER,
       SFRXETH_HOLDER,
       STETH_HOLDER,
@@ -569,6 +575,84 @@ describe("FxUSDFacet.spec", async () => {
           tokenIn
         );
       });
+
+      it("should succeed to mint from USDT", async () => {
+        const holder = await ethers.getSigner(USDT_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.USDT.address, holder);
+        const amountIn = ethers.parseUnits("10000", 6);
+        await checkFxMintFTokenV2(
+          wstETHMarket.market,
+          holder,
+          amountIn,
+          wstETHMarket.fToken,
+          {
+            src: TOKENS.USDT.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.USDT.address,
+              amountIn,
+              1048575n + (toBigInt(CONVERTER_ROUTRS.USDT.wstETH.length) << 20n),
+              CONVERTER_ROUTRS.USDT.wstETH,
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
+
+      it("should succeed to mint from FRAX", async () => {
+        const holder = await ethers.getSigner(FRAX_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.FRAX.address, holder);
+        const amountIn = ethers.parseUnits("10000", 18);
+        await checkFxMintFTokenV2(
+          wstETHMarket.market,
+          holder,
+          amountIn,
+          wstETHMarket.fToken,
+          {
+            src: TOKENS.FRAX.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.FRAX.address,
+              amountIn,
+              1048575n + (toBigInt(CONVERTER_ROUTRS.FRAX.wstETH.length) << 20n),
+              CONVERTER_ROUTRS.FRAX.wstETH,
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
+
+      it("should succeed to mint from crvUSD", async () => {
+        const holder = await ethers.getSigner(crvUSD_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.crvUSD.address, holder);
+        const amountIn = ethers.parseUnits("10000", 18);
+        await checkFxMintFTokenV2(
+          wstETHMarket.market,
+          holder,
+          amountIn,
+          wstETHMarket.fToken,
+          {
+            src: TOKENS.crvUSD.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.crvUSD.address,
+              amountIn,
+              1048575n + (toBigInt(CONVERTER_ROUTRS.crvUSD.wstETH.length) << 20n),
+              CONVERTER_ROUTRS.crvUSD.wstETH,
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
     });
 
     context("fxMintXTokenV2", async () => {
@@ -708,6 +792,36 @@ describe("FxUSDFacet.spec", async () => {
           ],
         });
       });
+
+      it("should succeed when redeem fToken as USDT", async () => {
+        const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.USDT.address, signer);
+        const amountIn = ethers.parseEther("200");
+        await checkFxRedeemFTokenV2(wstETHMarket.market, signer, wstETHMarket.fToken, amountIn, tokenOut, {
+          converter: await outputConverter.getAddress(),
+          minOut: 0n,
+          routes: CONVERTER_ROUTRS.wstETH.USDT,
+        });
+      });
+
+      it("should succeed when redeem fToken as FRAX", async () => {
+        const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.FRAX.address, signer);
+        const amountIn = ethers.parseEther("200");
+        await checkFxRedeemFTokenV2(wstETHMarket.market, signer, wstETHMarket.fToken, amountIn, tokenOut, {
+          converter: await outputConverter.getAddress(),
+          minOut: 0n,
+          routes: CONVERTER_ROUTRS.wstETH.FRAX,
+        });
+      });
+
+      it("should succeed when redeem fToken as crvUSD", async () => {
+        const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.crvUSD.address, signer);
+        const amountIn = ethers.parseEther("200");
+        await checkFxRedeemFTokenV2(wstETHMarket.market, signer, wstETHMarket.fToken, amountIn, tokenOut, {
+          converter: await outputConverter.getAddress(),
+          minOut: 0n,
+          routes: CONVERTER_ROUTRS.wstETH.crvUSD,
+        });
+      });
     });
 
     context("fxRedeemXTokenV2", async () => {
@@ -752,7 +866,7 @@ describe("FxUSDFacet.spec", async () => {
     });
 
     context("fxSwapV2", async () => {
-      it("should succeed when swap fToken to xToken", async () => {
+      it("should succeed when swap fxUSD to xToken", async () => {
         const amountIn = ethers.parseEther("200");
         await wstETHMarket.fToken.connect(signer).approve(gateway.getAddress(), amountIn);
         const [dstOut, bounsOut] = await gateway
@@ -871,6 +985,38 @@ describe("FxUSDFacet.spec", async () => {
           },
           tokenIn
         );
+      });
+    });
+
+    context("fxSwapFxUSD", async () => {
+      const amountIn = ethers.parseEther("200");
+      beforeEach(async () => {
+        await wstETHMarket.fToken.connect(signer).approve(fxUSD.getAddress(), amountIn);
+        await fxUSD.connect(signer).wrap(wstETHMarket.baseToken.getAddress(), amountIn, signer.address);
+      });
+
+      it("should succeed when swap fxUSD to xToken", async () => {
+        await fxUSD.connect(signer).approve(gateway.getAddress(), amountIn);
+        const [dstOut, bounsOut] = await gateway
+          .connect(signer)
+          .fxSwapFxUSD.staticCall(wstETHMarket.market, amountIn, true, 0n);
+        console.log("swapped:", ethers.formatEther(dstOut), "bonus:", ethers.formatEther(bounsOut));
+        const balanceBefore = await wstETHMarket.xToken.balanceOf(signer.address);
+        await gateway.connect(signer).fxSwapFxUSD(wstETHMarket.market, amountIn, true, dstOut - dstOut / 100000n);
+        const balanceAfter = await wstETHMarket.xToken.balanceOf(signer.address);
+        expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
+      });
+
+      it("should succeed when swap xToken to fxUSD", async () => {
+        await wstETHMarket.xToken.connect(signer).approve(gateway.getAddress(), amountIn);
+        const [dstOut, bounsOut] = await gateway
+          .connect(signer)
+          .fxSwapFxUSD.staticCall(wstETHMarket.market, amountIn, false, 0n);
+        console.log("swapped:", ethers.formatEther(dstOut), "bonus:", ethers.formatEther(bounsOut));
+        const balanceBefore = await fxUSD.balanceOf(signer.address);
+        await gateway.connect(signer).fxSwapFxUSD(wstETHMarket.market, amountIn, false, dstOut - dstOut / 100000n);
+        const balanceAfter = await fxUSD.balanceOf(signer.address);
+        expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
       });
     });
 
@@ -1175,6 +1321,84 @@ describe("FxUSDFacet.spec", async () => {
           tokenIn
         );
       });
+
+      it("should succeed to mint from USDT", async () => {
+        const holder = await ethers.getSigner(USDT_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.USDT.address, holder);
+        const amountIn = ethers.parseUnits("10000", 6);
+        await checkFxMintFTokenV2(
+          sfrxETHMarket.market,
+          holder,
+          amountIn,
+          sfrxETHMarket.fToken,
+          {
+            src: TOKENS.USDT.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.USDT.address,
+              amountIn,
+              1048575n + (toBigInt(CONVERTER_ROUTRS.USDT.sfrxETH.length) << 20n),
+              CONVERTER_ROUTRS.USDT.sfrxETH,
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
+
+      it("should succeed to mint from FRAX", async () => {
+        const holder = await ethers.getSigner(FRAX_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.FRAX.address, holder);
+        const amountIn = ethers.parseUnits("10000", 18);
+        await checkFxMintFTokenV2(
+          sfrxETHMarket.market,
+          holder,
+          amountIn,
+          sfrxETHMarket.fToken,
+          {
+            src: TOKENS.FRAX.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.FRAX.address,
+              amountIn,
+              1048575n + (toBigInt(CONVERTER_ROUTRS.FRAX.sfrxETH.length) << 20n),
+              CONVERTER_ROUTRS.FRAX.sfrxETH,
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
+
+      it("should succeed to mint from crvUSD", async () => {
+        const holder = await ethers.getSigner(crvUSD_HOLDER);
+        await mockETHBalance(holder.address, ethers.parseEther("100"));
+        const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.crvUSD.address, holder);
+        const amountIn = ethers.parseUnits("10000", 18);
+        await checkFxMintFTokenV2(
+          sfrxETHMarket.market,
+          holder,
+          amountIn,
+          sfrxETHMarket.fToken,
+          {
+            src: TOKENS.crvUSD.address,
+            amount: amountIn,
+            target: await inputConverter.getAddress(),
+            data: inputConverter.interface.encodeFunctionData("convert", [
+              TOKENS.crvUSD.address,
+              amountIn,
+              1048575n + (toBigInt(CONVERTER_ROUTRS.crvUSD.sfrxETH.length) << 20n),
+              CONVERTER_ROUTRS.crvUSD.sfrxETH,
+            ]),
+            minOut: 0,
+          },
+          tokenIn
+        );
+      });
     });
 
     context("fxMintXTokenV2", async () => {
@@ -1331,6 +1555,36 @@ describe("FxUSDFacet.spec", async () => {
           ],
         });
       });
+
+      it("should succeed when redeem fToken as USDT", async () => {
+        const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.USDT.address, signer);
+        const amountIn = ethers.parseEther("200");
+        await checkFxRedeemFTokenV2(sfrxETHMarket.market, signer, sfrxETHMarket.fToken, amountIn, tokenOut, {
+          converter: await outputConverter.getAddress(),
+          minOut: 0n,
+          routes: CONVERTER_ROUTRS.sfrxETH.USDT,
+        });
+      });
+
+      it("should succeed when redeem fToken as FRAX", async () => {
+        const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.FRAX.address, signer);
+        const amountIn = ethers.parseEther("200");
+        await checkFxRedeemFTokenV2(sfrxETHMarket.market, signer, sfrxETHMarket.fToken, amountIn, tokenOut, {
+          converter: await outputConverter.getAddress(),
+          minOut: 0n,
+          routes: CONVERTER_ROUTRS.sfrxETH.FRAX,
+        });
+      });
+
+      it("should succeed when redeem fToken as crvUSD", async () => {
+        const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.crvUSD.address, signer);
+        const amountIn = ethers.parseEther("200");
+        await checkFxRedeemFTokenV2(sfrxETHMarket.market, signer, sfrxETHMarket.fToken, amountIn, tokenOut, {
+          converter: await outputConverter.getAddress(),
+          minOut: 0n,
+          routes: CONVERTER_ROUTRS.sfrxETH.crvUSD,
+        });
+      });
     });
 
     context("fxRedeemXTokenV2", async () => {
@@ -1412,6 +1666,38 @@ describe("FxUSDFacet.spec", async () => {
         const balanceBefore = await sfrxETHMarket.fToken.balanceOf(signer.address);
         await gateway.connect(signer).fxSwapV2(sfrxETHMarket.market, amountIn, false, dstOut - dstOut / 100000n);
         const balanceAfter = await sfrxETHMarket.fToken.balanceOf(signer.address);
+        expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
+      });
+    });
+
+    context("fxSwapFxUSD", async () => {
+      const amountIn = ethers.parseEther("200");
+      beforeEach(async () => {
+        await sfrxETHMarket.fToken.connect(signer).approve(fxUSD.getAddress(), amountIn);
+        await fxUSD.connect(signer).wrap(sfrxETHMarket.baseToken.getAddress(), amountIn, signer.address);
+      });
+
+      it("should succeed when swap fxUSD to xToken", async () => {
+        await fxUSD.connect(signer).approve(gateway.getAddress(), amountIn);
+        const [dstOut, bounsOut] = await gateway
+          .connect(signer)
+          .fxSwapFxUSD.staticCall(sfrxETHMarket.market, amountIn, true, 0n);
+        console.log("swapped:", ethers.formatEther(dstOut), "bonus:", ethers.formatEther(bounsOut));
+        const balanceBefore = await sfrxETHMarket.xToken.balanceOf(signer.address);
+        await gateway.connect(signer).fxSwapFxUSD(sfrxETHMarket.market, amountIn, true, dstOut - dstOut / 100000n);
+        const balanceAfter = await sfrxETHMarket.xToken.balanceOf(signer.address);
+        expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
+      });
+
+      it("should succeed when swap xToken to fxUSD", async () => {
+        await sfrxETHMarket.xToken.connect(signer).approve(gateway.getAddress(), amountIn);
+        const [dstOut, bounsOut] = await gateway
+          .connect(signer)
+          .fxSwapFxUSD.staticCall(sfrxETHMarket.market, amountIn, false, 0n);
+        console.log("swapped:", ethers.formatEther(dstOut), "bonus:", ethers.formatEther(bounsOut));
+        const balanceBefore = await fxUSD.balanceOf(signer.address);
+        await gateway.connect(signer).fxSwapFxUSD(sfrxETHMarket.market, amountIn, false, dstOut - dstOut / 100000n);
+        const balanceAfter = await fxUSD.balanceOf(signer.address);
         expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
       });
     });
