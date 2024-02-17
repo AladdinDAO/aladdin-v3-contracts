@@ -338,6 +338,7 @@ export async function initialize(
 
   const fxn = await ethers.getContractAt("GovernanceToken", deployment.FXN, deployer);
   const ve = await ethers.getContractAt("VotingEscrow", deployment.veFXN, deployer);
+  const veProxy = await ethers.getContractAt("VotingEscrowProxy", deployment.VotingEscrowProxy, deployer);
   const minter = await ethers.getContractAt("TokenMinter", deployment.TokenMinter, deployer);
   const controller = await ethers.getContractAt("GaugeController", deployment.GaugeController, deployer);
   const distributor = await ethers.getContractAt("FeeDistributor", deployment.FeeDistributor.wstETH, deployer);
@@ -455,6 +456,17 @@ export async function initialize(
       "FeeDistributor allow checkpoint ",
       "toggle_allow_checkpoint_token",
       [],
+      overrides
+    );
+  }
+
+  // setuo VotingEscrowProxy
+  if ((await veProxy.veBoost()) !== deployment.VotingEscrowBoost) {
+    await ownerContractCall(
+      veProxy,
+      "VotingEscrowProxy updateVeBoost",
+      "updateVeBoost",
+      [deployment.VotingEscrowBoost],
       overrides
     );
   }
