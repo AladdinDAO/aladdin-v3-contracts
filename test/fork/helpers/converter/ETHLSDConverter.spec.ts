@@ -50,7 +50,7 @@ describe("ETHLSDConverter.spec", async () => {
 
     it("should revert when unsupported protocol", async () => {
       for (let i = 0; i < 20; ++i) {
-        if (i <= 5) continue;
+        if (i <= 6) continue;
         const encoding = encodePoolHintV3(ZeroAddress, PoolTypeV3.ETHLSDV1, 2, 0, 0, Action.Add, { protocol: i });
         await expect(converter.getTokenPair(encoding)).to.revertedWith("unsupported protocol");
         await expect(converter.queryConvert(encoding, 0)).to.revertedWith("unsupported protocol");
@@ -215,6 +215,74 @@ describe("ETHLSDConverter.spec", async () => {
       holder: "0xDceED643320622Cad92b7A90465E24d7dF0a9519",
       amountIn: "1000",
       amountOut: "1030.937920810179653934",
+    },
+    "stETH ==(KelpDAO.Add)==> rsETH": {
+      tokenIn: TOKENS.stETH.address,
+      tokenOut: TOKENS.rsETH.address,
+      encoding: encodePoolHintV3(
+        "0x036676389e48133b63a802f8635ad39e752d375d",
+        PoolTypeV3.ETHLSDV1,
+        0,
+        0,
+        0,
+        Action.Add,
+        { protocol: 6 }
+      ),
+      fork: 19198780,
+      holder: "0x18709E89BD403F470088aBDAcEbE86CC60dda12e",
+      amountIn: "1000",
+      amountOut: "994.360001753563626579",
+    },
+    "ETHx ==(KelpDAO.Add)==> rsETH": {
+      tokenIn: TOKENS.ETHx.address,
+      tokenOut: TOKENS.rsETH.address,
+      encoding: encodePoolHintV3(
+        "0x036676389e48133b63a802f8635ad39e752d375d",
+        PoolTypeV3.ETHLSDV1,
+        0,
+        1,
+        1,
+        Action.Add,
+        { protocol: 6 }
+      ),
+      fork: 19198780,
+      holder: "0x1a0EBB8B15c61879a8e8DA7817Bb94374A7c4007",
+      amountIn: "1000",
+      amountOut: "1015.547617804861742693",
+    },
+    "sfrxETH ==(KelpDAO.Add)==> rsETH": {
+      tokenIn: TOKENS.sfrxETH.address,
+      tokenOut: TOKENS.rsETH.address,
+      encoding: encodePoolHintV3(
+        "0x036676389e48133b63a802f8635ad39e752d375d",
+        PoolTypeV3.ETHLSDV1,
+        0,
+        2,
+        2,
+        Action.Add,
+        { protocol: 6 }
+      ),
+      fork: 19198780,
+      holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
+      amountIn: "1000",
+      amountOut: "1068.740826908931029101",
+    },
+    "WETH ==(KelpDAO.Add)==> rsETH": {
+      tokenIn: TOKENS.WETH.address,
+      tokenOut: TOKENS.rsETH.address,
+      encoding: encodePoolHintV3(
+        "0x036676389e48133b63a802f8635ad39e752d375d",
+        PoolTypeV3.ETHLSDV1,
+        0,
+        3,
+        3,
+        Action.Add,
+        { protocol: 6 }
+      ),
+      fork: 19274260,
+      holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28",
+      amountIn: "1000",
+      amountOut: "993.448160295060662982",
     },
   };
 

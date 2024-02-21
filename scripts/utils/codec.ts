@@ -142,7 +142,7 @@ export function encodePoolHintV3(
     case PoolTypeV3.ETHLSDV1:
       assert(options && options.protocol !== undefined, "no protocol");
       encoding |= toBigInt(options!.protocol!) << 160n;
-      if (options!.protocol === 4) {
+      if (options!.protocol === 4 || options!.protocol === 6) {
         encoding |= toBigInt(indexIn) << 168n;
       }
       break;

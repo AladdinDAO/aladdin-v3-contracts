@@ -81,6 +81,7 @@ interface ITokenConverter {
   ///     3=pirex: mint pxETH from ETH
   ///     4=renzo: mint ezETH from ETH, stETH, wBETH
   ///     5=ether.fi: mint eETH from ETH, mint weETH from eETH, unwrap weETH to eETH
+  ///     6=kelpdao.xyz: mint rsETH from ETH, ETHx, stETH, sfrxETH, and etc.
   ///   customized = |   160 bits   |  8 bits  | ... |
   ///                | pool address | protocol | ... |
   /// + pool_type = 12: CurveStableSwapNG

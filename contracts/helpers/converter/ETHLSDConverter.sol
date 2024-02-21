@@ -9,6 +9,8 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { IEtherFiLiquidityPool } from "../../interfaces/etherfi/IEtherFiLiquidityPool.sol";
 import { IEtherFiWeETH } from "../../interfaces/etherfi/IEtherFiWeETH.sol";
 import { IFrxETHMinter } from "../../interfaces/frax-finance/IFrxETHMinter.sol";
+import { IKelpDAOLRTConfig } from "../../interfaces/kelp-dao/IKelpDAOLRTConfig.sol";
+import { IKelpDAOLRTDepositPool } from "../../interfaces/kelp-dao/IKelpDAOLRTDepositPool.sol";
 import { IPirexEthMinter } from "../../interfaces/pirex/IPirexEthMinter.sol";
 import { IRenzoOracle } from "../../interfaces/renzo-protocol/IRenzoOracle.sol";
 import { IRenzoRestakeManager } from "../../interfaces/renzo-protocol/IRenzoRestakeManager.sol";
@@ -62,6 +64,9 @@ contract ETHLSDConverter is ConverterBase {
   /// @dev The address of Dinero's pxETH token.
   address private constant pxETH = 0x04C154b66CB340F3Ae24111CC767e0184Ed00Cc6;
 
+  /// @dev The address of KelpDAO's rsETH token.
+  address private constant rsETH = 0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7;
+
   /***************
    * Constructor *
    ***************/
@@ -111,6 +116,12 @@ contract ETHLSDConverter is ConverterBase {
       } else {
         revert("unsupported pool");
       }
+    } else if (protocol == 6) {
+      address config = IKelpDAOLRTDepositPool(_pool).lrtConfig();
+      uint256 index = (_encoding >> 168) & 255;
+      _tokenIn = IKelpDAOLRTConfig(config).supportedAssetList(index);
+      if (_isETH(_tokenIn)) _tokenIn = WETH;
+      _tokenOut = rsETH;
     } else {
       revert("unsupported protocol");
     }
@@ -149,6 +160,11 @@ contract ETHLSDConverter is ConverterBase {
         // unwrap weETH to eETH
         _amountOut = IEtherFiWeETH(weETH).getEETHByWeETH(_amountIn);
       }
+    } else if (protocol == 6) {
+      if (_tokenIn == WETH) {
+        _tokenIn = ETH;
+      }
+      _amountOut = IKelpDAOLRTDepositPool(_pool).getRsETHAmountToMint(_tokenIn, _amountIn);
     }
   }
 
@@ -178,6 +194,8 @@ contract ETHLSDConverter is ConverterBase {
       _amountOut = _convertRenzoProtocol(_tokenIn, _amountIn, _recipient);
     } else if (protocol == 5) {
       _amountOut = _convertEtherFi(_tokenIn, _amountIn, _tokenOut, _recipient);
+    } else if (protocol == 6) {
+      _amountOut = _convertKelpDAO(_pool, _tokenIn, _amountIn, _recipient);
     }
   }
 
@@ -269,6 +287,27 @@ contract ETHLSDConverter is ConverterBase {
     _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _before;
     if (_recipient != address(this)) {
       IERC20(_tokenOut).safeTransfer(_recipient, _amountOut);
+    }
+  }
+
+  function _convertKelpDAO(
+    address _minter,
+    address _tokenIn,
+    uint256 _amountIn,
+    address _recipient
+  ) internal returns (uint256 _amountOut) {
+    string memory referralId = "d05723c7b17b4e4c722ca4fb95e64ffc54a70131c75e2b2548a456c51ed7cdaf";
+    uint256 _before = IERC20(rsETH).balanceOf(address(this));
+    if (_tokenIn == WETH) {
+      _unwrapIfNeeded(_amountIn);
+      IKelpDAOLRTDepositPool(_minter).depositETH{ value: _amountIn }(0, referralId);
+    } else {
+      _approve(_tokenIn, _minter, _amountIn);
+      IKelpDAOLRTDepositPool(_minter).depositAsset(_tokenIn, _amountIn, 0, referralId);
+    }
+    _amountOut = IERC20(rsETH).balanceOf(address(this)) - _before;
+    if (_recipient != address(this)) {
+      IERC20(rsETH).safeTransfer(_recipient, _amountOut);
     }
   }
 }
