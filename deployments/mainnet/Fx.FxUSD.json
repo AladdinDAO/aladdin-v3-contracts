@@ -1,0 +1,75 @@
+{
+  "EmptyContract": "0x387568e1ea4Ff4D003B8147739dB69D87325E206",
+  "FxUSDRebalancer": "0x78c3aF23A4DeA2F630C130d2E42717587584BF05",
+  "FxUSDShareableRebalancePool": "0x584B01aB834EE75b2a685DA500bCd0d7380FB8e0",
+  "FxUSD": {
+    "implementation": "0xb788998187a8536F38B69Ae657323ac8B70551Bb",
+    "proxy": "0x085780639CC2cACd35E474e71f4d000e2405d8f6"
+  },
+  "Markets": {
+    "wstETH": {
+      "Treasury": {
+        "proxy": "0xED803540037B0ae069c93420F89Cd653B6e3Df1f",
+        "implementation": "0x8B10fdf42F5ecADA5210c14F5C209c1eB1266F11"
+      },
+      "Market": {
+        "proxy": "0xAD9A0E7C08bc9F747dF97a3E7E7f620632CB6155",
+        "implementation": "0x384B11dAA4a6D2B86CC542cB68C473F554b82D35"
+      },
+      "FractionalToken": {
+        "proxy": "0xD6B8162e2fb9F3EFf09bb8598ca0C8958E33A23D",
+        "implementation": "0xd11396267546b8Ed258152f7e4F0CC1CA32abd81"
+      },
+      "LeveragedToken": {
+        "proxy": "0x5a097b014C547718e79030a077A91Ae37679EfF5",
+        "implementation": "0x6BC45630Ef423f75c3B7280Cf819661b2Dc3051A"
+      },
+      "FxInitialFund": "0xe6b953BB4c4B8eEd78b40B81e457ee4BDA461D55",
+      "RebalancePoolRegistry": "0x86e987a89Fd7345457d97b9e82906f346D61Df39",
+      "RebalancePoolSplitter": "0x78Ef19714c8b3c71997970C156f59605A99C3ff3",
+      "RebalancePoolGauge": "0xf422446F7730e50B9CAb4618343425d9927b35ED",
+      "RebalancePoolGaugeClaimer": "0xCa0563ab14a87ee64d6b097B0dfC46E9B56820aD",
+      "RebalancePool": {
+        "wstETH": {
+          "pool": "0x9aD382b028e03977D446635Ba6b8492040F829b7"
+        },
+        "xstETH": {
+          "pool": "0x0417CE2934899d7130229CDa39Db456Ff2332685",
+          "wrapper": "0x6AF422087aBF42819F764FF8DE95269036b9A8F9"
+        }
+      }
+    },
+    "sfrxETH": {
+      "Treasury": {
+        "proxy": "0xcfEEfF214b256063110d3236ea12Db49d2dF2359",
+        "implementation": "0xedeD972215008a0D033D3d641511d40d382317E8"
+      },
+      "Market": {
+        "proxy": "0x714B853b3bA73E439c652CfE79660F329E6ebB42",
+        "implementation": "0x94d2670b829ee371c6AaA78Dcdd1bd6e967CefBB"
+      },
+      "FractionalToken": {
+        "proxy": "0xa87F04c9743Fd1933F82bdDec9692e9D97673769",
+        "implementation": "0x2091353d10096349fAA685c4dC3d383837f54533"
+      },
+      "LeveragedToken": {
+        "proxy": "0x2bb0C32101456F5960d4e994Bac183Fe0dc6C82c",
+        "implementation": "0x1BA2de0e2F7Fd59535Bc5B29D742fD23b050df18"
+      },
+      "FxInitialFund": "0xFC3862c33b54E0BBA61d966Ff51973C20be4fC62",
+      "RebalancePoolRegistry": "0x345a345DAd48c3504113539ce83c0cB765627B54",
+      "RebalancePoolSplitter": "0xb26cA48fe4Ee94a4Fe8815F7E54E99124f997540",
+      "RebalancePoolGauge": "0xB3886b8c94C8635B786b1CA88942337669BB1e1E",
+      "RebalancePoolGaugeClaimer": "0x4ae3BE52c411CC08434d28645FD391497C69c815",
+      "RebalancePool": {
+        "sfrxETH": {
+          "pool": "0xb925F8CAA6BE0BFCd1A7383168D1c932D185A748"
+        },
+        "xfrxETH": {
+          "pool": "0x4a2ab45D27428901E826db4a52Dae00594b68022",
+          "wrapper": "0x823BaF74524b707d649A2a78E66DF106f5A131aB"
+        }
+      }
+    }
+  }
+}

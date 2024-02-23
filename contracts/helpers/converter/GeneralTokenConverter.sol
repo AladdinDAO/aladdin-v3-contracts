@@ -479,7 +479,7 @@ contract GeneralTokenConverter is Ownable, ConverterBase {
         _data
       );
       context = 0;
-      return zeroForOne ? uint256(-amount1) : uint256(amount0);
+      return zeroForOne ? uint256(-amount1) : uint256(-amount0);
     } else if (_poolType == 2) {
       // BalancerV1
       _approve(_tokenIn, _pool, _amountIn);

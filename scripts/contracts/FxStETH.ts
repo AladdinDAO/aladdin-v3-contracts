@@ -1,5 +1,5 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { MaxUint256, Overrides, ZeroAddress } from "ethers";
+import { MaxUint256, Overrides, ZeroAddress, id } from "ethers";
 import { network, ethers } from "hardhat";
 
 import { TOKENS } from "@/utils/tokens";
@@ -7,6 +7,7 @@ import { TOKENS } from "@/utils/tokens";
 import { DeploymentHelper, contractCall, ownerContractCall } from "./helpers";
 import * as FxGovernance from "./FxGovernance";
 import * as Multisig from "./Multisig";
+import * as FxOracle from "./FxOracle";
 import * as ProxyAdmin from "./ProxyAdmin";
 
 const ReservePoolBonusRatio = ethers.parseEther("0.05"); // 5%
@@ -48,20 +49,9 @@ export interface FxStETHDeployment {
     StETHAndxETHWrapper: string;
   };
   stETHGateway: string;
-  ChainlinkTwapOracle: {
-    ETH: string;
-    stETH: string;
-  };
-  FxETHTwapOracle: string;
   FxGateway: string;
-  ReservePool: string;
   RebalancePoolRegistry: string;
 }
-
-const ChainlinkPriceFeed: { [name: string]: string } = {
-  ETH: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-  stETH: "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8",
-};
 
 const LiquidatableCollateralRatio: bigint = 1305500000000000000n;
 
@@ -171,35 +161,12 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     governance.PlatformFeeSpliter,
   ]);
 
-  // deploy chainlink twap oracle
-  for (const symbol of ["ETH", "stETH"]) {
-    await deployment.contractDeploy(
-      "ChainlinkTwapOracle." + symbol,
-      "ChainlinkTwapOracleV3 for " + symbol,
-      "ChainlinkTwapOracleV3",
-      [ChainlinkPriceFeed[symbol], 1, 10800, symbol]
-    );
-  }
-
-  // deploy FxETHTwapOracle
-  await deployment.contractDeploy("FxETHTwapOracle", "FxETHTwapOracle", "FxETHTwapOracle", [
-    deployment.get("ChainlinkTwapOracle.stETH"),
-    deployment.get("ChainlinkTwapOracle.ETH"),
-    "0x21e27a5e5513d6e65c4f830167390997aa84843a", // Curve ETH/stETH pool
-  ]);
-
   // deploy FxGateway
   await deployment.contractDeploy("FxGateway", "FxGateway", "FxGateway", [
     deployment.get("Market.proxy"),
     TOKENS.stETH.address,
     deployment.get("FractionalToken.proxy"),
     deployment.get("LeveragedToken.proxy"),
-  ]);
-
-  // deploy ReservePool
-  await deployment.contractDeploy("ReservePool", "ReservePool", "ReservePool", [
-    deployment.get("Market.proxy"),
-    deployment.get("FractionalToken.proxy"),
   ]);
 
   // deploy RebalancePoolRegistry
@@ -268,12 +235,13 @@ async function upgrade(
 export async function initialize(deployer: HardhatEthersSigner, deployment: FxStETHDeployment, overrides?: Overrides) {
   const admin = await ProxyAdmin.deploy(deployer);
   const governance = await FxGovernance.deploy(deployer, overrides);
+  const oracle = await FxOracle.deploy(deployer, overrides);
 
   await upgrade(deployer, deployment, admin.Fx, overrides);
 
   const treasury = await ethers.getContractAt("stETHTreasury", deployment.stETHTreasury.proxy, deployer);
   const market = await ethers.getContractAt("Market", deployment.Market.proxy, deployer);
-  const reservePool = await ethers.getContractAt("ReservePool", deployment.ReservePool, deployer);
+  const reservePool = await ethers.getContractAt("ReservePoolV2", governance.ReservePool, deployer);
   const gateway = await ethers.getContractAt("FxGateway", deployment.FxGateway, deployer);
   const platformFeeSpliter = await ethers.getContractAt("PlatformFeeSpliter", governance.PlatformFeeSpliter, deployer);
   const rebalancePoolA = await ethers.getContractAt("RebalancePool", deployment.RebalancePool.APool, deployer);
@@ -408,7 +376,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
-  await FxGovernance.addGauge(controller, "ShareableRebalancePool (fETH)", deployment.ShareableRebalancePool.gauge, 3);
+  await FxGovernance.addGauge(controller, "ShareableRebalancePool (fETH)", deployment.ShareableRebalancePool.gauge, 1);
 
   const LIQUIDATOR_ROLE = await ShareableRebalancePoolB.LIQUIDATOR_ROLE();
   // Setup ShareableRebalancePool APool
@@ -673,14 +641,23 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       overrides
     );
   }
+  if (!(await reservePool.hasRole(id("MARKET_ROLE"), deployment.Market.proxy))) {
+    await ownerContractCall(
+      reservePool,
+      "reservePool add stETH Market",
+      "grantRole",
+      [id("MARKET_ROLE"), deployment.Market.proxy],
+      overrides
+    );
+  }
 
   // Setup stETHTreasury
-  if ((await treasury.priceOracle()) !== deployment.FxETHTwapOracle) {
+  if ((await treasury.priceOracle()) !== oracle.FxStETHTwapOracle) {
     await ownerContractCall(
       treasury,
       "stETHTreasury update price oracle",
       "updatePriceOracle",
-      [deployment.FxETHTwapOracle],
+      [oracle.FxStETHTwapOracle],
       overrides
     );
   }
@@ -707,18 +684,18 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   }
 
   // Setup Market
-  if ((await market.reservePool()) !== deployment.ReservePool) {
+  if ((await market.reservePool()) !== governance.ReservePool) {
     await ownerContractCall(
-      treasury,
+      market,
       "Market update reserve pool",
       "updateReservePool",
-      [deployment.ReservePool],
+      [governance.ReservePool],
       overrides
     );
   }
   if ((await market.registry()) !== deployment.RebalancePoolRegistry) {
     await ownerContractCall(
-      treasury,
+      market,
       "Market update rebalance pool registry",
       "updateRebalancePoolRegistry",
       [deployment.RebalancePoolRegistry],
@@ -734,25 +711,6 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
   }
 
   // Setup PlatformFeeSpliter
-  if ((await platformFeeSpliter.treasury()) !== deployment.ReservePool) {
-    await ownerContractCall(
-      platformFeeSpliter,
-      "PlatformFeeSpliter set ReservePool as Treasury",
-      "updateTreasury",
-      [deployment.ReservePool],
-      overrides
-    );
-  }
-  if ((await platformFeeSpliter.staker()) !== "0x11E91BB6d1334585AA37D8F4fde3932C7960B938") {
-    await ownerContractCall(
-      platformFeeSpliter,
-      "PlatformFeeSpliter set keeper as staker",
-      "updateStaker",
-      ["0x11E91BB6d1334585AA37D8F4fde3932C7960B938"],
-      overrides
-    );
-  }
-
   const length = await platformFeeSpliter.getRewardCount();
   let foundIndex = -1;
   for (let i = 0; i < length; i++) {
@@ -767,7 +725,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxSt
       "addRewardToken",
       [
         TOKENS.stETH.address,
-        governance.FeeDistributor.stETH,
+        governance.Burner.PlatformFeeBurner,
         0n,
         ethers.parseUnits("0.25", 9),
         ethers.parseUnits("0.75", 9),

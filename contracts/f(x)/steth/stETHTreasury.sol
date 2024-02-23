@@ -8,7 +8,7 @@ import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/
 import { IFxRebalancePoolSplitter } from "../../interfaces/f(x)/IFxRebalancePoolSplitter.sol";
 import { ILidoWstETH } from "../../interfaces/ILidoWstETH.sol";
 
-import { HarvestableTreasury } from "../HarvestableTreasury.sol";
+import { HarvestableTreasury } from "../v1/HarvestableTreasury.sol";
 
 // solhint-disable const-name-snakecase
 // solhint-disable contract-name-camelcase

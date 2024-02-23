@@ -14,6 +14,7 @@ import {
 import { ethers } from "hardhat";
 
 import { PayableOverrides } from "@/types/common";
+import { AccessControl } from "@/types/index";
 import { selectDeployments } from "@/utils/deploys";
 import { ProxyAdmin } from "../@types";
 
@@ -77,11 +78,13 @@ export async function contractCall(
   console.log("  raw:", contract.interface.encodeFunctionData(method, args));
   const estimated = await contract.getFunction(method).estimateGas(...args);
   if (overrides) {
-    overrides.gasLimit = (estimated * 12n) / 10n;
+    overrides.gasLimit = (estimated * 15n) / 10n;
+  } else {
+    overrides = {
+      gasLimit: (estimated * 15n) / 10n,
+    };
   }
-  const tx = overrides
-    ? await contract.getFunction(method)(...args, overrides)
-    : await contract.getFunction(method)(...args);
+  const tx = await contract.getFunction(method)(...args, overrides);
   console.log(`  EstimatedGas[${estimated.toString()}] TransactionHash[${tx.hash}]`);
   const receipt: TransactionReceipt = await tx.wait();
   console.log("  ✅ Done, gas used:", receipt.gasUsed.toString());
@@ -221,5 +224,47 @@ export class DeploymentHelper {
 
   public toObject(): object {
     return this.storage.toObject();
+  }
+}
+
+export class ContractCallHelper {
+  public readonly deployer: HardhatEthersSigner;
+  public readonly overrides?: PayableOverrides;
+
+  constructor(deployer: HardhatEthersSigner, overrides?: PayableOverrides) {
+    this.deployer = deployer;
+    this.overrides = overrides;
+  }
+
+  public async getContract(name: string, address: string): Promise<BaseContract> {
+    return ethers.getContractAt(name, address, this.deployer);
+  }
+
+  public async call(
+    contract: BaseContract,
+    desc: string,
+    method: string,
+    args: Array<any>
+  ): Promise<TransactionReceipt> {
+    return contractCall(contract, desc, method, args, this.overrides);
+  }
+
+  public async ownerCall(
+    contract: BaseContract,
+    desc: string,
+    method: string,
+    args: Array<any>
+  ): Promise<TransactionReceipt | undefined> {
+    return ownerContractCall(contract, desc, method, args, this.overrides);
+  }
+
+  public async grantRole(contract: string, desc: string, role: string, account: string) {
+    const control = (await this.getContract(
+      "@openzeppelin/contracts/access/AccessControl.sol:AccessControl",
+      contract
+    )) as AccessControl;
+    if (!(await control.hasRole(role, account))) {
+      await this.ownerCall(control, `${desc} grant to ${account}`, "grantRole", [role, account]);
+    }
   }
 }

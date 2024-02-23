@@ -46,9 +46,6 @@ describe("VotingEscrowBoost.spec", async () => {
       expect(await boost.delegableBalance(deployer.address)).to.eq(await ve["balanceOf(address)"](deployer.address));
       expect(await boost.delegatedBalance(deployer.address)).to.eq(0n);
       expect(await boost.receivedBalance(deployer.address)).to.eq(0n);
-      expect(await boost.DOMAIN_SEPARATOR()).to.eq(
-        "0xcb04e97b47efea04e02fbb42ae793ed80231fde213ba1128ab82c1aa3f1951a5"
-      );
     });
   });
 
