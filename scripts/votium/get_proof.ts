@@ -125,6 +125,7 @@ const REWARDS: { [round: number]: string[] } = {
   61: ["ALCX", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "PRISMA", "SPELL", "WETH", "sdFXS", "xETH"],
   62: ["ALCX", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "OGV", "PRISMA", "PYUSD", "SPELL", "sdFXS", "xETH"],
   63: ["ALCX", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "OGV", "PRISMA", "SPELL", "USDC", "WETH", "mkUSD", "sdFXS"],
+  64: ["ALCX", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "OGV", "PRISMA", "SPELL", "WETH", "sdFXS", "xETH"],
 };
 
 async function main(round: number) {

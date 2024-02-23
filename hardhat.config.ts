@@ -75,7 +75,7 @@ const config: HardhatUserConfig = {
       accounts: [process.env.PRIVATE_KEY_HERMEZ!],
     },
     fork_phalcon: {
-      url: `https://rpc.phalcon.xyz/${process.env.PHALCON_RPC_ID || ""}`,
+      url: `https://rpc.phalcon.blocksec.com/${process.env.PHALCON_RPC_ID || ""}`,
       accounts,
     },
     fork_mainnet_10540: {

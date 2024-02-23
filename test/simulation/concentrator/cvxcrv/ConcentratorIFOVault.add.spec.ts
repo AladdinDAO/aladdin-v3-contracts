@@ -12,7 +12,6 @@ const POOL_FORK_CONFIG: {
   [name: string]: {
     height: number;
     pid: number;
-    deployer: string;
     holder: string;
     amount: string;
     harvest: boolean;
@@ -21,7 +20,6 @@ const POOL_FORK_CONFIG: {
   silofrax: {
     height: 15193360,
     pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xabc508dda7517f195e416d77c822a4861961947a",
     amount: "1000",
     harvest: true,
@@ -29,7 +27,6 @@ const POOL_FORK_CONFIG: {
   tusd: {
     height: 15193360,
     pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xd34f3e85bb7c8020c7959b80a4b87a369d639dc0",
     amount: "1000",
     harvest: false,
@@ -37,7 +34,6 @@ const POOL_FORK_CONFIG: {
   susdfraxbp: {
     height: 15193360,
     pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x99F4176EE457afedFfCB1839c7aB7A030a5e4A92",
     amount: "1000",
     harvest: false,
@@ -45,7 +41,6 @@ const POOL_FORK_CONFIG: {
   busdfraxbp: {
     height: 15193360,
     pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
     amount: "1000",
     harvest: false,
@@ -53,7 +48,6 @@ const POOL_FORK_CONFIG: {
   alusdfraxbp: {
     height: 15193360,
     pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x5180db0237291a6449dda9ed33ad90a38787621c",
     amount: "1000",
     harvest: false,
@@ -61,7 +55,6 @@ const POOL_FORK_CONFIG: {
   tusdfraxbp: {
     height: 15193360,
     pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x5180db0237291a6449dda9ed33ad90a38787621c",
     amount: "1000",
     harvest: false,
@@ -69,7 +62,6 @@ const POOL_FORK_CONFIG: {
   lusdfraxbp: {
     height: 15190189,
     pid: 24,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xb1748c79709f4ba2dd82834b8c82d4a505003f27",
     amount: "1000",
     harvest: false,
@@ -77,7 +69,6 @@ const POOL_FORK_CONFIG: {
   peth: {
     height: 15876065,
     pid: 31,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x51c2cef9efa48e08557a361b52db34061c025a1b",
     amount: "10",
     harvest: true,
@@ -85,7 +76,6 @@ const POOL_FORK_CONFIG: {
   cbeth: {
     height: 15876065,
     pid: 31,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x7a16ff8270133f063aab6c9977183d9e72835428",
     amount: "10",
     harvest: false,
@@ -93,7 +83,6 @@ const POOL_FORK_CONFIG: {
   frxeth: {
     height: 15876065,
     pid: 31,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xda035641151d42aa4a25ce51de8f6e53eae0ded7",
     amount: "10",
     harvest: false,
@@ -101,7 +90,6 @@ const POOL_FORK_CONFIG: {
   blusd: {
     height: 16245350,
     pid: 34,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xa5cd3bc3f3d34b3a716111643e19db88bfa649c7",
     amount: "10000",
     harvest: true,
@@ -109,7 +97,6 @@ const POOL_FORK_CONFIG: {
   sbtc2: {
     height: 16248720,
     pid: 34,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x7a16ff8270133f063aab6c9977183d9e72835428",
     amount: "1",
     harvest: false,
@@ -117,7 +104,6 @@ const POOL_FORK_CONFIG: {
   multibtc: {
     height: 16340740,
     pid: 36,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x6ae7bf291028ccf52991bd020d2dc121b40bce2a",
     amount: "0.00001",
     harvest: true,
@@ -125,7 +111,6 @@ const POOL_FORK_CONFIG: {
   clevcvx: {
     height: 16434600,
     pid: 37,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x1aceff73c5c3afc630c1fc8b484527a23f4eb134",
     amount: "10",
     harvest: false,
@@ -133,7 +118,6 @@ const POOL_FORK_CONFIG: {
   clevusd: {
     height: 16434600,
     pid: 37,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xb957dccaa1ccfb1eb78b495b499801d591d8a403",
     amount: "10",
     harvest: false,
@@ -141,7 +125,6 @@ const POOL_FORK_CONFIG: {
   "ETH/CLEV": {
     height: 16524480,
     pid: 39,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x0a27dab612e9f254417ea61598de46e88f3d1730",
     amount: "1",
     harvest: true,
@@ -149,7 +132,6 @@ const POOL_FORK_CONFIG: {
   "ETH/rETH": {
     height: 16701141,
     pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x17fd68F4F3035A1b51E6e662238784001f76A8F9",
     amount: "1",
     harvest: false,
@@ -157,7 +139,6 @@ const POOL_FORK_CONFIG: {
   "GEAR/ETH": {
     height: 16701141,
     pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x7338afb07db145220849B04A45243956f20B14d9",
     amount: "1000",
     harvest: true,
@@ -165,7 +146,6 @@ const POOL_FORK_CONFIG: {
   "WETH/stETH": {
     height: 16701141,
     pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xD1caD198fa57088C01f2B6a8c64273ef6D1eC085",
     amount: "10",
     harvest: false,
@@ -173,7 +153,6 @@ const POOL_FORK_CONFIG: {
   "STG/USDC": {
     height: 16701141,
     pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xA489e9daf10cEd86811d59e4D00ce1b0DEC95f5e",
     amount: "1000",
     harvest: true,
@@ -181,7 +160,6 @@ const POOL_FORK_CONFIG: {
   "ETH/LDO": {
     height: 16701141,
     pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xdB5F9b2869Cec66382790cFE883fbBFa8a1f6B27",
     amount: "10",
     harvest: true,
@@ -189,7 +167,6 @@ const POOL_FORK_CONFIG: {
   "ETH/MATIC": {
     height: 16701141,
     pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x3732FE38e7497Da670bd0633D565a5d80D3565e2",
     amount: "1000",
     harvest: true,
@@ -197,7 +174,6 @@ const POOL_FORK_CONFIG: {
   "ETH/CNC": {
     height: 16701141,
     pid: 40,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x4e122c62742eB4811659f6d85fdA51cC63764940",
     amount: "10",
     harvest: true,
@@ -205,7 +181,6 @@ const POOL_FORK_CONFIG: {
   "tBTC/crvWSBTC": {
     height: 16776780,
     pid: 47,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x9bC8d30d971C9e74298112803036C05db07D73e3",
     amount: "0.01",
     harvest: true,
@@ -213,7 +188,6 @@ const POOL_FORK_CONFIG: {
   "ETH/CTR": {
     height: 16776780,
     pid: 47,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xC62eECc24cb6E84dA2409e945Ddcf7386118c57a",
     amount: "100",
     harvest: false,
@@ -221,7 +195,6 @@ const POOL_FORK_CONFIG: {
   "USDP/3CRV": {
     height: 16889700,
     pid: 49,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x4e7c361be194Beb26C3666225d4A7301b917Ea87",
     amount: "1000",
     harvest: false,
@@ -229,7 +202,6 @@ const POOL_FORK_CONFIG: {
   "CRV/cvxCRV": {
     height: 16889700,
     pid: 49,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xecdED8b1c603cF21299835f1DFBE37f10F2a29Af",
     amount: "10000",
     harvest: false,
@@ -237,7 +209,6 @@ const POOL_FORK_CONFIG: {
   "eCFX/ETH": {
     height: 17033000,
     pid: 51,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x7D7a9bFC87256AfaE4186FB8fBf5c2588D12118d",
     amount: "10000",
     harvest: false,
@@ -245,7 +216,6 @@ const POOL_FORK_CONFIG: {
   "rETH/frxETH": {
     height: 17108720,
     pid: 52,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
     amount: "10",
     harvest: true,
@@ -253,7 +223,6 @@ const POOL_FORK_CONFIG: {
   "stETH/frxETH": {
     height: 17108720,
     pid: 52,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
     amount: "20",
     harvest: true,
@@ -261,7 +230,6 @@ const POOL_FORK_CONFIG: {
   "cbETH/frxETH": {
     height: 17108720,
     pid: 52,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
     amount: "15",
     harvest: true,
@@ -269,7 +237,6 @@ const POOL_FORK_CONFIG: {
   "sETH/frxETH": {
     height: 17108720,
     pid: 52,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xB1748C79709f4Ba2Dd82834B8c82D4a505003f27",
     amount: "15",
     harvest: true,
@@ -277,7 +244,6 @@ const POOL_FORK_CONFIG: {
   "FRAX/USDP": {
     height: 17108720,
     pid: 52,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x39E761E4F039Ed77286F393c948AD6716170F897",
     amount: "10000",
     harvest: true,
@@ -285,7 +251,6 @@ const POOL_FORK_CONFIG: {
   "UZD/FRAXBP": {
     height: 17252690,
     pid: 57,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xF9605D8c4c987d7Cb32D0d11FbCb8EeeB1B22D5d",
     amount: "100",
     harvest: true,
@@ -293,7 +258,6 @@ const POOL_FORK_CONFIG: {
   "ETH/wBETH": {
     height: 17252690,
     pid: 57,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xE6DA683076b7eD6ce7eC972f21Eb8F91e9137a17",
     amount: "0.1",
     harvest: false,
@@ -301,7 +265,6 @@ const POOL_FORK_CONFIG: {
   "USDT/crvUSD": {
     height: 17377350,
     pid: 59,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
     amount: "10000",
     harvest: false,
@@ -309,7 +272,6 @@ const POOL_FORK_CONFIG: {
   "USDP/crvUSD": {
     height: 17377350,
     pid: 59,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
     amount: "10000",
     harvest: false,
@@ -317,7 +279,6 @@ const POOL_FORK_CONFIG: {
   "TUSD/crvUSD": {
     height: 17377350,
     pid: 59,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
     amount: "10000",
     harvest: false,
@@ -325,7 +286,6 @@ const POOL_FORK_CONFIG: {
   "USDC/crvUSD": {
     height: 17377350,
     pid: 59,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428",
     amount: "10000",
     harvest: false,
@@ -333,7 +293,6 @@ const POOL_FORK_CONFIG: {
   "USDC/WBTC/ETH": {
     height: 17447590,
     pid: 63,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
     amount: "0.01",
     harvest: true,
@@ -341,7 +300,6 @@ const POOL_FORK_CONFIG: {
   "USDT/WBTC/ETH": {
     height: 17447590,
     pid: 63,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xeCb456EA5365865EbAb8a2661B0c503410e9B347",
     amount: "0.01",
     harvest: true,
@@ -349,7 +307,6 @@ const POOL_FORK_CONFIG: {
   "ETH/stETH-ng": {
     height: 17497260,
     pid: 65,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x0FCbf9A4398C15d6609580879681Aa5382FF8542",
     amount: "10",
     harvest: true,
@@ -357,7 +314,6 @@ const POOL_FORK_CONFIG: {
   "FXS/cvxFXS": {
     height: 17985810,
     pid: 66,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xCB16F82E5949975f9Cf229C91c3A6D43e3B32a9E",
     amount: "1000",
     harvest: true,
@@ -365,7 +321,6 @@ const POOL_FORK_CONFIG: {
   "WETH/frxETH": {
     height: 18925320,
     pid: 67,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x0c5FA111C6B2D12Aa372E963987e67A60fdE8D55",
     amount: "100",
     harvest: true,
@@ -373,7 +328,6 @@ const POOL_FORK_CONFIG: {
   "FRAX/PYUSD": {
     height: 18966650,
     pid: 68,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0x5180db0237291A6449DdA9ed33aD90a38787621c",
     amount: "10",
     harvest: false,
@@ -381,10 +335,30 @@ const POOL_FORK_CONFIG: {
   "FRAX/sDAI": {
     height: 18966650,
     pid: 68,
-    deployer: "0xDA9dfA130Df4dE4673b89022EE50ff26f6EA73Cf",
     holder: "0xC6EF452b0de9E95Ccb153c2A5A7a90154aab3419",
     amount: "100",
     harvest: true,
+  },
+  "weETH/rswETH": {
+    height: 19211234,
+    pid: 70,
+    holder: "0xC3f89F829CA23E85c59e9eC44a0c79e483d58be2",
+    amount: "100",
+    harvest: false,
+  },
+  "eUSD/crvUSD": {
+    height: 19186812,
+    pid: 70,
+    holder: "0xC6625129C9df3314a4dd604845488f4bA62F9dB8",
+    amount: "100",
+    harvest: false,
+  },
+  "eUSD/mkUSD": {
+    height: 19186808,
+    pid: 70,
+    holder: "0xC6625129C9df3314a4dd604845488f4bA62F9dB8",
+    amount: "100",
+    harvest: false,
   },
 };
 
@@ -449,17 +423,18 @@ describe("ConcentratorIFOVault.add.spec", async () => {
     context(`ifo for pool: ${name}`, async () => {
       beforeEach(async () => {
         request_fork(fork.height, [
-          fork.deployer,
+          ZeroAddress,
           fork.holder,
           DEPLOYED_CONTRACTS.CommunityMultisig,
           DEPLOYED_CONTRACTS.ManagementMultisig,
           DEPLOYED_CONTRACTS.Concentrator.Treasury,
         ]);
-        deployer = await ethers.getSigner(fork.deployer);
+        deployer = await ethers.getSigner(ZeroAddress);
         signer = await ethers.getSigner(fork.holder);
         const manager = await ethers.getSigner(DEPLOYED_CONTRACTS.ManagementMultisig);
         const owner = await ethers.getSigner(DEPLOYED_CONTRACTS.Concentrator.Treasury);
 
+        await mockETHBalance(deployer.address, ethers.parseEther("10"));
         await mockETHBalance(signer.address, ethers.parseEther("10"));
         await mockETHBalance(manager.address, ethers.parseEther("10"));
         await mockETHBalance(owner.address, ethers.parseEther("10"));
@@ -574,6 +549,13 @@ describe("ConcentratorIFOVault.add.spec", async () => {
             expect(zapSharesOut).to.gt(0n);
             expect(zapSharesOut).to.closeTo(sharesOut, (sharesOut * 2n) / 100n); // 2% error
           });
+        });
+
+        it("should succeed when deposit LP", async () => {
+          await lpToken.connect(signer).approve(vault.getAddress(), amountLP);
+          await vault.connect(signer)["deposit(uint256,uint256)"](fork.pid, amountLP);
+          const sharesOut = await vault.getUserShare(fork.pid, signer.address);
+          expect(sharesOut).to.eq(amountLP);
         });
       });
 
