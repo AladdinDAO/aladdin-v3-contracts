@@ -5,7 +5,7 @@ import { ensureDeployer } from "@/contracts/helpers";
 import * as ERC2535 from "@/contracts/ERC2535";
 import * as Gateway from "@/contracts/Gateway";
 
-const maxFeePerGas = ethers.parseUnits("60", "gwei");
+const maxFeePerGas = ethers.parseUnits("36", "gwei");
 const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 async function main() {

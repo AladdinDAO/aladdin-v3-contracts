@@ -78,11 +78,13 @@ export async function contractCall(
   console.log("  raw:", contract.interface.encodeFunctionData(method, args));
   const estimated = await contract.getFunction(method).estimateGas(...args);
   if (overrides) {
-    overrides.gasLimit = (estimated * 12n) / 10n;
+    overrides.gasLimit = (estimated * 15n) / 10n;
+  } else {
+    overrides = {
+      gasLimit: (estimated * 15n) / 10n,
+    };
   }
-  const tx = overrides
-    ? await contract.getFunction(method)(...args, overrides)
-    : await contract.getFunction(method)(...args);
+  const tx = await contract.getFunction(method)(...args, overrides);
   console.log(`  EstimatedGas[${estimated.toString()}] TransactionHash[${tx.hash}]`);
   const receipt: TransactionReceipt = await tx.wait();
   console.log("  ✅ Done, gas used:", receipt.gasUsed.toString());

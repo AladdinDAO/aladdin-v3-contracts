@@ -32,6 +32,33 @@
   "FundraiseGauge": {
     "implementation": {
       "FundraisingGaugeFx": "0x28ED637C5e3371c2678C2d346dF04Fb634ED832d"
+    },
+    "Gauge": {
+      "FxTreasury": "0x558e7Dd3A72aaA8D54002cabc4565ad9dB58A6dF"
     }
-  }
+  },
+  "VotingEscrowBoost": "0x8Cc02c0D9592976635E98e6446ef4976567E7A81",
+  "VotingEscrowProxy": "0x1145f304d74f3295Fa38b82e7BB8704B0E187FA1",
+  "GaugeControllerOwner": "0x1Ca7b82c4265835C7841cf29407217D820a7DADb",
+  "LiquidityGauge": {
+    "implementation": {
+      "SharedLiquidityGauge": "0xF62F458D2F6dd2AD074E715655064d7632e136D6",
+      "ConvexCurveManager": "0xbeC45A9506d191F9705C77dccd291c2609d18e4c"
+    },
+    "ConvexDualFarm": {
+      "ETH+FXN": {
+        "gauge": "0xA5250C540914E012E22e623275E290c4dC993D11",
+        "manager": "0x9B0df1A542d982DC4AdC413acf1db0D10e5cED4B"
+      },
+      "FXN+cvxFXN": {
+        "gauge": "0xfEFafB9446d84A9e58a3A2f2DDDd7219E8c94FbB",
+        "manager": "0x607Fb364d8D7fBB4630d3020eC582e4D75d1949a"
+      },
+      "FXN+sdFXN": {
+        "gauge": "0x5b1D12365BEc01b8b672eE45912d1bbc86305dba",
+        "manager": "0x06688aC314dA737a1E9841B374F393A7982fA6D1"
+      }
+    }
+  },
+  "ReservePool": "0xb592E01dd77084b36430ffCB9c9D2F76fDE32631"
 }

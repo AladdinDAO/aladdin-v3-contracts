@@ -33,7 +33,8 @@ const MarketConfig: {
       LeveragedRdeeemFeeRatio: { default: bigint; delta: bigint };
       StabilityRatio: bigint;
     };
-    MintCapacity: bigint;
+    BaseTokenCapacity: bigint;
+    FxUSDMintCapacity: bigint;
     ReservePoolBonusRatio: bigint;
   };
 } = {
@@ -51,7 +52,8 @@ const MarketConfig: {
       LeveragedRdeeemFeeRatio: { default: ethers.parseEther("0.01"), delta: ethers.parseEther("0.07") }, // 1% and 7%
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
-    MintCapacity: ethers.parseEther("1000000"),
+    BaseTokenCapacity: ethers.parseEther("10000"),
+    FxUSDMintCapacity: ethers.parseEther("10000000"),
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
   sfrxETH: {
@@ -68,7 +70,8 @@ const MarketConfig: {
       LeveragedRdeeemFeeRatio: { default: ethers.parseEther("0.01"), delta: ethers.parseEther("0.07") }, // 1% and 7%
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
-    MintCapacity: ethers.parseEther("1000000"),
+    BaseTokenCapacity: ethers.parseEther("5000"),
+    FxUSDMintCapacity: ethers.parseEther("10000000"),
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
 };
@@ -391,7 +394,7 @@ async function initializeMarket(
       marketDeployment.RebalancePoolSplitter,
       baseSymbol === "wstETH" ? oracle.WstETHRateProvider : oracle.ERC4626RateProvider.sfrxETH,
       baseSymbol === "wstETH" ? oracle.FxStETHTwapOracle : oracle.FxFrxETHTwapOracle,
-      ethers.parseEther("10000"),
+      marketConfig.BaseTokenCapacity,
       60,
     ]);
   }
@@ -463,6 +466,11 @@ async function initializeMarket(
       [id("FX_MARKET_ROLE"), marketDeployment.Market.proxy],
       overrides
     );
+  }
+  if ((await treasury.baseTokenCap()) !== marketConfig.BaseTokenCapacity) {
+    await ownerContractCall(treasury, `Treasury for ${baseSymbol} updateBaseTokenCap`, "updateBaseTokenCap", [
+      marketConfig.BaseTokenCapacity,
+    ]);
   }
 
   // setup Market
@@ -779,13 +787,25 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxUS
   if (!markets.includes(getAddress(TOKENS.wstETH.address))) {
     await ownerContractCall(fxUSD, "add wstETH to fxUSD", "addMarket", [
       deployment.Markets.wstETH.Market.proxy,
-      MarketConfig.wstETH.MintCapacity,
+      MarketConfig.wstETH.FxUSDMintCapacity,
     ]);
   }
   if (!markets.includes(getAddress(TOKENS.sfrxETH.address))) {
     await ownerContractCall(fxUSD, "add sfrxETH to fxUSD", "addMarket", [
       deployment.Markets.sfrxETH.Market.proxy,
-      MarketConfig.sfrxETH.MintCapacity,
+      MarketConfig.sfrxETH.FxUSDMintCapacity,
+    ]);
+  }
+  if ((await fxUSD.markets(TOKENS.wstETH.address)).mintCap !== MarketConfig.wstETH.FxUSDMintCapacity) {
+    await ownerContractCall(fxUSD, "fxUSD updateMintCap for wstETH", "updateMintCap", [
+      TOKENS.wstETH.address,
+      MarketConfig.wstETH.FxUSDMintCapacity,
+    ]);
+  }
+  if ((await fxUSD.markets(TOKENS.sfrxETH.address)).mintCap !== MarketConfig.sfrxETH.FxUSDMintCapacity) {
+    await ownerContractCall(fxUSD, "fxUSD updateMintCap for sfrxETH", "updateMintCap", [
+      TOKENS.sfrxETH.address,
+      MarketConfig.sfrxETH.FxUSDMintCapacity,
     ]);
   }
   const pools = await fxUSD.getRebalancePools();
