@@ -103,6 +103,7 @@ describe("UniswapV3Converter.spec", async () => {
 
         const GeneralTokenConverter = await ethers.getContractFactory("GeneralTokenConverter", deployer);
         converter = await GeneralTokenConverter.deploy(await registry.getAddress());
+        await converter.updateSupportedPoolTypes(1021);
 
         // register UniswapV3Converter
         const UniswapV3Converter = await ethers.getContractFactory("UniswapV3Converter", deployer);
