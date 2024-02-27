@@ -25,7 +25,7 @@ abstract contract ConverterBase is ITokenConverter {
   address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   /// @dev The address of referral contract.
-  address internal constant REFERRAL = 0x28c921adAC4c1072658eB01a28DA06b5F651eF62;
+  address internal constant REFERRAL = 0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF;
 
   /***************
    * Constructor *
