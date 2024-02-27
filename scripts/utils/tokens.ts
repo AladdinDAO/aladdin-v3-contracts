@@ -18,6 +18,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   DAI: { decimals: 18, address: "0x6B175474E89094C44Da98b954EedeAC495271d0F" },
   DCHF: { decimals: 6, address: "0x045da4bFe02B320f4403674B3b7d121737727A36" },
   DOLA: { decimals: 18, address: "0x865377367054516e17014CcdED1e7d814EDC9ce4" },
+  ETH: { decimals: 18, address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" },
   "ETH+": { decimals: 18, address: "0xE72B141DF173b999AE7c1aDcbF60Cc9833Ce56a8" },
   ETHx: { decimals: 18, address: "0xA35b1B31Ce002FBF2058D22F30f95D405200A15b" },
   EUROC: { decimals: 6, address: "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c" },

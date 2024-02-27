@@ -112,8 +112,11 @@ describe("MarketV2.eETH.spec", async () => {
     await converterRegistry.register(11, await ethLSDConverter.getAddress());
     const CurveNGConverter = await ethers.getContractFactory("CurveNGConverter", deployer);
     const curveNGConverter = await CurveNGConverter.deploy(await converterRegistry.getAddress());
+    const WETHConverter = await ethers.getContractFactory("WETHConverter", deployer);
+    const wethConverter = await WETHConverter.deploy(await converterRegistry.getAddress());
     await converterRegistry.register(12, await curveNGConverter.getAddress());
     await converterRegistry.register(13, await curveNGConverter.getAddress());
+    await converterRegistry.register(14, await wethConverter.getAddress());
     await manage.approveTarget(inputConverter.getAddress(), inputConverter.getAddress());
     await manage.approveTarget(outputConverter.getAddress(), outputConverter.getAddress());
 
@@ -476,6 +479,42 @@ describe("MarketV2.eETH.spec", async () => {
       const after = await token.balanceOf(signer.address);
       expect(after - before).to.closeTo(dst, dst / 10000n);
     });
+
+    it("should succeed when redeem as ETH", async () => {
+      const amountIn = ethers.parseEther("10");
+      signer = await ethers.getSigner(weETH_HOLDER);
+      await fToken.connect(signer).approve(gateway.getAddress(), amountIn);
+
+      const params = {
+        converter: await outputConverter.getAddress(),
+        minOut: 0n,
+        routes: [
+          encodePoolHintV3(
+            ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"],
+            PoolTypeV3.CurveStableSwapNG,
+            2,
+            0,
+            1,
+            Action.Swap
+          ),
+          encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
+        ],
+      };
+
+      const [base, dst] = await gateway
+        .connect(signer)
+        .fxRedeemFTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
+      console.log("redeem fToken as weETH:", ethers.formatEther(base));
+      console.log("redeem fToken as ETH:", ethers.formatEther(dst));
+      params.minOut = (dst * 9999n) / 10000n;
+      const before = await ethers.provider.getBalance(signer.address);
+      const tx = await gateway
+        .connect(signer)
+        .fxRedeemFTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
+      const receipt = await tx.wait();
+      const after = await ethers.provider.getBalance(signer.address);
+      expect(after - before + receipt!.gasPrice * receipt!.gasUsed).to.closeTo(dst, dst / 10000n);
+    });
   });
 
   context("redeem xToken", async () => {
@@ -546,6 +585,42 @@ describe("MarketV2.eETH.spec", async () => {
       await gateway.connect(signer).fxRedeemXTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
       const after = await token.balanceOf(signer.address);
       expect(after - before).to.closeTo(dst, dst / 10000n);
+    });
+
+    it("should succeed when redeem as ETH", async () => {
+      const amountIn = ethers.parseEther("10");
+      signer = await ethers.getSigner(weETH_HOLDER);
+      await xToken.connect(signer).approve(gateway.getAddress(), amountIn);
+
+      const params = {
+        converter: await outputConverter.getAddress(),
+        minOut: 0n,
+        routes: [
+          encodePoolHintV3(
+            ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"],
+            PoolTypeV3.CurveStableSwapNG,
+            2,
+            0,
+            1,
+            Action.Swap
+          ),
+          encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
+        ],
+      };
+
+      const [base, dst] = await gateway
+        .connect(signer)
+        .fxRedeemXTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
+      console.log("redeem xToken as weETH:", ethers.formatEther(base));
+      console.log("redeem xToken as ETH:", ethers.formatEther(dst));
+      params.minOut = (dst * 9999n) / 10000n;
+      const before = await ethers.provider.getBalance(signer.address);
+      const tx = await gateway
+        .connect(signer)
+        .fxRedeemXTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
+      const receipt = await tx.wait();
+      const after = await ethers.provider.getBalance(signer.address);
+      expect(after - before + receipt!.gasPrice * receipt!.gasUsed).to.closeTo(dst, dst / 10000n);
     });
   });
 });

@@ -45,6 +45,7 @@ export enum PoolTypeV3 {
   ETHLSDV1,
   CurveStableSwapNG,
   CurveStableSwapMetaNG,
+  WETH,
 }
 
 export enum Action {
@@ -145,6 +146,8 @@ export function encodePoolHintV3(
       if (options!.protocol === 4 || options!.protocol === 6) {
         encoding |= toBigInt(indexIn) << 168n;
       }
+      break;
+    case PoolTypeV3.WETH:
       break;
   }
 

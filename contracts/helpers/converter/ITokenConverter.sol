@@ -90,6 +90,9 @@ interface ITokenConverter {
   /// + pool_type = 13: CurveStableSwapMetaNG
   ///   customized = |   160 bits   | 3 bits |  3 bits  |   3 bits  | ... |
   ///                | pool address | tokens | index in | index out | ... |
+  /// + pool_type = 14: WETH
+  ///   customized = |   160 bits   | ... |
+  ///                | pool address | ... |
   ///
   /// Note: tokens + 1 is the number of tokens of the pool
   ///
