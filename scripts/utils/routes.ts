@@ -2,7 +2,7 @@ import assert from "assert";
 import { ADDRESS } from "./address";
 import { Action, decodePoolV3, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3 } from "./codec";
 import { TOKENS } from "./tokens";
-import { toBigInt } from "ethers";
+import { toBigInt, ZeroAddress } from "ethers";
 
 export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
   ALCX: {
@@ -642,6 +642,7 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
       encodePoolHintV3(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.aCRV.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
     ],
+    aCVX: [encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)],
   },
   FRAX: {
     sfrxETH: [
@@ -705,6 +706,10 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
   WETH: {
     CVX: [encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
     FXN: [encodePoolHintV3(ADDRESS["CURVE_ETH/FXN_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
+    aCVX: [
+      encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
+    ],
     sfrxETH: [
       encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
@@ -715,6 +720,16 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
     ],
   },
   aCVX: {
+    CVX: [encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove)],
+    ETH: [
+      encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
+    ],
+    WETH: [
+      encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap),
+    ],
     aCRV: [
       // aCVX ==> CVX => WETH => CRV => cvxCRV => aCRV
       encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
