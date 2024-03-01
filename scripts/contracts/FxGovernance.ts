@@ -13,21 +13,29 @@ import * as Multisig from "./Multisig";
 import * as ProxyAdmin from "./ProxyAdmin";
 import * as VotingEscrow from "./VotingEscrow";
 
-const DeployedGauges: { [name: string]: { token: string; rewarder: string; immutable: boolean } } = {
+const DeployedGauges: {
+  [name: string]: { token: string; rewarder: string; immutable: boolean; harvesterRatio: bigint; managerRatio: bigint };
+} = {
   "ETH+FXN": {
     token: TOKENS["CURVE_CRYPTO_ETH/FXN_311"].address,
     rewarder: "0x2b732f0Eee9e1b4329C25Cbb8bdC0dc3bC1448E2",
     immutable: true,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
   },
   "FXN+cvxFXN": {
     token: TOKENS["CURVE_PLAIN_FXN/cvxFXN_358"].address,
     rewarder: "0x19A0117a5bE27e4D3059Be13FB069eB8f1646d86",
     immutable: true,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
   },
   "FXN+sdFXN": {
     token: TOKENS["CURVE_PLAIN_FXN/sdFXN_359"].address,
     rewarder: "0x883D7AB9078970b0204c50B56e1c3F72AB5544f9",
     immutable: true,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
   },
 };
 
@@ -584,6 +592,24 @@ export async function initialize(
           DeployedGauges[name].token,
           DeployedGauges[name].rewarder,
         ],
+        overrides
+      );
+    }
+    if ((await manager.getHarvesterRatio()) !== DeployedGauges[name].harvesterRatio) {
+      await ownerContractCall(
+        manager,
+        `ConvexCurveManager for ${name} updateHarvesterRatio`,
+        "updateHarvesterRatio",
+        [DeployedGauges[name].harvesterRatio],
+        overrides
+      );
+    }
+    if ((await manager.getManagerRatio()) !== DeployedGauges[name].managerRatio) {
+      await ownerContractCall(
+        manager,
+        `ConvexCurveManager for ${name} updateManagerRatio`,
+        "updateManagerRatio",
+        [DeployedGauges[name].managerRatio],
         overrides
       );
     }
