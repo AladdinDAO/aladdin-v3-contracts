@@ -199,7 +199,9 @@ export function decodePoolV3(encoding: bigint): string {
     case PoolTypeV3.CurvePlainPool:
     case PoolTypeV3.CurveCryptoPool:
     case PoolTypeV3.CurveAPool:
-    case PoolTypeV3.CurveYPool: {
+    case PoolTypeV3.CurveYPool:
+    case PoolTypeV3.CurveStableSwapNG:
+    case PoolTypeV3.CurveStableSwapMetaNG: {
       const tokenIn = (encoding >> 3n) & 7n;
       const tokenOut = (encoding >> 6n) & 7n;
       if (action === Action.Add) {
@@ -227,6 +229,23 @@ export function decodePoolV3(encoding: bigint): string {
       if (token) {
         poolName = `${token[0]}/${pool}`;
       }
+      break;
+    }
+    case PoolTypeV3.ETHLSDV1: {
+      const protocol = encoding % 256n;
+      if (protocol === 0n) poolName = "wBETH";
+      else if (protocol === 1n) poolName = "rETH";
+      else if (protocol === 2n) poolName = "frxETH";
+      else if (protocol === 3n) poolName = "pxETH";
+      else if (protocol === 4n) poolName = "renzo";
+      else if (protocol === 5n) poolName = "ether.fi";
+      else if (protocol === 6n) poolName = "kelpdao.xyz";
+      poolName = `${poolName}/${pool}`;
+      break;
+    }
+    case PoolTypeV3.WETH: {
+      poolName = "WETH";
+      actionDesc = "Unwrap";
       break;
     }
   }

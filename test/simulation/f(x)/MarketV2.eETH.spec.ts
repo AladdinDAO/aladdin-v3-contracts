@@ -20,16 +20,22 @@ import {
   FxEETHTwapOracle,
   ConverterRegistry,
 } from "@/types/index";
-import { TOKENS, Action, PoolTypeV3, encodePoolHintV3, ADDRESS } from "@/utils/index";
+import { TOKENS, CONVERTER_ROUTRS } from "@/utils/index";
+import { simulateMintFTokenV2, simulateMintXTokenV2, simulateRedeemFTokenV2, simulateRedeemXTokenV2 } from "./helpers";
 
 const FORK_BLOCK_NUMBER = 19211926;
 
 const MANAGER = "0x28c921adAC4c1072658eB01a28DA06b5F651eF62";
 const ADMIN = "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF";
 
-const weETH_HOLDER = "0xDceED643320622Cad92b7A90465E24d7dF0a9519";
-const eETH_HOLDER = "0x30653c83162ff00918842D8bFe016935Fdd6Ab84";
-const WETH_HOLDER = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28";
+const TokenHolder: { [symbol: string]: { holder: string; amount: bigint } } = {
+  weETH: { holder: "0xDceED643320622Cad92b7A90465E24d7dF0a9519", amount: ethers.parseEther("10") },
+  eETH: { holder: "0x30653c83162ff00918842D8bFe016935Fdd6Ab84", amount: ethers.parseEther("10") },
+  WETH: { holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28", amount: ethers.parseEther("10") },
+  ETH: { holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28", amount: ethers.parseEther("10") },
+  USDC: { holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28", amount: ethers.parseUnits("20000", 6) },
+  USDT: { holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28", amount: ethers.parseUnits("20000", 6) },
+};
 
 describe("MarketV2.eETH.spec", async () => {
   let deployer: HardhatEthersSigner;
@@ -58,7 +64,12 @@ describe("MarketV2.eETH.spec", async () => {
   };
 
   beforeEach(async () => {
-    await request_fork(FORK_BLOCK_NUMBER, [ZeroAddress, weETH_HOLDER, eETH_HOLDER, WETH_HOLDER, ADMIN, MANAGER]);
+    await request_fork(FORK_BLOCK_NUMBER, [
+      ZeroAddress,
+      ...Object.values(TokenHolder).map((x) => x.holder),
+      ADMIN,
+      MANAGER,
+    ]);
     const admin = await ethers.getSigner(ADMIN);
     const manager = await ethers.getSigner(MANAGER);
     deployer = await ethers.getSigner(ZeroAddress);
@@ -109,11 +120,11 @@ describe("MarketV2.eETH.spec", async () => {
     inputConverter = await MultiPathConverter.deploy(outputConverter.getAddress());
     const ETHLSDConverter = await ethers.getContractFactory("ETHLSDConverter", deployer);
     const ethLSDConverter = await ETHLSDConverter.deploy(await converterRegistry.getAddress());
-    await converterRegistry.register(11, await ethLSDConverter.getAddress());
     const CurveNGConverter = await ethers.getContractFactory("CurveNGConverter", deployer);
     const curveNGConverter = await CurveNGConverter.deploy(await converterRegistry.getAddress());
     const WETHConverter = await ethers.getContractFactory("WETHConverter", deployer);
     const wethConverter = await WETHConverter.deploy(await converterRegistry.getAddress());
+    await converterRegistry.register(11, await ethLSDConverter.getAddress());
     await converterRegistry.register(12, await curveNGConverter.getAddress());
     await converterRegistry.register(13, await curveNGConverter.getAddress());
     await converterRegistry.register(14, await wethConverter.getAddress());
@@ -184,7 +195,7 @@ describe("MarketV2.eETH.spec", async () => {
     await treasury.grantRole(id("FX_MARKET_ROLE"), market.getAddress());
     await reservePool.grantRole(id("MARKET_ROLE"), market.getAddress());
 
-    signer = await ethers.getSigner(weETH_HOLDER);
+    signer = await ethers.getSigner(TokenHolder.weETH.holder);
     await mockETHBalance(signer.address, ethers.parseEther("100"));
     await baseToken.connect(signer).transfer(treasury.getAddress(), ethers.parseEther("1000"));
     await treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), signer.address);
@@ -195,7 +206,7 @@ describe("MarketV2.eETH.spec", async () => {
   context("mint fToken", async () => {
     it("should succeed when mint from weETH", async () => {
       const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
+      signer = await ethers.getSigner(TokenHolder.weETH.holder);
       await mockETHBalance(signer.address, ethers.parseEther("1000"));
       const token = await ethers.getContractAt("MockERC20", TOKENS.weETH.address, signer);
       await token.approve(market.getAddress(), amountIn);
@@ -208,103 +219,26 @@ describe("MarketV2.eETH.spec", async () => {
       expect(after - before).to.closeTo(minted, minted / 10000n);
     });
 
-    it("should succeed when mint from eETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(eETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-      const token = await ethers.getContractAt("MockERC20", TOKENS.eETH.address, signer);
-      await token.approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        src: TOKENS.eETH.address,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          TOKENS.eETH.address,
-          amountIn,
-          1048575n + (1n << 20n),
-          [encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 })],
-        ]),
-        minOut: 0,
-      };
-
-      const minted = await gateway.connect(signer).fxMintFTokenV2.staticCall(params, market.getAddress(), 0n);
-      console.log("mint feETH from eETH:", ethers.formatEther(minted));
-      const before = await fToken.balanceOf(signer.address);
-      await gateway.connect(signer).fxMintFTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n);
-      const after = await fToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
-
-    it("should succeed when mint from WETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(WETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-      const token = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, signer);
-      await token.approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        src: TOKENS.WETH.address,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          TOKENS.WETH.address,
-          amountIn,
-          1048575n + (2n << 20n),
-          [
-            encodePoolHintV3(TOKENS.eETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 }),
-            encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 }),
-          ],
-        ]),
-        minOut: 0,
-      };
-
-      const minted = await gateway.connect(signer).fxMintFTokenV2.staticCall(params, market.getAddress(), 0n);
-      console.log("mint feETH from WETH:", ethers.formatEther(minted));
-      const before = await fToken.balanceOf(signer.address);
-      await gateway.connect(signer).fxMintFTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n);
-      const after = await fToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
-
-    it("should succeed when mint from ETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(WETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-
-      const params = {
-        src: ZeroAddress,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          ZeroAddress,
-          amountIn,
-          1048575n + (2n << 20n),
-          [
-            encodePoolHintV3(TOKENS.eETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 }),
-            encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 }),
-          ],
-        ]),
-        minOut: 0,
-      };
-
-      const minted = await gateway
-        .connect(signer)
-        .fxMintFTokenV2.staticCall(params, market.getAddress(), 0n, { value: amountIn });
-      console.log("mint feETH from ETH:", ethers.formatEther(minted));
-      const before = await fToken.balanceOf(signer.address);
-      await gateway
-        .connect(signer)
-        .fxMintFTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n, { value: amountIn });
-      const after = await fToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
+    for (const symbol of ["eETH", "WETH", "USDC", "USDT", "ETH"]) {
+      it(`should succeed when mint from ${symbol}`, async () => {
+        await simulateMintFTokenV2(
+          gateway,
+          inputConverter,
+          market,
+          fToken,
+          TokenHolder[symbol].holder,
+          symbol,
+          TokenHolder[symbol].amount,
+          CONVERTER_ROUTRS[symbol === "ETH" ? "WETH" : symbol].weETH
+        );
+      });
+    }
   });
 
   context("mint xToken", async () => {
     it("should succeed when mint from weETH", async () => {
       const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
+      signer = await ethers.getSigner(TokenHolder.weETH.holder);
       await mockETHBalance(signer.address, ethers.parseEther("1000"));
       const token = await ethers.getContractAt("MockERC20", TOKENS.weETH.address, signer);
       await token.approve(market.getAddress(), amountIn);
@@ -317,103 +251,26 @@ describe("MarketV2.eETH.spec", async () => {
       expect(after - before).to.closeTo(minted, minted / 10000n);
     });
 
-    it("should succeed when mint from eETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(eETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-      const token = await ethers.getContractAt("MockERC20", TOKENS.eETH.address, signer);
-      await token.approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        src: TOKENS.eETH.address,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          TOKENS.eETH.address,
-          amountIn,
-          1048575n + (1n << 20n),
-          [encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 })],
-        ]),
-        minOut: 0,
-      };
-
-      const [minted] = await gateway.connect(signer).fxMintXTokenV2.staticCall(params, market.getAddress(), 0n);
-      console.log("mint xeETH from eETH:", ethers.formatEther(minted));
-      const before = await xToken.balanceOf(signer.address);
-      await gateway.connect(signer).fxMintXTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n);
-      const after = await xToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
-
-    it("should succeed when mint from WETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(WETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-      const token = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, signer);
-      await token.approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        src: TOKENS.WETH.address,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          TOKENS.WETH.address,
-          amountIn,
-          1048575n + (2n << 20n),
-          [
-            encodePoolHintV3(TOKENS.eETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 }),
-            encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 }),
-          ],
-        ]),
-        minOut: 0,
-      };
-
-      const [minted] = await gateway.connect(signer).fxMintXTokenV2.staticCall(params, market.getAddress(), 0n);
-      console.log("mint xeETH from WETH:", ethers.formatEther(minted));
-      const before = await xToken.balanceOf(signer.address);
-      await gateway.connect(signer).fxMintXTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n);
-      const after = await xToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
-
-    it("should succeed when mint from ETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(WETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-
-      const params = {
-        src: ZeroAddress,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          ZeroAddress,
-          amountIn,
-          1048575n + (2n << 20n),
-          [
-            encodePoolHintV3(TOKENS.eETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 }),
-            encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 }),
-          ],
-        ]),
-        minOut: 0,
-      };
-
-      const [minted] = await gateway
-        .connect(signer)
-        .fxMintXTokenV2.staticCall(params, market.getAddress(), 0n, { value: amountIn });
-      console.log("mint xeETH from ETH:", ethers.formatEther(minted));
-      const before = await xToken.balanceOf(signer.address);
-      await gateway
-        .connect(signer)
-        .fxMintXTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n, { value: amountIn });
-      const after = await xToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
+    for (const symbol of ["eETH", "WETH", "USDC", "USDT", "ETH"]) {
+      it(`should succeed when mint from ${symbol}`, async () => {
+        await simulateMintXTokenV2(
+          gateway,
+          inputConverter,
+          market,
+          xToken,
+          TokenHolder[symbol].holder,
+          symbol,
+          TokenHolder[symbol].amount,
+          CONVERTER_ROUTRS[symbol === "ETH" ? "WETH" : symbol].weETH
+        );
+      });
+    }
   });
 
   context("redeem fToken", async () => {
     it("should succeed when redeem as weETH", async () => {
       const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
+      signer = await ethers.getSigner(TokenHolder.weETH.holder);
       const token = await ethers.getContractAt("MockERC20", TOKENS.weETH.address, signer);
       const [redeemed] = await market.connect(signer).redeemFToken.staticCall(amountIn, signer.address, 0n);
       console.log("redeem fToken as weETH:", ethers.formatEther(redeemed));
@@ -423,104 +280,26 @@ describe("MarketV2.eETH.spec", async () => {
       expect(after - before).to.closeTo(redeemed, redeemed / 10000n);
     });
 
-    it("should succeed when redeem as eETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
-      const token = await ethers.getContractAt("MockERC20", TOKENS.eETH.address, signer);
-      await fToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: [encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Remove, { protocol: 5 })],
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemFTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem fToken as weETH:", ethers.formatEther(base));
-      console.log("redeem fToken as eETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await token.balanceOf(signer.address);
-      await gateway.connect(signer).fxRedeemFTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const after = await token.balanceOf(signer.address);
-      expect(after - before).to.closeTo(dst, dst / 10000n);
-    });
-
-    it("should succeed when redeem as WETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
-      const token = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, signer);
-      await fToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: [
-          encodePoolHintV3(
-            ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"],
-            PoolTypeV3.CurveStableSwapNG,
-            2,
-            0,
-            1,
-            Action.Swap
-          ),
-        ],
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemFTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem fToken as weETH:", ethers.formatEther(base));
-      console.log("redeem fToken as WETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await token.balanceOf(signer.address);
-      await gateway.connect(signer).fxRedeemFTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const after = await token.balanceOf(signer.address);
-      expect(after - before).to.closeTo(dst, dst / 10000n);
-    });
-
-    it("should succeed when redeem as ETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
-      await fToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: [
-          encodePoolHintV3(
-            ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"],
-            PoolTypeV3.CurveStableSwapNG,
-            2,
-            0,
-            1,
-            Action.Swap
-          ),
-          encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
-        ],
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemFTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem fToken as weETH:", ethers.formatEther(base));
-      console.log("redeem fToken as ETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await ethers.provider.getBalance(signer.address);
-      const tx = await gateway
-        .connect(signer)
-        .fxRedeemFTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const receipt = await tx.wait();
-      const after = await ethers.provider.getBalance(signer.address);
-      expect(after - before + receipt!.gasPrice * receipt!.gasUsed).to.closeTo(dst, dst / 10000n);
-    });
+    for (const symbol of ["eETH", "WETH", "USDC", "USDT", "ETH"]) {
+      it(`should succeed when redeem as ${symbol}`, async () => {
+        await simulateRedeemFTokenV2(
+          gateway,
+          outputConverter,
+          market,
+          fToken,
+          TokenHolder.weETH.holder,
+          symbol,
+          ethers.parseEther("10"),
+          CONVERTER_ROUTRS.weETH[symbol]
+        );
+      });
+    }
   });
 
   context("redeem xToken", async () => {
     it("should succeed when redeem as weETH", async () => {
       const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
+      signer = await ethers.getSigner(TokenHolder.weETH.holder);
       const token = await ethers.getContractAt("MockERC20", TOKENS.weETH.address, signer);
       const redeemed = await market.connect(signer).redeemXToken.staticCall(amountIn, signer.address, 0n);
       console.log("redeem xToken as weETH:", ethers.formatEther(redeemed));
@@ -530,97 +309,19 @@ describe("MarketV2.eETH.spec", async () => {
       expect(after - before).to.closeTo(redeemed, redeemed / 10000n);
     });
 
-    it("should succeed when redeem as eETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
-      const token = await ethers.getContractAt("MockERC20", TOKENS.eETH.address, signer);
-      await xToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: [encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Remove, { protocol: 5 })],
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemXTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem xToken as weETH:", ethers.formatEther(base));
-      console.log("redeem xToken as eETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await token.balanceOf(signer.address);
-      await gateway.connect(signer).fxRedeemXTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const after = await token.balanceOf(signer.address);
-      expect(after - before).to.closeTo(dst, dst / 10000n);
-    });
-
-    it("should succeed when redeem as WETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
-      const token = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, signer);
-      await xToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: [
-          encodePoolHintV3(
-            ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"],
-            PoolTypeV3.CurveStableSwapNG,
-            2,
-            0,
-            1,
-            Action.Swap
-          ),
-        ],
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemXTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem xToken as weETH:", ethers.formatEther(base));
-      console.log("redeem xToken as WETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await token.balanceOf(signer.address);
-      await gateway.connect(signer).fxRedeemXTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const after = await token.balanceOf(signer.address);
-      expect(after - before).to.closeTo(dst, dst / 10000n);
-    });
-
-    it("should succeed when redeem as ETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(weETH_HOLDER);
-      await xToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: [
-          encodePoolHintV3(
-            ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"],
-            PoolTypeV3.CurveStableSwapNG,
-            2,
-            0,
-            1,
-            Action.Swap
-          ),
-          encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
-        ],
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemXTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem xToken as weETH:", ethers.formatEther(base));
-      console.log("redeem xToken as ETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await ethers.provider.getBalance(signer.address);
-      const tx = await gateway
-        .connect(signer)
-        .fxRedeemXTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const receipt = await tx.wait();
-      const after = await ethers.provider.getBalance(signer.address);
-      expect(after - before + receipt!.gasPrice * receipt!.gasUsed).to.closeTo(dst, dst / 10000n);
-    });
+    for (const symbol of ["eETH", "WETH", "USDC", "USDT", "ETH"]) {
+      it(`should succeed when redeem as ${symbol}`, async () => {
+        await simulateRedeemXTokenV2(
+          gateway,
+          outputConverter,
+          market,
+          xToken,
+          TokenHolder.weETH.holder,
+          symbol,
+          ethers.parseEther("10"),
+          CONVERTER_ROUTRS.weETH[symbol]
+        );
+      });
+    }
   });
 });

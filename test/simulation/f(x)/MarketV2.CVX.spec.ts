@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Interface, ZeroAddress, id, toBigInt } from "ethers";
+import { Interface, ZeroAddress, id } from "ethers";
 import { ethers } from "hardhat";
 
 import { mockETHBalance, request_fork } from "@/test/utils";
@@ -20,15 +20,21 @@ import {
   FxCVXTwapOracle,
 } from "@/types/index";
 import { TOKENS, ADDRESS, CONVERTER_ROUTRS } from "@/utils/index";
+import { simulateMintFTokenV2, simulateMintXTokenV2, simulateRedeemFTokenV2, simulateRedeemXTokenV2 } from "./helpers";
 
 const FORK_BLOCK_NUMBER = 19326670;
 
 const MANAGER = "0x28c921adAC4c1072658eB01a28DA06b5F651eF62";
 const ADMIN = "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF";
 
-const aCVX_HOLDER = "0x7BFEe91193d9Df2Ac0bFe90191D40F23c773C060";
-const CVX_HOLDER = "0xF977814e90dA44bFA03b6295A0616a897441aceC";
-const WETH_HOLDER = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28";
+const TokenHolder: { [symbol: string]: { holder: string; amount: bigint } } = {
+  aCVX: { holder: "0x7BFEe91193d9Df2Ac0bFe90191D40F23c773C060", amount: ethers.parseEther("10") },
+  CVX: { holder: "0xF977814e90dA44bFA03b6295A0616a897441aceC", amount: ethers.parseEther("10") },
+  WETH: { holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28", amount: ethers.parseEther("10") },
+  ETH: { holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28", amount: ethers.parseEther("10") },
+  USDC: { holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28", amount: ethers.parseUnits("20000", 6) },
+  USDT: { holder: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28", amount: ethers.parseUnits("20000", 6) },
+};
 
 describe("MarketV2.CVX.spec", async () => {
   let deployer: HardhatEthersSigner;
@@ -56,7 +62,12 @@ describe("MarketV2.CVX.spec", async () => {
   };
 
   beforeEach(async () => {
-    await request_fork(FORK_BLOCK_NUMBER, [ZeroAddress, aCVX_HOLDER, CVX_HOLDER, WETH_HOLDER, ADMIN, MANAGER]);
+    await request_fork(FORK_BLOCK_NUMBER, [
+      ZeroAddress,
+      ...Object.values(TokenHolder).map((x) => x.holder),
+      ADMIN,
+      MANAGER,
+    ]);
     const admin = await ethers.getSigner(ADMIN);
     const manager = await ethers.getSigner(MANAGER);
     deployer = await ethers.getSigner(ZeroAddress);
@@ -183,7 +194,7 @@ describe("MarketV2.CVX.spec", async () => {
     await treasury.grantRole(id("FX_MARKET_ROLE"), market.getAddress());
     await reservePool.grantRole(id("MARKET_ROLE"), market.getAddress());
 
-    signer = await ethers.getSigner(aCVX_HOLDER);
+    signer = await ethers.getSigner(TokenHolder.aCVX.holder);
     await mockETHBalance(signer.address, ethers.parseEther("100"));
     await baseToken.connect(signer).transfer(treasury.getAddress(), ethers.parseEther("1000"));
     await treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), signer.address);
@@ -194,7 +205,7 @@ describe("MarketV2.CVX.spec", async () => {
   context("mint fToken", async () => {
     it("should succeed when mint from aCVX", async () => {
       const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
+      signer = await ethers.getSigner(TokenHolder.aCVX.holder);
       await mockETHBalance(signer.address, ethers.parseEther("1000"));
       const token = await ethers.getContractAt("MockERC20", TOKENS.aCVX.address, signer);
       await token.approve(market.getAddress(), amountIn);
@@ -207,97 +218,26 @@ describe("MarketV2.CVX.spec", async () => {
       expect(after - before).to.closeTo(minted, minted / 10000n);
     });
 
-    it("should succeed when mint from CVX", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(CVX_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-      const token = await ethers.getContractAt("MockERC20", TOKENS.CVX.address, signer);
-      await token.approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        src: TOKENS.CVX.address,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          TOKENS.CVX.address,
-          amountIn,
-          1048575n + (toBigInt(CONVERTER_ROUTRS.CVX.aCVX.length) << 20n),
-          CONVERTER_ROUTRS.CVX.aCVX,
-        ]),
-        minOut: 0,
-      };
-
-      const minted = await gateway.connect(signer).fxMintFTokenV2.staticCall(params, market.getAddress(), 0n);
-      console.log("mint fCVX from CVX:", ethers.formatEther(minted));
-      const before = await fToken.balanceOf(signer.address);
-      await gateway.connect(signer).fxMintFTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n);
-      const after = await fToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
-
-    it("should succeed when mint from WETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(WETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-      const token = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, signer);
-      await token.approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        src: TOKENS.WETH.address,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          TOKENS.WETH.address,
-          amountIn,
-          1048575n + (toBigInt(CONVERTER_ROUTRS.WETH.aCVX.length) << 20n),
-          CONVERTER_ROUTRS.WETH.aCVX,
-        ]),
-        minOut: 0,
-      };
-
-      const minted = await gateway.connect(signer).fxMintFTokenV2.staticCall(params, market.getAddress(), 0n);
-      console.log("mint fCVX from WETH:", ethers.formatEther(minted));
-      const before = await fToken.balanceOf(signer.address);
-      await gateway.connect(signer).fxMintFTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n);
-      const after = await fToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
-
-    it("should succeed when mint from ETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(WETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-
-      const params = {
-        src: ZeroAddress,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          ZeroAddress,
-          amountIn,
-          1048575n + (toBigInt(CONVERTER_ROUTRS.WETH.aCVX.length) << 20n),
-          CONVERTER_ROUTRS.WETH.aCVX,
-        ]),
-        minOut: 0,
-      };
-
-      const minted = await gateway
-        .connect(signer)
-        .fxMintFTokenV2.staticCall(params, market.getAddress(), 0n, { value: amountIn });
-      console.log("mint fCVX from ETH:", ethers.formatEther(minted));
-      const before = await fToken.balanceOf(signer.address);
-      await gateway
-        .connect(signer)
-        .fxMintFTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n, { value: amountIn });
-      const after = await fToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
+    for (const symbol of ["CVX", "WETH", "USDC", "USDT", "ETH"]) {
+      it(`should succeed when mint from ${symbol}`, async () => {
+        await simulateMintFTokenV2(
+          gateway,
+          inputConverter,
+          market,
+          fToken,
+          TokenHolder[symbol].holder,
+          symbol,
+          TokenHolder[symbol].amount,
+          CONVERTER_ROUTRS[symbol === "ETH" ? "WETH" : symbol].aCVX
+        );
+      });
+    }
   });
 
   context("mint xToken", async () => {
     it("should succeed when mint from aCVX", async () => {
       const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
+      signer = await ethers.getSigner(TokenHolder.aCVX.holder);
       await mockETHBalance(signer.address, ethers.parseEther("1000"));
       const token = await ethers.getContractAt("MockERC20", TOKENS.aCVX.address, signer);
       await token.approve(market.getAddress(), amountIn);
@@ -310,97 +250,26 @@ describe("MarketV2.CVX.spec", async () => {
       expect(after - before).to.closeTo(minted, minted / 10000n);
     });
 
-    it("should succeed when mint from CVX", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(CVX_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-      const token = await ethers.getContractAt("MockERC20", TOKENS.CVX.address, signer);
-      await token.approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        src: TOKENS.CVX.address,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          TOKENS.CVX.address,
-          amountIn,
-          1048575n + (toBigInt(CONVERTER_ROUTRS.CVX.aCVX.length) << 20n),
-          CONVERTER_ROUTRS.CVX.aCVX,
-        ]),
-        minOut: 0,
-      };
-
-      const [minted] = await gateway.connect(signer).fxMintXTokenV2.staticCall(params, market.getAddress(), 0n);
-      console.log("mint xCVX from CVX:", ethers.formatEther(minted));
-      const before = await xToken.balanceOf(signer.address);
-      await gateway.connect(signer).fxMintXTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n);
-      const after = await xToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
-
-    it("should succeed when mint from WETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(WETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-      const token = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, signer);
-      await token.approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        src: TOKENS.WETH.address,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          TOKENS.WETH.address,
-          amountIn,
-          1048575n + (toBigInt(CONVERTER_ROUTRS.WETH.aCVX.length) << 20n),
-          CONVERTER_ROUTRS.WETH.aCVX,
-        ]),
-        minOut: 0,
-      };
-
-      const [minted] = await gateway.connect(signer).fxMintXTokenV2.staticCall(params, market.getAddress(), 0n);
-      console.log("mint xCVX from WETH:", ethers.formatEther(minted));
-      const before = await xToken.balanceOf(signer.address);
-      await gateway.connect(signer).fxMintXTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n);
-      const after = await xToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
-
-    it("should succeed when mint from ETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(WETH_HOLDER);
-      await mockETHBalance(signer.address, ethers.parseEther("1000"));
-
-      const params = {
-        src: ZeroAddress,
-        amount: amountIn,
-        target: await inputConverter.getAddress(),
-        data: inputConverter.interface.encodeFunctionData("convert", [
-          ZeroAddress,
-          amountIn,
-          1048575n + (toBigInt(CONVERTER_ROUTRS.WETH.aCVX.length) << 20n),
-          CONVERTER_ROUTRS.WETH.aCVX,
-        ]),
-        minOut: 0,
-      };
-
-      const [minted] = await gateway
-        .connect(signer)
-        .fxMintXTokenV2.staticCall(params, market.getAddress(), 0n, { value: amountIn });
-      console.log("mint xCVX from ETH:", ethers.formatEther(minted));
-      const before = await xToken.balanceOf(signer.address);
-      await gateway
-        .connect(signer)
-        .fxMintXTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n, { value: amountIn });
-      const after = await xToken.balanceOf(signer.address);
-      expect(after - before).to.closeTo(minted, minted / 10000n);
-    });
+    for (const symbol of ["CVX", "WETH", "USDC", "USDT", "ETH"]) {
+      it(`should succeed when mint from ${symbol}`, async () => {
+        await simulateMintXTokenV2(
+          gateway,
+          inputConverter,
+          market,
+          xToken,
+          TokenHolder[symbol].holder,
+          symbol,
+          TokenHolder[symbol].amount,
+          CONVERTER_ROUTRS[symbol === "ETH" ? "WETH" : symbol].aCVX
+        );
+      });
+    }
   });
 
   context("redeem fToken", async () => {
     it("should succeed when redeem as aCVX", async () => {
       const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
+      signer = await ethers.getSigner(TokenHolder.aCVX.holder);
       const token = await ethers.getContractAt("MockERC20", TOKENS.aCVX.address, signer);
       const [redeemed] = await market.connect(signer).redeemFToken.staticCall(amountIn, signer.address, 0n);
       console.log("redeem fToken as aCVX:", ethers.formatEther(redeemed));
@@ -410,85 +279,26 @@ describe("MarketV2.CVX.spec", async () => {
       expect(after - before).to.closeTo(redeemed, redeemed / 10000n);
     });
 
-    it("should succeed when redeem as CVX", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
-      const token = await ethers.getContractAt("MockERC20", TOKENS.CVX.address, signer);
-      await fToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: CONVERTER_ROUTRS.aCVX.CVX,
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemFTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem fToken as aCVX:", ethers.formatEther(base));
-      console.log("redeem fToken as CVX:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await token.balanceOf(signer.address);
-      await gateway.connect(signer).fxRedeemFTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const after = await token.balanceOf(signer.address);
-      expect(after - before).to.closeTo(dst, dst / 10000n);
-    });
-
-    it("should succeed when redeem as WETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
-      const token = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, signer);
-      await fToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: CONVERTER_ROUTRS.aCVX.WETH,
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemFTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem fToken as CVX:", ethers.formatEther(base));
-      console.log("redeem fToken as WETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await token.balanceOf(signer.address);
-      await gateway.connect(signer).fxRedeemFTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const after = await token.balanceOf(signer.address);
-      expect(after - before).to.closeTo(dst, dst / 10000n);
-    });
-
-    it("should succeed when redeem as ETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
-      await fToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: CONVERTER_ROUTRS.aCVX.ETH,
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemFTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem fToken as CVX:", ethers.formatEther(base));
-      console.log("redeem fToken as ETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await ethers.provider.getBalance(signer.address);
-      const tx = await gateway
-        .connect(signer)
-        .fxRedeemFTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const receipt = await tx.wait();
-      const after = await ethers.provider.getBalance(signer.address);
-      expect(after - before + receipt!.gasPrice * receipt!.gasUsed).to.closeTo(dst, dst / 10000n);
-    });
+    for (const symbol of ["CVX", "WETH", "USDC", "USDT", "ETH"]) {
+      it(`should succeed when redeem as ${symbol}`, async () => {
+        await simulateRedeemFTokenV2(
+          gateway,
+          outputConverter,
+          market,
+          fToken,
+          TokenHolder.aCVX.holder,
+          symbol,
+          ethers.parseEther("10"),
+          CONVERTER_ROUTRS.aCVX[symbol]
+        );
+      });
+    }
   });
 
   context("redeem xToken", async () => {
     it("should succeed when redeem as aCVX", async () => {
       const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
+      signer = await ethers.getSigner(TokenHolder.aCVX.holder);
       const token = await ethers.getContractAt("MockERC20", TOKENS.aCVX.address, signer);
       const redeemed = await market.connect(signer).redeemXToken.staticCall(amountIn, signer.address, 0n);
       console.log("redeem xToken as CVX:", ethers.formatEther(redeemed));
@@ -498,78 +308,19 @@ describe("MarketV2.CVX.spec", async () => {
       expect(after - before).to.closeTo(redeemed, redeemed / 10000n);
     });
 
-    it("should succeed when redeem as CVX", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
-      const token = await ethers.getContractAt("MockERC20", TOKENS.CVX.address, signer);
-      await xToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: CONVERTER_ROUTRS.aCVX.CVX,
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemXTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem xToken as aCVX:", ethers.formatEther(base));
-      console.log("redeem xToken as CVX:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await token.balanceOf(signer.address);
-      await gateway.connect(signer).fxRedeemXTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const after = await token.balanceOf(signer.address);
-      expect(after - before).to.closeTo(dst, dst / 10000n);
-    });
-
-    it("should succeed when redeem as WETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
-      const token = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, signer);
-      await xToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: CONVERTER_ROUTRS.aCVX.WETH,
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemXTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem xToken as aCVX:", ethers.formatEther(base));
-      console.log("redeem xToken as WETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await token.balanceOf(signer.address);
-      await gateway.connect(signer).fxRedeemXTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const after = await token.balanceOf(signer.address);
-      expect(after - before).to.closeTo(dst, dst / 10000n);
-    });
-
-    it("should succeed when redeem as ETH", async () => {
-      const amountIn = ethers.parseEther("10");
-      signer = await ethers.getSigner(aCVX_HOLDER);
-      await xToken.connect(signer).approve(gateway.getAddress(), amountIn);
-
-      const params = {
-        converter: await outputConverter.getAddress(),
-        minOut: 0n,
-        routes: CONVERTER_ROUTRS.aCVX.ETH,
-      };
-
-      const [base, dst] = await gateway
-        .connect(signer)
-        .fxRedeemXTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
-      console.log("redeem xToken as CVX:", ethers.formatEther(base));
-      console.log("redeem xToken as ETH:", ethers.formatEther(dst));
-      params.minOut = (dst * 9999n) / 10000n;
-      const before = await ethers.provider.getBalance(signer.address);
-      const tx = await gateway
-        .connect(signer)
-        .fxRedeemXTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
-      const receipt = await tx.wait();
-      const after = await ethers.provider.getBalance(signer.address);
-      expect(after - before + receipt!.gasPrice * receipt!.gasUsed).to.closeTo(dst, dst / 10000n);
-    });
+    for (const symbol of ["CVX", "WETH", "USDC", "USDT", "ETH"]) {
+      it(`should succeed when redeem as ${symbol}`, async () => {
+        await simulateRedeemXTokenV2(
+          gateway,
+          outputConverter,
+          market,
+          xToken,
+          TokenHolder.aCVX.holder,
+          symbol,
+          ethers.parseEther("10"),
+          CONVERTER_ROUTRS.aCVX[symbol]
+        );
+      });
+    }
   });
 });

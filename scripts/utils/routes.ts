@@ -623,6 +623,8 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
   },
 };
 
+/* eslint-disable prettier/prettier */
+// prettier-ignore
 export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = {
   "CURVE_ETH/frxETH": {
     aCRV: [
@@ -647,33 +649,46 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
   FRAX: {
     sfrxETH: [
       encodePoolHintV3(ADDRESS.CURVE_FRAXUSDC_POOL, PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
-      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
       encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
     ],
     stETH: [
       encodePoolHintV3(ADDRESS.CURVE_FRAXUSDC_POOL, PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
-      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
       encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
     ],
     wstETH: [
       encodePoolHintV3(ADDRESS.CURVE_FRAXUSDC_POOL, PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
-      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
       encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
       encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
     ],
   },
   USDC: {
+    aCVX: [
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
+      encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)
+    ],
+    apxETH: [
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
+      encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_pxETH/stETH_30_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Add)
+    ],
     sfrxETH: [
       encodePoolHintV3(ADDRESS.USDC_WETH_UNIV3, PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, { fee_num: 500 }),
       encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
+    ],
+    stETH: [
+      encodePoolHintV3(ADDRESS.USDC_WETH_UNIV3, PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, { fee_num: 500 }),
+      encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+    ],
+    weETH: [
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 1, 0, Action.Swap),
     ],
     wstETH: [
       encodePoolHintV3(ADDRESS.USDC_WETH_UNIV3, PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, { fee_num: 500 }),
@@ -682,23 +697,32 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
     ],
   },
   USDT: {
+    aCVX: [
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
+      encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)
+    ],
+    apxETH: [
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
+      encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_pxETH/stETH_30_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Add)
+    ],
     sfrxETH: [
-      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
       encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
     ],
     stETH: [
-      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
       encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 9, 0, 0, Action.Add),
     ],
+    weETH: [
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 1, 0, Action.Swap),
+    ],
     wstETH: [
-      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
       encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 9, 0, 0, Action.Add),
       encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 9, 0, 0, Action.Add),
     ],
@@ -710,9 +734,20 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
       encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
     ],
+    apxETH: [
+      encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_pxETH/stETH_30_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Add)
+    ],
     sfrxETH: [
       encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
+    ],
+    stETH: [
+      encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+    ],
+    weETH: [
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 1, 0, Action.Swap),
     ],
     wstETH: [
       encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
@@ -725,6 +760,16 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
       encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
       encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap),
       encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
+    ],
+    USDC: [
+      encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {use_eth: false}),
+    ],
+    USDT: [
+      encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {use_eth: false}),
     ],
     WETH: [
       encodePoolHintV3(TOKENS.aCVX.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
@@ -752,27 +797,53 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
       encodePoolHintV3(TOKENS.aCRV.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
     ],
   },
+  apxETH: {
+    ETH: [
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_pxETH/stETH_30_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, { use_eth: false }),
+      encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
+    ],
+    USDC: [
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_pxETH/stETH_30_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, { use_eth: false }),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {use_eth: false}),
+    ],
+    USDT: [
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_pxETH/stETH_30_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, { use_eth: false }),
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {use_eth: false}),
+    ],
+    WETH: [
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_pxETH/stETH_30_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, { use_eth: false }),
+    ],
+    pxETH: [
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Remove)
+    ],
+    stETH: [
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_pxETH/stETH_30_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+    ],
+  },
   crvUSD: {
     sfrxETH: [
       encodePoolHintV3(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
-      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
       encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
     ],
     stETH: [
       encodePoolHintV3(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
-      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
       encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
     ],
     wstETH: [
       encodePoolHintV3(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
-      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {use_eth: false}),
       encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
       encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
     ],
@@ -783,8 +854,14 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
       encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
     ],
   },
+  eETH: {
+    weETH: [encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Add, { protocol: 5 })]
+  },
   frxETH: {
     sfrxETH: [encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)],
+  },
+  pxETH: {
+    apxETH: [encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Add)],
   },
   sdCRV: {
     aCRV: [
@@ -795,6 +872,11 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
     ],
   },
   sfrxETH: {
+    ETH: [
+      encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
+    ],
     FRAX: [
       encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
       encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
@@ -860,16 +942,41 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
     WETH: [
       encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, { use_eth: false }),
     ],
+    apxETH: [
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_pxETH/stETH_30_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(TOKENS.apxETH.address, PoolTypeV3.ERC4626, 0, 0, 0, Action.Add)
+    ],
     crvUSD: [
-      encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, { use_eth: false }),
-      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {
-        use_eth: false,
-      }),
+      encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap, {use_eth: false}),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {use_eth: false}),
       encodePoolHintV3(ADDRESS["CURVE_USDC/crvUSD_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
     ],
     wstETH: [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
   },
+  weETH: {
+    ETH: [
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
+    ],
+    USDC: [
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {use_eth: false}),
+    ],
+    USDT: [
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {use_eth: false}),
+    ],
+    WETH: [
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+    ],
+    eETH: [encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Remove, { protocol: 5 })],
+  },
   wstETH: {
+    ETH: [
+      encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(ZeroAddress, PoolTypeV3.WETH, 0, 0, 0, Action.Remove),
+    ],
     FRAX: [
       encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove),
       encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
@@ -907,6 +1014,7 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
     stETH: [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove)],
   },
 };
+/* eslint-enable prettier/prettier */
 
 export function encodeMultiPath(
   paths: bigint[][],
@@ -940,14 +1048,16 @@ export function showZapRoute(src: string, dst: string, space?: number) {
   });
 }
 
-export function showConverterRoute(src: string, dst: string, space?: number) {
+export function showConverterRoute(src: string, dst: string, space?: number, decode?: boolean) {
   const routes = CONVERTER_ROUTRS[src][dst];
   console.log(
     " ".repeat(space ?? 0),
     `${src}[${TOKENS[src].address}] => ${dst}[${TOKENS[dst].address}]:`,
     `[${routes.map((r) => `"0x${r.toString(16)}"`).join(",")}]`
   );
-  routes.forEach((route, index) => {
-    console.log(" ".repeat(space ?? 0), `  route #${index + 1}: ${decodePoolV3(route)}`);
-  });
+  if (decode) {
+    routes.forEach((route, index) => {
+      console.log(" ".repeat(space ?? 0), `  route #${index + 1}: ${decodePoolV3(route)}`);
+    });
+  }
 }
