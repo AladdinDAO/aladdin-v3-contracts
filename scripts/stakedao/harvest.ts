@@ -47,34 +47,31 @@ async function getSwapData(
   amountIn: bigint,
   minOut: bigint
 ): Promise<SdCRVBribeBurnerV2.ConvertParamsStruct> {
+  /* eslint-disable prettier/prettier */
+  // prettier-ignore
+  const routes: {[name: string]: bigint} = {
+    "sdCRV-CRV-Curve": encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+    "CRV-WETH-UniV3": encodePoolHintV3(ADDRESS["UniV3_WETH/CRV_3000"], PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {fee_num: 3000}),
+    "CRV-crvUSD-Curve3Crypto": encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap),
+    "WETH-SDT-Curve2Crypto": encodePoolHintV3(ADDRESS["CURVE_ETH/SDT_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap, {use_eth: true}),
+    "WETH-SDT-PancakeV3": encodePoolHintV3(ADDRESS.SDT_WETH_PancakeV3_2500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {fee_num: 2500}),
+    "WETH-SDT-UniV2": encodePoolHintV3(ADDRESS.SDT_WETH_UNIV2, PoolTypeV3.UniswapV2, 2, 1, 0, Action.Swap, { fee_num: 997000 }),
+    "crvUSD-SDT-Curve3Crypto": encodePoolHintV3(ADDRESS["CURVE_crvUSD/frxETH/SDT_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap)
+  };
+  /* eslint-enable prettier/prettier */
+
   // @note should change before actually call
   const converter = await ethers.getContractAt("MultiPathConverter", "0x4F96fe476e7dcD0404894454927b9885Eb8B57c3");
   if (same(src, dst)) return { target: ZeroAddress, data: "0x", minOut };
   if (same(src, TOKENS.sdCRV.address)) {
     if (same(dst, TOKENS.SDT.address)) {
-      // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV2)==> SDT
-      const path1 = [
-        encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
-        encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV3(ADDRESS.SDT_WETH_UNIV2, PoolTypeV3.UniswapV2, 2, 1, 0, Action.Swap, { fee_num: 997000 }),
-      ];
-      // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(Curve)==> SDT
-      const path2 = [
-        encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
-        encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV3(ADDRESS["CURVE_ETH/SDT_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap, {
-          use_eth: true,
-        }),
-      ];
-      // sdCRV ==(Curve)==> CRV ==(Curve)==> ETH ==(UniV3)==> SDT
-      const path3 = [
-        encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
-        encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
-        encodePoolHintV3(ADDRESS.SDT_WETH_PancakeV3_2500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {
-          fee_num: 2500,
-        }),
-      ];
-      const encoding = encodeMultiPath([path1, path2, path3], [0n, 0n, 0n]);
+      const encoding = encodeMultiPath(
+        [
+          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-UniV3"], routes["WETH-SDT-PancakeV3"]],
+          [routes["sdCRV-CRV-Curve"], routes["CRV-crvUSD-Curve3Crypto"], routes["crvUSD-SDT-Curve3Crypto"]],
+        ],
+        [0n, 0n]
+      );
       return {
         target: await converter.getAddress(),
         data: converter.interface.encodeFunctionData("convert", [src, amountIn, encoding.encoding, encoding.routes]),
