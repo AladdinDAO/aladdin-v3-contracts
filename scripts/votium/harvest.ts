@@ -110,11 +110,11 @@ async function main(round: number, manualStr: string) {
   console.log("gas estimate:", gasEstimate.toString());
 
   if (KEEPER === deployer.address) {
-    const fee = await ethers.provider.getFeeData();
+    const block = await ethers.provider.getBlock("latest");
     const tx = await locker.harvestVotium(claimParams, routes, (estimate * 9995n) / 10000n, {
       gasLimit: (gasEstimate * 12n) / 10n,
-      maxFeePerGas: fee.maxFeePerGas!,
-      maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
+      maxFeePerGas: (block!.baseFeePerGas! * 3n) / 2n,
+      maxPriorityFeePerGas: ethers.parseUnits("1", "gwei"),
     });
     console.log("waiting for tx:", tx.hash);
     const receipt = await tx.wait();

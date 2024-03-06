@@ -9,6 +9,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   APEFI: { decimals: 18, address: "0x4332f8a38f14bd3d8d1553af27d7c7ac6c27278d" },
   BADGER: { decimals: 18, address: "0x3472a5a71965499acd81997a54bba8d852c6e53d" },
   BAL: { decimals: 18, address: "0xba100000625a3754423978a60c9317c58a424e3D" },
+  BTRFLY: { decimals: 18, address: "0xc55126051B22eBb829D00368f4B12Bde432de5Da" },
   BUSD: { decimals: 18, address: "0x4Fabb145d64652a948d72533023f6E7A623C7C53" },
   CLEV: { decimals: 18, address: DEPLOYED_CONTRACTS.CLever.CLEV },
   CNC: { decimals: 18, address: "0x9ae380f0272e2162340a5bb646c354271c0f5cfc" },
