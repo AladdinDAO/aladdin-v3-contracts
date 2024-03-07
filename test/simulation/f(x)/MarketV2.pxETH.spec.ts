@@ -89,7 +89,7 @@ describe("MarketV2.pxETH.spec", async () => {
       });
     }
     const FxUSDFacet = await ethers.getContractFactory("FxUSDFacet", deployer);
-    const facet = await FxUSDFacet.deploy(ZeroAddress);
+    const facet = await FxUSDFacet.deploy();
     diamondCuts.push({
       facetAddress: await facet.getAddress(),
       action: 0,
@@ -204,6 +204,8 @@ describe("MarketV2.pxETH.spec", async () => {
     await treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), signer.address);
     await treasury.connect(signer).initializeProtocol(ethers.parseEther("100"));
     await market.updateStabilityRatio(ethers.parseEther("1.3"));
+
+    await manage.connect(deployer).updateWhitelist(market.getAddress(), 2);
   });
 
   context("mint fToken", async () => {

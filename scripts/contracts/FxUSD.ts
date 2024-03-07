@@ -3,7 +3,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { MaxUint256, Overrides, ZeroAddress, getAddress, id } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { FxUSD__factory } from "@/types/index";
+import { FxUSD, FxUSD__factory } from "@/types/index";
 import { TOKENS, same } from "@/utils/index";
 
 import { DeploymentHelper, abiDecode, contractCall, ownerContractCall } from "./helpers";
@@ -168,7 +168,10 @@ export interface FxUSDDeployment {
   };
   FxUSD: {
     implementation: string;
-    proxy: string;
+    proxy: {
+      fxUSD: string;
+      rUSD: string;
+    };
   };
 }
 
@@ -220,7 +223,7 @@ async function doUpgrade(
   }
 }
 
-async function deployMarket(deployment: DeploymentHelper, symbol: string, enableFxUSD: boolean) {
+async function deployMarket(deployment: DeploymentHelper, symbol: string, fxUSD: string) {
   const admin = await ProxyAdmin.deploy(deployment.deployer);
   const governance = await FxGovernance.deploy(deployment.deployer, deployment.overrides);
   const baseToken = TOKENS[symbol].address;
@@ -317,7 +320,7 @@ async function deployMarket(deployment: DeploymentHelper, symbol: string, enable
   // deploy FxInitialFund
   await deployment.contractDeploy(`${selectorPrefix}.FxInitialFund`, `FxInitialFund for ${symbol}`, "FxInitialFund", [
     deployment.get(`${selectorPrefix}.Market.proxy`),
-    enableFxUSD ? deployment.get("FxUSD.proxy") : ZeroAddress,
+    fxUSD,
   ]);
 
   // deploy registry
@@ -360,7 +363,7 @@ async function deployMarket(deployment: DeploymentHelper, symbol: string, enable
   await deployment.proxyDeploy(
     `${selectorPrefix}.pool`,
     `FxUSDShareableRebalancePool/${symbol} Proxy`,
-    enableFxUSD ? deployment.get("FxUSDShareableRebalancePool") : deployment.get("ShareableRebalancePoolV2"),
+    fxUSD !== ZeroAddress ? deployment.get("FxUSDShareableRebalancePool") : deployment.get("ShareableRebalancePoolV2"),
     admin.Fx,
     "0x"
   );
@@ -369,7 +372,7 @@ async function deployMarket(deployment: DeploymentHelper, symbol: string, enable
   await deployment.proxyDeploy(
     `${selectorPrefix}.pool`,
     `FxUSDShareableRebalancePool/${MarketConfig[symbol].LeveragedToken.symbol} Proxy`,
-    enableFxUSD ? deployment.get("FxUSDShareableRebalancePool") : deployment.get("ShareableRebalancePoolV2"),
+    fxUSD !== ZeroAddress ? deployment.get("FxUSDShareableRebalancePool") : deployment.get("ShareableRebalancePoolV2"),
     admin.Fx,
     "0x"
   );
@@ -390,7 +393,7 @@ async function initializeMarket(
   deployer: HardhatEthersSigner,
   deployment: FxUSDDeployment,
   baseSymbol: string,
-  enableFxUSD: boolean,
+  fxUSD: string,
   overrides?: Overrides
 ) {
   const marketConfig = MarketConfig[baseSymbol];
@@ -605,8 +608,8 @@ async function initializeMarket(
   }
 
   // enable fxUSD for market
-  if (enableFxUSD && (await market.fxUSD()) === ZeroAddress) {
-    await ownerContractCall(market, `Market for ${baseSymbol} enableFxUSD`, "enableFxUSD", [deployment.FxUSD.proxy]);
+  if ((await market.fxUSD()) !== fxUSD) {
+    await ownerContractCall(market, `Market for ${baseSymbol} enableFxUSD`, "enableFxUSD", [fxUSD]);
   }
 
   // Setup RebalancePoolRegistry
@@ -672,12 +675,12 @@ async function initializeMarket(
       overrides
     );
   }
-  if (enableFxUSD && !(await rebalancePoolA.hasRole(WITHDRAW_FROM_ROLE, deployment.FxUSD.proxy))) {
+  if (fxUSD !== ZeroAddress && !(await rebalancePoolA.hasRole(WITHDRAW_FROM_ROLE, fxUSD))) {
     await ownerContractCall(
       rebalancePoolA,
       `FxUSDShareableRebalancePool/${baseSymbol} grant WITHDRAW_FROM_ROLE to fxUSD`,
       "grantRole",
-      [WITHDRAW_FROM_ROLE, deployment.FxUSD.proxy],
+      [WITHDRAW_FROM_ROLE, fxUSD],
       overrides
     );
   }
@@ -719,12 +722,12 @@ async function initializeMarket(
       overrides
     );
   }
-  if (enableFxUSD && !(await rebalancePoolB.hasRole(WITHDRAW_FROM_ROLE, deployment.FxUSD.proxy))) {
+  if (fxUSD !== ZeroAddress && !(await rebalancePoolB.hasRole(WITHDRAW_FROM_ROLE, fxUSD))) {
     await ownerContractCall(
       rebalancePoolB,
       `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} grant WITHDRAW_FROM_ROLE to fxUSD`,
       "grantRole",
-      [WITHDRAW_FROM_ROLE, deployment.FxUSD.proxy],
+      [WITHDRAW_FROM_ROLE, fxUSD],
       overrides
     );
   }
@@ -836,68 +839,94 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   // deploy fxUSD
   await deployment.contractDeploy("FxUSD.implementation", "FxUSD implementation", "FxUSD", []);
   await deployment.proxyDeploy(
-    "FxUSD.proxy",
-    "FxUSD proxy",
+    "FxUSD.proxy.fxUSD",
+    "fxUSD proxy",
     deployment.get("FxUSD.implementation"),
     admin.Fx,
     FxUSD__factory.createInterface().encodeFunctionData("initialize", ["f(x) USD", "fxUSD"])
   );
+  await deployment.proxyDeploy(
+    "FxUSD.proxy.rUSD",
+    "rUSD proxy",
+    deployment.get("FxUSD.implementation"),
+    admin.Fx,
+    FxUSD__factory.createInterface().encodeFunctionData("initialize", ["f(x) rUSD", "rUSD"])
+  );
 
   // deploy markets
-  await deployMarket(deployment, "wstETH", true);
-  await deployMarket(deployment, "sfrxETH", true);
-  await deployMarket(deployment, "weETH", false);
-  await deployMarket(deployment, "apxETH", false);
-  await deployMarket(deployment, "aCVX", false);
+  await deployMarket(deployment, "wstETH", deployment.get("FxUSD.proxy.fxUSD"));
+  await deployMarket(deployment, "sfrxETH", deployment.get("FxUSD.proxy.fxUSD"));
+  await deployMarket(deployment, "weETH", deployment.get("FxUSD.proxy.rUSD"));
+  // await deployMarket(deployment, "apxETH", deployment.get("FxUSD.proxy.rUSD"));
+  await deployMarket(deployment, "aCVX", ZeroAddress);
 
   return deployment.toObject() as FxUSDDeployment;
 }
 
-export async function initialize(deployer: HardhatEthersSigner, deployment: FxUSDDeployment, overrides?: Overrides) {
-  const governance = await FxGovernance.deploy(deployer, overrides);
-
-  await initializeMarket(deployer, deployment, "wstETH", true, overrides);
-  await initializeMarket(deployer, deployment, "sfrxETH", true, overrides);
-  await initializeMarket(deployer, deployment, "weETH", false, overrides);
-  await initializeMarket(deployer, deployment, "apxETH", false, overrides);
-  await initializeMarket(deployer, deployment, "aCVX", false, overrides);
-
-  const fxUSD = await ethers.getContractAt("FxUSD", deployment.FxUSD.proxy, deployer);
-  const reservePool = await ethers.getContractAt("ReservePoolV2", governance.ReservePool, deployer);
-  const platformFeeSpliter = await ethers.getContractAt("PlatformFeeSpliter", governance.PlatformFeeSpliter, deployer);
-
-  // setup fxUSD
+async function initializeFxUSD(deployment: FxUSDDeployment, fxUSD: FxUSD, baseSymbols: string[], allPools: string[]) {
+  const fxUSDSymbol = await fxUSD.symbol();
   const markets = await fxUSD.getMarkets();
-  for (const baseSymbol of ["wstETH", "sfrxETH"]) {
+  for (const baseSymbol of baseSymbols) {
     if (!markets.includes(getAddress(TOKENS[baseSymbol].address))) {
-      await ownerContractCall(fxUSD, `add ${baseSymbol} to fxUSD`, "addMarket", [
+      await ownerContractCall(fxUSD, `add ${baseSymbol} to ${fxUSDSymbol}`, "addMarket", [
         deployment.Markets[baseSymbol].Market.proxy,
         MarketConfig[baseSymbol].FxUSDMintCapacity,
       ]);
     }
     if ((await fxUSD.markets(TOKENS[baseSymbol].address)).mintCap !== MarketConfig[baseSymbol].FxUSDMintCapacity) {
-      await ownerContractCall(fxUSD, "fxUSD updateMintCap for " + baseSymbol, "updateMintCap", [
+      await ownerContractCall(fxUSD, `${fxUSDSymbol} updateMintCap for ${baseSymbol}`, "updateMintCap", [
         TOKENS[baseSymbol].address,
         MarketConfig[baseSymbol].FxUSDMintCapacity,
       ]);
     }
   }
-  const pools = await fxUSD.getRebalancePools();
+  const addedPools = await fxUSD.getRebalancePools();
   const poolsToAdd = [];
-  for (const pool of [
-    deployment.Markets.wstETH.RebalancePool.wstETH.pool,
-    deployment.Markets.wstETH.RebalancePool.xstETH.pool,
-    deployment.Markets.sfrxETH.RebalancePool.sfrxETH.pool,
-    deployment.Markets.sfrxETH.RebalancePool.xfrxETH.pool,
-  ]) {
-    if (!pools.includes(getAddress(pool))) poolsToAdd.push(pool);
+  for (const pool of allPools) {
+    if (!addedPools.includes(getAddress(pool))) poolsToAdd.push(pool);
   }
   if (poolsToAdd.length > 0) {
     await ownerContractCall(fxUSD, "addRebalancePools", "addRebalancePools", [poolsToAdd]);
   }
+}
+
+export async function initialize(deployer: HardhatEthersSigner, deployment: FxUSDDeployment, overrides?: Overrides) {
+  const governance = await FxGovernance.deploy(deployer, overrides);
+
+  await initializeMarket(deployer, deployment, "wstETH", deployment.FxUSD.proxy.fxUSD, overrides);
+  await initializeMarket(deployer, deployment, "sfrxETH", deployment.FxUSD.proxy.fxUSD, overrides);
+  await initializeMarket(deployer, deployment, "weETH", deployment.FxUSD.proxy.rUSD, overrides);
+  // await initializeMarket(deployer, deployment, "apxETH", deployment.FxUSD.proxy.rUSD, overrides);
+  await initializeMarket(deployer, deployment, "aCVX", ZeroAddress, overrides);
+
+  const fxUSD = await ethers.getContractAt("FxUSD", deployment.FxUSD.proxy.fxUSD, deployer);
+  const fxUSDr = await ethers.getContractAt("FxUSD", deployment.FxUSD.proxy.rUSD, deployer);
+  const reservePool = await ethers.getContractAt("ReservePoolV2", governance.ReservePool, deployer);
+  const platformFeeSpliter = await ethers.getContractAt("PlatformFeeSpliter", governance.PlatformFeeSpliter, deployer);
+
+  // setup fxUSD
+  await initializeFxUSD(
+    deployment,
+    fxUSD,
+    ["wstETH", "sfrxETH"],
+    [
+      deployment.Markets.wstETH.RebalancePool.wstETH.pool,
+      deployment.Markets.wstETH.RebalancePool.xstETH.pool,
+      deployment.Markets.sfrxETH.RebalancePool.sfrxETH.pool,
+      deployment.Markets.sfrxETH.RebalancePool.xfrxETH.pool,
+    ]
+  );
+
+  // setup fxUSDr
+  await initializeFxUSD(
+    deployment,
+    fxUSDr,
+    ["weETH"],
+    [deployment.Markets.weETH.RebalancePool.weETH.pool, deployment.Markets.weETH.RebalancePool.xeETH.pool]
+  );
 
   // Setup ReservePool
-  for (const baseSymbol of ["wstETH", "sfrxETH", "weETH", "apxETH", "aCVX"]) {
+  for (const baseSymbol of ["wstETH", "sfrxETH", "weETH", "aCVX"]) {
     if ((await reservePool.bonusRatio(TOKENS[baseSymbol].address)) !== MarketConfig[baseSymbol].ReservePoolBonusRatio) {
       await ownerContractCall(
         reservePool,
@@ -939,7 +968,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxUS
       overrides
     );
   }
-  for (const baseSymbol of ["stETH", "sfrxETH", "weETH", "apxETH", "aCVX"]) {
+  for (const baseSymbol of ["stETH", "sfrxETH", "weETH", "aCVX"]) {
     if (!rewardToken.includes(getAddress(TOKENS[baseSymbol].address))) {
       await ownerContractCall(
         platformFeeSpliter,

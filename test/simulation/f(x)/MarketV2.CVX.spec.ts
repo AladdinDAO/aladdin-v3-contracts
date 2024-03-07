@@ -75,24 +75,39 @@ describe("MarketV2.CVX.spec", async () => {
     await mockETHBalance(admin.address, ethers.parseEther("100"));
     await mockETHBalance(manager.address, ethers.parseEther("100"));
 
-    // deploy diamond
-    const diamondCuts: IDiamond.FacetCutStruct[] = [];
-    for (const name of ["DiamondCutFacet", "DiamondLoupeFacet", "OwnershipFacet", "TokenConvertManagementFacet"]) {
+    const loupeFacet = await ethers.getContractAt(
+      "DiamondLoupeFacet",
+      "0xA5e2Ec4682a32605b9098Ddd7204fe84Ab932fE4",
+      deployer
+    );
+    const cutFacet = await ethers.getContractAt(
+      "DiamondCutFacet",
+      "0xA5e2Ec4682a32605b9098Ddd7204fe84Ab932fE4",
+      deployer
+    );
+    const cuts: IDiamond.FacetCutStruct[] = [];
+    const x: string[] = await loupeFacet.facetFunctionSelectors("0x5fd37C3b46d05859B333D6E418ce7d6d405c20b6");
+    const y: string[] = await loupeFacet.facetFunctionSelectors("0x2eD6624Cc9E6200c2a60631f8cEb69FbAFbE3733");
+    cuts.push({
+      facetAddress: ZeroAddress,
+      action: 2,
+      functionSelectors: x.map((x) => x),
+    });
+    cuts.push({
+      facetAddress: ZeroAddress,
+      action: 2,
+      functionSelectors: y.map((x) => x),
+    });
+    for (const name of ["FxUSDFacet", "TokenConvertManagementFacet"]) {
       const Contract = await ethers.getContractFactory(name, deployer);
       const facet = await Contract.deploy();
-      diamondCuts.push({
+      cuts.push({
         facetAddress: await facet.getAddress(),
         action: 0,
         functionSelectors: getAllSignatures(facet.interface),
       });
     }
-    const FxUSDFacet = await ethers.getContractFactory("FxUSDFacet", deployer);
-    const facet = await FxUSDFacet.deploy(ZeroAddress);
-    diamondCuts.push({
-      facetAddress: await facet.getAddress(),
-      action: 0,
-      functionSelectors: getAllSignatures(facet.interface),
-    });
+    await cutFacet.connect(manager).diamondCut(cuts, ZeroAddress, "0x");
 
     manage = await ethers.getContractAt(
       "TokenConvertManagementFacet",
@@ -200,6 +215,8 @@ describe("MarketV2.CVX.spec", async () => {
     await treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), signer.address);
     await treasury.connect(signer).initializeProtocol(ethers.parseEther("1000"));
     await market.updateStabilityRatio(ethers.parseEther("1.3"));
+
+    await manage.connect(manager).updateWhitelist(market.getAddress(), 2);
   });
 
   context("mint fToken", async () => {

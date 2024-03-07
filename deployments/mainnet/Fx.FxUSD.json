@@ -4,7 +4,9 @@
   "FxUSDShareableRebalancePool": "0x584B01aB834EE75b2a685DA500bCd0d7380FB8e0",
   "FxUSD": {
     "implementation": "0xb788998187a8536F38B69Ae657323ac8B70551Bb",
-    "proxy": "0x085780639CC2cACd35E474e71f4d000e2405d8f6"
+    "proxy": {
+      "fxUSD": "0x085780639CC2cACd35E474e71f4d000e2405d8f6"
+    }
   },
   "Markets": {
     "wstETH": {

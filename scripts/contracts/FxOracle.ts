@@ -63,6 +63,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.get("ChainlinkTwapOracle.ETH"),
   ]);
 
+  /*
   // deploy FxPxETHTwapOracle
   await deployment.contractDeploy("FxPxETHTwapOracle", "FxPxETHTwapOracle", "FxPxETHTwapOracle", [
     TOKENS["CURVE_STABLE_NG_pxETH/stETH_30"].address,
@@ -70,6 +71,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36", // Uniswap V3 USDT/WETH 0.3% pool
     deployment.get("ChainlinkTwapOracle.ETH"),
   ]);
+  */
 
   // deploy FxCVXTwapOracle
   await deployment.contractDeploy("FxCVXTwapOracle", "FxCVXTwapOracle", "FxCVXTwapOracle", [
@@ -91,13 +93,14 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     [TOKENS.sfrxETH.address]
   );
 
-  // deploy ERC4626RateProvider apxETH
+  /* // deploy ERC4626RateProvider apxETH
   await deployment.contractDeploy(
     "ERC4626RateProvider.apxETH",
     "ERC4626RateProvider for apxETH",
     "ERC4626RateProvider",
     [TOKENS.apxETH.address]
   );
+  */
 
   // deploy ERC4626RateProvider aCVX
   await deployment.contractDeploy("ERC4626RateProvider.aCVX", "ERC4626RateProvider for aCVX", "ERC4626RateProvider", [
