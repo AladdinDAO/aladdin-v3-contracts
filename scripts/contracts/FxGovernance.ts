@@ -1,9 +1,10 @@
+/* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { ZeroAddress, Overrides, Contract, MaxUint256 } from "ethers";
+import { ZeroAddress, Overrides, Contract, MaxUint256, ZeroHash } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { GaugeController } from "@/types/index";
+import { GaugeController, SharedLiquidityGauge__factory } from "@/types/index";
 import { DEPLOYED_CONTRACTS } from "@/utils/deploys";
 import { TOKENS } from "@/utils/tokens";
 
@@ -14,7 +15,13 @@ import * as ProxyAdmin from "./ProxyAdmin";
 import * as VotingEscrow from "./VotingEscrow";
 
 const DeployedGauges: {
-  [name: string]: { token: string; rewarder: string; immutable: boolean; harvesterRatio: bigint; managerRatio: bigint };
+  [name: string]: {
+    token: string;
+    rewarder?: string;
+    immutable: boolean;
+    harvesterRatio: bigint;
+    managerRatio: bigint;
+  };
 } = {
   "ETH+FXN": {
     token: TOKENS["CURVE_CRYPTO_ETH/FXN_311"].address,
@@ -34,6 +41,62 @@ const DeployedGauges: {
     token: TOKENS["CURVE_PLAIN_FXN/sdFXN_359"].address,
     rewarder: "0x883D7AB9078970b0204c50B56e1c3F72AB5544f9",
     immutable: true,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "crvUSD+fxUSD": {
+    token: TOKENS["CURVE_STABLE_NG_crvUSD/fxUSD_106"].address,
+    rewarder: "0x65C57A4bbCb1A0E23A2ed8cAfbA5BA6133C8DaC8",
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "PYUSD+fxUSD": {
+    token: TOKENS["CURVE_STABLE_NG_PYUSD/fxUSD_107"].address,
+    rewarder: "0x18DB87dEE953BA34eb839739Cd6E2F2d01eEa471",
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "DOLA+fxUSD": {
+    token: TOKENS["CURVE_STABLE_NG_DOLA/fxUSD_108"].address,
+    rewarder: "0x2ef1dA0368470B2603BAb392932E70205eEb9046",
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "GRAI+fxUSD": {
+    token: TOKENS["CURVE_STABLE_NG_GRAI/fxUSD_109"].address,
+    rewarder: "0x2F7473369B5d21418B10543823a6a38BcE529908",
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "FRAX+fxUSD": {
+    token: TOKENS["CURVE_STABLE_NG_FRAX/fxUSD_110"].address,
+    rewarder: "0xfbb02DFA57C2eA0E6F5F2c260957d8656ab7A94a",
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "GHO+fxUSD": {
+    token: TOKENS["CURVE_STABLE_NG_GHO/fxUSD_111"].address,
+    rewarder: "0x77e69Dc146C6044b996ad5c93D88D104Ee13F186",
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "mkUSD+fxUSD": {
+    token: TOKENS["CURVE_STABLE_NG_mkUSD/fxUSD_115"].address,
+    rewarder: "0x99C9dd0a99A3e05997Ae9a2AB469a4e414C9d8fb",
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "ULTRA+fxUSD": {
+    token: TOKENS["CURVE_STABLE_NG_ULTRA/fxUSD_116"].address,
+    rewarder: "0x9A0E529223a9c2fCD27aB4894F086eb97Ea4477A",
+    immutable: false,
     harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
     managerRatio: ethers.parseUnits("0.01", 9), // 1%
   },
@@ -185,31 +248,45 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "ConvexCurveManager",
     []
   );
-  for (const name of ["ETH+FXN", "FXN+cvxFXN", "FXN+sdFXN"]) {
+  for (const name of [
+    "ETH+FXN",
+    "FXN+cvxFXN",
+    "FXN+sdFXN",
+    "crvUSD+fxUSD",
+    "PYUSD+fxUSD",
+    "DOLA+fxUSD",
+    "GRAI+fxUSD",
+    "FRAX+fxUSD",
+    "GHO+fxUSD",
+    "mkUSD+fxUSD",
+    "ULTRA+fxUSD",
+  ]) {
     await deployment.proxyDeploy(
       "LiquidityGauge.ConvexDualFarm." + name + ".gauge",
       `SharedLiquidityGauge of ${name}`,
       deployment.get("LiquidityGauge.implementation.SharedLiquidityGauge"),
       admin.Fx,
-      "0x"
+      SharedLiquidityGauge__factory.createInterface().encodeFunctionData("initialize", [DeployedGauges[name].token])
     );
-    if (DeployedGauges[name].immutable) {
-      await deployment.contractDeploy(
-        "LiquidityGauge.ConvexDualFarm." + name + ".manager",
-        `ConvexCurveManagerImmutable of ${name}`,
-        "ConvexCurveManagerImmutable",
-        [
-          deployment.get("LiquidityGauge.ConvexDualFarm." + name + ".gauge"),
-          DeployedGauges[name].token,
-          DeployedGauges[name].rewarder,
-        ]
-      );
-    } else {
-      await deployment.minimalProxyDeploy(
-        "LiquidityGauge.ConvexDualFarm." + name + ".manager",
-        `ConvexCurveManager of ${name}`,
-        deployment.get("LiquidityGauge.implementation.ConvexCurveManager")
-      );
+    if (DeployedGauges[name].rewarder) {
+      if (DeployedGauges[name].immutable) {
+        await deployment.contractDeploy(
+          "LiquidityGauge.ConvexDualFarm." + name + ".manager",
+          `ConvexCurveManagerImmutable of ${name}`,
+          "ConvexCurveManagerImmutable",
+          [
+            deployment.get("LiquidityGauge.ConvexDualFarm." + name + ".gauge"),
+            DeployedGauges[name].token,
+            DeployedGauges[name].rewarder,
+          ]
+        );
+      } else {
+        await deployment.minimalProxyDeploy(
+          "LiquidityGauge.ConvexDualFarm." + name + ".manager",
+          `ConvexCurveManager of ${name}`,
+          deployment.get("LiquidityGauge.implementation.ConvexCurveManager")
+        );
+      }
     }
   }
   // Fundraising related contracts
@@ -575,44 +652,19 @@ export async function initialize(
     }
   }
   // Setup LiquidityGauge
-  for (const name of ["ETH+FXN", "FXN+cvxFXN", "FXN+sdFXN"]) {
-    const manager = await ethers.getContractAt(
-      "ConvexCurveManager",
-      deployment.LiquidityGauge.ConvexDualFarm[name].manager,
-      deployer
-    );
-    if (!DeployedGauges[name].immutable && (await manager.token()) === ZeroAddress) {
-      // do initialize
-      await contractCall(
-        manager,
-        `ConvexCurveManager of ${name} initialize`,
-        "initialize",
-        [
-          deployment.LiquidityGauge.ConvexDualFarm[name].gauge,
-          DeployedGauges[name].token,
-          DeployedGauges[name].rewarder,
-        ],
-        overrides
-      );
-    }
-    if ((await manager.getHarvesterRatio()) !== DeployedGauges[name].harvesterRatio) {
-      await ownerContractCall(
-        manager,
-        `ConvexCurveManager for ${name} updateHarvesterRatio`,
-        "updateHarvesterRatio",
-        [DeployedGauges[name].harvesterRatio],
-        overrides
-      );
-    }
-    if ((await manager.getManagerRatio()) !== DeployedGauges[name].managerRatio) {
-      await ownerContractCall(
-        manager,
-        `ConvexCurveManager for ${name} updateManagerRatio`,
-        "updateManagerRatio",
-        [DeployedGauges[name].managerRatio],
-        overrides
-      );
-    }
+  for (const name of [
+    "ETH+FXN",
+    "FXN+cvxFXN",
+    "FXN+sdFXN",
+    "crvUSD+fxUSD",
+    "PYUSD+fxUSD",
+    "DOLA+fxUSD",
+    "GRAI+fxUSD",
+    "FRAX+fxUSD",
+    "GHO+fxUSD",
+    "mkUSD+fxUSD",
+    "ULTRA+fxUSD",
+  ]) {
     const gauge = await ethers.getContractAt(
       "SharedLiquidityGauge",
       deployment.LiquidityGauge.ConvexDualFarm[name].gauge,
@@ -623,38 +675,81 @@ export async function initialize(
         gauge,
         `SharedLiquidityGauge for ${name} initialize`,
         "initialize",
-        [await manager.token()],
+        [DeployedGauges[name].token],
         overrides
       );
     }
-    if ((await gauge.manager()) === ZeroAddress) {
-      await ownerContractCall(
-        gauge,
-        `SharedLiquidityGauge for ${name} updateLiquidityManager`,
-        "updateLiquidityManager",
-        [await manager.getAddress()],
-        overrides
+
+    if (DeployedGauges[name].rewarder) {
+      const manager = await ethers.getContractAt(
+        "ConvexCurveManager",
+        deployment.LiquidityGauge.ConvexDualFarm[name].manager,
+        deployer
       );
-    }
-    const REWARD_MANAGER_ROLE = await gauge.REWARD_MANAGER_ROLE();
-    if (!(await gauge.hasRole(REWARD_MANAGER_ROLE, deployer.address))) {
-      await ownerContractCall(
-        gauge,
-        `SharedLiquidityGauge for ${name} grant REWARD_MANAGER_ROLE`,
-        "grantRole",
-        [REWARD_MANAGER_ROLE, deployer.address],
-        overrides
-      );
-    }
-    for (const token of ["CRV", "CVX"]) {
-      if ((await gauge.distributors(TOKENS[token].address)) === ZeroAddress) {
-        await ownerContractCall(
-          gauge,
-          `SharedLiquidityGauge for ${name} add extra reward ${token}`,
-          "registerRewardToken",
-          [TOKENS[token].address, await manager.getAddress()],
+      if (!DeployedGauges[name].immutable && (await manager.token()) === ZeroAddress) {
+        // do initialize
+        await contractCall(
+          manager,
+          `ConvexCurveManager of ${name} initialize`,
+          "initialize",
+          [
+            deployment.LiquidityGauge.ConvexDualFarm[name].gauge,
+            DeployedGauges[name].token,
+            DeployedGauges[name].rewarder,
+          ],
           overrides
         );
+      }
+      if ((await manager.getHarvesterRatio()) !== DeployedGauges[name].harvesterRatio) {
+        await ownerContractCall(
+          manager,
+          `ConvexCurveManager for ${name} updateHarvesterRatio`,
+          "updateHarvesterRatio",
+          [DeployedGauges[name].harvesterRatio],
+          overrides
+        );
+      }
+      if ((await manager.getManagerRatio()) !== DeployedGauges[name].managerRatio) {
+        await ownerContractCall(
+          manager,
+          `ConvexCurveManager for ${name} updateManagerRatio`,
+          "updateManagerRatio",
+          [DeployedGauges[name].managerRatio],
+          overrides
+        );
+      }
+      if ((await gauge.manager()) === ZeroAddress) {
+        await ownerContractCall(
+          gauge,
+          `SharedLiquidityGauge for ${name} updateLiquidityManager`,
+          "updateLiquidityManager",
+          [await manager.getAddress()],
+          overrides
+        );
+      }
+      const REWARD_MANAGER_ROLE = await gauge.REWARD_MANAGER_ROLE();
+      if (
+        (await gauge.hasRole(ZeroHash, deployer.address)) &&
+        !(await gauge.hasRole(REWARD_MANAGER_ROLE, deployer.address))
+      ) {
+        await ownerContractCall(
+          gauge,
+          `SharedLiquidityGauge for ${name} grant REWARD_MANAGER_ROLE`,
+          "grantRole",
+          [REWARD_MANAGER_ROLE, deployer.address],
+          overrides
+        );
+      }
+      for (const token of ["CRV", "CVX"]) {
+        if ((await gauge.distributors(TOKENS[token].address)) === ZeroAddress) {
+          await ownerContractCall(
+            gauge,
+            `SharedLiquidityGauge for ${name} add extra reward ${token}`,
+            "registerRewardToken",
+            [TOKENS[token].address, await manager.getAddress()],
+            overrides
+          );
+        }
       }
     }
     await addGauge(controller, name, await gauge.getAddress(), 0);

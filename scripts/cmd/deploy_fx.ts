@@ -9,7 +9,7 @@ import * as FxOracle from "@/contracts/FxOracle";
 import * as FxStETH from "@/contracts/FxStETH";
 import * as FxUSD from "@/contracts/FxUSD";
 
-const maxFeePerGas = ethers.parseUnits("36", "gwei");
+const maxFeePerGas = ethers.parseUnits("50", "gwei");
 const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 async function main() {
