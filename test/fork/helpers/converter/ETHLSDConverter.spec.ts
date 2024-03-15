@@ -35,8 +35,7 @@ describe("ETHLSDConverter.spec", async () => {
       const ETHLSDConverter = await ethers.getContractFactory("ETHLSDConverter", deployer);
       converter = await ETHLSDConverter.deploy(await registry.getAddress());
       expect(await converter.registry()).to.eq(await registry.getAddress());
-      await registry.register(12, await converter.getAddress());
-      await registry.register(13, await converter.getAddress());
+      await registry.register(11, await converter.getAddress());
     });
 
     it("should revert when unsupported poolType", async () => {

@@ -72,7 +72,7 @@ describe("FxCVXTwapOracle.spec", async () => {
       expect(r.maxUnsafePrice).to.eq(ethers.parseEther("7.565500807384974"));
     });
 
-    it("should succeed return invalid when UniV3 price too small", async () => {
+    it("should succeed return invalid when ETHUSD price too small", async () => {
       await twap.setPrice(ethers.parseEther("2000"));
       const r = await oracle.getPrice();
       expect(r.isValid).to.eq(false);

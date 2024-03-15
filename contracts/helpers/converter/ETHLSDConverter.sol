@@ -255,10 +255,10 @@ contract ETHLSDConverter is ConverterBase {
     uint256 _before = IERC20(ezETH).balanceOf(address(this));
     if (_tokenIn == WETH) {
       _unwrapIfNeeded(_amountIn);
-      IRenzoRestakeManager(RENZO_RESTAKE_MANAGER).depositETH{ value: _amountIn }();
+      IRenzoRestakeManager(RENZO_RESTAKE_MANAGER).depositETH{ value: _amountIn }(uint256(REFERRAL));
     } else {
       _approve(_tokenIn, RENZO_RESTAKE_MANAGER, _amountIn);
-      IRenzoRestakeManager(RENZO_RESTAKE_MANAGER).deposit(_tokenIn, _amountIn);
+      IRenzoRestakeManager(RENZO_RESTAKE_MANAGER).deposit(_tokenIn, _amountIn, uint256(REFERRAL));
     }
     _amountOut = IERC20(ezETH).balanceOf(address(this)) - _before;
     if (_recipient != address(this)) {
