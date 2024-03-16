@@ -71,11 +71,23 @@ async function main() {
     ["weETH", "USDC"],
     ["weETH", "USDT"],
     ["weETH", "ETH"],
+    ["weETH", "wstETH"],
     ["eETH", "weETH"],
     ["WETH", "weETH"],
     ["USDC", "weETH"],
     ["USDT", "weETH"],
   ]);
+  showRoutes("Fx Convert Routes (ezETH)", [
+    ["ezETH", "WETH"],
+    ["ezETH", "USDC"],
+    ["ezETH", "USDT"],
+    ["ezETH", "ETH"],
+    ["ezETH", "wstETH"],
+    ["WETH", "ezETH"],
+    ["USDC", "ezETH"],
+    ["USDT", "ezETH"],
+  ]);
+  /*
   showRoutes("Fx Convert Routes (apxETH)", [
     ["apxETH", "pxETH"],
     ["apxETH", "WETH"],
@@ -98,6 +110,7 @@ async function main() {
     ["USDC", "aCVX"],
     ["USDT", "aCVX"],
   ]);
+  */
 
   const governance = await FxGovernance.deploy(deployer, overrides);
   await FxGovernance.initialize(deployer, governance, overrides);

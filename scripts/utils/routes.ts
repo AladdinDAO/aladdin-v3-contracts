@@ -1020,6 +1020,11 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
       encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
     ],
     eETH: [encodePoolHintV3(TOKENS.weETH.address, PoolTypeV3.ETHLSDV1, 0, 0, 0, Action.Remove, { protocol: 5 })],
+    wstETH: [
+      encodePoolHintV3(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], PoolTypeV3.CurveStableSwapNG, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+      encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
+    ],
   },
   wstETH: {
     ETH: [

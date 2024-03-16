@@ -11,6 +11,7 @@ export interface ConverterDeployment {
   LidoConverter: string;
   CurveNGConverter: string;
   WETHConverter: string;
+  ETHLSDConverter: string;
   MultiPathConverter: string;
 }
 
@@ -28,6 +29,10 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   ]);
 
   await deployment.contractDeploy("LidoConverter", "LidoConverter", "LidoConverter", [
+    deployment.get("ConverterRegistry"),
+  ]);
+
+  await deployment.contractDeploy("ETHLSDConverter", "ETHLSDConverter", "ETHLSDConverter", [
     deployment.get("ConverterRegistry"),
   ]);
 
@@ -95,6 +100,16 @@ export async function initialize(
       "ConverterRegistry register poolType[10]: LidoConverter",
       "register",
       [10n, deployment.LidoConverter],
+      overrides
+    );
+  }
+  // setup ETHLSDConverter
+  if ((await registry.getConverter(11)) !== deployment.ETHLSDConverter) {
+    await ownerContractCall(
+      registry,
+      "ConverterRegistry register poolType[11]: ETHLSDConverter",
+      "register",
+      [11n, deployment.ETHLSDConverter],
       overrides
     );
   }
