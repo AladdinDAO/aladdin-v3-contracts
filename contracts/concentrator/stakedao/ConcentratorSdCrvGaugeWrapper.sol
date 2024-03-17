@@ -30,7 +30,7 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
   address private constant SD_VE_CRV = 0x478bBC744811eE8310B461514BDc29D03739084D;
 
   /// @dev The address of StakeDAO CRV Depositor contract.
-  address private constant DEPOSITOR = 0xc1e3Ca8A3921719bE0aE3690A0e036feB4f69191;
+  address private constant DEPOSITOR = 0x88C88Aa6a9cedc2aff9b4cA6820292F39cc64026;
 
   /// @dev The address of Curve CRV/sdCRV factory plain pool.
   address private constant CURVE_POOL = 0xCA0253A98D16e9C1e3614caFDA19318EE69772D0;
@@ -76,11 +76,6 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
 
     // grant role
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-
-    // approval
-    IERC20Upgradeable(CRV).safeApprove(DEPOSITOR, type(uint256).max);
-    IERC20Upgradeable(CRV).safeApprove(CURVE_POOL, type(uint256).max);
-    IERC20Upgradeable(SD_VE_CRV).safeApprove(DEPOSITOR, type(uint256).max);
   }
 
   /****************************
@@ -105,9 +100,13 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
     uint256 _lockReturn = _amount + IStakeDAOCRVDepositor(DEPOSITOR).incentiveToken();
     uint256 _swapReturn = ICurveFactoryPlainPool(CURVE_POOL).get_dy(0, 1, _amount);
     if (_lockReturn >= _swapReturn) {
+      IERC20Upgradeable(CRV).safeApprove(DEPOSITOR, 0);
+      IERC20Upgradeable(CRV).safeApprove(DEPOSITOR, _amount);
       IStakeDAOCRVDepositor(DEPOSITOR).deposit(_amount, true, false, locker);
       _amountOut = _lockReturn;
     } else {
+      IERC20Upgradeable(CRV).safeApprove(CURVE_POOL, 0);
+      IERC20Upgradeable(CRV).safeApprove(CURVE_POOL, _amount);
       _amountOut = ICurveFactoryPlainPool(CURVE_POOL).exchange(0, 1, _amount, 0, locker);
     }
     if (_amountOut < _minOut) revert ErrorInsufficientAmountOut();
@@ -124,6 +123,8 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
     IERC20Upgradeable(SD_VE_CRV).safeTransferFrom(_owner, address(this), _amount);
 
     // lock to sdCRV
+    IERC20Upgradeable(SD_VE_CRV).safeApprove(DEPOSITOR, 0);
+    IERC20Upgradeable(SD_VE_CRV).safeApprove(DEPOSITOR, _amount);
     IStakeDAOCRVDepositor(DEPOSITOR).lockSdveCrvToSdCrv(_amount);
 
     // transfer to locker
