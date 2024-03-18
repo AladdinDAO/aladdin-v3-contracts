@@ -6,14 +6,17 @@ import { DeploymentHelper } from "./helpers";
 import { TOKENS } from "../utils";
 
 const ChainlinkPriceFeed: { [name: string]: string } = {
-  CVX: "0xd962fC30A72A84cE50161031391756Bf2876Af5D",
-  ETH: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-  stETH: "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8",
+  CVX: "0xd962fC30A72A84cE50161031391756Bf2876Af5D", // CVX/USD
+  ETH: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419", // ETH/USD
+  stETH: "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8", // stETH/USD
 };
 
+/*
 const RedStonePriceFeed: { [name: string]: string } = {
-  ezETH: "0xF4a3e183F59D2599ee3DF213ff78b1B3b1923696",
+  weETH: "0xdDb6F90fFb4d3257dd666b69178e5B3c5Bf41136", // weETH/USD
+  ezETH: "0xF4a3e183F59D2599ee3DF213ff78b1B3b1923696", // ezETH/ETH
 };
+*/
 
 export interface FxOracleDeployment {
   ChainlinkTwapOracle: {
@@ -42,7 +45,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   const deployment = new DeploymentHelper(network.name, "Fx.Oracle", deployer, overrides);
 
   // deploy chainlink twap oracle
-  for (const symbol of ["ETH", "stETH", "CVX"]) {
+  for (const symbol of ["ETH", "stETH"]) {
     await deployment.contractDeploy(
       "ChainlinkTwapOracle." + symbol,
       "ChainlinkTwapOracle for " + symbol,
@@ -51,6 +54,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     );
   }
 
+  /*
   // deploy redstone twap oracle
   for (const symbol of ["ezETH"]) {
     await deployment.contractDeploy(
@@ -60,6 +64,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
       [RedStonePriceFeed[symbol], 1, 10800, symbol]
     );
   }
+  */
 
   // deploy FxStETHTwapOracle
   await deployment.contractDeploy("FxStETHTwapOracle", "FxStETHTwapOracle", "FxStETHTwapOracle", [
@@ -81,13 +86,13 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.get("ChainlinkTwapOracle.ETH"),
   ]);
 
+  /*
   // deploy FxEzETHTwapOracle
   await deployment.contractDeploy("FxEzETHTwapOracle", "FxEzETHTwapOracle", "FxEzETHTwapOracle", [
     deployment.get("RedStoneTwapOracle.ezETH"),
     deployment.get("ChainlinkTwapOracle.ETH"),
   ]);
 
-  /*
   // deploy FxPxETHTwapOracle
   await deployment.contractDeploy("FxPxETHTwapOracle", "FxPxETHTwapOracle", "FxPxETHTwapOracle", [
     TOKENS["CURVE_STABLE_NG_pxETH/stETH_30"].address,

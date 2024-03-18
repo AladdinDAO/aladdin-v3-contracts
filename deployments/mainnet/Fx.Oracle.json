@@ -8,5 +8,6 @@
   "WstETHRateProvider": "0x81A777c4aB65229d1Bf64DaE4c831bDf628Ccc7f",
   "ERC4626RateProvider": {
     "sfrxETH": "0x7ceD6167b5A08111dC8d0D2f9F7E482c4Da62506"
-  }
+  },
+  "FxEETHTwapOracle": "0x834E87262A00b0aC38eD49Cb1110838866bE4a20"
 }
