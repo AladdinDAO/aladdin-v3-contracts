@@ -85,11 +85,11 @@ const MarketConfig: {
       FractionalMintFeeRatio: { default: ethers.parseEther("0.0025"), delta: 0n }, // 0.25% and 0%
       LeveragedMintFeeRatio: { default: ethers.parseEther("0.02"), delta: -ethers.parseEther("0.02") }, // 2% and -2%
       FractionalRedeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and -0.25%
-      LeveragedRdeeemFeeRatio: { default: ethers.parseEther("0.02"), delta: ethers.parseEther("0.09") }, // 2% and 9%
+      LeveragedRdeeemFeeRatio: { default: ethers.parseEther("0.02"), delta: ethers.parseEther("0.07") }, // 2% and 7%
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
     BaseTokenCapacity: ethers.parseEther("10000"),
-    FxUSDMintCapacity: ethers.parseEther("10000000"),
+    FxUSDMintCapacity: MaxUint256,
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
   apxETH: {
@@ -107,7 +107,7 @@ const MarketConfig: {
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
     BaseTokenCapacity: ethers.parseEther("10000"),
-    FxUSDMintCapacity: ethers.parseEther("10000000"),
+    FxUSDMintCapacity: MaxUint256,
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
   ezETH: {
@@ -125,7 +125,7 @@ const MarketConfig: {
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
     BaseTokenCapacity: ethers.parseEther("10000"),
-    FxUSDMintCapacity: ethers.parseEther("10000000"),
+    FxUSDMintCapacity: MaxUint256,
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
   aCVX: {
@@ -143,7 +143,7 @@ const MarketConfig: {
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
     BaseTokenCapacity: ethers.parseEther("10000"),
-    FxUSDMintCapacity: ethers.parseEther("10000000"),
+    FxUSDMintCapacity: MaxUint256,
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
 };
@@ -924,7 +924,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxUS
   // await initializeMarket(deployer, deployment, "aCVX", ZeroAddress, overrides);
 
   const fxUSD = await ethers.getContractAt("FxUSD", deployment.FxUSD.proxy.fxUSD, deployer);
-  const fxUSDr = await ethers.getContractAt("FxUSD", deployment.FxUSD.proxy.rUSD, deployer);
+  const rUSD = await ethers.getContractAt("FxUSD", deployment.FxUSD.proxy.rUSD, deployer);
   const reservePool = await ethers.getContractAt("ReservePoolV2", governance.ReservePool, deployer);
   const platformFeeSpliter = await ethers.getContractAt("PlatformFeeSpliter", governance.PlatformFeeSpliter, deployer);
 
@@ -941,10 +941,10 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxUS
     ]
   );
 
-  // setup fxUSDr
+  // setup rUSD
   await initializeFxUSD(
     deployment,
-    fxUSDr,
+    rUSD,
     ["weETH"],
     [deployment.Markets.weETH.RebalancePool.weETH.pool, deployment.Markets.weETH.RebalancePool.xeETH.pool]
   );
