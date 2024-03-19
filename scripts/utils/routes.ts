@@ -165,10 +165,10 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       */
-      encodePoolHintV2(ADDRESS.FXS_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
       /*
-      encodePoolHintV2(ADDRESS.FXS_WETH_UNIV3_10000, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.FXS_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
       */
+      encodePoolHintV2(ADDRESS.FXS_WETH_UNIV3_10000, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
     ],
     // FXS ==(UniV2)==> FRAX ==(Curve)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CRV
     CRV: [
@@ -197,13 +197,13 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
     // INV ==(CurveV2)==> WETH ==(CurveV2)==> CVX
     CVX: [
       // encodePoolHintV2(ADDRESS.INV_WETH_UNIV2, PoolType.UniswapV2, 2, 0, 1, Action.Swap),
-      /*
       encodePoolHintV2(ADDRESS["CURVE_USDC/ETH/INV_POOL"], PoolType.CurveTriCryptoPool, 3, 2, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
-      */
+      /*
       encodePoolHintV2(ADDRESS["CURVE_USDC/ETH/INV_POOL"], PoolType.CurveTriCryptoPool, 3, 2, 0, Action.Swap),
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      */
     ],
     // INV ==(CurveV2)==> WETH
     WETH: [
@@ -553,11 +553,11 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
   MET: {
     // MET ==(UniV3)==> WETH
     WETH: [
-      encodePoolHintV2(ADDRESS.MET_WETH_UNIV3_10000, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       /*
+      encodePoolHintV2(ADDRESS.MET_WETH_UNIV3_10000, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      */
       encodePoolHintV2(ADDRESS.MET_USDC_UNIV3_3000, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
-      */
     ],
   },
   OGV: {

@@ -53,6 +53,7 @@ async function getSwapData(
     "sdCRV-CRV-Curve": encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
     "CRV-WETH-UniV3": encodePoolHintV3(ADDRESS["UniV3_WETH/CRV_3000"], PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {fee_num: 3000}),
     "CRV-crvUSD-Curve3Crypto": encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap),
+    "CRV-WETH-Curve3Crypto": encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
     "WETH-SDT-Curve2Crypto": encodePoolHintV3(ADDRESS["CURVE_ETH/SDT_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap, {use_eth: true}),
     "WETH-SDT-PancakeV3": encodePoolHintV3(ADDRESS.SDT_WETH_PancakeV3_2500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {fee_num: 2500}),
     "WETH-SDT-UniV2": encodePoolHintV3(ADDRESS.SDT_WETH_UNIV2, PoolTypeV3.UniswapV2, 2, 1, 0, Action.Swap, { fee_num: 997000 }),
@@ -67,8 +68,9 @@ async function getSwapData(
     if (same(dst, TOKENS.SDT.address)) {
       const encoding = encodeMultiPath(
         [
-          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-UniV3"], routes["WETH-SDT-PancakeV3"]],
-          [routes["sdCRV-CRV-Curve"], routes["CRV-crvUSD-Curve3Crypto"], routes["crvUSD-SDT-Curve3Crypto"]],
+          // [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-UniV3"], routes["WETH-SDT-PancakeV3"]],
+          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Curve3Crypto"], routes["WETH-SDT-UniV2"]],
+          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Curve3Crypto"], routes["WETH-SDT-Curve2Crypto"]],
         ],
         [0n, 0n]
       );
@@ -232,6 +234,7 @@ async function main(round: string) {
         const minCRV = (amountCRV * 9990n) / 10000n;
         const routeSDT = await getSwapData(item.token, TOKENS.SDT.address, boostFee, minSDT);
         const routeCRV = await getSwapData(item.token, TOKENS.CRV.address, amount - platformFee - boostFee, minCRV);
+        console.log(burner.interface.encodeFunctionData("burn", [item.token, routeSDT, routeCRV]));
         const gasEstimate = await burner.burn.estimateGas(item.token, routeSDT, routeCRV);
         console.log("  gas estimate:", gasEstimate.toString());
         const tx = await burner.burn(item.token, routeSDT, routeCRV, {

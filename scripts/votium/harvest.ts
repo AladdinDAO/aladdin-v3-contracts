@@ -111,7 +111,7 @@ async function main(round: number, manualStr: string) {
 
   if (KEEPER === deployer.address) {
     const block = await ethers.provider.getBlock("latest");
-    const tx = await locker.harvestVotium(claimParams, routes, (estimate * 9995n) / 10000n, {
+    const tx = await locker.harvestVotium(claimParams, routes, (estimate * 9990n) / 10000n, {
       gasLimit: (gasEstimate * 12n) / 10n,
       maxFeePerGas: (block!.baseFeePerGas! * 3n) / 2n,
       maxPriorityFeePerGas: ethers.parseUnits("1", "gwei"),
