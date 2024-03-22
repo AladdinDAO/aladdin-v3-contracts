@@ -142,15 +142,12 @@ describe("MarketV2.ezETH.spec", async () => {
     await manage.connect(manager).approveTarget(inputConverter.getAddress(), ZeroAddress);
 
     // deploy market
-    const ChainlinkTwapOracleV3 = await ethers.getContractFactory("ChainlinkTwapOracleV3", deployer);
-    const ezETHTwapOracle = await ChainlinkTwapOracleV3.deploy(
-      "0xF4a3e183F59D2599ee3DF213ff78b1B3b1923696",
-      1,
-      10800,
-      "ezETH"
-    );
     const FxEzETHTwapOracle = await ethers.getContractFactory("FxEzETHTwapOracle", deployer);
-    oracle = await FxEzETHTwapOracle.deploy(ezETHTwapOracle.getAddress(), "0x460B3CdE57DfbA90DBed02fd83d3990a92DA1230");
+    oracle = await FxEzETHTwapOracle.deploy(
+      "0x85de3add465a219ee25e04d22c39ab027cf5c12e",
+      "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36",
+      "0x460B3CdE57DfbA90DBed02fd83d3990a92DA1230"
+    );
 
     const RebalancePoolSplitter = await ethers.getContractFactory("RebalancePoolSplitter", deployer);
     const splitter = await RebalancePoolSplitter.deploy();

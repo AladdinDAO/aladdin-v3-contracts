@@ -380,6 +380,7 @@ export async function initialize(
   overrides?: Overrides
 ) {
   const multisig = selectDeployments(network.name, "Multisig").toObject() as MultisigDeployment;
+  const converter = selectDeployments(network.name, "Converter").toObject() as ConverterDeployment;
 
   // initialize token sale
   for (const round of ["TokenSale1", "TokenSale2"]) {
@@ -595,6 +596,15 @@ export async function initialize(
       "PlatformFeeBurner add keeper",
       "updateKeeperStatus",
       ["0x11E91BB6d1334585AA37D8F4fde3932C7960B938", true],
+      overrides
+    );
+  }
+  if ((await burner.converter()) !== converter.GeneralTokenConverter) {
+    await ownerContractCall(
+      burner,
+      "PlatformFeeBurner updateConverter",
+      "updateConverter",
+      [converter.GeneralTokenConverter],
       overrides
     );
   }

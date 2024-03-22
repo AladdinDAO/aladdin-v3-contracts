@@ -8,6 +8,7 @@ import { FxLSDOracleBase } from "./FxLSDOracleBase.sol";
 
 import { IFxPriceOracle } from "../../interfaces/f(x)/IFxPriceOracle.sol";
 import { IFxRateProvider } from "../../interfaces/f(x)/IFxRateProvider.sol";
+import { ICurvePoolOracle } from "../../interfaces/ICurvePoolOracle.sol";
 import { ITwapOracle } from "../../price-oracle/interfaces/ITwapOracle.sol";
 
 // solhint-disable var-name-mixedcase
@@ -26,15 +27,19 @@ contract FxEzETHTwapOracle is FxLSDOracleBase, IFxPriceOracle {
   /// @dev The value of maximum price deviation
   uint256 internal constant MAX_PRICE_DEVIATION = 1e16; // 1%
 
-  /// @notice The address of RedStone ezETH/ETH twap oracle.
-  address public immutable ezETHTwapOracle;
+  /// @notice The address of Curve ezETH/WETH pool.
+  address public immutable curvePool;
 
   /***************
    * Constructor *
    ***************/
 
-  constructor(address _ezETHTwapOracle, address _ethTwapOracle) FxLSDOracleBase(ezETH, address(0), _ethTwapOracle) {
-    ezETHTwapOracle = _ezETHTwapOracle;
+  constructor(
+    address _curvePool,
+    address _uniswapV3Pool,
+    address _ethTwapOracle
+  ) FxLSDOracleBase(ezETH, _uniswapV3Pool, _ethTwapOracle) {
+    curvePool = _curvePool;
   }
 
   /*************************
@@ -56,19 +61,32 @@ contract FxEzETHTwapOracle is FxLSDOracleBase, IFxPriceOracle {
     )
   {
     uint256 ETH_USDChainlinkPrice = _getChainlinkTwapUSDPrice();
-    uint256 ezETH_ETHRedStonePrice = ITwapOracle(ezETHTwapOracle).getTwap(block.timestamp);
-    uint256 ezETH_ETHRate = IFxRateProvider(RATE_PROVIDER).getRate();
-    uint256 ezETHUnderlyingPrice = (ezETH_ETHRedStonePrice * ETH_USDChainlinkPrice) / ezETH_ETHRate;
+    uint256 ETH_USDUniswapPrice = _getUniV3TwapUSDPrice();
+    uint256 ezETH_WETHCurvePrice = _getCurveTwapETHPrice();
 
     safePrice = ETH_USDChainlinkPrice;
-    isValid = _isPriceValid(ezETHUnderlyingPrice, ETH_USDChainlinkPrice, MAX_PRICE_DEVIATION);
+    isValid =
+      _isPriceValid(ETH_USDChainlinkPrice, ETH_USDUniswapPrice, MAX_PRICE_DEVIATION) &&
+      _isPriceValid(PRECISION, ezETH_WETHCurvePrice, MAX_PRICE_DEVIATION);
 
     // @note If the price is valid, `minUnsafePrice` and `maxUnsafePrice` should never be used.
     minUnsafePrice = ETH_USDChainlinkPrice;
     maxUnsafePrice = ETH_USDChainlinkPrice;
     if (!isValid) {
-      minUnsafePrice = Math.min(ETH_USDChainlinkPrice, ezETHUnderlyingPrice);
-      maxUnsafePrice = Math.max(ETH_USDChainlinkPrice, ezETHUnderlyingPrice);
+      uint256 ezETH_USDCurvePrice = (ezETH_WETHCurvePrice * ETH_USDChainlinkPrice) / PRECISION;
+      minUnsafePrice = Math.min(ETH_USDChainlinkPrice, Math.min(ETH_USDUniswapPrice, ezETH_USDCurvePrice));
+      maxUnsafePrice = Math.max(ETH_USDChainlinkPrice, Math.max(ETH_USDUniswapPrice, ezETH_USDCurvePrice));
     }
+  }
+
+  /**********************
+   * Internal Functions *
+   **********************/
+
+  /// @dev Internal function to return the ETH price of ezETH.
+  function _getCurveTwapETHPrice() internal view returns (uint256) {
+    // The first token is ezETH and the price already considered ezETH.rate()
+    uint256 price = ICurvePoolOracle(curvePool).price_oracle(0);
+    return (PRECISION * PRECISION) / price;
   }
 }

@@ -168,6 +168,7 @@ TOKENS["CURVE_STABLE_NG_USDV/3CRV_38"] = { decimals: 18, address: "0x00e6fd108c4
 TOKENS["CURVE_STABLE_NG_eUSD/mkUSD_60"] = { decimals: 18, address: "0xc37c0e88551ed383c1abedc6628a5579071bf56f" };
 TOKENS["CURVE_STABLE_NG_sUSDe/sDAI/sFRAX_61"] = { decimals: 18, address: "0xc559f6716d8b1471fc2dc10aafeb0faa219fe9df" };
 TOKENS["CURVE_STABLE_NG_eUSD/crvUSD_65"] = { decimals: 18, address: "0x91285c4fc766fff6f3acafeec7a0423275257fae" };
+TOKENS["CURVE_STABLE_NG_ezETH/WETH_79"] = { decimals: 18, address: "0x85de3add465a219ee25e04d22c39ab027cf5c12e" };
 TOKENS["CURVE_STABLE_NG_weETH/rswETH_80"] = { decimals: 18, address: "0x278cfb6f06b1efc09d34fc7127d6060c61d629db" };
 TOKENS["CURVE_STABLE_NG_crvUSD/fxUSD_106"] = { decimals: 18, address: "0x8ffc7b89412efd0d17edea2018f6634ea4c2fcb2" };
 TOKENS["CURVE_STABLE_NG_PYUSD/fxUSD_107"] = { decimals: 18, address: "0xd6982da59F1D26476E259559508f4135135cf9b8" };

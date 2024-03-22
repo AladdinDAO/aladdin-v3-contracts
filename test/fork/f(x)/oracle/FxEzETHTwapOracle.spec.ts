@@ -5,9 +5,9 @@ import { ZeroAddress } from "ethers";
 import { ethers } from "hardhat";
 
 import { request_fork } from "@/test/utils";
-import { FxEzETHTwapOracle, IFxRateProvider, MockTwapOracle } from "@/types/index";
+import { FxEzETHTwapOracle, MockTwapOracle } from "@/types/index";
 
-const FOKR_HEIGHT = 19438990;
+const FOKR_HEIGHT = 19203007;
 
 describe("FxEzETHTwapOracle.spec", async () => {
   let deployer: HardhatEthersSigner;
@@ -18,47 +18,75 @@ describe("FxEzETHTwapOracle.spec", async () => {
     request_fork(FOKR_HEIGHT, [ZeroAddress]);
     deployer = await ethers.getSigner(ZeroAddress);
 
-    const ChainlinkTwapOracleV3 = await ethers.getContractFactory("ChainlinkTwapOracleV3", deployer);
-    const ezETHTwapOracle = await ChainlinkTwapOracleV3.deploy(
-      "0xF4a3e183F59D2599ee3DF213ff78b1B3b1923696",
-      1,
-      10800,
-      "ezETH"
-    );
-
     const FxEzETHTwapOracle = await ethers.getContractFactory("FxEzETHTwapOracle", deployer);
-    oracle = await FxEzETHTwapOracle.deploy(ezETHTwapOracle.getAddress(), "0x460B3CdE57DfbA90DBed02fd83d3990a92DA1230");
+    oracle = await FxEzETHTwapOracle.deploy(
+      "0x85de3add465a219ee25e04d22c39ab027cf5c12e",
+      "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36",
+      "0x460B3CdE57DfbA90DBed02fd83d3990a92DA1230"
+    );
   });
 
   it("should succeed when normal", async () => {
     const r = await oracle.getPrice();
     expect(r.isValid).to.eq(true);
-    expect(r.safePrice).to.closeTo(r.minUnsafePrice, r.safePrice / 100n);
-    expect(r.safePrice).to.closeTo(r.maxUnsafePrice, r.safePrice / 100n);
+    expect(r.safePrice).to.eq(r.minUnsafePrice);
+    expect(r.safePrice).to.eq(r.maxUnsafePrice);
   });
 
   context("ETH price invalid", async () => {
     let twap: MockTwapOracle;
-    let rate: IFxRateProvider;
 
     beforeEach(async () => {
-      rate = await ethers.getContractAt("IFxRateProvider", "0x387dBc0fB00b26fb085aa658527D5BE98302c84C", deployer);
-
       const MockTwapOracle = await ethers.getContractFactory("MockTwapOracle", deployer);
       twap = await MockTwapOracle.deploy();
 
       const FxEzETHTwapOracle = await ethers.getContractFactory("FxEzETHTwapOracle", deployer);
-      oracle = await FxEzETHTwapOracle.deploy(twap.getAddress(), "0x460B3CdE57DfbA90DBed02fd83d3990a92DA1230");
+      oracle = await FxEzETHTwapOracle.deploy(
+        "0x85de3add465a219ee25e04d22c39ab027cf5c12e",
+        "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36",
+        twap.getAddress()
+      );
     });
 
-    it("should succeed return invalid when ezETH/ETH too large", async () => {
-      await twap.setPrice(((await rate.getRate()) * 102n) / 100n);
+    it("should succeed return invalid when UniV3 price too large", async () => {
+      // uniswap price is 2525.289389
+      await twap.setPrice(ethers.parseEther("2295.717626363636363636"));
+      const r = await oracle.getPrice();
+      expect(r.isValid).to.eq(false);
+      expect(r.safePrice).to.eq(ethers.parseEther("2295.717626363636363636"));
+    });
+
+    it("should succeed return invalid when UniV3 price too small", async () => {
+      // uniswap price is 2525.289389
+      await twap.setPrice(ethers.parseEther("2805.877098888888888888"));
+      const r = await oracle.getPrice();
+      expect(r.isValid).to.eq(false);
+      expect(r.safePrice).to.eq(ethers.parseEther("2805.877098888888888888"));
+    });
+  });
+
+  context("ezETH price invalid", async () => {
+    let twap: MockTwapOracle;
+
+    beforeEach(async () => {
+      const MockTwapOracle = await ethers.getContractFactory("MockTwapOracle", deployer);
+      twap = await MockTwapOracle.deploy();
+      const FxEzETHTwapOracle = await ethers.getContractFactory("FxEzETHTwapOracle", deployer);
+      oracle = await FxEzETHTwapOracle.deploy(
+        twap.getAddress(),
+        "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36",
+        "0x460B3CdE57DfbA90DBed02fd83d3990a92DA1230"
+      );
+    });
+
+    it("should succeed return invalid when curve price too large", async () => {
+      await twap.setPrice(ethers.parseEther("1.1"));
       const r = await oracle.getPrice();
       expect(r.isValid).to.eq(false);
     });
 
-    it("should succeed return invalid when ezETH/ETH price too small", async () => {
-      await twap.setPrice(((await rate.getRate()) * 98n) / 100n);
+    it("should succeed return invalid when curve price too small", async () => {
+      await twap.setPrice(ethers.parseEther("0.9"));
       const r = await oracle.getPrice();
       expect(r.isValid).to.eq(false);
     });

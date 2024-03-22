@@ -3,7 +3,7 @@ import { Overrides } from "ethers";
 import { network } from "hardhat";
 
 import { DeploymentHelper } from "./helpers";
-import { TOKENS } from "../utils";
+import { ADDRESS, TOKENS } from "../utils";
 
 const ChainlinkPriceFeed: { [name: string]: string } = {
   CVX: "0xd962fC30A72A84cE50161031391756Bf2876Af5D", // CVX/USD
@@ -86,13 +86,14 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.get("ChainlinkTwapOracle.ETH"),
   ]);
 
-  /*
   // deploy FxEzETHTwapOracle
   await deployment.contractDeploy("FxEzETHTwapOracle", "FxEzETHTwapOracle", "FxEzETHTwapOracle", [
-    deployment.get("RedStoneTwapOracle.ezETH"),
+    ADDRESS["CURVE_STABLE_NG_ezETH/WETH_79_POOL"],
+    "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36", // Uniswap V3 USDT/WETH 0.3% pool
     deployment.get("ChainlinkTwapOracle.ETH"),
   ]);
 
+  /*
   // deploy FxPxETHTwapOracle
   await deployment.contractDeploy("FxPxETHTwapOracle", "FxPxETHTwapOracle", "FxPxETHTwapOracle", [
     TOKENS["CURVE_STABLE_NG_pxETH/stETH_30"].address,
