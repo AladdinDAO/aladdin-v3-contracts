@@ -254,7 +254,7 @@ describe("FxUSDFacet.spec", async () => {
       });
     }
     const FxUSDFacet = await ethers.getContractFactory("FxUSDFacet", deployer);
-    const facet = await FxUSDFacet.deploy(await fxUSD.getAddress());
+    const facet = await FxUSDFacet.deploy();
     diamondCuts.push({
       facetAddress: await facet.getAddress(),
       action: 0,
@@ -290,6 +290,12 @@ describe("FxUSDFacet.spec", async () => {
     await fxUSD.addMarket(wstETHMarket.market.getAddress(), MaxUint256);
     await fxUSD.addMarket(sfrxETHMarket.market.getAddress(), MaxUint256);
     await fxUSD.addRebalancePools([await sfrxETHMarket.pool.getAddress(), await wstETHMarket.pool.getAddress()]);
+
+    await manage.updateWhitelist(sfrxETHMarket.market.getAddress(), 2);
+    await manage.updateWhitelist(wstETHMarket.market.getAddress(), 2);
+    await manage.updateWhitelist(sfrxETHMarket.pool.getAddress(), 4);
+    await manage.updateWhitelist(wstETHMarket.pool.getAddress(), 4);
+    await manage.updateWhitelist(fxUSD.getAddress(), 5);
   });
 
   const checkFxMintFTokenV2 = async (
@@ -400,14 +406,18 @@ describe("FxUSDFacet.spec", async () => {
     if (tokenIn) {
       await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
     }
-    const expected = await gateway.connect(holder).fxMintFxUSD.staticCall(params, baseToken.getAddress(), 0n, {
-      value: tokenIn ? 0n : amountIn,
-    });
+    const expected = await gateway
+      .connect(holder)
+      .fxMintFxUSD.staticCall(params, fxUSD.getAddress(), baseToken.getAddress(), 0n, {
+        value: tokenIn ? 0n : amountIn,
+      });
     console.log("fxUSD minted:", ethers.formatEther(expected));
     const balanceBefore = await fxUSD.balanceOf(holder.address);
     await gateway
       .connect(holder)
-      .fxMintFxUSD(params, baseToken.getAddress(), expected - expected / 100000n, { value: tokenIn ? 0n : amountIn });
+      .fxMintFxUSD(params, fxUSD.getAddress(), baseToken.getAddress(), expected - expected / 100000n, {
+        value: tokenIn ? 0n : amountIn,
+      });
     const balanceAfter = await fxUSD.balanceOf(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
   };
@@ -422,14 +432,18 @@ describe("FxUSDFacet.spec", async () => {
     if (tokenIn) {
       await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
     }
-    const expected = await gateway.connect(holder).fxMintFxUSDAndEarn.staticCall(params, pool.getAddress(), 0n, {
-      value: tokenIn ? 0n : amountIn,
-    });
+    const expected = await gateway
+      .connect(holder)
+      .fxMintFxUSDAndEarn.staticCall(params, fxUSD.getAddress(), pool.getAddress(), 0n, {
+        value: tokenIn ? 0n : amountIn,
+      });
     console.log("fxUSD minted:", ethers.formatEther(expected));
     const balanceBefore = await pool.balanceOf(holder.address);
     await gateway
       .connect(holder)
-      .fxMintFxUSDAndEarn(params, pool.getAddress(), expected - expected / 100000n, { value: tokenIn ? 0n : amountIn });
+      .fxMintFxUSDAndEarn(params, fxUSD.getAddress(), pool.getAddress(), expected - expected / 100000n, {
+        value: tokenIn ? 0n : amountIn,
+      });
     const balanceAfter = await pool.balanceOf(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
   };
@@ -462,7 +476,7 @@ describe("FxUSDFacet.spec", async () => {
     await fxUSD.connect(holder).approve(gateway.getAddress(), amountIn);
     const [baseOut, dstOut, bonusOut] = await gateway
       .connect(holder)
-      .fxRedeemFxUSD.staticCall(params, baseToken.getAddress(), amountIn, 0n);
+      .fxRedeemFxUSD.staticCall(params, fxUSD.getAddress(), baseToken.getAddress(), amountIn, 0n);
     console.log(
       "redeemed:",
       ethers.formatEther(baseOut),
@@ -473,7 +487,9 @@ describe("FxUSDFacet.spec", async () => {
     );
     params.minOut = dstOut - dstOut / 100000n;
     const balanceBefore = await tokenOut.balanceOf(holder.address);
-    await gateway.connect(holder).fxRedeemFxUSD(params, baseToken.getAddress(), amountIn, baseOut - baseOut / 100000n);
+    await gateway
+      .connect(holder)
+      .fxRedeemFxUSD(params, fxUSD.getAddress(), baseToken.getAddress(), amountIn, baseOut - baseOut / 100000n);
     const balanceAfter = await tokenOut.balanceOf(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
   };
@@ -992,6 +1008,7 @@ describe("FxUSDFacet.spec", async () => {
       const amountIn = ethers.parseEther("200");
       beforeEach(async () => {
         await wstETHMarket.fToken.connect(signer).approve(fxUSD.getAddress(), amountIn);
+        await wstETHMarket.market.enableFxUSD(fxUSD.getAddress());
         await fxUSD.connect(signer).wrap(wstETHMarket.baseToken.getAddress(), amountIn, signer.address);
       });
 
@@ -1121,7 +1138,7 @@ describe("FxUSDFacet.spec", async () => {
         await wstETHMarket.fToken.connect(signer).approve(wstETHMarket.pool.getAddress(), MaxUint256);
         await wstETHMarket.pool.connect(signer).deposit(amountIn, deployer.address);
         expect(await fxUSD.balanceOf(deployer.address)).to.eq(0);
-        await gateway.connect(deployer).fxRebalancePoolWithdraw(wstETHMarket.pool, amountIn);
+        await gateway.connect(deployer).fxRebalancePoolWithdraw(fxUSD.getAddress(), wstETHMarket.pool, amountIn);
         expect(await fxUSD.balanceOf(deployer.address)).to.eq(amountIn);
       });
     });
@@ -1674,6 +1691,7 @@ describe("FxUSDFacet.spec", async () => {
       const amountIn = ethers.parseEther("200");
       beforeEach(async () => {
         await sfrxETHMarket.fToken.connect(signer).approve(fxUSD.getAddress(), amountIn);
+        await sfrxETHMarket.market.enableFxUSD(fxUSD.getAddress());
         await fxUSD.connect(signer).wrap(sfrxETHMarket.baseToken.getAddress(), amountIn, signer.address);
       });
 
@@ -1904,7 +1922,7 @@ describe("FxUSDFacet.spec", async () => {
         await sfrxETHMarket.fToken.connect(signer).approve(sfrxETHMarket.pool.getAddress(), MaxUint256);
         await sfrxETHMarket.pool.connect(signer).deposit(amountIn, deployer.address);
         expect(await fxUSD.balanceOf(deployer.address)).to.eq(0);
-        await gateway.connect(deployer).fxRebalancePoolWithdraw(sfrxETHMarket.pool, amountIn);
+        await gateway.connect(deployer).fxRebalancePoolWithdraw(fxUSD.getAddress(), sfrxETHMarket.pool, amountIn);
         expect(await fxUSD.balanceOf(deployer.address)).to.eq(amountIn);
       });
     });
@@ -2072,13 +2090,13 @@ describe("FxUSDFacet.spec", async () => {
       ];
       const [baseOuts, bonusOuts, dstOut] = await gateway
         .connect(deployer)
-        .fxAutoRedeemFxUSD.staticCall(params, amountIn, [0n, 0n]);
+        .fxAutoRedeemFxUSD.staticCall(params, fxUSD.getAddress(), amountIn, [0n, 0n]);
       console.log("wstETH:", ethers.formatEther(baseOuts[0]));
       console.log("sfrxETH:", ethers.formatEther(baseOuts[1]));
       expect(bonusOuts[0]).to.eq(0n);
       expect(bonusOuts[1]).to.eq(0n);
       expect(await fxUSD.balanceOf(deployer.address)).to.eq(amountIn);
-      await gateway.connect(deployer).fxAutoRedeemFxUSD(params, amountIn, [0n, 0n]);
+      await gateway.connect(deployer).fxAutoRedeemFxUSD(params, fxUSD.getAddress(), amountIn, [0n, 0n]);
       expect(await fxUSD.balanceOf(deployer.address)).to.eq(0n);
       expect(await tokenOut.balanceOf(deployer.address)).to.closeTo(dstOut, dstOut / 100000n);
     });
@@ -2120,13 +2138,13 @@ describe("FxUSDFacet.spec", async () => {
       ];
       const [baseOuts, bonusOuts, dstOut] = await gateway
         .connect(deployer)
-        .fxAutoRedeemFxUSD.staticCall(params, amountIn, [0n, 0n]);
+        .fxAutoRedeemFxUSD.staticCall(params, fxUSD.getAddress(), amountIn, [0n, 0n]);
       console.log("wstETH:", ethers.formatEther(baseOuts[0]));
       console.log("sfrxETH:", ethers.formatEther(baseOuts[1]));
       expect(bonusOuts[0]).to.eq(0n);
       expect(bonusOuts[1]).to.eq(0n);
       expect(await fxUSD.balanceOf(deployer.address)).to.eq(amountIn);
-      await gateway.connect(deployer).fxAutoRedeemFxUSD(params, amountIn, [0n, 0n]);
+      await gateway.connect(deployer).fxAutoRedeemFxUSD(params, fxUSD.getAddress(), amountIn, [0n, 0n]);
       expect(await fxUSD.balanceOf(deployer.address)).to.eq(0n);
       expect(await tokenOut.balanceOf(deployer.address)).to.closeTo(dstOut, dstOut / 100000n);
     });
@@ -2151,6 +2169,7 @@ describe("FxUSDFacet.spec", async () => {
       const [expected, bonus] = await gateway
         .connect(holder)
         .fxBaseTokenSwap.staticCall(
+          fxUSD.getAddress(),
           wstETHMarket.baseToken.getAddress(),
           amountIn,
           sfrxETHMarket.baseToken.getAddress(),
@@ -2161,6 +2180,7 @@ describe("FxUSDFacet.spec", async () => {
       await gateway
         .connect(holder)
         .fxBaseTokenSwap(
+          fxUSD.getAddress(),
           wstETHMarket.baseToken.getAddress(),
           amountIn,
           sfrxETHMarket.baseToken.getAddress(),
@@ -2180,6 +2200,7 @@ describe("FxUSDFacet.spec", async () => {
       const [expected, bonus] = await gateway
         .connect(holder)
         .fxBaseTokenSwap.staticCall(
+          fxUSD.getAddress(),
           sfrxETHMarket.baseToken.getAddress(),
           amountIn,
           wstETHMarket.baseToken.getAddress(),
@@ -2190,6 +2211,7 @@ describe("FxUSDFacet.spec", async () => {
       await gateway
         .connect(holder)
         .fxBaseTokenSwap(
+          fxUSD.getAddress(),
           sfrxETHMarket.baseToken.getAddress(),
           amountIn,
           wstETHMarket.baseToken.getAddress(),
@@ -2229,6 +2251,7 @@ describe("FxUSDFacet.spec", async () => {
       beforeEach(async () => {
         const FxInitialFund = await ethers.getContractFactory("FxInitialFund", deployer);
         fund = await FxInitialFund.deploy(wstETHMarket.market.getAddress(), fxUSD.getAddress());
+        await manage.updateWhitelist(fund.getAddress(), 3);
       });
 
       it("should succeed to mint from ETH", async () => {
@@ -2332,6 +2355,7 @@ describe("FxUSDFacet.spec", async () => {
       beforeEach(async () => {
         const FxInitialFund = await ethers.getContractFactory("FxInitialFund", deployer);
         fund = await FxInitialFund.deploy(sfrxETHMarket.market.getAddress(), fxUSD.getAddress());
+        await manage.updateWhitelist(fund.getAddress(), 3);
       });
 
       it("should succeed to mint from WETH", async () => {

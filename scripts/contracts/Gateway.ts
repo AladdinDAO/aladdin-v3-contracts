@@ -1,10 +1,12 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { Interface, Overrides, getAddress, id } from "ethers";
+import { Interface, Overrides, ZeroAddress, getAddress, id } from "ethers";
 import { network } from "hardhat";
 
 import {
+  DiamondCutFacet,
   DiamondCutFacet__factory,
+  DiamondLoupeFacet,
   DiamondLoupeFacet__factory,
   FxMarketV1Facet__factory,
   FxUSDFacet__factory,
@@ -13,6 +15,7 @@ import {
   TokenConvertManagementFacet,
   TokenConvertManagementFacet__factory,
 } from "@/types/index";
+import { selectDeployments } from "@/utils/index";
 
 import { ContractCallHelper, DeploymentHelper } from "./helpers";
 import * as ERC2535 from "./ERC2535";
@@ -76,7 +79,7 @@ async function deployGatewayRouter(deployment: DeploymentHelper, facets: ERC2535
 }
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<GatewayDeployment> {
-  const facets = await ERC2535.deploy(deployer, overrides);
+  const facets = selectDeployments(network.name, "ERC2535").toObject() as ERC2535.ERC2535Deployment;
   const deployment = new DeploymentHelper(network.name, "Gateway", deployer, overrides);
   await deployGatewayRouter(deployment, facets);
 
@@ -85,38 +88,47 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
 
 export async function initialize(deployer: HardhatEthersSigner, deployment: GatewayDeployment, overrides?: Overrides) {
   const caller = new ContractCallHelper(deployer, overrides);
-  const fxusd = await FxUSD.deploy(deployer, overrides);
+  const facets = selectDeployments(network.name, "ERC2535").toObject() as ERC2535.ERC2535Deployment;
+  const fxusd = selectDeployments(network.name, "Fx.FxUSD").toObject() as FxUSD.FxUSDDeployment;
+
+  // update manage and fxusd facets
+  const loupeFacet = (await caller.getContract("DiamondLoupeFacet", deployment.GatewayRouter)) as DiamondLoupeFacet;
+  const cutFacet = (await caller.getContract("DiamondCutFacet", deployment.GatewayRouter)) as DiamondCutFacet;
+  const cuts: IDiamond.FacetCutStruct[] = [];
+  cuts.push({
+    facetAddress: ZeroAddress,
+    action: 2,
+    functionSelectors: await loupeFacet.facetFunctionSelectors("0x5fd37C3b46d05859B333D6E418ce7d6d405c20b6"),
+  });
+  cuts.push({
+    facetAddress: ZeroAddress,
+    action: 2,
+    functionSelectors: await loupeFacet.facetFunctionSelectors("0x2eD6624Cc9E6200c2a60631f8cEb69FbAFbE3733"),
+  });
+  cuts.push({
+    facetAddress: facets.TokenConvertManagementFacet,
+    action: 0,
+    functionSelectors: getAllSignatures(TokenConvertManagementFacet__factory.createInterface()),
+  });
+  cuts.push({
+    facetAddress: facets.FxUSDFacet,
+    action: 0,
+    functionSelectors: getAllSignatures(FxUSDFacet__factory.createInterface()),
+  });
+  if (cuts[0].functionSelectors.length > 0) {
+    await caller.ownerCall(cutFacet, "GatewayRouter diamondCut", "diamondCut", [cuts, ZeroAddress, "0x"]);
+  }
 
   const manageFacet = (await caller.getContract(
     "TokenConvertManagementFacet",
     deployment.GatewayRouter
   )) as TokenConvertManagementFacet;
 
+  // approve targets
   const targets = [
     {
       target: "0x1111111254eeb25477b68fb85ed929f73a960582",
       name: "1inch AggregationRouterV5",
-    },
-    {
-      target: "0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57",
-      spender: "0x216B4B4Ba9F3e719726886d34a177484278Bfcae",
-      name: "Paraswap AugustusSwapper v5",
-    },
-    {
-      target: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
-      name: "stETH",
-    },
-    {
-      target: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
-      name: "wstETH",
-    },
-    {
-      target: "0xF0d4c12A5768D806021F80a262B4d39d26C58b8D",
-      name: "CurveRouter v1.0",
-    },
-    {
-      target: "0xbAFA44EFE7901E04E39Dad13167D089C559c1138",
-      name: "frxETH Minter",
     },
     {
       target: "0x4F96fe476e7dcD0404894454927b9885Eb8B57c3",
@@ -127,40 +139,57 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
       name: "GeneralTokenConverter",
     },
   ];
-
   const approvedTargets = await manageFacet.getApprovedTargets();
   for (const target of targets) {
     if (!approvedTargets.includes(getAddress(target.target))) {
-      await caller.call(manageFacet, "GatewayRouter approve " + target.name, "approveTarget", [
+      await caller.ownerCall(manageFacet, "GatewayRouter approve " + target.name, "approveTarget", [
         target.target,
-        target.spender ?? target.target,
+        target.target,
       ]);
     }
   }
 
+  // add whitelist
+  // withdraw from role
+  for (const [target, kind] of [
+    [fxusd.Markets.wstETH.Market.proxy, 2n],
+    [fxusd.Markets.sfrxETH.Market.proxy, 2n],
+    [fxusd.Markets.weETH.Market.proxy, 2n],
+    // [fxusd.Markets.ezETH.Market.proxy, 2n],
+    // [fxusd.Markets.aCVX.Market.proxy, 2n],
+    [fxusd.Markets.wstETH.FxInitialFund, 3n],
+    [fxusd.Markets.sfrxETH.FxInitialFund, 3n],
+    [fxusd.Markets.weETH.FxInitialFund, 3n],
+    // [fxusd.Markets.ezETH.FxInitialFund, 3n],
+    // [fxusd.Markets.aCVX.FxInitialFund, 3n],
+    [fxusd.Markets.wstETH.RebalancePool.wstETH.pool, 4n],
+    [fxusd.Markets.wstETH.RebalancePool.xstETH.pool, 4n],
+    [fxusd.Markets.sfrxETH.RebalancePool.sfrxETH.pool, 4n],
+    [fxusd.Markets.sfrxETH.RebalancePool.xfrxETH.pool, 4n],
+    [fxusd.Markets.weETH.RebalancePool.weETH.pool, 4n],
+    [fxusd.Markets.weETH.RebalancePool.xeETH.pool, 4n],
+    // [fxusd.Markets.ezETH.RebalancePool.ezETH.pool, 4n],
+    // [fxusd.Markets.ezETH.RebalancePool.xezETH.pool, 4n],
+    // [fxusd.Markets.aCVX.RebalancePool.aCVX.pool, 4n],
+    // [fxusd.Markets.aCVX.RebalancePool.xCVX.pool, 4n],
+    [fxusd.FxUSD.proxy.fxUSD, 5n],
+    [fxusd.FxUSD.proxy.rUSD, 5n],
+  ]) {
+    if ((await manageFacet.getWhitelistKind(target as string)) !== kind) {
+      await caller.ownerCall(manageFacet, "GatewayRouter updateWhitelist ", "updateWhitelist", [target, kind]);
+    }
+  }
   const WITHDRAW_FROM_ROLE = id("WITHDRAW_FROM_ROLE");
-  await caller.grantRole(
-    fxusd.Markets.wstETH.RebalancePool.wstETH.pool,
-    "FxUSDShareableRebalancePool/wstETH WITHDRAW_FROM_ROLE",
-    WITHDRAW_FROM_ROLE,
-    deployment.GatewayRouter
-  );
-  await caller.grantRole(
-    fxusd.Markets.wstETH.RebalancePool.xstETH.pool,
-    "FxUSDShareableRebalancePool/xstETH WITHDRAW_FROM_ROLE",
-    WITHDRAW_FROM_ROLE,
-    deployment.GatewayRouter
-  );
-  await caller.grantRole(
-    fxusd.Markets.sfrxETH.RebalancePool.sfrxETH.pool,
-    "FxUSDShareableRebalancePool/sfrxETH WITHDRAW_FROM_ROLE",
-    WITHDRAW_FROM_ROLE,
-    deployment.GatewayRouter
-  );
-  await caller.grantRole(
-    fxusd.Markets.sfrxETH.RebalancePool.xfrxETH.pool,
-    "FxUSDShareableRebalancePool/xfrxETH WITHDRAW_FROM_ROLE",
-    WITHDRAW_FROM_ROLE,
-    deployment.GatewayRouter
-  );
+  for (const [pool, name] of [
+    [fxusd.Markets.wstETH.RebalancePool.wstETH.pool, "FxUSDShareableRebalancePool/wstETH"],
+    [fxusd.Markets.wstETH.RebalancePool.xstETH.pool, "FxUSDShareableRebalancePool/xstETH"],
+    [fxusd.Markets.sfrxETH.RebalancePool.sfrxETH.pool, "FxUSDShareableRebalancePool/sfrxET"],
+    [fxusd.Markets.sfrxETH.RebalancePool.xfrxETH.pool, "FxUSDShareableRebalancePool/xfrxETH"],
+    [fxusd.Markets.weETH.RebalancePool.weETH.pool, "FxUSDShareableRebalancePool/weETH"],
+    [fxusd.Markets.weETH.RebalancePool.xeETH.pool, "FxUSDShareableRebalancePool/xeETH"],
+    // [fxusd.Markets.ezETH.RebalancePool.ezETH.pool, "FxUSDShareableRebalancePool/ezETH"],
+    // [fxusd.Markets.ezETH.RebalancePool.xezETH.pool, "FxUSDShareableRebalancePool/xezETH"],
+  ]) {
+    await caller.grantRole(pool, name + " WITHDRAW_FROM_ROLE", WITHDRAW_FROM_ROLE, deployment.GatewayRouter);
+  }
 }

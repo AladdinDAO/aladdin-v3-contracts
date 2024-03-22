@@ -31,6 +31,12 @@ contract TokenConvertManagementFacet {
     }
   }
 
+  /// @notice Return the whitelist kind for the given target.
+  function getWhitelistKind(address target) external view returns (LibGatewayRouter.WhitelistKind) {
+    LibGatewayRouter.GatewayStorage storage gs = LibGatewayRouter.gatewayStorage();
+    return gs.whitelisted[target];
+  }
+
   /************************
    * Restricted Functions *
    ************************/
@@ -45,5 +51,11 @@ contract TokenConvertManagementFacet {
   function removeTarget(address target) external {
     LibDiamond.enforceIsContractOwner();
     LibGatewayRouter.removeTarget(target);
+  }
+
+  /// @notice Remove approve contract in token converting.
+  function updateWhitelist(address target, LibGatewayRouter.WhitelistKind kind) external {
+    LibDiamond.enforceIsContractOwner();
+    LibGatewayRouter.updateWhitelist(target, kind);
   }
 }

@@ -88,7 +88,7 @@ contract LidoConverter is ConverterBase {
     if (_pool == stETH) {
       if (_action == 1) {
         _unwrapIfNeeded(_amountIn);
-        uint256 _shares = ILidoStETH(_pool).submit{ value: _amountIn }(address(0));
+        uint256 _shares = ILidoStETH(_pool).submit{ value: _amountIn }(REFERRAL);
         _amountOut = ILidoStETH(_pool).getPooledEthByShares(_shares);
       } else {
         revert("unsupported action");

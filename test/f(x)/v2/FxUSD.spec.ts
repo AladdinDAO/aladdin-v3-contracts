@@ -725,6 +725,68 @@ describe("FxUSD.spec", async () => {
       });
     });
 
+    context("#redeemFrom", async () => {
+      it("should revert when unsupported", async () => {
+        await expect(fxUSD.redeemFrom(ZeroAddress, 0n, ZeroAddress, 0n)).to.revertedWithCustomError(
+          fxUSD,
+          "ErrorUnsupportedRebalancePool"
+        );
+      });
+
+      it("should succeed in normal mode", async () => {
+        await m1.pool.grantRole(id("WITHDRAW_FROM_ROLE"), fxUSD.getAddress());
+        // deposit to rebalance pool first.
+        await m1.fToken.connect(signer).approve(fxUSD.getAddress(), MaxUint256);
+        await fxUSD.connect(signer).wrap(m1.baseToken.getAddress(), ethers.parseEther("10"), signer.address);
+        await fxUSD.connect(signer).earn(m1.pool.getAddress(), ethers.parseEther("10"), signer.address);
+        expect(await fxUSD.totalSupply()).to.eq(0n);
+
+        expect(await m1.pool.balanceOf(signer.address)).to.eq(ethers.parseEther("10"));
+        expect(await m1.baseToken.balanceOf(deployer.address)).to.eq(0n);
+        const [expected, expectedBonus] = await fxUSD
+          .connect(signer)
+          .redeemFrom.staticCall(m1.pool.getAddress(), ethers.parseEther("1"), deployer.address, 0n);
+        expect(expected).to.eq(ethers.parseEther("0.0005"));
+        await expect(
+          fxUSD
+            .connect(signer)
+            .redeemFrom(m1.pool.getAddress(), ethers.parseEther("1"), deployer.address, expected + 1n)
+        ).to.revertedWithCustomError(m1.market, "ErrorInsufficientBaseOutput");
+        await fxUSD
+          .connect(signer)
+          .redeemFrom(m1.pool.getAddress(), ethers.parseEther("1"), deployer.address, expected);
+        expect(await m1.pool.balanceOf(signer.address)).to.eq(ethers.parseEther("9"));
+        expect(await m1.baseToken.balanceOf(deployer.address)).to.eq(expected + expectedBonus);
+      });
+
+      it("should succeed in stability mode", async () => {
+        await m1.pool.grantRole(id("WITHDRAW_FROM_ROLE"), fxUSD.getAddress());
+        // deposit to rebalance pool first.
+        await m1.fToken.connect(signer).approve(fxUSD.getAddress(), MaxUint256);
+        await fxUSD.connect(signer).wrap(m1.baseToken.getAddress(), ethers.parseEther("10"), signer.address);
+        await fxUSD.connect(signer).earn(m1.pool.getAddress(), ethers.parseEther("10"), signer.address);
+        expect(await fxUSD.totalSupply()).to.eq(0n);
+
+        await m1.oracle.setPrice(ethers.parseEther("1001"));
+        expect(await m1.pool.balanceOf(signer.address)).to.eq(ethers.parseEther("10"));
+        expect(await m1.baseToken.balanceOf(deployer.address)).to.eq(0n);
+        const [expected, expectedBonus] = await fxUSD
+          .connect(signer)
+          .redeemFrom.staticCall(m1.pool.getAddress(), ethers.parseEther("1"), deployer.address, 0n);
+        expect(expected).to.eq(ethers.parseEther("0.000999000999000999"));
+        await expect(
+          fxUSD
+            .connect(signer)
+            .redeemFrom(m1.pool.getAddress(), ethers.parseEther("1"), deployer.address, expected + 1n)
+        ).to.revertedWithCustomError(m1.market, "ErrorInsufficientBaseOutput");
+        await fxUSD
+          .connect(signer)
+          .redeemFrom(m1.pool.getAddress(), ethers.parseEther("1"), deployer.address, expected);
+        expect(await m1.pool.balanceOf(signer.address)).to.eq(ethers.parseEther("9"));
+        expect(await m1.baseToken.balanceOf(deployer.address)).to.eq(expected + expectedBonus);
+      });
+    });
+
     context("#redeem auto", async () => {
       it("should revert when length mismatch", async () => {
         await expect(fxUSD.autoRedeem(0n, deployer.address, [])).to.revertedWithCustomError(

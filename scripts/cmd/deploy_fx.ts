@@ -9,8 +9,15 @@ import * as FxOracle from "@/contracts/FxOracle";
 import * as FxStETH from "@/contracts/FxStETH";
 import * as FxUSD from "@/contracts/FxUSD";
 
-const maxFeePerGas = ethers.parseUnits("50", "gwei");
+const maxFeePerGas = ethers.parseUnits("30", "gwei");
 const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
+
+function showRoutes(title: string, pairs: Array<[string, string]>, decode?: boolean) {
+  console.log(`\n${title}:`);
+  for (const [src, dst] of pairs) {
+    showConverterRoute(src, dst, 2, decode);
+  }
+}
 
 async function main() {
   const overrides = {
@@ -19,18 +26,18 @@ async function main() {
   };
   const deployer = await ensureDeployer(network.name);
 
-  console.log("\nFx Convert Routes:");
-  for (const [src, dst] of [
-    // stETH market
+  showRoutes("Fx Convert Routes (stETH)", [
     ["stETH", "WETH"],
     ["stETH", "USDC"],
     ["stETH", "USDT"],
     ["stETH", "wstETH"],
     ["stETH", "crvUSD"],
     ["stETH", "FRAX"],
-    // wstETH market
+  ]);
+  showRoutes("Fx Convert Routes (wstETH)", [
     ["wstETH", "stETH"],
     ["wstETH", "WETH"],
+    ["wstETH", "ETH"],
     ["wstETH", "USDC"],
     ["wstETH", "USDT"],
     ["wstETH", "crvUSD"],
@@ -41,9 +48,11 @@ async function main() {
     ["USDT", "wstETH"],
     ["crvUSD", "wstETH"],
     ["FRAX", "wstETH"],
-    // sfrxETH market
+  ]);
+  showRoutes("Fx Convert Routes (sfrxETH)", [
     ["sfrxETH", "frxETH"],
     ["sfrxETH", "WETH"],
+    ["sfrxETH", "ETH"],
     ["sfrxETH", "USDC"],
     ["sfrxETH", "USDT"],
     ["sfrxETH", "crvUSD"],
@@ -55,9 +64,53 @@ async function main() {
     ["USDT", "sfrxETH"],
     ["crvUSD", "sfrxETH"],
     ["FRAX", "sfrxETH"],
-  ]) {
-    showConverterRoute(src, dst, 2);
-  }
+  ]);
+  showRoutes("Fx Convert Routes (weETH)", [
+    ["weETH", "eETH"],
+    ["weETH", "WETH"],
+    ["weETH", "USDC"],
+    ["weETH", "USDT"],
+    ["weETH", "ETH"],
+    ["weETH", "wstETH"],
+    ["eETH", "weETH"],
+    ["WETH", "weETH"],
+    ["USDC", "weETH"],
+    ["USDT", "weETH"],
+  ]);
+  /*
+  showRoutes("Fx Convert Routes (ezETH)", [
+    ["ezETH", "WETH"],
+    ["ezETH", "USDC"],
+    ["ezETH", "USDT"],
+    ["ezETH", "ETH"],
+    ["ezETH", "wstETH"],
+    ["WETH", "ezETH"],
+    ["USDC", "ezETH"],
+    ["USDT", "ezETH"],
+  ]);
+  showRoutes("Fx Convert Routes (apxETH)", [
+    ["apxETH", "pxETH"],
+    ["apxETH", "WETH"],
+    ["apxETH", "USDC"],
+    ["apxETH", "USDT"],
+    ["apxETH", "ETH"],
+    ["pxETH", "apxETH"],
+    ["WETH", "apxETH"],
+    ["USDC", "apxETH"],
+    ["USDT", "apxETH"],
+  ]);
+  showRoutes("Fx Convert Routes (aCVX)", [
+    ["aCVX", "CVX"],
+    ["aCVX", "WETH"],
+    ["aCVX", "USDC"],
+    ["aCVX", "USDT"],
+    ["aCVX", "ETH"],
+    ["CVX", "aCVX"],
+    ["WETH", "aCVX"],
+    ["USDC", "aCVX"],
+    ["USDT", "aCVX"],
+  ]);
+  */
 
   const governance = await FxGovernance.deploy(deployer, overrides);
   await FxGovernance.initialize(deployer, governance, overrides);

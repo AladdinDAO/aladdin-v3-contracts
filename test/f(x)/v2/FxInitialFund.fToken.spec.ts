@@ -14,7 +14,6 @@ import {
   MarketV2,
   ReservePool,
   RebalancePoolRegistry,
-  FxUSD,
   ShareableRebalancePool,
   GovernanceToken,
   VotingEscrow,
@@ -38,7 +37,7 @@ interface FxMarket {
   pool: ShareableRebalancePool;
 }
 
-describe("FxInitialFund.spec", async () => {
+describe("FxInitialFund.fToken.spec", async () => {
   let deployer: HardhatEthersSigner;
   let platform: HardhatEthersSigner;
   let signer: HardhatEthersSigner;
@@ -51,7 +50,6 @@ describe("FxInitialFund.spec", async () => {
   let minter: TokenMinter;
 
   let m: FxMarket;
-  let fxUSD: FxUSD;
   let fund: FxInitialFund;
 
   const deployFxMarket = async (): Promise<FxMarket> => {
@@ -187,13 +185,8 @@ describe("FxInitialFund.spec", async () => {
 
     m = await deployFxMarket();
 
-    const FxUSD = await ethers.getContractFactory("FxUSD", deployer);
-    fxUSD = await FxUSD.deploy();
-    await fxUSD.initialize("f(x) USD", "fxUSD");
-    await fxUSD.addMarket(m.market.getAddress(), ethers.parseEther("100000"));
-
     const FxInitialFund = await ethers.getContractFactory("FxInitialFund", deployer);
-    fund = await FxInitialFund.deploy(m.market.getAddress(), fxUSD.getAddress());
+    fund = await FxInitialFund.deploy(m.market.getAddress(), ZeroAddress);
     await m.treasury.grantRole(id("PROTOCOL_INITIALIZER_ROLE"), fund.getAddress());
   });
 
@@ -205,7 +198,7 @@ describe("FxInitialFund.spec", async () => {
       expect(await fund.baseToken()).to.eq(await m.baseToken.getAddress());
       expect(await fund.fToken()).to.eq(await m.fToken.getAddress());
       expect(await fund.xToken()).to.eq(await m.xToken.getAddress());
-      expect(await fund.fxUSD()).to.eq(await fxUSD.getAddress());
+      expect(await fund.fxUSD()).to.eq(ZeroAddress);
 
       expect(await fund.totalShares()).to.eq(0n);
       expect(await fund.totalFToken()).to.eq(0n);
@@ -295,10 +288,10 @@ describe("FxInitialFund.spec", async () => {
       expect(await fund.initialized()).to.eq(true);
       await fund.toggleFxWithdrawalStatus();
 
-      expect(await fxUSD.balanceOf(signer.address)).to.eq(0n);
+      expect(await m.fToken.balanceOf(signer.address)).to.eq(0n);
       expect(await m.xToken.balanceOf(signer.address)).to.eq(0n);
       await fund.connect(signer).withdraw(signer.address);
-      expect(await fxUSD.balanceOf(signer.address)).to.eq(ethers.parseEther("1100"));
+      expect(await m.fToken.balanceOf(signer.address)).to.eq(ethers.parseEther("1100"));
       expect(await m.xToken.balanceOf(signer.address)).to.eq(ethers.parseEther("1100"));
     });
   });

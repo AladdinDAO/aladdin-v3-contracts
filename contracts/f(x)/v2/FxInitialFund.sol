@@ -71,7 +71,7 @@ contract FxInitialFund is AccessControl {
   /// @notice The total amount of pool shares.
   uint256 public totalShares;
 
-  /// @notice The total amount of fxUSD minted.
+  /// @notice The total amount of fxUSD/fToken minted.
   uint256 public totalFToken;
 
   /// @notice The total amount of xToken minted.
@@ -128,7 +128,12 @@ contract FxInitialFund is AccessControl {
     uint256 _fAmount = (_share * totalFToken) / _totalShares;
     uint256 _xAmount = (_share * totalXToken) / _totalShares;
 
-    (uint256 _fBaseOut, ) = IFxUSD(fxUSD).redeem(baseToken, _fAmount, receiver, 0);
+    uint256 _fBaseOut;
+    if (fxUSD != address(0)) {
+      (_fBaseOut, ) = IFxUSD(fxUSD).redeem(baseToken, _fAmount, receiver, 0);
+    } else {
+      (_fBaseOut, ) = IFxMarketV2(market).redeemFToken(_fAmount, receiver, 0);
+    }
     // No need to approve xToken to market
     uint256 _xBaseOut = IFxMarketV2(market).redeemXToken(_xAmount, receiver, 0);
 
@@ -136,7 +141,7 @@ contract FxInitialFund is AccessControl {
     if (baseOut < minBaseOut) revert ErrorInsufficientBaseToken();
   }
 
-  /// @notice Withdraw fxUSD and xToken from this contract.
+  /// @notice Withdraw fxUSD/fToken and xToken from this contract.
   /// @param receiver The address of token recipient.
   function withdraw(address receiver) external {
     if (!initialized) revert ErrorNotInitialized();
@@ -148,7 +153,11 @@ contract FxInitialFund is AccessControl {
     uint256 _fAmount = (_share * totalFToken) / _totalShares;
     uint256 _xAmount = (_share * totalXToken) / _totalShares;
 
-    IERC20(fxUSD).safeTransfer(receiver, _fAmount);
+    if (fxUSD != address(0)) {
+      IERC20(fxUSD).safeTransfer(receiver, _fAmount);
+    } else {
+      IERC20(fToken).safeTransfer(receiver, _fAmount);
+    }
     IERC20(xToken).safeTransfer(receiver, _xAmount);
   }
 
@@ -166,8 +175,10 @@ contract FxInitialFund is AccessControl {
       IFxTreasuryV2(treasury).getUnderlyingValue(_balance)
     );
 
-    IERC20(fToken).safeApprove(fxUSD, _totalFToken);
-    IFxUSD(fxUSD).wrap(baseToken, _totalFToken, address(this));
+    if (fxUSD != address(0)) {
+      IERC20(fToken).safeApprove(fxUSD, _totalFToken);
+      IFxUSD(fxUSD).wrap(baseToken, _totalFToken, address(this));
+    }
 
     totalFToken = _totalFToken;
     totalXToken = _totalXToken;
