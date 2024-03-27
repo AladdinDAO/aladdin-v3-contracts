@@ -41,10 +41,11 @@ contract ShareableRebalancePoolV2 is ShareableRebalancePool {
     _checkpoint(address(0));
 
     IFxTreasuryV2 _treasury = IFxTreasuryV2(treasury);
-    if (_treasury.collateralRatio() >= liquidatableCollateralRatio) {
+    uint256 _stabilityRatio = IFxMarketV2(market).stabilityRatio();
+    if (_treasury.collateralRatio() >= _stabilityRatio) {
       revert CannotLiquidate();
     }
-    (, uint256 _maxLiquidatable) = _treasury.maxRedeemableFToken(liquidatableCollateralRatio);
+    (, uint256 _maxLiquidatable) = _treasury.maxRedeemableFToken(_stabilityRatio);
 
     uint256 _amount = _maxLiquidatable;
     if (_amount > _maxAmount) {

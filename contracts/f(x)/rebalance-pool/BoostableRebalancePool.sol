@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity =0.8.20;
+pragma abicoder v2;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -128,8 +129,8 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
   /// If there are multiple updates during one day, the last one will be recorded.
   mapping(uint256 => TokenBalance) public totalSupplyHistory;
 
-  /// @notice The maximum collateral ratio to call liquidate.
-  uint256 public liquidatableCollateralRatio;
+  /// @dev deprecated slot for the maximum collateral ratio to call liquidate.
+  uint256 private __liquidatableCollateralRatio;
 
   /// @notice The address of token wrapper for liquidated base token;
   address public wrapper;
@@ -310,10 +311,11 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     _checkpoint(address(0));
 
     IFxTreasury _treasury = IFxTreasury(treasury);
-    if (_treasury.collateralRatio() >= liquidatableCollateralRatio) {
+    (uint256 _stabilityRatio, , , ) = IFxMarket(market).marketConfig();
+    if (_treasury.collateralRatio() >= _stabilityRatio) {
       revert CannotLiquidate();
     }
-    (, uint256 _maxLiquidatable) = _treasury.maxRedeemableFToken(liquidatableCollateralRatio);
+    (, uint256 _maxLiquidatable) = _treasury.maxRedeemableFToken(_stabilityRatio);
 
     uint256 _amount = _maxLiquidatable;
     if (_amount > _maxAmount) {
@@ -369,15 +371,6 @@ contract BoostableRebalancePool is MultipleRewardCompoundingAccumulator, IFxBoos
     wrapper = _newWrapper;
 
     emit UpdateWrapper(_oldWrapper, _newWrapper);
-  }
-
-  /// @notice Update the collateral ratio line for liquidation.
-  /// @param _newRatio The new liquidatable collateral ratio.
-  function updateLiquidatableCollateralRatio(uint256 _newRatio) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    uint256 _oldRatio = liquidatableCollateralRatio;
-    liquidatableCollateralRatio = _newRatio;
-
-    emit UpdateLiquidatableCollateralRatio(_oldRatio, _newRatio);
   }
 
   /**********************

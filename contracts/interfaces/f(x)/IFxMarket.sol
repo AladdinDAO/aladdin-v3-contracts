@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.7.0 || ^0.8.0;
+pragma abicoder v2;
 
 interface IFxMarket {
   /**********
@@ -59,6 +60,21 @@ interface IFxMarket {
   /// @param baseTokenOut The amount of base token redeemed.
   /// @param fTokenBurned The amount of fToken liquidated.
   event SelfLiquidate(address indexed caller, uint256 baseSwapAmt, uint256 baseTokenOut, uint256 fTokenBurned);
+
+  /*************************
+   * Public View Functions *
+   *************************/
+
+  /// @notice The market config in each mode.
+  function marketConfig()
+    external
+    view
+    returns (
+      uint64,
+      uint64,
+      uint64,
+      uint64
+    );
 
   /****************************
    * Public Mutated Functions *
