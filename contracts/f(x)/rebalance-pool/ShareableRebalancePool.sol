@@ -139,8 +139,8 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   /// If there are multiple updates at the same timestamp, only the last one will be recorded.
   mapping(uint256 => TokenBalance) public totalSupplyHistory;
 
-  /// @notice The maximum collateral ratio to call liquidate.
-  uint256 public liquidatableCollateralRatio;
+  /// @dev deprecated slot for the maximum collateral ratio to call liquidate.
+  uint256 private __liquidatableCollateralRatio;
 
   /// @notice The address of token wrapper for liquidated base token;
   address public wrapper;
@@ -232,11 +232,11 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   /// @inheritdoc IMultipleRewardAccumulator
   function claimable(address _account, address _token) public view virtual override returns (uint256) {
     if (_token == fxn) {
-      UserRewardSnapshot memory _userSnapshot = userRewardSnapshot[_account][_token];
-      uint256 fullEarned = _claimable(_account, _token) - _userSnapshot.rewards.pending;
+      uint256 _pending = userRewardSnapshot[_account][_token].rewards.pending;
+      uint256 fullEarned = _claimable(_account, _token) - _pending;
       uint256 ratio = getBoostRatio(_account);
       uint256 boostEarned = (fullEarned * ratio) / PRECISION;
-      return _userSnapshot.rewards.pending + boostEarned;
+      return _pending + boostEarned;
     } else {
       return _claimable(_account, _token);
     }
@@ -316,10 +316,11 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     _checkpoint(address(0));
 
     IFxTreasury _treasury = IFxTreasury(treasury);
-    if (_treasury.collateralRatio() >= liquidatableCollateralRatio) {
+    (uint256 _stabilityRatio, , , ) = IFxMarket(market).marketConfig();
+    if (_treasury.collateralRatio() >= _stabilityRatio) {
       revert CannotLiquidate();
     }
-    (, uint256 _maxLiquidatable) = _treasury.maxRedeemableFToken(liquidatableCollateralRatio);
+    (, uint256 _maxLiquidatable) = _treasury.maxRedeemableFToken(_stabilityRatio);
 
     uint256 _amount = _maxLiquidatable;
     if (_amount > _maxAmount) {
@@ -437,15 +438,6 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     wrapper = _newWrapper;
 
     emit UpdateWrapper(_oldWrapper, _newWrapper);
-  }
-
-  /// @notice Update the collateral ratio line for liquidation.
-  /// @param _newRatio The new liquidatable collateral ratio.
-  function updateLiquidatableCollateralRatio(uint256 _newRatio) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    uint256 _oldRatio = liquidatableCollateralRatio;
-    liquidatableCollateralRatio = _newRatio;
-
-    emit UpdateLiquidatableCollateralRatio(_oldRatio, _newRatio);
   }
 
   /**********************
