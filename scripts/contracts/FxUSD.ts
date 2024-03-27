@@ -4,13 +4,13 @@ import { MaxUint256, Overrides, ZeroAddress, getAddress, id } from "ethers";
 import { network, ethers } from "hardhat";
 
 import { FxUSD__factory } from "@/types/index";
-import { TOKENS, same } from "@/utils/index";
+import { TOKENS, same, selectDeployments } from "@/utils/index";
 
-import { DeploymentHelper, abiDecode, contractCall, ownerContractCall } from "./helpers";
+import { ContractCallHelper, DeploymentHelper, abiDecode, contractCall, ownerContractCall } from "./helpers";
 import * as FxGovernance from "./FxGovernance";
 import * as Multisig from "./Multisig";
-import * as ProxyAdmin from "./ProxyAdmin";
 import * as FxOracle from "./FxOracle";
+import { ProxyAdminDeployment } from "./ProxyAdmin";
 
 const MarketConfig: {
   [symbol: string]: {
@@ -166,7 +166,7 @@ async function doUpgrade(
 }
 
 async function deployMarket(deployment: DeploymentHelper, symbol: string) {
-  const admin = await ProxyAdmin.deploy(deployment.deployer);
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
   const governance = await FxGovernance.deploy(deployment.deployer, deployment.overrides);
   const baseToken = TOKENS[symbol].address;
   let selectorPrefix = `Markets.${symbol}`;
@@ -337,6 +337,7 @@ async function initializeMarket(
   baseSymbol: string,
   overrides?: Overrides
 ) {
+  const caller = new ContractCallHelper(deployer, overrides);
   const marketConfig = MarketConfig[baseSymbol];
   const marketDeployment = deployment.Markets[baseSymbol];
   const multisig = Multisig.deploy(network.name);
@@ -434,6 +435,21 @@ async function initializeMarket(
       [await treasury.getAddress(), await market.getAddress(), ZeroAddress]
     );
   }
+
+  // upgrade
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
+  await caller.upgrade(
+    admin.Fx,
+    `FxUSDShareableRebalancePool/${baseSymbol}`,
+    await rebalancePoolA.getAddress(),
+    deployment.FxUSDShareableRebalancePool
+  );
+  await caller.upgrade(
+    admin.Fx,
+    `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol}`,
+    await rebalancePoolB.getAddress(),
+    deployment.FxUSDShareableRebalancePool
+  );
 
   // setup Treasury
   if ((await treasury.getHarvesterRatio()) !== marketConfig.Treasury.HarvesterRatio) {
@@ -739,7 +755,7 @@ async function initializeMarket(
 }
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxUSDDeployment> {
-  const admin = await ProxyAdmin.deploy(deployer);
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
   const governance = await FxGovernance.deploy(deployer, overrides);
   const deployment = new DeploymentHelper(network.name, "Fx.FxUSD", deployer, overrides);
 

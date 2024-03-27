@@ -100,6 +100,12 @@ const DeployedGauges: {
     harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
     managerRatio: ethers.parseUnits("0.01", 9), // 1%
   },
+  "fxUSD+rUSD": {
+    token: TOKENS["CURVE_STABLE_NG_fxUSD/rUSD_138"].address,
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
 };
 
 const GaugeTypeLists: Array<{ name: string; weight: bigint }> = [
@@ -260,6 +266,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "GHO+fxUSD",
     "mkUSD+fxUSD",
     "ULTRA+fxUSD",
+    "fxUSD+rUSD",
   ]) {
     await deployment.proxyDeploy(
       "LiquidityGauge.ConvexDualFarm." + name + ".gauge",
@@ -664,6 +671,7 @@ export async function initialize(
     "GHO+fxUSD",
     "mkUSD+fxUSD",
     "ULTRA+fxUSD",
+    "fxUSD+rUSD",
   ]) {
     const gauge = await ethers.getContractAt(
       "SharedLiquidityGauge",
