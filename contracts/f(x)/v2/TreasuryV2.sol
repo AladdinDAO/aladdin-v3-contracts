@@ -184,7 +184,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
-  function isUnderCollateral() external view returns (bool) {
+  function isUnderCollateral() public view returns (bool) {
     FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
     return _state.xNav == 0;
   }
@@ -383,6 +383,8 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
   /// @notice Harvest pending rewards to stability pool.
   function harvest() external {
+    if (isUnderCollateral()) revert ErrorUnderCollateral();
+
     FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
     _updateEMALeverageRatio(_state);
 
