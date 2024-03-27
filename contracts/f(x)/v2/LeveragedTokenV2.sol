@@ -52,6 +52,8 @@ contract LeveragedTokenV2 is ERC20PermitUpgradeable, IFxLeveragedTokenV2 {
    *************************/
 
   /// @inheritdoc IFxLeveragedTokenV2
+  /// @dev The nav may not correct when the oracle price is invalid.
+  /// Be sure to check `IFxTreasuryV2(treasury).isBaseTokenPriceValid()` when using the nav.
   function nav() external view override returns (uint256) {
     uint256 _xSupply = totalSupply();
     if (IFxTreasuryV2(treasury).isUnderCollateral()) {

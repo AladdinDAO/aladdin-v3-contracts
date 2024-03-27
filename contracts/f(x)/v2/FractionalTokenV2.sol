@@ -50,6 +50,8 @@ contract FractionalTokenV2 is ERC20PermitUpgradeable, IFxFractionalTokenV2 {
    *************************/
 
   /// @inheritdoc IFxFractionalTokenV2
+  /// @dev The nav may not correct when the oracle price is invalid.
+  /// Be sure to check `IFxTreasuryV2(treasury).isBaseTokenPriceValid()` when using the nav.
   function nav() external view override returns (uint256) {
     uint256 _fSupply = totalSupply();
     if (_fSupply > 0 && IFxTreasuryV2(treasury).isUnderCollateral()) {
