@@ -35,11 +35,11 @@
     "splitter": "0x79c5f5b0753acE25ecdBdA4c2Bc86Ab074B6c2Bb",
     "claimer": "0x81243a88Dd9Fb963c643bD3f2194c2cA9CCFc428",
     "gauge": "0x9710ca7f3edd4893f399c89ea184d92cc7172e28",
-    "implementation": "0xD5e047e4DDc2C5b0E5ca66BeB4DD0853afC4fa0D",
     "APool": "0xc6dEe5913e010895F3702bc43a40d661B13a40BD",
     "BPool": "0xB87A8332dFb1C76Bb22477dCfEdDeB69865cA9f9",
     "APoolRebalancer": "0x74E9234A6e03c382A01Bb942B1aF05B639371309",
-    "BPoolRebalancer": "0x5a161B94c737326cA115eC46f4Eaf4eEC5037dBE"
+    "BPoolRebalancer": "0x5a161B94c737326cA115eC46f4Eaf4eEC5037dBE",
+    "implementation": "0x30B8B9588592bc92617d5b4BccEed06F76F66b6A"
   },
   "FxGateway": "0x5c28b966aB37cFB9397bBc04595f91F0fBf06d9b",
   "RebalancePoolRegistry": "0x4eEfea49e4D876599765d5375cF7314cD14C9d38"

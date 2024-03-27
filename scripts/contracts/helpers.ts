@@ -267,4 +267,11 @@ export class ContractCallHelper {
       await this.ownerCall(control, `${desc} grant to ${account}`, "grantRole", [role, account]);
     }
   }
+
+  public async upgrade(admin: string, desc: string, proxy: string, impl: string) {
+    const proxyAdmin = await ethers.getContractAt("ProxyAdmin", admin, this.deployer);
+    if ((await proxyAdmin.getProxyImplementation(proxy)) !== impl) {
+      await ownerContractCall(proxyAdmin, "ProxyAdmin upgrade " + desc, "upgrade", [proxy, impl], this.overrides);
+    }
+  }
 }
