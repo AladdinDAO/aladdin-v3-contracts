@@ -542,6 +542,8 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   function _updateBoolInMarketConfigData(uint256 offset, bool newValue) private returns (bool oldValue) {
     bytes32 _data = marketConfigData;
     oldValue = _data.decodeBool(offset);
+    if (oldValue == newValue) revert ErrorUpdateWithSameValue();
+
     marketConfigData = _data.insertBool(newValue, offset);
   }
 
@@ -549,6 +551,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   /// @param _newRatio The new collateral ratio to enter stability mode, multiplied by 1e18.
   function _updateStabilityRatio(uint256 _newRatio) private {
     if (_newRatio > type(uint64).max) revert ErrorStabilityRatioTooLarge();
+    if (_newRatio < FEE_PRECISION) revert ErrorStabilityRatioTooSmall();
 
     bytes32 _data = marketConfigData;
     uint256 _oldRatio = _data.decodeUint(STABILITY_RATIO_OFFSET, 64);
