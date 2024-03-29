@@ -1,7 +1,6 @@
 {
   "EmptyContract": "0x387568e1ea4Ff4D003B8147739dB69D87325E206",
   "FxUSDRebalancer": "0x78c3aF23A4DeA2F630C130d2E42717587584BF05",
-  "FxUSDShareableRebalancePool": "0x584B01aB834EE75b2a685DA500bCd0d7380FB8e0",
   "FxUSD": {
     "implementation": "0xb788998187a8536F38B69Ae657323ac8B70551Bb",
     "proxy": "0x085780639CC2cACd35E474e71f4d000e2405d8f6"
@@ -71,5 +70,6 @@
         }
       }
     }
-  }
+  },
+  "FxUSDShareableRebalancePool": "0x72A6239F1651a4556f4C40fe97575885A195f535"
 }
