@@ -184,7 +184,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
-  function isUnderCollateral() external view returns (bool) {
+  function isUnderCollateral() public view returns (bool) {
     FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
     return _state.xNav == 0;
   }
@@ -271,7 +271,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @notice Return then amount of base token can be harvested.
-  function harvestable() public view returns (uint256) {
+  function harvestable() public view virtual returns (uint256) {
     uint256 balance = IERC20Upgradeable(baseToken).balanceOf(address(this));
     uint256 managed = getWrapppedValue(totalBaseToken);
     if (balance < managed) return 0;
@@ -382,33 +382,11 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   function notifyStrategyProfit(uint256 _amount) external override onlyStrategy {}
 
   /// @notice Harvest pending rewards to stability pool.
-  function harvest() external {
+  function harvest() external virtual {
     FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
     _updateEMALeverageRatio(_state);
 
-    uint256 _totalRewards = harvestable();
-    uint256 _harvestBounty = (getHarvesterRatio() * _totalRewards) / FEE_PRECISION;
-    uint256 _rebalancePoolRewards = (getRebalancePoolRatio() * _totalRewards) / FEE_PRECISION;
-
-    emit Harvest(msg.sender, _totalRewards, _rebalancePoolRewards, _harvestBounty);
-
-    if (_harvestBounty > 0) {
-      IERC20Upgradeable(baseToken).safeTransfer(_msgSender(), _harvestBounty);
-      unchecked {
-        _totalRewards = _totalRewards - _harvestBounty;
-      }
-    }
-
-    if (_rebalancePoolRewards > 0) {
-      _distributeRebalancePoolRewards(baseToken, _rebalancePoolRewards);
-      unchecked {
-        _totalRewards = _totalRewards - _rebalancePoolRewards;
-      }
-    }
-
-    if (_totalRewards > 0) {
-      IERC20Upgradeable(baseToken).safeTransfer(platform, _totalRewards);
-    }
+    _distributedHarvestedRewards(harvestable());
   }
 
   /************************
@@ -418,33 +396,11 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   /// @inheritdoc IFxTreasuryV2
   function initializeProtocol(uint256 _baseIn)
     external
+    virtual
     onlyRole(PROTOCOL_INITIALIZER_ROLE)
-    returns (uint256 fTokenOut, uint256 xTokenOut)
+    returns (uint256, uint256)
   {
-    if (referenceBaseTokenPrice > 0) revert ErrorProtocolInitialized();
-    if (getUnderlyingValue(IERC20Upgradeable(baseToken).balanceOf(address(this))) < _baseIn) {
-      revert ErrorInsufficientInitialBaseToken();
-    }
-
-    // initialize reference price
-    address _sender = _msgSender();
-    uint256 _price = _fetchTwapPrice(Action.None);
-    referenceBaseTokenPrice = _price;
-    emit Settle(0, _price);
-
-    // mint fToken and xToken
-    totalBaseToken = _baseIn;
-    fTokenOut = (_baseIn * _price) / (2 * PRECISION);
-    xTokenOut = fTokenOut;
-    IFxFractionalTokenV2(fToken).mint(_sender, fTokenOut);
-    IFxLeveragedTokenV2(xToken).mint(_sender, xTokenOut);
-
-    // initialize EMA leverage
-    ExponentialMovingAverageV8.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
-    cachedEmaLeverageRatio.lastTime = uint40(block.timestamp);
-    cachedEmaLeverageRatio.lastValue = uint96(PRECISION * 2);
-    cachedEmaLeverageRatio.lastEmaValue = uint96(PRECISION * 2);
-    emaLeverageRatio = cachedEmaLeverageRatio;
+    return _initializeProtocol(_baseIn);
   }
 
   /// @notice Change address of strategy contract.
@@ -517,6 +473,62 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   /**********************
    * Internal Functions *
    **********************/
+
+  function _distributedHarvestedRewards(uint256 _totalRewards) internal {
+    uint256 _harvestBounty = (getHarvesterRatio() * _totalRewards) / FEE_PRECISION;
+    uint256 _rebalancePoolRewards = (getRebalancePoolRatio() * _totalRewards) / FEE_PRECISION;
+
+    emit Harvest(msg.sender, _totalRewards, _rebalancePoolRewards, _harvestBounty);
+
+    if (_harvestBounty > 0) {
+      IERC20Upgradeable(baseToken).safeTransfer(_msgSender(), _harvestBounty);
+      unchecked {
+        _totalRewards = _totalRewards - _harvestBounty;
+      }
+    }
+
+    if (_rebalancePoolRewards > 0) {
+      _distributeRebalancePoolRewards(baseToken, _rebalancePoolRewards);
+      unchecked {
+        _totalRewards = _totalRewards - _rebalancePoolRewards;
+      }
+    }
+
+    if (_totalRewards > 0) {
+      IERC20Upgradeable(baseToken).safeTransfer(platform, _totalRewards);
+    }
+  }
+
+  /// @dev Internal function to initialize protocol.
+  /// @param _baseIn The amount of underlying value of the base token used to initialize.
+  /// @return fTokenOut The amount of fToken minted.
+  /// @return xTokenOut The amount of xToken minted.
+  function _initializeProtocol(uint256 _baseIn) internal returns (uint256 fTokenOut, uint256 xTokenOut) {
+    if (referenceBaseTokenPrice > 0) revert ErrorProtocolInitialized();
+    if (getUnderlyingValue(IERC20Upgradeable(baseToken).balanceOf(address(this))) < _baseIn) {
+      revert ErrorInsufficientInitialBaseToken();
+    }
+
+    // initialize reference price
+    address _sender = _msgSender();
+    uint256 _price = _fetchTwapPrice(Action.None);
+    referenceBaseTokenPrice = _price;
+    emit Settle(0, _price);
+
+    // mint fToken and xToken
+    totalBaseToken = _baseIn;
+    fTokenOut = (_baseIn * _price) / (2 * PRECISION);
+    xTokenOut = fTokenOut;
+    IFxFractionalTokenV2(fToken).mint(_sender, fTokenOut);
+    IFxLeveragedTokenV2(xToken).mint(_sender, xTokenOut);
+
+    // initialize EMA leverage
+    ExponentialMovingAverageV8.EMAStorage memory cachedEmaLeverageRatio = emaLeverageRatio;
+    cachedEmaLeverageRatio.lastTime = uint40(block.timestamp);
+    cachedEmaLeverageRatio.lastValue = uint96(PRECISION * 2);
+    cachedEmaLeverageRatio.lastEmaValue = uint96(PRECISION * 2);
+    emaLeverageRatio = cachedEmaLeverageRatio;
+  }
 
   /// @dev Internal function to change the address of strategy contract.
   /// @param _newStrategy The new address of strategy contract.
