@@ -370,6 +370,7 @@ export const ADDRESS: { [name: string]: string } = {
   Stable_wstETH_WETH_BalancerV2: "0x93d199263632a4EF4Bb438F1feB99e57b4b5f0BD",
   Stable_rETH_WETH_BalancerV2: "0x1e19cf2d73a72ef1332c882f20534b6519be0276",
   Stable_wstETH_sfrxETH_rETH_BalancerV2: "0x42ED016F826165C2e5976fe5bC3df540C5aD0Af7",
+  "BalancerV2_GHO/USDC/USDT": "0x8353157092ED8Be69a9DF8F95af097bbF33Cb2aF",
   // FraxSwap
   FXS_FRAX_FraxSwap: "0x03B59Bd1c8B9F6C265bA0c3421923B93f15036Fa",
 };

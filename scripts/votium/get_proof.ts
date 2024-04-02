@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { ethers } from "ethers";
 import fs from "fs";
 import path from "path";
 import { initializeApp } from "firebase/app";
@@ -29,6 +30,8 @@ const db = getDatabase(app);
 
 const LOCKER = "0x96C68D861aDa016Ed98c30C810879F9df7c64154";
 
+/* eslint-disable prettier/prettier */
+// prettier-ignore
 const REWARDS: { [round: number]: string[] } = {
   19: ["ALCX", "CVX", "EURS", "FXS", "JPEG", "LDO", "LYRA", "SNX", "STG", "TRIBE", "USDN"],
   20: ["ALCX", "CVX", "FXS", "JPEG", "LDO", "MTA", "SNX", "STG", "USDN"],
@@ -56,61 +59,11 @@ const REWARDS: { [round: number]: string[] } = {
   42: ["ALCX", "CLEV", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "SPELL", "STG", "TUSD", "USDC", "USDD", "eCFX"],
   43: ["ALCX", "CLEV", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "SPELL", "STG", "TUSD", "USDD", "eCFX"],
   44: ["ALCX", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "SPELL", "STG", "TUSD", "USDC", "eCFX", "wBETH"],
-  45: [
-    "ALCX",
-    "CLEV",
-    "CNC",
-    "CRV",
-    "CVX",
-    "FXS",
-    "GNO",
-    "INV",
-    "MET",
-    "OGV",
-    "SPELL",
-    "STG",
-    "TUSD",
-    "USDC",
-    "eCFX",
-    "wBETH",
-  ],
-  46: [
-    "ALCX",
-    "CLEV",
-    "CNC",
-    "CRV",
-    "CVX",
-    "FXS",
-    "GNO",
-    "INV",
-    "MET",
-    "OGV",
-    "SPELL",
-    "STG",
-    "TUSD",
-    "USDC",
-    "USDD",
-    "sdFXS",
-  ],
+  45: ["ALCX", "CLEV", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "MET", "OGV", "SPELL", "STG", "TUSD", "USDC", "eCFX", "wBETH"],
+  46: ["ALCX", "CLEV", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "MET", "OGV", "SPELL", "STG", "TUSD", "USDC", "USDD", "sdFXS"],
   47: ["ALCX", "CLEV", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "MET", "OGV", "SPELL", "STG", "TUSD", "USDC", "USDD"],
   48: ["ALCX", "CLEV", "CNC", "CRV", "CVX", "FXS", "GNO", "MET", "OGV", "SPELL", "TUSD", "USDC", "USDD", "sdFXS"],
-  49: [
-    "ALCX",
-    "CLEV",
-    "CNC",
-    "CRV",
-    "CVX",
-    "FXS",
-    "GNO",
-    "INV",
-    "MET",
-    "OGV",
-    "SPELL",
-    "TUSD",
-    "USDC",
-    "USDD",
-    "sdFXS",
-  ],
+  49: ["ALCX", "CLEV", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "MET", "OGV", "SPELL", "TUSD", "USDC", "USDD", "sdFXS"],
   50: ["ALCX", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "MET", "OGV", "SPELL", "TUSD", "USDC", "USDD", "sdFXS"],
   51: ["ALCX", "CNC", "CRV", "CVX", "FXS", "GNO", "INV", "MET", "OGV", "SPELL", "TUSD", "USDD", "sdFXS"],
   52: ["ALCX", "CNC", "CRV", "CVX", "FXS", "GNO", "GRAI", "INV", "MET", "SPELL", "TUSD", "USDD", "sdFXS"],
@@ -126,43 +79,11 @@ const REWARDS: { [round: number]: string[] } = {
   62: ["ALCX", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "OGV", "PRISMA", "PYUSD", "SPELL", "sdFXS", "xETH"],
   63: ["ALCX", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "OGV", "PRISMA", "SPELL", "USDC", "WETH", "mkUSD", "sdFXS"],
   64: ["ALCX", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "OGV", "PRISMA", "SPELL", "WETH", "sdFXS", "xETH"],
-  65: [
-    "ALCX",
-    "BTRFLY",
-    "CNC",
-    "CRV",
-    "CVX",
-    "FXS",
-    "INV",
-    "MET",
-    "OGV",
-    "PRISMA",
-    "PYUSD",
-    "SPELL",
-    "USDC",
-    "USDT",
-    "WETH",
-    "crvUSD",
-    "xETH",
-  ],
-  66: [
-    "ALCX",
-    "BTRFLY",
-    "CNC",
-    "CRV",
-    "CVX",
-    "FXS",
-    "INV",
-    "MET",
-    "OGV",
-    "PRISMA",
-    "PYUSD",
-    "SPELL",
-    "WETH",
-    "sdFXS",
-    "xETH",
-  ],
+  65: ["ALCX", "BTRFLY", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "OGV", "PRISMA", "PYUSD", "SPELL", "USDC", "USDT", "WETH", "crvUSD", "xETH"],
+  66: ["ALCX", "BTRFLY", "CNC", "CRV", "CVX", "FXS", "INV", "MET", "OGV", "PRISMA", "PYUSD", "SPELL", "WETH", "sdFXS", "xETH"],
+  67: ["ALCX", "BTRFLY", "CNC", "CRV", "CVX", "FXN", "FXS", "GHO", "INV", "MET", "OGV", "PRISMA", "SPELL", "USDT", "WETH", "sdFXS"],
 };
+/* eslint-enable prettier/prettier */
 
 async function main(round: number) {
   const filepath = path.join(__dirname, "data", `${round}.json`);
@@ -194,7 +115,7 @@ async function main(round: number) {
     onValue(amountRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        console.log("token:", token, "amount:", data.toString());
+        console.log("token:", token, "amount:", ethers.formatUnits(data.toString(), TOKENS[token].decimals));
         claimParams[token].amount = data.toString();
       } else {
         console.log("token:", token, "Couldn't get earned balance from db");
@@ -204,7 +125,7 @@ async function main(round: number) {
     onValue(proofRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        console.log("token:", token, "proof:", data);
+        console.log("token:", token, "proof generated");
         claimParams[token].merkleProof = data;
       } else {
         console.log("token:", token, "Couldn't get merkle proof from db");
