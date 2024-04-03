@@ -329,6 +329,7 @@ contract FxUSDFacet {
   /// @param _fxUSD The address of fxUSD token.
   /// @param _fxUSDIn the amount of fxUSD to redeem, use `uint256(-1)` to redeem all fToken.
   /// @param _minBaseTokens The list of minimum amount of base token should be received.
+  /// @param _minDstOut The minimum amount of dst token should be received.
   /// @return _baseOuts The list of amounts of base token received.
   /// @return _bonusOuts The list of amount of bonus base token received.
   /// @return _dstOut The amount of dst token received.
@@ -336,7 +337,8 @@ contract FxUSDFacet {
     LibGatewayRouter.ConvertOutParams[] memory _params,
     address _fxUSD,
     uint256 _fxUSDIn,
-    uint256[] memory _minBaseTokens
+    uint256[] memory _minBaseTokens,
+    uint256 _minDstOut
   )
     external
     payable
@@ -359,6 +361,9 @@ contract FxUSDFacet {
         _baseOuts[i] + _bonusOuts[i],
         msg.sender
       );
+    }
+    if (_dstOut < _minDstOut) {
+      revert LibGatewayRouter.ErrorInsufficientOutput();
     }
   }
 
