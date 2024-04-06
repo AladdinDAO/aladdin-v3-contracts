@@ -1,24 +1,16 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity =0.8.20;
-pragma abicoder v2;
-
-import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
-import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/utils/SafeERC20Upgradeable.sol";
-
-import { ExponentialMovingAverageV8 } from "../../common/math/ExponentialMovingAverageV8.sol";
 
 import { ICrvUSDAmm } from "../../interfaces/curve/ICrvUSDAmm.sol";
-import { IFxRebalancePoolSplitter } from "../../interfaces/f(x)/IFxRebalancePoolSplitter.sol";
 import { IFxTreasuryV2 } from "../../interfaces/f(x)/IFxTreasuryV2.sol";
 
-import { CrvUSDBorrowRateAdapter } from "../funding-rate-adapter/CrvUSDBorrowRateAdapter.sol";
+import { ExponentialMovingAverageV8 } from "../../common/math/ExponentialMovingAverageV8.sol";
 import { FxStableMath } from "../math/FxStableMath.sol";
-import { TreasuryV2 } from "./TreasuryV2.sol";
+import { TreasuryV2 } from "../v2/TreasuryV2.sol";
+import { CrvUSDBorrowRateAdapter } from "./funding-rate-adapter/CrvUSDBorrowRateAdapter.sol";
 
 contract TreasuryWithFundingCost is TreasuryV2, CrvUSDBorrowRateAdapter {
-  using SafeERC20Upgradeable for IERC20Upgradeable;
-
   using ExponentialMovingAverageV8 for ExponentialMovingAverageV8.EMAStorage;
   using FxStableMath for FxStableMath.SwapState;
 
@@ -64,11 +56,9 @@ contract TreasuryWithFundingCost is TreasuryV2, CrvUSDBorrowRateAdapter {
     // funding cost = (xToken Value * (leverage - 1) * funding rate * scale) / baseNav
     uint256 _fundingCost = ((_state.xNav * _state.xSupply * (_leverage - PRECISION)) / PRECISION);
     _fundingCost = (_fundingCost * _fundingRate) / PRECISION;
-    _fundingCost = (_fundingCost * fundingCostScale) / PRECISION;
     _fundingCost /= _state.baseNav;
 
-    // no need to wrap or unwrap here, since we won't have rate provider in this treasury.
-    return _fundingCost;
+    return getWrapppedValue(_fundingCost);
   }
 
   /****************************
@@ -80,14 +70,15 @@ contract TreasuryWithFundingCost is TreasuryV2, CrvUSDBorrowRateAdapter {
     // no need to harvest
     if (borrowRateSnapshot.timestamp == block.timestamp) return;
 
-    // update leverage and revert when under collateral
+    // update leverage
     FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
-    if (_state.xNav == 0) revert ErrorUnderCollateral();
+    // silently return when under collateral since `MarketWithFundingCost` would call this in each action.
+    if (_state.xNav == 0) return;
     _updateEMALeverageRatio(_state);
 
     uint256 _totalRewards = harvestable();
+    totalBaseToken -= getUnderlyingValue(_totalRewards);
     _captureFundingRate();
-    totalBaseToken -= _totalRewards;
 
     _distributedHarvestedRewards(_totalRewards);
   }
@@ -106,17 +97,5 @@ contract TreasuryWithFundingCost is TreasuryV2, CrvUSDBorrowRateAdapter {
   {
     (fTokenOut, xTokenOut) = _initializeProtocol(_baseIn);
     borrowRateSnapshot = BorrowRateSnapshot(uint128(ICrvUSDAmm(amm).get_rate_mul()), uint128(block.timestamp));
-  }
-
-  /**********************
-   * Internal Functions *
-   **********************/
-
-  /// @inheritdoc TreasuryV2
-  function _distributeRebalancePoolRewards(address _token, uint256 _amount) internal override {
-    address _splitter = rebalancePoolSplitter;
-
-    IERC20Upgradeable(_token).safeTransfer(_splitter, _amount);
-    IFxRebalancePoolSplitter(_splitter).split(_token);
   }
 }

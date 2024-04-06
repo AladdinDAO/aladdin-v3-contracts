@@ -4,7 +4,7 @@ pragma solidity =0.8.20;
 
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/access/AccessControlUpgradeable.sol";
 
-import { ICrvUSDAmm } from "../../interfaces/curve/ICrvUSDAmm.sol";
+import { ICrvUSDAmm } from "../../../interfaces/curve/ICrvUSDAmm.sol";
 
 abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
   /**********
@@ -70,14 +70,21 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
    *************************/
 
   /// @notice Return the current funding rate with scale.
-  function getFundingRate() public view returns (uint256 _periodicRate) {
-    BorrowRateSnapshot memory cachedBorrowRateSnapshot = borrowRateSnapshot;
-
+  function getFundingRate() public view returns (uint256 _fundingRate) {
+    uint256 prevBorrowIndex = borrowRateSnapshot.borrowIndex;
     uint256 newBorrowIndex = ICrvUSDAmm(amm).get_rate_mul();
-    _periodicRate =
-      ((newBorrowIndex - uint256(cachedBorrowRateSnapshot.borrowIndex)) * PRECISION) /
-      uint128(cachedBorrowRateSnapshot.borrowIndex);
-    _periodicRate = (_periodicRate * fundingCostScale) / PRECISION;
+    _fundingRate = ((newBorrowIndex - uint256(prevBorrowIndex)) * PRECISION) / uint128(prevBorrowIndex);
+    _fundingRate = (_fundingRate * fundingCostScale) / PRECISION;
+  }
+
+  /************************
+   * Restricted Functions *
+   ************************/
+
+  /// @notice Internal function update the funding cost scale.
+  /// @param _newScale The value of new funding rate scale, multipled by 1e18.
+  function updateFundingCostScale(uint256 _newScale) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _updateFundingCostScale(_newScale);
   }
 
   /**********************
@@ -85,14 +92,14 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
    **********************/
 
   /// @dev Internal function to calculate the funding rate since last snapshot and take snapshot.
-  function _captureFundingRate() internal returns (uint256 _periodicRate) {
+  function _captureFundingRate() internal returns (uint256 _fundingRate) {
     BorrowRateSnapshot memory cachedBorrowRateSnapshot = borrowRateSnapshot;
 
     uint256 newBorrowIndex = ICrvUSDAmm(amm).get_rate_mul();
-    _periodicRate =
+    _fundingRate =
       ((newBorrowIndex - uint256(cachedBorrowRateSnapshot.borrowIndex)) * PRECISION) /
       uint128(cachedBorrowRateSnapshot.borrowIndex);
-    _periodicRate = (_periodicRate * fundingCostScale) / PRECISION;
+    _fundingRate = (_fundingRate * fundingCostScale) / PRECISION;
 
     cachedBorrowRateSnapshot.borrowIndex = uint128(newBorrowIndex);
     cachedBorrowRateSnapshot.timestamp = uint128(block.timestamp);
@@ -100,6 +107,7 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
   }
 
   /// @dev Internal function update the funding cost scale.
+  /// @param _newScale The value of new funding rate scale, multipled by 1e18.
   function _updateFundingCostScale(uint256 _newScale) internal {
     uint256 _oldScale = fundingCostScale;
     fundingCostScale = _newScale;

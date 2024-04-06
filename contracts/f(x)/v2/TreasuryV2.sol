@@ -4,18 +4,20 @@ pragma solidity =0.8.20;
 pragma abicoder v2;
 
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/access/AccessControlUpgradeable.sol";
-import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
+import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
 
 import { WordCodec } from "../../common/codec/WordCodec.sol";
 import { ExponentialMovingAverageV8 } from "../../common/math/ExponentialMovingAverageV8.sol";
 
-import { IFxPriceOracle } from "../../interfaces/f(x)/IFxPriceOracle.sol";
 import { IAssetStrategy } from "../../interfaces/f(x)/IAssetStrategy.sol";
 import { IFxFractionalTokenV2 } from "../../interfaces/f(x)/IFxFractionalTokenV2.sol";
 import { IFxLeveragedTokenV2 } from "../../interfaces/f(x)/IFxLeveragedTokenV2.sol";
 import { IFxMarketV2 } from "../../interfaces/f(x)/IFxMarketV2.sol";
+import { IFxPriceOracle } from "../../interfaces/f(x)/IFxPriceOracle.sol";
 import { IFxRateProvider } from "../../interfaces/f(x)/IFxRateProvider.sol";
+import { IFxRebalancePoolSplitter } from "../../interfaces/f(x)/IFxRebalancePoolSplitter.sol";
 import { IFxTreasuryV2 } from "../../interfaces/f(x)/IFxTreasuryV2.sol";
 
 import { FxStableMath } from "../math/FxStableMath.sol";
@@ -42,6 +44,9 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
   /// @inheritdoc IFxTreasuryV2
   address public immutable override xToken;
+
+  /// @dev The scale to make sure base token amount are with precision 1e18.
+  uint256 private immutable baseTokenScale;
 
   /// @notice The role for f(x) market contract.
   bytes32 public constant FX_MARKET_ROLE = keccak256("FX_MARKET_ROLE");
@@ -143,6 +148,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
     baseToken = _baseToken;
     fToken = _fToken;
     xToken = _xToken;
+    baseTokenScale = 10**(18 - IERC20MetadataUpgradeable(_baseToken).decimals());
   }
 
   function __TreasuryV2_init(
@@ -262,12 +268,12 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
   /// @inheritdoc IFxTreasuryV2
   function getWrapppedValue(uint256 amount) public view virtual returns (uint256) {
-    return amount;
+    return amount / baseTokenScale;
   }
 
   /// @inheritdoc IFxTreasuryV2
   function getUnderlyingValue(uint256 amount) public view virtual returns (uint256) {
-    return amount;
+    return amount * baseTokenScale;
   }
 
   /// @notice Return then amount of base token can be harvested.
@@ -673,5 +679,10 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   /// @dev Internal function to distribute rewards to rebalance pool.
   /// @param _token The address of token to distribute.
   /// @param _amount The amount of token to distribute.
-  function _distributeRebalancePoolRewards(address _token, uint256 _amount) internal virtual;
+  function _distributeRebalancePoolRewards(address _token, uint256 _amount) internal virtual {
+    address _splitter = rebalancePoolSplitter;
+
+    IERC20Upgradeable(_token).safeTransfer(_splitter, _amount);
+    IFxRebalancePoolSplitter(_splitter).split(_token);
+  }
 }

@@ -689,6 +689,11 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
     ],
   },
   USDC: {
+    WBTC: [
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 1, Action.Swap, {
+        use_eth: false,
+      }),
+    ],
     sfrxETH: [
       encodePoolHintV3(ADDRESS.USDC_WETH_UNIV3, PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, { fee_num: 500 }),
       encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
@@ -701,6 +706,11 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
     ],
   },
   USDT: {
+    WBTC: [
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 1, Action.Swap, {
+        use_eth: false,
+      }),
+    ],
     sfrxETH: [
       encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap, {
         use_eth: false,
@@ -722,9 +732,23 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
       encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 9, 0, 0, Action.Add),
     ],
   },
+  WBTC: {
+    WETH: [encodePoolHintV3(ADDRESS.WBTC_WETH_UNIV3_500, PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, { fee_num: 500 })],
+    USDT: [
+      encodePoolHintV3(ADDRESS["CURVE_USDT/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 1, 0, Action.Swap, {
+        use_eth: false,
+      }),
+    ],
+    USDC: [
+      encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 1, 0, Action.Swap, {
+        use_eth: false,
+      }),
+    ],
+  },
   WETH: {
     CVX: [encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
     FXN: [encodePoolHintV3(ADDRESS["CURVE_ETH/FXN_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
+    WBTC: [encodePoolHintV3(ADDRESS.WBTC_WETH_UNIV3_500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, { fee_num: 500 })],
     sfrxETH: [
       encodePoolHintV3(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
       encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),

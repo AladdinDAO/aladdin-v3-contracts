@@ -28,10 +28,10 @@ contract FxWBTCTwapOracle is IFxPriceOracle {
   address public immutable uniswapV3Pool;
 
   /// @notice The address of chainlink BTC/USD twap oracle.
-  address public immutable BTCUSDTwapOracle;
+  address public immutable BTCUSDChainlinkTwapOracle;
 
   /// @notice The address of chainlink WBTC/BTC twap oracle.
-  address public immutable WBTCBTCTwapOracle;
+  address public immutable WBTCBTCChainlinkTwapOracle;
 
   /***************
    * Constructor *
@@ -39,17 +39,21 @@ contract FxWBTCTwapOracle is IFxPriceOracle {
 
   constructor(
     address _uniswapV3Pool,
-    address _BTCUSDTwapOracle,
-    address _WBTCBTCTwapOracle
+    address _BTCUSDChainlinkTwapOracle,
+    address _WBTCBTCChainlinkTwapOracle
   ) {
     uniswapV3Pool = _uniswapV3Pool;
-    BTCUSDTwapOracle = _BTCUSDTwapOracle;
-    WBTCBTCTwapOracle = _WBTCBTCTwapOracle;
+    BTCUSDChainlinkTwapOracle = _BTCUSDChainlinkTwapOracle;
+    WBTCBTCChainlinkTwapOracle = _WBTCBTCChainlinkTwapOracle;
   }
 
   /*************************
    * Public View Functions *
    *************************/
+
+  function getUniV3TwapUSDPrice() external view returns (uint256) {
+    return _getUniV3TwapUSDPrice();
+  }
 
   /// @inheritdoc IFxPriceOracle
   function getPrice()
@@ -63,8 +67,8 @@ contract FxWBTCTwapOracle is IFxPriceOracle {
       uint256 _maxUnsafePrice
     )
   {
-    uint256 BTC_USDChainlinkPrice = ITwapOracle(BTCUSDTwapOracle).getTwap(block.timestamp);
-    uint256 WBTC_BTCChainlinkPrice = ITwapOracle(WBTCBTCTwapOracle).getTwap(block.timestamp);
+    uint256 BTC_USDChainlinkPrice = ITwapOracle(BTCUSDChainlinkTwapOracle).getTwap(block.timestamp);
+    uint256 WBTC_BTCChainlinkPrice = ITwapOracle(WBTCBTCChainlinkTwapOracle).getTwap(block.timestamp);
     uint256 WBTC_USDChainlinkPrice = (WBTC_BTCChainlinkPrice * BTC_USDChainlinkPrice) / PRECISION;
     uint256 WBTC_USDUniswapPrice = _getUniV3TwapUSDPrice();
 
@@ -86,8 +90,8 @@ contract FxWBTCTwapOracle is IFxPriceOracle {
   function _getUniV3TwapUSDPrice() internal view returns (uint256) {
     (int24 timeWeightedAverageTick, ) = OracleLibrary.consult(uniswapV3Pool, TWAP_PERIOD);
     uint256 quote = OracleLibrary.getQuoteAtTick(timeWeightedAverageTick, 1 ether, WBTC, USDT);
-    // decimal of USDT is 6
-    return quote * 10**12;
+    // decimal of USDT is 6, decimal of WBTC is 8
+    return quote * 10**2;
   }
 
   /// @dev Internal function to determine whether the price is valid.
