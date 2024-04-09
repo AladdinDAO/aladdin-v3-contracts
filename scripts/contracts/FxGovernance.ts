@@ -5,14 +5,14 @@ import { ZeroAddress, Overrides, Contract, MaxUint256, ZeroHash } from "ethers";
 import { network, ethers } from "hardhat";
 
 import { GaugeController, SharedLiquidityGauge__factory } from "@/types/index";
-import { DEPLOYED_CONTRACTS } from "@/utils/deploys";
+import { DEPLOYED_CONTRACTS, selectDeployments } from "@/utils/deploys";
 import { TOKENS } from "@/utils/tokens";
 
 import { DeploymentHelper, contractCall, ownerContractCall } from "./helpers";
-import * as Converter from "./Converter";
-import * as Multisig from "./Multisig";
-import * as ProxyAdmin from "./ProxyAdmin";
-import * as VotingEscrow from "./VotingEscrow";
+import { ConverterDeployment } from "./Converter";
+import { ProxyAdminDeployment } from "./ProxyAdmin";
+import { MultisigDeployment } from "./Multisig";
+import { VotingEscrowDeployment } from "./VotingEscrow";
 
 const DeployedGauges: {
   [name: string]: {
@@ -210,10 +210,10 @@ const SaleConfig: {
 };
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxGovernanceDeployment> {
-  const multisig = Multisig.deploy(network.name);
-  const admin = await ProxyAdmin.deploy(deployer);
-  const converter = await Converter.deploy(deployer, overrides);
-  const implementationDeployment = await VotingEscrow.deploy(deployer, overrides);
+  const multisig = selectDeployments(network.name, "Multisig").toObject() as MultisigDeployment;
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
+  const converter = selectDeployments(network.name, "Converter").toObject() as ConverterDeployment;
+  const implementationDeployment = selectDeployments(network.name, "VotingEscrow").toObject() as VotingEscrowDeployment;
   const deployment = new DeploymentHelper(network.name, "Fx.Governance", deployer, overrides);
 
   for (const round of ["TokenSale1", "TokenSale2"]) {
@@ -395,7 +395,8 @@ export async function initialize(
   deployment: FxGovernanceDeployment,
   overrides?: Overrides
 ) {
-  const multisig = Multisig.deploy(network.name);
+  const multisig = selectDeployments(network.name, "Multisig").toObject() as MultisigDeployment;
+  const converter = selectDeployments(network.name, "Converter").toObject() as ConverterDeployment;
 
   // initialize token sale
   for (const round of ["TokenSale1", "TokenSale2"]) {
@@ -611,6 +612,15 @@ export async function initialize(
       "PlatformFeeBurner add keeper",
       "updateKeeperStatus",
       ["0x11E91BB6d1334585AA37D8F4fde3932C7960B938", true],
+      overrides
+    );
+  }
+  if ((await burner.converter()) !== converter.GeneralTokenConverter) {
+    await ownerContractCall(
+      burner,
+      "PlatformFeeBurner updateConverter",
+      "updateConverter",
+      [converter.GeneralTokenConverter],
       overrides
     );
   }

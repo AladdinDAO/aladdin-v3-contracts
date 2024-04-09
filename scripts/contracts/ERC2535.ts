@@ -2,10 +2,10 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
 import { network } from "hardhat";
 
+import { TOKENS, selectDeployments } from "@/utils/index";
+
 import { DeploymentHelper } from "./helpers";
 import * as FxStETH from "./FxStETH";
-import * as FxUSD from "./FxUSD";
-import { TOKENS } from "../utils";
 
 export interface ERC2535Deployment {
   // default facets
@@ -25,8 +25,7 @@ export interface ERC2535Deployment {
 }
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<ERC2535Deployment> {
-  const fxsteth = await FxStETH.deploy(deployer, overrides);
-  const fxusd = await FxUSD.deploy(deployer, overrides);
+  const fxsteth = selectDeployments(network.name, "Fx.stETH").toObject() as FxStETH.FxStETHDeployment;
   const deployment = new DeploymentHelper(network.name, "ERC2535", deployer, overrides);
 
   // deploy default facets
@@ -67,7 +66,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     fxsteth.FractionalToken.proxy,
     fxsteth.LeveragedToken.proxy,
   ]);
-  await deployment.contractDeploy("FxUSDFacet", "FxUSDFacet implementation", "FxUSDFacet", [fxusd.FxUSD.proxy]);
+  await deployment.contractDeploy("FxUSDFacet", "FxUSDFacet implementation", "FxUSDFacet", []);
 
   return deployment.toObject() as ERC2535Deployment;
 }

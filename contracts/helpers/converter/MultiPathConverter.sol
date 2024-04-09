@@ -5,12 +5,17 @@ pragma solidity ^0.7.6;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
+import { IWETH } from "../../interfaces/IWETH.sol";
 import { ITokenConverter } from "./ITokenConverter.sol";
 
 contract MultiPathConverter {
   using SafeERC20 for IERC20;
 
+  /// @notice The address of GeneralTokenConverter contract.
   address public immutable converter;
+
+  /// @dev The address of WETH token.
+  address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   constructor(address _converter) {
     converter = _converter;
@@ -21,8 +26,13 @@ contract MultiPathConverter {
     uint256 _amount,
     uint256 _encoding,
     uint256[] memory _routes
-  ) external {
-    IERC20(_tokenIn).safeTransferFrom(msg.sender, converter, _amount);
+  ) external payable {
+    if (_tokenIn == address(0)) {
+      IWETH(WETH).deposit{ value: _amount }();
+      IERC20(WETH).safeTransfer(converter, _amount);
+    } else {
+      IERC20(_tokenIn).safeTransferFrom(msg.sender, converter, _amount);
+    }
 
     uint256 _offset;
     for (uint256 i = 0; i < 8; i++) {

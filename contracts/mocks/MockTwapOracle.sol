@@ -25,6 +25,10 @@ contract MockTwapOracle is ITwapOracle, IFxPriceOracle {
     return price;
   }
 
+  function price_oracle(uint256) external view returns (uint256) {
+    return price;
+  }
+
   /// @inheritdoc IFxPriceOracle
   function getPrice()
     external

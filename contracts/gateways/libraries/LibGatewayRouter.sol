@@ -25,12 +25,28 @@ library LibGatewayRouter {
   /// @dev Thrown when the output token is not enough.
   error ErrorInsufficientOutput();
 
+  /// @dev Thrown when the whitelisted account type is incorrect.
+  error ErrorNotWhitelisted(WhitelistKind expected, WhitelistKind found);
+
   /*************
    * Constants *
    *************/
 
   /// @dev The storage slot for gateway storage.
   bytes32 private constant GATEWAY_STORAGE_POSITION = keccak256("diamond.gateway.storage");
+
+  /*********
+   * Enums *
+   *********/
+
+  enum WhitelistKind {
+    None,
+    DexAggregator,
+    FxMarket,
+    FxInitialFundVault,
+    FxRebalancePool,
+    FxUSD
+  }
 
   /***********
    * Structs *
@@ -41,6 +57,7 @@ library LibGatewayRouter {
   struct GatewayStorage {
     mapping(address => address) spenders;
     EnumerableSetUpgradeable.AddressSet approvedTargets;
+    mapping(address => WhitelistKind) whitelisted;
   }
 
   /// @notice The struct for input token convert parameters.
@@ -95,6 +112,23 @@ library LibGatewayRouter {
 
     if (gs.approvedTargets.remove(target)) {
       delete gs.spenders[target];
+    }
+  }
+
+  /// @dev Whitelist account with type.
+  function updateWhitelist(address account, WhitelistKind kind) internal {
+    GatewayStorage storage gs = gatewayStorage();
+
+    gs.whitelisted[account] = kind;
+  }
+
+  /// @dev Check whether the account is whitelised with specific type.
+  function ensureWhitelised(address account, WhitelistKind kind) internal view {
+    GatewayStorage storage gs = gatewayStorage();
+
+    WhitelistKind cachedKind = gs.whitelisted[account];
+    if (cachedKind == WhitelistKind.None || cachedKind != kind) {
+      revert ErrorNotWhitelisted(kind, cachedKind);
     }
   }
 
