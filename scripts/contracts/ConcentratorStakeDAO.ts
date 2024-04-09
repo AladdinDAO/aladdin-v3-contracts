@@ -250,7 +250,7 @@ export async function initialize(
   );
 
   // upgrade
-  for (const name of ["ConcentratorStakeDAOLocker"]) {
+  for (const name of ["ConcentratorStakeDAOLocker", "ConcentratorSdCrvGaugeWrapper"]) {
     const impl = (deployment as any)[name].implementation;
     const proxy = (deployment as any)[name].proxy;
     if ((await proxyAdmin.getProxyImplementation(proxy)) !== impl) {

@@ -321,7 +321,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   // Vesting related contracts
   await deployment.contractDeploy("MultipleVestHelper", "FXN MultipleVestHelper", "MultipleVestHelper", []);
 
-  for (const token of ["FXN", "fETH"]) {
+  for (const token of ["FXN", "fETH", "fxUSD"]) {
     await deployment.contractDeploy(`Vesting.${token}`, `${token} Vesting`, "Vesting", [TOKENS[token].address]);
   }
 
