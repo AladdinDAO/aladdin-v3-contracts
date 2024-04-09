@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Interface, ZeroAddress, id } from "ethers";
+import { Interface, Wallet, ZeroAddress, id } from "ethers";
 import { ethers } from "hardhat";
 
 import { mockETHBalance, request_fork } from "@/test/utils";
@@ -41,6 +41,7 @@ const TokenHolder: { [symbol: string]: { holder: string; amount: bigint } } = {
 describe("MarketV2.ezETH.spec", async () => {
   let deployer: HardhatEthersSigner;
   let signer: HardhatEthersSigner;
+  let oracleSigner: Wallet;
 
   let manage: TokenConvertManagementFacet;
   let gateway: FxUSDFacet;
@@ -73,6 +74,7 @@ describe("MarketV2.ezETH.spec", async () => {
     const admin = await ethers.getSigner(ADMIN);
     const manager = await ethers.getSigner(MANAGER);
     deployer = await ethers.getSigner(ZeroAddress);
+    oracleSigner = new Wallet("0x0000000000000000000000000000000000000000000000000000000000000001");
     await mockETHBalance(deployer.address, ethers.parseEther("100"));
     await mockETHBalance(admin.address, ethers.parseEther("100"));
     await mockETHBalance(manager.address, ethers.parseEther("100"));
@@ -100,7 +102,7 @@ describe("MarketV2.ezETH.spec", async () => {
       action: 2,
       functionSelectors: y.map((x) => x),
     });
-    for (const name of ["FxUSDFacet", "TokenConvertManagementFacet"]) {
+    for (const name of ["FxUSDFacet", "TokenConvertManagementFacet", "EIP712Facet"]) {
       const Contract = await ethers.getContractFactory(name, deployer);
       const facet = await Contract.deploy();
       cuts.push({
@@ -140,6 +142,9 @@ describe("MarketV2.ezETH.spec", async () => {
     await converterRegistry.connect(manager).register(11, await ethLSDConverter.getAddress());
     await converterRegistry.connect(manager).register(14, await wethConverter.getAddress());
     await manage.connect(manager).approveTarget(inputConverter.getAddress(), ZeroAddress);
+    await manage.connect(manager).updateSigner(oracleSigner.getAddress(), true);
+    const eip712 = await ethers.getContractAt("EIP712Facet", "0xA5e2Ec4682a32605b9098Ddd7204fe84Ab932fE4", deployer);
+    await eip712.connect(manager).initializeEIP712("Gateway Router", "1.0.0");
 
     // deploy market
     const FxEzETHTwapOracle = await ethers.getContractFactory("FxEzETHTwapOracle", deployer);
@@ -234,6 +239,7 @@ describe("MarketV2.ezETH.spec", async () => {
     for (const symbol of ["WETH", /* "wBETH", "stETH", "wstETH" */ "USDC", "USDT", "ETH"]) {
       it(`should succeed when mint from ${symbol}`, async () => {
         await simulateMintFTokenV2(
+          oracleSigner,
           gateway,
           inputConverter,
           market,
@@ -266,6 +272,7 @@ describe("MarketV2.ezETH.spec", async () => {
     for (const symbol of ["WETH", /* "wBETH", "stETH", "wstETH" */ "USDC", "USDT", "ETH"]) {
       it(`should succeed when mint from ${symbol}`, async () => {
         await simulateMintXTokenV2(
+          oracleSigner,
           gateway,
           inputConverter,
           market,
@@ -295,6 +302,7 @@ describe("MarketV2.ezETH.spec", async () => {
     for (const symbol of ["WETH", "wBETH", "stETH", "wstETH", "USDC", "USDT", "ETH"]) {
       it(`should succeed when redeem as ${symbol}`, async () => {
         await simulateRedeemFTokenV2(
+          oracleSigner,
           gateway,
           outputConverter,
           market,
@@ -324,6 +332,7 @@ describe("MarketV2.ezETH.spec", async () => {
     for (const symbol of ["WETH", "wBETH", "stETH", "wstETH", "USDC", "USDT", "ETH"]) {
       it(`should succeed when redeem as ${symbol}`, async () => {
         await simulateRedeemXTokenV2(
+          oracleSigner,
           gateway,
           outputConverter,
           market,
