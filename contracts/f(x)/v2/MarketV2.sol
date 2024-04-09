@@ -110,7 +110,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   /// @notice The address of RebalancePoolRegistry contract.
   address public registry;
 
-  /// @notice The address of fxUSD token.
+  /// @inheritdoc IFxMarketV2
   address public fxUSD;
 
   /// @dev Slots for future use.
