@@ -399,7 +399,7 @@ async function snapshot_vote(
     autoInterval: number;
   }
 ) {
-  if (!["CRV", "PRISMA"].includes(protocol)) {
+  if (!["CRV", "PRISMA", "FXN"].includes(protocol)) {
     throw Error("invalid protocol");
   }
   const proposal_file = `${directory}/${protocol}/${round}.proposal.json`;
@@ -409,6 +409,7 @@ async function snapshot_vote(
   const ProtocolMapping: { [name: string]: string } = {
     CRV: "cvx-crv",
     PRISMA: "cvx-prisma",
+    FXN: "cvx-fxn",
   };
 
   if (voteConfig) force = true;

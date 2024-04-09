@@ -89,6 +89,14 @@
       "ULTRA+fxUSD": {
         "gauge": "0x0d3e9A29E856CF00d670368a7ab0512cb0c29FAC",
         "manager": "0x70d6C973Cf38D9AbFdb7474c9e1277Ad6E074645"
+      },
+      "fxUSD+rUSD": {
+        "gauge": "0x697DDb8e742047561C8e4bB69d2DDB1b8Bb42b60",
+        "manager": "0x0dDCF4c31Ee27C4D33d902434999cb358Fde9b69"
+      },
+      "alUSD+fxUSD": {
+        "gauge": "0x9c7003bC16F2A1AA47451C858FEe6480B755363e",
+        "manager": "0x4F73CDdB5c3F29b0e31f96bc29c973f5297e7411"
       }
     }
   },

@@ -7,6 +7,7 @@
     "test": "npx hardhat test",
     "build": "npx hardhat compile --no-typechain && npx hardhat typechain",
     "vlcvx:crv": "yarn ts-node scripts/votium/vote.ts snapshot --protocol CRV",
+    "vlcvx:fxn": "yarn ts-node scripts/votium/vote.ts snapshot --protocol FXN",
     "vlcvx:prisma": "yarn ts-node scripts/votium/vote.ts snapshot --protocol PRISMA",
     "votium:vote": "yarn ts-node scripts/votium/hermez_vote.ts",
     "votium:snapshot_vote": "yarn ts-node scripts/votium/snapshot_vote.ts",
