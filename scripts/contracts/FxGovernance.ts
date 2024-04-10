@@ -82,6 +82,9 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "ULTRA+fxUSD",
     "fxUSD+rUSD",
     "alUSD+fxUSD",
+    "eUSD+fxUSD",
+    "rgUSD+fxUSD",
+    "MIM+fxUSD",
   ]) {
     await deployment.proxyDeploy(
       "LiquidityGauge.ConvexDualFarm." + name + ".gauge",
@@ -498,6 +501,9 @@ export async function initialize(
     "ULTRA+fxUSD",
     "fxUSD+rUSD",
     "alUSD+fxUSD",
+    "eUSD+fxUSD",
+    "rgUSD+fxUSD",
+    "MIM+fxUSD",
   ]) {
     const gauge = await ethers.getContractAt(
       "SharedLiquidityGauge",
