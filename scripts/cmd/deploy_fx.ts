@@ -77,7 +77,6 @@ async function main() {
     ["USDC", "weETH"],
     ["USDT", "weETH"],
   ]);
-  /*
   showRoutes("Fx Convert Routes (ezETH)", [
     ["ezETH", "WETH"],
     ["ezETH", "USDC"],
@@ -110,7 +109,6 @@ async function main() {
     ["USDC", "aCVX"],
     ["USDT", "aCVX"],
   ]);
-  */
 
   const governance = await FxGovernance.deploy(deployer, overrides);
   await FxGovernance.initialize(deployer, governance, overrides);
