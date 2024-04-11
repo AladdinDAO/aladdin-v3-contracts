@@ -22,8 +22,8 @@
   },
   "SdCRVBribeBurner": "0x9D6Dc3dbC7Cc5e1d7241601473FD63d2bD1573f9",
   "ConcentratorSdCrvGaugeWrapper": {
-    "implementation": "0xCCcB97F23666C75Aee0aABDdb180C2DF68B03154",
-    "proxy": "0x09B0E3A114135F528F762DB8363b4f5eae3F3bF1"
+    "proxy": "0x09B0E3A114135F528F762DB8363b4f5eae3F3bF1",
+    "implementation": "0xF6198e5e9179AFB6A75a5c4dC29e0235BC8Af0C6"
   },
   "SdCRVBribeBurnerV2": "0x680f26dbc8Fa2B463607ebb49A68A69c33476665"
 }
