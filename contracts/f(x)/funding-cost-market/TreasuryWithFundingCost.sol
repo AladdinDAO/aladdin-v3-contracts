@@ -53,8 +53,8 @@ contract TreasuryWithFundingCost is TreasuryV2, CrvUSDBorrowRateAdapter {
     // usually the leverage should always >= 1.0, but if < 1.0, the function will revert.
     uint256 _leverage = _state.leverageRatio();
     uint256 _fundingRate = getFundingRate();
-    // funding cost = (xToken Value * (leverage - 1) * funding rate * scale) / baseNav
-    uint256 _fundingCost = ((_state.xNav * _state.xSupply * (_leverage - PRECISION)) / PRECISION);
+    // funding cost = (xToken Value * (leverage - 1) / leverage * funding rate * scale) / baseNav
+    uint256 _fundingCost = ((_state.xNav * _state.xSupply * (_leverage - PRECISION)) / _leverage);
     _fundingCost = (_fundingCost * _fundingRate) / PRECISION;
     _fundingCost /= _state.baseNav;
 

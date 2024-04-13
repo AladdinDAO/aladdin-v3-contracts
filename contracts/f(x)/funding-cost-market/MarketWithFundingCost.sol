@@ -22,7 +22,7 @@ contract MarketWithFundingCost is MarketV2 {
     IFxTreasuryV2(treasury).harvest();
     uint256 _bounty = IERC20Upgradeable(baseToken).balanceOf(address(this)) - _balance;
     if (_bounty > 0) {
-      IERC20Upgradeable(baseToken).safeTransfer(_msgSender(), _bounty);
+      IERC20Upgradeable(baseToken).safeTransfer(platform, _bounty);
     }
     _;
   }

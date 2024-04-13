@@ -231,21 +231,21 @@ describe("TreasuryWithFundingCost.spec", async () => {
         // lead to 20% funding rate
         await oracle.set_rate_mul((ethers.parseEther("1.1") * 14n) / 10n);
         expect(await treasury.getFundingRate()).to.eq(ethers.parseEther("0.2"));
-        expect(await treasury.harvestable()).to.eq(ethers.parseEther("0.099950024987506246"));
+        expect(await treasury.harvestable()).to.eq(ethers.parseEther("0.049999987512490631"));
         await expect(treasury.connect(signer).harvest())
           .to.emit(treasury, "Harvest")
           .withArgs(
             signer.address,
-            ethers.parseEther("0.099950024987506246"),
-            ethers.parseEther("0.049975012493753123"),
-            ethers.parseEther("0.009995002498750624")
+            ethers.parseEther("0.049999987512490631"),
+            ethers.parseEther("0.024999993756245315"),
+            ethers.parseEther("0.004999998751249063")
           );
-        expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("0.900049975012493754"));
-        expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("0.900049975012493754"));
+        expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("0.950000012487509369"));
+        expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("0.950000012487509369"));
         expect(await treasury.harvestable()).to.eq(0n);
-        expect(await baseToken.balanceOf(signer.address)).to.eq(ethers.parseEther("0.009995002498750624"));
-        expect(await baseToken.balanceOf(platform.address)).to.eq(ethers.parseEther("0.039980009995002499"));
-        expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("0.049975012493753123"));
+        expect(await baseToken.balanceOf(signer.address)).to.eq(ethers.parseEther("0.004999998751249063"));
+        expect(await baseToken.balanceOf(platform.address)).to.eq(ethers.parseEther("0.019999995004996253"));
+        expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("0.024999993756245315"));
       });
     });
   });

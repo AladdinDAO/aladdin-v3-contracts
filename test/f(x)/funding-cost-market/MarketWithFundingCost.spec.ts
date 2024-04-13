@@ -665,7 +665,7 @@ describe("MarketWithFundingCost.spec", async () => {
             market.mintFToken(ethers.parseEther("1"), deployer.address, expected + 1n)
           ).to.revertedWithCustomError(market, "ErrorInsufficientFTokenOutput");
 
-          const baseBefore = await baseToken.balanceOf(deployer.address);
+          const baseBefore = await baseToken.balanceOf(platform.address);
           await expect(market.mintFToken(ethers.parseEther("1"), deployer.address, expected))
             .to.emit(market, "MintFToken")
             .withArgs(
@@ -675,13 +675,12 @@ describe("MarketWithFundingCost.spec", async () => {
               expected,
               ethers.parseEther("0.0025")
             );
-          const baseAfter = await baseToken.balanceOf(deployer.address);
-          expect(baseAfter - baseBefore).to.eq(-ethers.parseEther("0.5"));
-          expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("2.5"));
-          expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("95.9975"));
-          expect(await baseToken.balanceOf(platform.address)).to.eq(ethers.parseEther("2.0025"));
+          const baseAfter = await baseToken.balanceOf(platform.address);
+          expect(baseAfter - baseBefore).to.eq(ethers.parseEther("1.2525"));
+          expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("1.25"));
+          expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("98.4975"));
           expect(await fToken.balanceOf(deployer.address)).to.eq(expected);
-          expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("95.9975"));
+          expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("98.4975"));
         });
       });
 
@@ -707,13 +706,13 @@ describe("MarketWithFundingCost.spec", async () => {
             deployer.address,
             0n
           );
-          expect(expected).to.eq(ethers.parseEther("2222"));
+          expect(expected).to.eq(ethers.parseEther("2105.052631578947368421"));
           expect(expectedBonus).to.eq(0n);
           await expect(
             market.mintXToken(ethers.parseEther("1"), deployer.address, expected + 1n)
           ).to.revertedWithCustomError(market, "ErrorInsufficientXTokenOutput");
 
-          const baseBefore = await baseToken.balanceOf(deployer.address);
+          const baseBefore = await baseToken.balanceOf(platform.address);
           await expect(market.mintXToken(ethers.parseEther("1"), deployer.address, expected))
             .to.emit(market, "MintXToken")
             .withArgs(
@@ -724,13 +723,12 @@ describe("MarketWithFundingCost.spec", async () => {
               expectedBonus,
               ethers.parseEther("0.01")
             );
-          const baseAfter = await baseToken.balanceOf(deployer.address);
-          expect(baseAfter - baseBefore).to.eq(-ethers.parseEther("0.5"));
-          expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("2.5"));
-          expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("95.99"));
-          expect(await baseToken.balanceOf(platform.address)).to.eq(ethers.parseEther("2.01"));
+          const baseAfter = await baseToken.balanceOf(platform.address);
+          expect(baseAfter - baseBefore).to.eq(ethers.parseEther("1.26"));
+          expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("1.25"));
+          expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("98.49"));
           expect(await xToken.balanceOf(deployer.address)).to.eq(expected);
-          expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("95.99"));
+          expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("98.49"));
         });
       });
 
@@ -757,7 +755,7 @@ describe("MarketWithFundingCost.spec", async () => {
           expect(expected).to.eq(ethers.parseEther("0.000493811881188119"));
           expect(expecedBonus).to.eq(0n);
 
-          const before = await baseToken.balanceOf(signer.address);
+          const before = await baseToken.balanceOf(platform.address);
           await expect(market.connect(signer).redeemFToken(ethers.parseEther("1"), deployer.address, 0n))
             .to.emit(market, "RedeemFToken")
             .withArgs(
@@ -768,13 +766,13 @@ describe("MarketWithFundingCost.spec", async () => {
               expecedBonus,
               ethers.parseEther("0.000001237623762376")
             );
-          const after = await baseToken.balanceOf(signer.address);
-          expect(after - before).to.eq(ethers.parseEther("0.5"));
+          const after = await baseToken.balanceOf(platform.address);
+          expect(after - before).to.eq(ethers.parseEther("1.250001237623762376"));
           expect(await baseToken.balanceOf(deployer.address)).to.eq(expected);
-          expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("2.5"));
-          expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("94.999504950495049505"));
+          expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("1.25"));
+          expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("97.499504950495049505"));
           expect(await fToken.balanceOf(signer.address)).to.eq(ethers.parseEther("100999"));
-          expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("94.999504950495049505"));
+          expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("97.499504950495049505"));
         });
       });
 
@@ -798,9 +796,9 @@ describe("MarketWithFundingCost.spec", async () => {
           const expected = await market
             .connect(signer)
             .redeemXToken.staticCall(ethers.parseEther("1"), deployer.address, 0n);
-          expect(expected).to.eq(ethers.parseEther("0.000441089108910891"));
+          expect(expected).to.eq(ethers.parseEther("0.000465594059405941"));
 
-          const before = await baseToken.balanceOf(signer.address);
+          const before = await baseToken.balanceOf(platform.address);
           await expect(market.connect(signer).redeemXToken(ethers.parseEther("1"), deployer.address, 0n))
             .to.emit(market, "RedeemXToken")
             .withArgs(
@@ -808,15 +806,15 @@ describe("MarketWithFundingCost.spec", async () => {
               deployer.address,
               ethers.parseEther("1"),
               expected,
-              ethers.parseEther("0.000004455445544554")
+              ethers.parseEther("0.000004702970297029")
             );
-          const after = await baseToken.balanceOf(signer.address);
-          expect(after - before).to.eq(ethers.parseEther("0.5"));
+          const after = await baseToken.balanceOf(platform.address);
+          expect(after - before).to.eq(ethers.parseEther("1.250004702970297029"));
           expect(await baseToken.balanceOf(deployer.address)).to.eq(expected);
-          expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("2.5"));
-          expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("94.999554455445544555"));
+          expect(await baseToken.balanceOf(splitter.getAddress())).to.eq(ethers.parseEther("1.25"));
+          expect(await baseToken.balanceOf(treasury.getAddress())).to.eq(ethers.parseEther("97.499529702970297030"));
           expect(await xToken.balanceOf(signer.address)).to.eq(ethers.parseEther("100999"));
-          expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("94.999554455445544555"));
+          expect(await treasury.totalBaseToken()).to.eq(ethers.parseEther("97.499529702970297030"));
         });
       });
     });
