@@ -168,6 +168,19 @@ interface IFxUSD {
     uint256 minOut
   ) external returns (uint256 amountOut, uint256 bonusOut);
 
+  /// @notice Redeem fToken from rebalance pool to base token.
+  /// @param amountIn The amount of fxUSD to redeem.
+  /// @param receiver The address of base token recipient.
+  /// @param minOut The minimum amount of base token should receive.
+  /// @return amountOut The amount of base token received by the receiver.
+  /// @return bonusOut The amount of bonus base token received by the receiver.
+  function redeemFrom(
+    address pool,
+    uint256 amountIn,
+    address receiver,
+    uint256 minOut
+  ) external returns (uint256 amountOut, uint256 bonusOut);
+
   /// @notice Redeem fxUSD to base token optimally.
   /// @param amountIn The amount of fxUSD to redeem.
   /// @param receiver The address of base token recipient.

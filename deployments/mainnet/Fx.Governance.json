@@ -8,7 +8,8 @@
   "SmartWalletWhitelist": "0xD71B8B76015F296E53D41e8288a8a13eAfFff2ea",
   "Vesting": {
     "FXN": "0x2290eeFEa24A6E43b26C27187742bD1FEDC10BDB",
-    "fETH": "0x1236193C71128f9e7b6BB56F506676adD8589009"
+    "fETH": "0x1236193C71128f9e7b6BB56F506676adD8589009",
+    "fxUSD": "0xc054F64143CB04b765773D5B66992f611C497352"
   },
   "FeeDistributor": {
     "stETH": "0x851AAEA3A2757D457E1Ce88C3808C1690213e432",
@@ -57,6 +58,46 @@
       "FXN+sdFXN": {
         "gauge": "0x5b1D12365BEc01b8b672eE45912d1bbc86305dba",
         "manager": "0x06688aC314dA737a1E9841B374F393A7982fA6D1"
+      },
+      "crvUSD+fxUSD": {
+        "gauge": "0xF4Bd6D66bAFEA1E0500536d52236f64c3e8a2a84",
+        "manager": "0x7a57429755Fc2F6fEa171Bdb7d9788E4A0E7f63c"
+      },
+      "PYUSD+fxUSD": {
+        "gauge": "0xeD113B925AC3f972161Be012cdFEE33470040E6a",
+        "manager": "0x6735151401D038F72C1B2a69aE2dD27453703263"
+      },
+      "DOLA+fxUSD": {
+        "gauge": "0x61F32964C39Cca4353144A6DB2F8Efdb3216b35B",
+        "manager": "0x5C8223439bC15CA61a973D942F1C4684508239c0"
+      },
+      "GRAI+fxUSD": {
+        "gauge": "0xfa4761512aaf899b010438a10C60D01EBdc0eFcA",
+        "manager": "0x0909fd92f0b700F7Ac69715AAc4C63ACB215b1E5"
+      },
+      "FRAX+fxUSD": {
+        "gauge": "0x31b630B21065664dDd2dBa0eD3a60D8ff59501F0",
+        "manager": "0xCef4fFA670E2672E15F2ca76dc661d847f3B5b4D"
+      },
+      "GHO+fxUSD": {
+        "gauge": "0xf0A3ECed42Dbd8353569639c0eaa833857aA0A75",
+        "manager": "0xfefB84273A4DEdd40D242f4C007190DE21C9E39e"
+      },
+      "mkUSD+fxUSD": {
+        "gauge": "0xDbA9a415bae1983a945ba078150CAe8b690c9229",
+        "manager": "0xDF4a66110C3d2d9e13fDC9BC20db9Cb7c51f2CbF"
+      },
+      "ULTRA+fxUSD": {
+        "gauge": "0x0d3e9A29E856CF00d670368a7ab0512cb0c29FAC",
+        "manager": "0x70d6C973Cf38D9AbFdb7474c9e1277Ad6E074645"
+      },
+      "fxUSD+rUSD": {
+        "gauge": "0x697DDb8e742047561C8e4bB69d2DDB1b8Bb42b60",
+        "manager": "0x0dDCF4c31Ee27C4D33d902434999cb358Fde9b69"
+      },
+      "alUSD+fxUSD": {
+        "gauge": "0x9c7003bC16F2A1AA47451C858FEe6480B755363e",
+        "manager": "0x4F73CDdB5c3F29b0e31f96bc29c973f5297e7411"
       }
     }
   },

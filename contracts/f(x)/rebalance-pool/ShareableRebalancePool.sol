@@ -456,10 +456,9 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   /// @inheritdoc MultipleRewardCompoundingAccumulator
   function _checkpoint(address _account) internal virtual override {
     // fetch FXN from gauge every 24h
-    Gauge memory _gauge = gauge;
-    if (_gauge.gauge != address(0) && block.timestamp > uint256(_gauge.claimAt) + DAY) {
+    if (gauge.gauge != address(0) && block.timestamp > uint256(gauge.claimAt) + DAY) {
       uint256 _balance = IERC20Upgradeable(fxn).balanceOf(address(this));
-      ICurveTokenMinter(minter).mint(_gauge.gauge);
+      ICurveTokenMinter(minter).mint(gauge.gauge);
       uint256 _minted = IERC20Upgradeable(fxn).balanceOf(address(this)) - _balance;
       gauge.claimAt = uint64(block.timestamp);
       _notifyReward(fxn, _minted);
@@ -485,15 +484,20 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     uint48 epochExponent = _totalSupply.product.epochAndExponent();
 
     if (_token == fxn) {
-      uint256 fullEarned = _claimable(_account, _token) - _snapshot.rewards.pending;
-      // save gas when on earned
-      if (fullEarned > 0) {
-        uint256 ratio = _getBoostRatio(_account);
-        uint256 boostEarned = (fullEarned * ratio) / PRECISION;
-        _snapshot.rewards.pending += uint128(boostEarned);
-        if (fullEarned > boostEarned) {
-          // redistribute unboosted rewards.
-          _notifyReward(fxn, fullEarned - boostEarned);
+      // update `voteOwnerBalance` here, since it is needed in `_getBoostRatio`
+      _updateVoteOwnerBalance(getStakerVoteOwner[_account], _totalSupply);
+
+      unchecked {
+        uint256 fullEarned = _claimable(_account, _token) - _snapshot.rewards.pending;
+        // save gas when on earned
+        if (fullEarned > 0) {
+          uint256 ratio = _getBoostRatio(_account);
+          uint256 boostEarned = (fullEarned * ratio) / PRECISION;
+          _snapshot.rewards.pending += uint128(boostEarned);
+          if (fullEarned > boostEarned) {
+            // redistribute unboosted rewards.
+            _notifyReward(fxn, fullEarned - boostEarned);
+          }
         }
       }
     } else {
@@ -677,7 +681,9 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
       IVotingEscrow(ve).balanceOf(_owner),
       IVotingEscrow(ve).totalSupply()
     );
-    boostCheckpoint[_account] = BoostCheckpoint(uint64(_ratio), uint64(numTotalSupplyHistory - 1));
+    unchecked {
+      boostCheckpoint[_account] = BoostCheckpoint(uint64(_ratio), uint64(numTotalSupplyHistory - 1));
+    }
   }
 
   /// @dev Internal function to reduce asset loss due to liquidation.
@@ -798,18 +804,20 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     uint256 _prevTs = _balance.updateAt;
     // compute the time weighted boost from _balance.updateAt to now.
     uint256 _nowTs = _getWeekTs(_prevTs);
-    for (uint256 i = 0; i < 256; ++i) {
-      // it is more than 4 years, should be enough
-      if (_nowTs > block.timestamp) _nowTs = block.timestamp;
-      _boostRatio += _currentRatio * (_nowTs - _prevTs);
-      if (_nowTs == block.timestamp) break;
-      uint256 _veBalance = IVotingEscrowHelper(veHelper).balanceOf(_veHolder, _nowTs);
-      uint256 _veSupply = IVotingEscrowHelper(veHelper).totalSupply(_nowTs);
-      (_currentRatio, _nextIndex) = _boostRatioAt(_owner, _balance, _veBalance, _veSupply, _nextIndex, _nowTs);
-      _prevTs = _nowTs;
-      _nowTs += WEEK;
+    unchecked {
+      for (uint256 i = 0; i < 256; ++i) {
+        // it is more than 4 years, should be enough
+        if (_nowTs > block.timestamp) _nowTs = block.timestamp;
+        _boostRatio += _currentRatio * (_nowTs - _prevTs);
+        if (_nowTs == block.timestamp) break;
+        uint256 _veBalance = IVotingEscrowHelper(veHelper).balanceOf(_veHolder, _nowTs);
+        uint256 _veSupply = IVotingEscrowHelper(veHelper).totalSupply(_nowTs);
+        (_currentRatio, _nextIndex) = _boostRatioAt(_owner, _balance, _veBalance, _veSupply, _nextIndex, _nowTs);
+        _prevTs = _nowTs;
+        _nowTs += WEEK;
+      }
+      _boostRatio /= uint256(block.timestamp - _balance.updateAt);
     }
-    _boostRatio /= uint256(block.timestamp - _balance.updateAt);
   }
 
   /// @dev Internal function to get boost ratio at specific time point.
@@ -839,9 +847,24 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     // Find the actual balance base on the supply.
     TokenBalance memory _supply = totalSupplyHistory[startIndex];
     uint256 _realBalance = _getCompoundedBalance(_balance.amount, _balance.product, _supply.product);
-    uint256 _ownerBalance = _owner != address(0) ? voteOwnerHistoryBalances[_owner][t] : _realBalance;
+    uint256 _ownerBalance = _owner != address(0) ? _getVoteOwnerHistoryBalances(_owner, t) : _realBalance;
 
     return (_computeBoostRatio(_ownerBalance, _realBalance, _supply.amount, _veBalance, _veSupply), startIndex);
+  }
+
+  /// @dev Internal function to get `voteOwnerHistoryBalances`
+  /// @param _owner The address of the owner.
+  /// @param t The timestamp to query.
+  function _getVoteOwnerHistoryBalances(address _owner, uint256 t) internal view returns (uint256) {
+    uint256 _updateAt = voteOwnerBalances[_owner].updateAt;
+    while (t > _updateAt) {
+      uint256 w = voteOwnerHistoryBalances[_owner][t];
+      if (w != 0) return w;
+      unchecked {
+        t -= WEEK;
+      }
+    }
+    return voteOwnerBalances[_owner].amount;
   }
 
   /// @dev Internal function to compute boost ratio with given parameters.

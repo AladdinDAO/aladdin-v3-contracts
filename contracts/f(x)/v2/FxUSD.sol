@@ -264,6 +264,27 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
   }
 
   /// @inheritdoc IFxUSD
+  function redeemFrom(
+    address _pool,
+    uint256 _amountIn,
+    address _receiver,
+    uint256 _minOut
+  ) external override onlySupportedPool(_pool) returns (uint256 _amountOut, uint256 _bonusOut) {
+    address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
+    address _market = markets[_baseToken].market;
+    address _fToken = markets[_baseToken].fToken;
+
+    // calculate the actual amount of fToken withdrawn from rebalance pool.
+    _amountOut = IERC20Upgradeable(_fToken).balanceOf(address(this));
+    IFxShareableRebalancePool(_pool).withdrawFrom(_msgSender(), _amountIn, address(this));
+    _amountOut = IERC20Upgradeable(_fToken).balanceOf(address(this)) - _amountOut;
+
+    // redeem fToken as base token
+    // assume all fToken will be redeem for simplicity
+    (_amountOut, _bonusOut) = IFxMarketV2(_market).redeemFToken(_amountOut, _receiver, _minOut);
+  }
+
+  /// @inheritdoc IFxUSD
   function autoRedeem(
     uint256 _amountIn,
     address _receiver,
