@@ -175,7 +175,12 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
   /// @inheritdoc IFxTreasuryV2
   function collateralRatio() public view override returns (uint256) {
-    FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
+    return collateralRatio(Action.None);
+  }
+
+  /// @inheritdoc IFxTreasuryV2
+  function collateralRatio(Action action) public view override returns (uint256) {
+    FxStableMath.SwapState memory _state = _loadSwapState(action);
 
     if (_state.baseSupply == 0) return PRECISION;
     if (_state.fSupply == 0) return PRECISION * PRECISION;
@@ -184,8 +189,13 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
-  function isUnderCollateral() external view returns (bool) {
-    FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
+  function isUnderCollateral() public view returns (bool) {
+    return isUnderCollateral(Action.None);
+  }
+
+  /// @inheritdoc IFxTreasuryV2
+  function isUnderCollateral(Action action) public view returns (bool) {
+    FxStableMath.SwapState memory _state = _loadSwapState(action);
     return _state.xNav == 0;
   }
 
@@ -383,6 +393,8 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
   /// @notice Harvest pending rewards to stability pool.
   function harvest() external {
+    if (isUnderCollateral()) revert ErrorUnderCollateral();
+
     FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
     _updateEMALeverageRatio(_state);
 
@@ -655,7 +667,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
       }
     }
 
-    if (_twapPrice == 0) revert ErrorInvalidTwapPrice();
+    if (_safePrice == 0 || _twapPrice == 0) revert ErrorInvalidTwapPrice();
   }
 
   /// @dev Internal function to distribute rewards to rebalance pool.

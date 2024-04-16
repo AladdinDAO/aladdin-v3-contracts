@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import { IFxTreasuryV2 } from "./IFxTreasuryV2.sol";
+
 interface IFxUSD {
   /**********
    * Events *
@@ -88,6 +90,9 @@ interface IFxUSD {
 
   /// @notice Return whether the system is under collateral.
   function isUnderCollateral() external view returns (bool);
+
+  /// @notice Return whether the system is under collateral.
+  function isUnderCollateral(IFxTreasuryV2.Action action) external view returns (bool);
 
   /****************************
    * Public Mutated Functions *

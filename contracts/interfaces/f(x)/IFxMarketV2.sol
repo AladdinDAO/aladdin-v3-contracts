@@ -164,6 +164,9 @@ interface IFxMarketV2 {
   /// @dev Thrown when the stability ratio is too large.
   error ErrorStabilityRatioTooLarge();
 
+  /// @dev Thrown when the stability ratio is too small.
+  error ErrorStabilityRatioTooSmall();
+
   /// @dev Thrown when the default fee is too large.
   error ErrorDefaultFeeTooLarge();
 
@@ -175,6 +178,9 @@ interface IFxMarketV2 {
 
   /// @dev Thrown when the given address is zero.
   error ErrorZeroAddress();
+
+  /// @dev Thrown when update to the same value.
+  error ErrorUpdateWithSameValue();
 
   /*************************
    * Public View Functions *

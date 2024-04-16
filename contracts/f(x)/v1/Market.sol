@@ -162,7 +162,7 @@ contract Market is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMark
   address public xToken;
 
   /// @notice The market config in each mode.
-  MarketConfig public marketConfig;
+  MarketConfig public override marketConfig;
 
   /// @notice The incentive config in each mode.
   IncentiveConfig public incentiveConfig;

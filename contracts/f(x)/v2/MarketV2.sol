@@ -231,7 +231,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     }
 
     if (fTokenMintPausedInStabilityMode()) {
-      uint256 _collateralRatio = IFxTreasuryV2(treasury).collateralRatio();
+      uint256 _collateralRatio = IFxTreasuryV2(treasury).collateralRatio(IFxTreasuryV2.Action.MintFToken);
       if (_collateralRatio <= _stabilityRatio) revert ErrorFTokenMintPausedInStabilityMode();
 
       // bound maximum amount of base token to mint fToken.
@@ -374,7 +374,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     (, uint256 _maxXTokenInBeforeSystemStabilityMode) = IFxTreasuryV2(treasury).maxRedeemableXToken(_stabilityRatio);
 
     if (xTokenRedeemPausedInStabilityMode()) {
-      uint256 _collateralRatio = IFxTreasuryV2(treasury).collateralRatio();
+      uint256 _collateralRatio = IFxTreasuryV2(treasury).collateralRatio(IFxTreasuryV2.Action.RedeemXToken);
       if (_collateralRatio <= _stabilityRatio) revert ErrorXTokenRedeemPausedInStabilityMode();
 
       // bound maximum amount of xToken to redeem.
@@ -542,6 +542,8 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   function _updateBoolInMarketConfigData(uint256 offset, bool newValue) private returns (bool oldValue) {
     bytes32 _data = marketConfigData;
     oldValue = _data.decodeBool(offset);
+    if (oldValue == newValue) revert ErrorUpdateWithSameValue();
+
     marketConfigData = _data.insertBool(newValue, offset);
   }
 
@@ -549,6 +551,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   /// @param _newRatio The new collateral ratio to enter stability mode, multiplied by 1e18.
   function _updateStabilityRatio(uint256 _newRatio) private {
     if (_newRatio > type(uint64).max) revert ErrorStabilityRatioTooLarge();
+    if (_newRatio < FEE_PRECISION) revert ErrorStabilityRatioTooSmall();
 
     bytes32 _data = marketConfigData;
     uint256 _oldRatio = _data.decodeUint(STABILITY_RATIO_OFFSET, 64);
