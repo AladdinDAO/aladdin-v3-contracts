@@ -67,6 +67,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   TRIBE: { decimals: 18, address: "0xc7283b66eb1eb5fb86327f08e1b5816b0720212b" },
   TRICRV: { decimals: 18, address: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490" },
   TUSD: { decimals: 18, address: "0x0000000000085d4780B73119b644AE5ecd22b376" },
+  TXJP: { decimals: 8, address: "0x961dd84059505d59f82ce4fb87d3c09bec65301d" },
   USDC: { decimals: 6, address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
   USDD: { decimals: 18, address: "0x0C10bF8FcB7Bf5412187A595ab97a3609160b5c6" },
   USDM: { decimals: 18, address: "0x59d9356e565ab3a36dd77763fc0d87feaf85508c" },
