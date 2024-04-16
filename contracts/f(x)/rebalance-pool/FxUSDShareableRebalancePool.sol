@@ -7,13 +7,6 @@ import { IFxBoostableRebalancePool } from "../../interfaces/f(x)/IFxBoostableReb
 import { ShareableRebalancePoolV2 } from "./ShareableRebalancePoolV2.sol";
 
 contract FxUSDShareableRebalancePool is ShareableRebalancePoolV2 {
-  /**********
-   * Errors *
-   **********/
-
-  /// @dev Thrown when the withdraw is disabled.
-  error ErrorWithdrawDisabled();
-
   /***************
    * Constructor *
    ***************/
@@ -30,8 +23,8 @@ contract FxUSDShareableRebalancePool is ShareableRebalancePoolV2 {
    ****************************/
 
   /// @inheritdoc IFxBoostableRebalancePool
-  function withdraw(uint256, address) external pure override {
+  function withdraw(uint256 _amount, address _receiver) external override {
     // not allowed to withdraw as fToken in fxUSD.
-    revert ErrorWithdrawDisabled();
+    // _withdraw(_msgSender(), _amount, _receiver);
   }
 }
