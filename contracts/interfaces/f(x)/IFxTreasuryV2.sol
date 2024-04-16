@@ -142,8 +142,14 @@ interface IFxTreasuryV2 {
   /// @notice Return the current collateral ratio of fToken, multipled by 1e18.
   function collateralRatio() external view returns (uint256);
 
+  /// @notice Return the current collateral ratio of fToken, multipled by 1e18.
+  function collateralRatio(Action action) external view returns (uint256);
+
   /// @notice Return whether the system is under collateral.
   function isUnderCollateral() external view returns (bool);
+
+  /// @notice Return whether the system is under collateral.
+  function isUnderCollateral(Action action) external view returns (bool);
 
   /// @notice Compute the amount of base token needed to reach the new collateral ratio.
   /// @param newCollateralRatio The target collateral ratio, multipled by 1e18.

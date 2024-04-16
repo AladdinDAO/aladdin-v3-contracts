@@ -231,7 +231,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     }
 
     if (fTokenMintPausedInStabilityMode()) {
-      uint256 _collateralRatio = IFxTreasuryV2(treasury).collateralRatio();
+      uint256 _collateralRatio = IFxTreasuryV2(treasury).collateralRatio(IFxTreasuryV2.Action.MintFToken);
       if (_collateralRatio <= _stabilityRatio) revert ErrorFTokenMintPausedInStabilityMode();
 
       // bound maximum amount of base token to mint fToken.
@@ -374,7 +374,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     (, uint256 _maxXTokenInBeforeSystemStabilityMode) = IFxTreasuryV2(treasury).maxRedeemableXToken(_stabilityRatio);
 
     if (xTokenRedeemPausedInStabilityMode()) {
-      uint256 _collateralRatio = IFxTreasuryV2(treasury).collateralRatio();
+      uint256 _collateralRatio = IFxTreasuryV2(treasury).collateralRatio(IFxTreasuryV2.Action.RedeemXToken);
       if (_collateralRatio <= _stabilityRatio) revert ErrorXTokenRedeemPausedInStabilityMode();
 
       // bound maximum amount of xToken to redeem.

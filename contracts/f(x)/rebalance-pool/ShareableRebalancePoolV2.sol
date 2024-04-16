@@ -41,8 +41,11 @@ contract ShareableRebalancePoolV2 is ShareableRebalancePool {
     _checkpoint(address(0));
 
     IFxTreasuryV2 _treasury = IFxTreasuryV2(treasury);
+    // When the price is invalid, we are using `maxPrice` as twap price which is larger than `safePrice`.
+    // It means the collateral ratio using `safePrice` is smaller than using `maxPrice`.
+    // So we explicitly use `Action.RedeemFToken` to make sure we are using the correct collateral ratio.
     uint256 _stabilityRatio = IFxMarketV2(market).stabilityRatio();
-    if (_treasury.collateralRatio() >= _stabilityRatio) {
+    if (_treasury.collateralRatio(IFxTreasuryV2.Action.RedeemFToken) >= _stabilityRatio) {
       revert CannotLiquidate();
     }
     (, uint256 _maxLiquidatable) = _treasury.maxRedeemableFToken(_stabilityRatio);
