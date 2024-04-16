@@ -5,7 +5,5 @@
   "ConcentratorHarvesterFacet": "0x1B544Befd7a51D5CDb40F79eEF5205f16A63Cd98",
   "StakeDaoHarvesterFacet": "0xc56b67f58ecf4C9906548Cb28d13ba6B8F18249c",
   "CLeverAMOHarvesterFacet": "0xD912d922E7E6d11d5caaE204f7907F38E70AbEd2",
-  "TokenConvertManagementFacet": "0x5fd37C3b46d05859B333D6E418ce7d6d405c20b6",
-  "FxMarketV1Facet": "0x21fb1221317ac539eE355fc113054e54b1cd0231",
-  "FxUSDFacet": "0x2eD6624Cc9E6200c2a60631f8cEb69FbAFbE3733"
+  "FxMarketV1Facet": "0x21fb1221317ac539eE355fc113054e54b1cd0231"
 }
