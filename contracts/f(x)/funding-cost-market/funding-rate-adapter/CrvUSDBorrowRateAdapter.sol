@@ -16,6 +16,11 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
   /// @param newScale The value of current funding cost scale.
   event UpdateFundingCostScale(uint256 oldScale, uint256 newScale);
 
+  /// @notice Emitted when the funding rate snapshot is taken.
+  /// @param timestamp The timestamp to capture.
+  /// @param borrowIndex The crvUSD borrow index.
+  event CaptureFundingRate(uint256 timestamp, uint256 borrowIndex);
+
   /*************
    * Constants *
    *************/
@@ -32,7 +37,7 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
   /// @param timestamp The timestamp when the snapshot is taken.
   struct BorrowRateSnapshot {
     // In AggMonetaryPolicy, the maximum apy is 300%. It takes about 34 years to reach `uint128.max` in worse case.
-    // So it should be safe to user `uint128` for `borrowIndex`. Here is how 64 years comes from:
+    // So it should be safe to user `uint128` for `borrowIndex`. Here is how 34 years comes from:
     //   + The maximum APR per second is 4.3959106799e-08 because (1+4.3959106799e-08)^(365 * 86400) = 4
     //   + We need to solve the (1+4.3959106799e-08)^(x * 86400 * 365) = 2^128 / 10^18, x = 34.102647135518694.
     uint128 borrowIndex;
@@ -99,6 +104,8 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
     cachedBorrowRateSnapshot.borrowIndex = uint128(newBorrowIndex);
     cachedBorrowRateSnapshot.timestamp = uint128(block.timestamp);
     borrowRateSnapshot = cachedBorrowRateSnapshot;
+
+    emit CaptureFundingRate(block.timestamp, newBorrowIndex);
   }
 
   /// @dev Internal function update the funding cost scale.
