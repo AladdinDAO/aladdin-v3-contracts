@@ -2,6 +2,8 @@
 
 pragma solidity =0.8.20;
 
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
+
 import { ICrvUSDAmm } from "../../interfaces/curve/ICrvUSDAmm.sol";
 import { IFxTreasuryV2 } from "../../interfaces/f(x)/IFxTreasuryV2.sol";
 
@@ -48,17 +50,8 @@ contract TreasuryWithFundingCost is TreasuryV2, CrvUSDBorrowRateAdapter {
 
   /// @inheritdoc TreasuryV2
   function harvestable() public view override returns (uint256) {
-    FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
-
-    // usually the leverage should always >= 1.0, but if < 1.0, the function will revert.
-    uint256 _leverage = _state.leverageRatio();
-    uint256 _fundingRate = getFundingRate();
-    // funding cost = (xToken Value * (leverage - 1) / leverage * funding rate * scale) / baseNav
-    uint256 _fundingCost = ((_state.xNav * _state.xSupply * (_leverage - PRECISION)) / _leverage);
-    _fundingCost = (_fundingCost * _fundingRate) / PRECISION;
-    _fundingCost /= _state.baseNav;
-
-    return getWrapppedValue(_fundingCost);
+    FxStableMath.SwapState memory _state = _loadSwapState(Action.None, false);
+    return _harvestable(_state);
   }
 
   /****************************
@@ -70,13 +63,15 @@ contract TreasuryWithFundingCost is TreasuryV2, CrvUSDBorrowRateAdapter {
     // no need to harvest
     if (borrowRateSnapshot.timestamp == block.timestamp) return;
 
-    // update leverage
-    FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
-    // silently return when under collateral since `MarketWithFundingCost` would call this in each action.
+    // silently return when invalid price or under collateral
+    // since `MarketWithFundingCost` would call this in each action.
+    if (!isBaseTokenPriceValid()) return;
+    FxStableMath.SwapState memory _state = _loadSwapState(Action.None, false);
     if (_state.xNav == 0) return;
+    // update leverage
     _updateEMALeverageRatio(_state);
 
-    uint256 _totalRewards = harvestable();
+    uint256 _totalRewards = _harvestable(_state);
     totalBaseToken -= getUnderlyingValue(_totalRewards);
     _captureFundingRate();
 
@@ -97,5 +92,75 @@ contract TreasuryWithFundingCost is TreasuryV2, CrvUSDBorrowRateAdapter {
   {
     (fTokenOut, xTokenOut) = _initializeProtocol(_baseIn);
     borrowRateSnapshot = BorrowRateSnapshot(uint128(ICrvUSDAmm(amm).get_rate_mul()), uint128(block.timestamp));
+  }
+
+  /**********************
+   * Internal Functions *
+   **********************/
+
+  /// @inheritdoc TreasuryV2
+  function _loadSwapState(Action _action)
+    internal
+    view
+    virtual
+    override
+    returns (FxStableMath.SwapState memory _state)
+  {
+    return _loadSwapState(_action, true);
+  }
+
+  /// @dev Internal function to load swap variable to memory and deduct funding cost if needed.
+  function _loadSwapState(Action _action, bool _deductFundingCost)
+    private
+    view
+    returns (FxStableMath.SwapState memory _state)
+  {
+    _state.baseSupply = totalBaseToken;
+    _state.baseNav = _fetchTwapPrice(_action);
+
+    if (_state.baseSupply == 0) {
+      _state.xNav = PRECISION;
+    } else {
+      _state.fSupply = IERC20Upgradeable(fToken).totalSupply();
+      _state.xSupply = IERC20Upgradeable(xToken).totalSupply();
+      _computeXTokenNav(_state);
+    }
+
+    // deduct funding costs if possible
+    if (_deductFundingCost && borrowRateSnapshot.timestamp < block.timestamp) {
+      _state.baseSupply -= getUnderlyingValue(_harvestable(_state));
+      // recompute xToken nav
+      _computeXTokenNav(_state);
+    }
+  }
+
+  /// @dev Internal function to compute xToken nav
+  function _computeXTokenNav(FxStableMath.SwapState memory _state) private pure {
+    if (_state.xSupply == 0) {
+      // no xToken, treat the nav of xToken as 1.0
+      _state.xNav = PRECISION;
+    } else {
+      uint256 _baseVal = _state.baseSupply * _state.baseNav;
+      uint256 _fVal = _state.fSupply * PRECISION;
+      if (_baseVal >= _fVal) {
+        _state.xNav = (_baseVal - _fVal) / _state.xSupply;
+      } else {
+        // under collateral
+        _state.xNav = 0;
+      }
+    }
+  }
+
+  /// @dev Internal function to compute the funding costs.
+  function _harvestable(FxStableMath.SwapState memory _state) private view returns (uint256) {
+    // usually the leverage should always >= 1.0, but if < 1.0, the function will revert.
+    uint256 _leverage = _state.leverageRatio();
+    uint256 _fundingRate = getFundingRate();
+    // funding cost = (xToken Value * (leverage - 1) / leverage * funding rate * scale) / baseNav
+    uint256 _fundingCost = ((_state.xNav * _state.xSupply * (_leverage - PRECISION)) / _leverage);
+    _fundingCost = (_fundingCost * _fundingRate) / PRECISION;
+    _fundingCost /= _state.baseNav;
+
+    return getWrapppedValue(_fundingCost);
   }
 }

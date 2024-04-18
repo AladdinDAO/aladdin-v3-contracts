@@ -92,15 +92,10 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
    **********************/
 
   /// @dev Internal function to calculate the funding rate since last snapshot and take snapshot.
-  function _captureFundingRate() internal returns (uint256 _fundingRate) {
+  function _captureFundingRate() internal {
     BorrowRateSnapshot memory cachedBorrowRateSnapshot = borrowRateSnapshot;
 
     uint256 newBorrowIndex = ICrvUSDAmm(amm).get_rate_mul();
-    _fundingRate =
-      ((newBorrowIndex - uint256(cachedBorrowRateSnapshot.borrowIndex)) * PRECISION) /
-      uint128(cachedBorrowRateSnapshot.borrowIndex);
-    _fundingRate = (_fundingRate * fundingCostScale) / PRECISION;
-
     cachedBorrowRateSnapshot.borrowIndex = uint128(newBorrowIndex);
     cachedBorrowRateSnapshot.timestamp = uint128(block.timestamp);
     borrowRateSnapshot = cachedBorrowRateSnapshot;

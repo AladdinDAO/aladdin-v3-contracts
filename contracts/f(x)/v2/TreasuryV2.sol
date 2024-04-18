@@ -257,7 +257,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
-  function isBaseTokenPriceValid() external view returns (bool _isValid) {
+  function isBaseTokenPriceValid() public view returns (bool _isValid) {
     (_isValid, , , ) = IFxPriceOracle(priceOracle).getPrice();
   }
 
@@ -622,7 +622,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @dev Internal function to load swap variable to memory
-  function _loadSwapState(Action _action) internal view returns (FxStableMath.SwapState memory _state) {
+  function _loadSwapState(Action _action) internal view virtual returns (FxStableMath.SwapState memory _state) {
     _state.baseSupply = totalBaseToken;
     _state.baseNav = _fetchTwapPrice(_action);
 
