@@ -16,6 +16,7 @@ async function main() {
   const deployer = await ensureDeployer(network.name);
 
   await ERC2535.deploy(deployer, overrides);
+
   const gateway = await Gateway.deploy(deployer, overrides);
   await Gateway.initialize(deployer, gateway, overrides);
 }

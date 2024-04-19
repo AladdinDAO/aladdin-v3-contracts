@@ -98,12 +98,4 @@ contract WrappedTokenTreasuryV2 is TreasuryV2 {
 
     emit UpdateRateProvider(_oldRateProvider, _newRateProvider);
   }
-
-  /// @inheritdoc TreasuryV2
-  function _distributeRebalancePoolRewards(address _token, uint256 _amount) internal override {
-    address _splitter = rebalancePoolSplitter;
-
-    IERC20Upgradeable(_token).safeTransfer(_splitter, _amount);
-    IFxRebalancePoolSplitter(_splitter).split(_token);
-  }
 }

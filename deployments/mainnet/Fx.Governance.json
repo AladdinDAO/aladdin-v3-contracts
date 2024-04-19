@@ -98,6 +98,15 @@
       "alUSD+fxUSD": {
         "gauge": "0x9c7003bC16F2A1AA47451C858FEe6480B755363e",
         "manager": "0x4F73CDdB5c3F29b0e31f96bc29c973f5297e7411"
+      },
+      "eUSD+fxUSD": {
+        "gauge": "0x5801Bb8f568979C722176Df36b1a74654A9C52b5"
+      },
+      "rgUSD+fxUSD": {
+        "gauge": "0x4CA79F4FE25BCD329445CDBE7E065427ACa98380"
+      },
+      "MIM+fxUSD": {
+        "gauge": "0xDF7fbDBAE50C7931a11765FAEd9fe1A002605B55"
       }
     }
   },

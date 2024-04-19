@@ -113,6 +113,9 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   /// @inheritdoc IFxMarketV2
   address public fxUSD;
 
+  /// @dev Slots for future use.
+  uint256[43] private _gap;
+
   /***************
    * Constructor *
    ***************/
@@ -216,6 +219,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
       address _fxUSD = fxUSD;
       if (_fxUSD != address(0) && _fxUSD != _msgSender()) revert ErrorCallerNotFUSD();
     }
+    _beforeMintFToken();
 
     if (_baseIn == type(uint256).max) {
       _baseIn = IERC20Upgradeable(baseToken).balanceOf(_msgSender());
@@ -259,6 +263,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     uint256 _minXTokenMinted
   ) external override nonReentrant returns (uint256 _xTokenMinted, uint256 _bonus) {
     if (mintPaused()) revert ErrorMintPaused();
+    _beforeMintXToken();
 
     if (_baseIn == type(uint256).max) {
       _baseIn = IERC20Upgradeable(baseToken).balanceOf(_msgSender());
@@ -304,6 +309,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     uint256 _minBaseOut
   ) external override nonReentrant returns (uint256 _baseOut, uint256 _bonus) {
     if (redeemPaused()) revert ErrorRedeemPaused();
+    _beforeRedeemFToken();
 
     if (_fTokenIn == type(uint256).max) {
       _fTokenIn = IERC20Upgradeable(fToken).balanceOf(_msgSender());
@@ -363,6 +369,7 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
     uint256 _minBaseOut
   ) external override nonReentrant returns (uint256 _baseOut) {
     if (redeemPaused()) revert ErrorRedeemPaused();
+    _beforeRedeemXToken();
 
     if (_xTokenIn == type(uint256).max) {
       _xTokenIn = IERC20Upgradeable(xToken).balanceOf(_msgSender());
@@ -524,6 +531,18 @@ contract MarketV2 is AccessControlUpgradeable, ReentrancyGuardUpgradeable, IFxMa
   /**********************
    * Internal Functions *
    **********************/
+
+  /// @dev Hook function to call before mint fToken.
+  function _beforeMintFToken() internal virtual {}
+
+  /// @dev Hook function to call before mint xToken.
+  function _beforeMintXToken() internal virtual {}
+
+  /// @dev Hook function to call before redeem fToken.
+  function _beforeRedeemFToken() internal virtual {}
+
+  /// @dev Hook function to call before redeem xToken.
+  function _beforeRedeemXToken() internal virtual {}
 
   /// @dev Internal function to validate fee ratio.
   function _validateFeeRatio(uint256 _defaultFeeRatio, int256 _extraFeeRatio) internal pure {

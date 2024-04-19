@@ -19,7 +19,7 @@ import { selectDeployments } from "@/utils/index";
 
 import { ContractCallHelper, DeploymentHelper } from "./helpers";
 import * as ERC2535 from "./ERC2535";
-import * as FxUSD from "./FxUSD";
+import { FxUSDDeployment } from "./FxConfig";
 
 const getAllSignatures = (e: Interface): string[] => {
   const sigs: string[] = [];
@@ -89,11 +89,11 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
 export async function initialize(deployer: HardhatEthersSigner, deployment: GatewayDeployment, overrides?: Overrides) {
   const caller = new ContractCallHelper(deployer, overrides);
   const facets = selectDeployments(network.name, "ERC2535").toObject() as ERC2535.ERC2535Deployment;
-  const fxusd = selectDeployments(network.name, "Fx.FxUSD").toObject() as FxUSD.FxUSDDeployment;
+  const fxusd = selectDeployments(network.name, "Fx.FxUSD").toObject() as FxUSDDeployment;
 
   // update manage and fxusd facets
-  const loupeFacet = (await caller.getContract("DiamondLoupeFacet", deployment.GatewayRouter)) as DiamondLoupeFacet;
-  const cutFacet = (await caller.getContract("DiamondCutFacet", deployment.GatewayRouter)) as DiamondCutFacet;
+  const loupeFacet = (await caller.contract("DiamondLoupeFacet", deployment.GatewayRouter)) as DiamondLoupeFacet;
+  const cutFacet = (await caller.contract("DiamondCutFacet", deployment.GatewayRouter)) as DiamondCutFacet;
   const cuts: IDiamond.FacetCutStruct[] = [];
   cuts.push({
     facetAddress: ZeroAddress,
@@ -119,7 +119,7 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
     await caller.ownerCall(cutFacet, "GatewayRouter diamondCut", "diamondCut", [cuts, ZeroAddress, "0x"]);
   }
 
-  const manageFacet = (await caller.getContract(
+  const manageFacet = (await caller.contract(
     "TokenConvertManagementFacet",
     deployment.GatewayRouter
   )) as TokenConvertManagementFacet;
@@ -150,17 +150,18 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
   }
 
   // add whitelist
-  // withdraw from role
   for (const [target, kind] of [
     [fxusd.Markets.wstETH.Market.proxy, 2n],
     [fxusd.Markets.sfrxETH.Market.proxy, 2n],
     [fxusd.Markets.weETH.Market.proxy, 2n],
-    // [fxusd.Markets.ezETH.Market.proxy, 2n],
+    [fxusd.Markets.ezETH.Market.proxy, 2n],
+    [fxusd.Markets.WBTC.Market.proxy, 2n],
     // [fxusd.Markets.aCVX.Market.proxy, 2n],
     [fxusd.Markets.wstETH.FxInitialFund, 3n],
     [fxusd.Markets.sfrxETH.FxInitialFund, 3n],
     [fxusd.Markets.weETH.FxInitialFund, 3n],
-    // [fxusd.Markets.ezETH.FxInitialFund, 3n],
+    [fxusd.Markets.ezETH.FxInitialFund, 3n],
+    [fxusd.Markets.WBTC.FxInitialFund, 3n],
     // [fxusd.Markets.aCVX.FxInitialFund, 3n],
     [fxusd.Markets.wstETH.RebalancePool.wstETH.pool, 4n],
     [fxusd.Markets.wstETH.RebalancePool.xstETH.pool, 4n],
@@ -168,17 +169,21 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
     [fxusd.Markets.sfrxETH.RebalancePool.xfrxETH.pool, 4n],
     [fxusd.Markets.weETH.RebalancePool.weETH.pool, 4n],
     [fxusd.Markets.weETH.RebalancePool.xeETH.pool, 4n],
-    // [fxusd.Markets.ezETH.RebalancePool.ezETH.pool, 4n],
-    // [fxusd.Markets.ezETH.RebalancePool.xezETH.pool, 4n],
+    [fxusd.Markets.ezETH.RebalancePool.ezETH.pool, 4n],
+    [fxusd.Markets.ezETH.RebalancePool.xezETH.pool, 4n],
+    [fxusd.Markets.WBTC.RebalancePool.WBTC.pool, 4n],
+    [fxusd.Markets.WBTC.RebalancePool.xWBTC.pool, 4n],
     // [fxusd.Markets.aCVX.RebalancePool.aCVX.pool, 4n],
     // [fxusd.Markets.aCVX.RebalancePool.xCVX.pool, 4n],
     [fxusd.FxUSD.proxy.fxUSD, 5n],
     [fxusd.FxUSD.proxy.rUSD, 5n],
+    [fxusd.FxUSD.proxy.btcUSD, 5n],
   ]) {
     if ((await manageFacet.getWhitelistKind(target as string)) !== kind) {
       await caller.ownerCall(manageFacet, "GatewayRouter updateWhitelist ", "updateWhitelist", [target, kind]);
     }
   }
+  // add withdraw from role
   const WITHDRAW_FROM_ROLE = id("WITHDRAW_FROM_ROLE");
   for (const [pool, name] of [
     [fxusd.Markets.wstETH.RebalancePool.wstETH.pool, "FxUSDShareableRebalancePool/wstETH"],
@@ -187,8 +192,10 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
     [fxusd.Markets.sfrxETH.RebalancePool.xfrxETH.pool, "FxUSDShareableRebalancePool/xfrxETH"],
     [fxusd.Markets.weETH.RebalancePool.weETH.pool, "FxUSDShareableRebalancePool/weETH"],
     [fxusd.Markets.weETH.RebalancePool.xeETH.pool, "FxUSDShareableRebalancePool/xeETH"],
-    // [fxusd.Markets.ezETH.RebalancePool.ezETH.pool, "FxUSDShareableRebalancePool/ezETH"],
-    // [fxusd.Markets.ezETH.RebalancePool.xezETH.pool, "FxUSDShareableRebalancePool/xezETH"],
+    [fxusd.Markets.ezETH.RebalancePool.ezETH.pool, "FxUSDShareableRebalancePool/ezETH"],
+    [fxusd.Markets.ezETH.RebalancePool.xezETH.pool, "FxUSDShareableRebalancePool/xezETH"],
+    [fxusd.Markets.WBTC.RebalancePool.WBTC.pool, "FxUSDShareableRebalancePool/WBTC"],
+    [fxusd.Markets.WBTC.RebalancePool.xWBTC.pool, "FxUSDShareableRebalancePool/xWBTC"],
   ]) {
     await caller.grantRole(pool, name + " WITHDRAW_FROM_ROLE", WITHDRAW_FROM_ROLE, deployment.GatewayRouter);
   }

@@ -2,11 +2,12 @@
   "EmptyContract": "0x387568e1ea4Ff4D003B8147739dB69D87325E206",
   "FxUSDRebalancer": "0x78c3aF23A4DeA2F630C130d2E42717587584BF05",
   "FxUSD": {
-    "implementation": "0xb788998187a8536F38B69Ae657323ac8B70551Bb",
     "proxy": {
       "fxUSD": "0x085780639CC2cACd35E474e71f4d000e2405d8f6",
-      "rUSD": "0x65D72AA8DA931F047169112fcf34f52DbaAE7D18"
-    }
+      "rUSD": "0x65D72AA8DA931F047169112fcf34f52DbaAE7D18",
+      "btcUSD": "0x9D11ab23d33aD026C466CE3c124928fDb69Ba20E"
+    },
+    "implementation": "0xAd95d0c8782f8c9076e8F081F7A5E1A4ac4499a3"
   },
   "Markets": {
     "wstETH": {
@@ -134,6 +135,38 @@
         "xezETH": {
           "pool": "0xBa947cba270D30967369Bf1f73884Be2533d7bDB",
           "wrapper": "0xBeb4289491EBFE8452CfAc8830a6285E42A4742b"
+        }
+      }
+    },
+    "WBTC": {
+      "Treasury": {
+        "proxy": "0x63Fe55B3fe3f74B42840788cFbe6229869590f83",
+        "implementation": "0x6c981A842b7238185A5C2dd27c8F939F98A99D97"
+      },
+      "Market": {
+        "proxy": "0x56B85438F1E16a91eAc5Fe2DAAb2C3Dd57690175",
+        "implementation": "0xb4fe4e73658b42619A4c739Aac4E66aD87351B1d"
+      },
+      "FractionalToken": {
+        "proxy": "0x576b4779727F5998577bb4e25bf726abE742b9F7",
+        "implementation": "0x16dBDaAEC4ac74597DA5438aCa8e5B9A954fDa9C"
+      },
+      "LeveragedToken": {
+        "proxy": "0x9f23562ec47249761222EF7Ac02b327a8C45Ba7D",
+        "implementation": "0xbd09e936De95A7D90B84E3c6FF7D2139511D5AEB"
+      },
+      "FxInitialFund": "0x29eE4B752fE14B0BC1F279DCA98415f2Fa6F3A8d",
+      "RebalancePoolRegistry": "0x163283D59FE2A579f2920A7F8eA19F7799B32fA0",
+      "RebalancePoolSplitter": "0x054fAC7aA44F85A59FD41c33006336EC8b03E916",
+      "RebalancePoolGauge": "0x4E6A1dC233f264dd07b63E206Fc451d986bA9908",
+      "RebalancePoolGaugeClaimer": "0x93670efe073e0d75BE16445779a8399E6b418004",
+      "RebalancePool": {
+        "WBTC": {
+          "pool": "0xf291EC9C2F87A41386fd94eC4BCdC3270eD04482"
+        },
+        "xWBTC": {
+          "pool": "0xBB549046497364A1E26F94f7e93685Dc29FAd8c0",
+          "wrapper": "0x1A17Ccf198E03858227c27205f15a4b388235DB7"
         }
       }
     }
