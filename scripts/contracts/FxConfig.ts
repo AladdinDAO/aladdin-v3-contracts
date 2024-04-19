@@ -186,6 +186,7 @@ export const MarketConfig: {
     BaseTokenCapacity: bigint;
     FxUSDMintCapacity: bigint;
     ReservePoolBonusRatio: bigint;
+    FundingCostScale?: bigint;
   };
 } = {
   wstETH: {
@@ -274,7 +275,7 @@ export const MarketConfig: {
       LeveragedRdeeemFeeRatio: { default: ethers.parseEther("0.02"), delta: ethers.parseEther("0.07") }, // 1% and 7%
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
-    BaseTokenCapacity: ethers.parseEther("10000"),
+    BaseTokenCapacity: ethers.parseEther("5000"),
     FxUSDMintCapacity: MaxUint256,
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
@@ -300,19 +301,20 @@ export const MarketConfig: {
     FractionalToken: { name: "Fractional WBTC", symbol: "fWBTC" },
     LeveragedToken: { name: "Leveraged WBTC", symbol: "xWBTC" },
     Treasury: {
-      HarvesterRatio: ethers.parseUnits("0.01", 9), // 1%,
-      RebalancePoolRatio: ethers.parseUnits("0.5", 9), // 50%,
+      HarvesterRatio: ethers.parseUnits("0", 9), // 0%,
+      RebalancePoolRatio: ethers.parseUnits("0.666666666", 9), // 50%,
     },
     Market: {
-      FractionalMintFeeRatio: { default: ethers.parseEther("0"), delta: 0n }, // 0% and 0%
+      FractionalMintFeeRatio: { default: ethers.parseEther("0.0025"), delta: 0n }, // 0.25% and 0%
       LeveragedMintFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and -0.25%
       FractionalRedeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and -0.25%
-      LeveragedRdeeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: ethers.parseEther("0.07") }, // 0.25% and 7%
+      LeveragedRdeeemFeeRatio: { default: ethers.parseEther("0.02"), delta: ethers.parseEther("0.07") }, // 2% and 7%
       StabilityRatio: ethers.parseEther("1.2192"), // 121.92%
     },
-    BaseTokenCapacity: ethers.parseEther("10000"),
+    BaseTokenCapacity: ethers.parseEther("200"),
     FxUSDMintCapacity: MaxUint256,
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
+    FundingCostScale: ethers.parseEther("0.75"),
   },
 };
 

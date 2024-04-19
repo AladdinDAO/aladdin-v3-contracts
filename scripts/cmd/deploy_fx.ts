@@ -9,7 +9,7 @@ import * as FxOracle from "@/contracts/FxOracle";
 import * as FxStETH from "@/contracts/FxStETH";
 import * as FxUSD from "@/contracts/FxUSD";
 
-const maxFeePerGas = ethers.parseUnits("35", "gwei");
+const maxFeePerGas = ethers.parseUnits("15", "gwei");
 const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 function showRoutes(title: string, pairs: Array<[string, string]>, decode?: boolean) {
@@ -87,6 +87,8 @@ async function main() {
     ["USDC", "ezETH"],
     ["USDT", "ezETH"],
   ]);
+  showRoutes("Fx Convert Routes (WBTC)", [["WBTC", "wstETH"]]);
+  /*
   showRoutes("Fx Convert Routes (apxETH)", [
     ["apxETH", "pxETH"],
     ["apxETH", "WETH"],
@@ -109,6 +111,7 @@ async function main() {
     ["USDC", "aCVX"],
     ["USDT", "aCVX"],
   ]);
+  */
 
   const governance = await FxGovernance.deploy(deployer, overrides);
   await FxGovernance.initialize(deployer, governance, overrides);

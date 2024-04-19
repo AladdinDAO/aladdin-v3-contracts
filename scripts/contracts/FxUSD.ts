@@ -82,6 +82,9 @@ async function initializeFxUSD(
   allPools: string[]
 ) {
   const fxUSDSymbol = await fxUSD.symbol();
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
+  await caller.upgrade(admin.Fx, fxUSDSymbol, await fxUSD.getAddress(), deployment.FxUSD.implementation);
+
   const markets = await fxUSD.getMarkets();
   for (const baseSymbol of baseSymbols) {
     if (!markets.includes(getAddress(TOKENS[baseSymbol].address))) {

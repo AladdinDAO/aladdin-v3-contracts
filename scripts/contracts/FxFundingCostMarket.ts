@@ -401,6 +401,11 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
       OracleMapping[baseSymbol],
     ]);
   }
+  if ((await treasury.fundingCostScale()) !== marketConfig.FundingCostScale) {
+    await caller.ownerCall(treasury, `Treasury for ${baseSymbol} updateFundingCostScale`, "updateFundingCostScale", [
+      marketConfig.FundingCostScale,
+    ]);
+  }
 
   // setup Market
   if ((await market.reservePool()) !== governance.ReservePool) {
