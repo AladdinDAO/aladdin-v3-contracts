@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.0 || ^0.8.0;
 pragma abicoder v2;
 
 interface IBalancerVault {
@@ -107,4 +107,11 @@ interface IBalancerVault {
     address[] memory assets,
     FundManagement memory funds
   ) external returns (int256[] memory);
+
+  function flashLoan(
+    address recipient,
+    address[] memory tokens,
+    uint256[] memory amounts,
+    bytes memory userData
+  ) external;
 }
