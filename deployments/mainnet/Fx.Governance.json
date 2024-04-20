@@ -100,10 +100,12 @@
         "manager": "0x4F73CDdB5c3F29b0e31f96bc29c973f5297e7411"
       },
       "eUSD+fxUSD": {
-        "gauge": "0x5801Bb8f568979C722176Df36b1a74654A9C52b5"
+        "gauge": "0x5801Bb8f568979C722176Df36b1a74654A9C52b5",
+        "manager": "0xeb5ed0ff89F3709902aaaD5Af1d9d5933f7c3c9a"
       },
       "rgUSD+fxUSD": {
-        "gauge": "0x4CA79F4FE25BCD329445CDBE7E065427ACa98380"
+        "gauge": "0x4CA79F4FE25BCD329445CDBE7E065427ACa98380",
+        "manager": "0xFb922EF4CD9C68f197Dc35D7fcc204CC03Ccb038"
       },
       "MIM+fxUSD": {
         "gauge": "0xDF7fbDBAE50C7931a11765FAEd9fe1A002605B55"
