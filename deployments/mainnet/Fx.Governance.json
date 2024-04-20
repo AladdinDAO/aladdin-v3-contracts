@@ -8,7 +8,8 @@
   "SmartWalletWhitelist": "0xD71B8B76015F296E53D41e8288a8a13eAfFff2ea",
   "Vesting": {
     "FXN": "0x2290eeFEa24A6E43b26C27187742bD1FEDC10BDB",
-    "fETH": "0x1236193C71128f9e7b6BB56F506676adD8589009"
+    "fETH": "0x1236193C71128f9e7b6BB56F506676adD8589009",
+    "fxUSD": "0xc054F64143CB04b765773D5B66992f611C497352"
   },
   "FeeDistributor": {
     "stETH": "0x851AAEA3A2757D457E1Ce88C3808C1690213e432",
@@ -97,6 +98,15 @@
       "alUSD+fxUSD": {
         "gauge": "0x9c7003bC16F2A1AA47451C858FEe6480B755363e",
         "manager": "0x4F73CDdB5c3F29b0e31f96bc29c973f5297e7411"
+      },
+      "eUSD+fxUSD": {
+        "gauge": "0x5801Bb8f568979C722176Df36b1a74654A9C52b5"
+      },
+      "rgUSD+fxUSD": {
+        "gauge": "0x4CA79F4FE25BCD329445CDBE7E065427ACa98380"
+      },
+      "MIM+fxUSD": {
+        "gauge": "0xDF7fbDBAE50C7931a11765FAEd9fe1A002605B55"
       }
     }
   },

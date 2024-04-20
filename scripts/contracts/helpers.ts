@@ -236,8 +236,8 @@ export class ContractCallHelper {
     this.overrides = overrides;
   }
 
-  public async getContract(name: string, address: string): Promise<BaseContract> {
-    return ethers.getContractAt(name, address, this.deployer);
+  public async contract<T extends BaseContract>(name: string, address: string): Promise<T> {
+    return (await ethers.getContractAt(name, address, this.deployer)) as any as T;
   }
 
   public async call(
@@ -259,10 +259,10 @@ export class ContractCallHelper {
   }
 
   public async grantRole(contract: string, desc: string, role: string, account: string) {
-    const control = (await this.getContract(
+    const control = (await this.contract(
       "@openzeppelin/contracts/access/AccessControl.sol:AccessControl",
       contract
-    )) as AccessControl;
+    )) as any as AccessControl;
     if (!(await control.hasRole(role, account))) {
       await this.ownerCall(control, `${desc} grant to ${account}`, "grantRole", [role, account]);
     }
