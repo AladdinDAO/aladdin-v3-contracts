@@ -29,7 +29,7 @@ contract FxChainlinkTwapOracle is ITwapOracle {
   /// @dev This should at least be equal to Chainlink's heartbeat duration.
   uint256 public immutable chainlinkMessageExpiration;
 
-  /// @dev A multipler that normalizes price from the Chainlink aggregator to 18 decimal places.
+  /// @dev A multiplier that normalizes price from the Chainlink aggregator to 18 decimal places.
   uint256 private immutable _chainlinkPriceMultiplier;
 
   string public symbol;
@@ -110,7 +110,7 @@ contract FxChainlinkTwapOracle is ITwapOracle {
       (, answer, , updatedAt, ) = _getChainlinkRoundData(roundID);
     }
     if (updatedAt >= timestamp || answer == 0) {
-      // The last round before the epoch end is not found, due to either incontinuous
+      // The last round before the epoch end is not found, due to either discontinuous
       // round IDs caused by a phase change or abnormal `updatedAt` timestamps.
       return (0, 0, 0);
     }

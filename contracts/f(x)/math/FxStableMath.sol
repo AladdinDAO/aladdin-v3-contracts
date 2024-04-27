@@ -26,6 +26,8 @@ library FxStableMath {
     uint256 baseSupply;
     // Current nav of base token
     uint256 baseNav;
+    // Current nav of base token
+    uint256 baseTwapNav;
     // Current supply of fractional token
     uint256 fSupply;
     // Current supply of leveraged token
@@ -224,12 +226,15 @@ library FxStableMath {
   }
 
   /// @notice Compute current leverage ratio for xToken.
+  ///
+  /// @dev We use `baseTwapNav` to compute leverage ratio to avoid manipulation.
+  ///
   /// @param state The current state.
   /// @return ratio The current leverage ratio.
   function leverageRatio(SwapState memory state) internal pure returns (uint256 ratio) {
     // ratio = (1 - rho * beta * (1 + r)) / (1 - rho), and beta = 0
     // ratio = 1 / (1 - rho)
-    uint256 rho = (state.fSupply * PRECISION * PRECISION) / (state.baseSupply * state.baseNav);
+    uint256 rho = (state.fSupply * PRECISION * PRECISION) / (state.baseSupply * state.baseTwapNav);
     if (rho >= PRECISION) {
       // under collateral, assume infinite leverage
       ratio = MAX_LEVERAGE_RATIO;

@@ -116,7 +116,7 @@ contract TreasuryWithFundingCost is TreasuryV2, CrvUSDBorrowRateAdapter {
     returns (FxStableMath.SwapState memory _state)
   {
     _state.baseSupply = totalBaseToken;
-    _state.baseNav = _fetchTwapPrice(_action);
+    (_state.baseTwapNav, _state.baseNav) = _fetchBaseTokenPrice(_action);
 
     if (_state.baseSupply == 0) {
       _state.xNav = PRECISION;

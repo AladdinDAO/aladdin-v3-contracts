@@ -4,9 +4,9 @@ pragma solidity ^0.7.6;
 
 import { OracleLibrary } from "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 
-import { ITwapOracle } from "../../price-oracle/interfaces/ITwapOracle.sol";
+import { ITwapOracle } from "../../../price-oracle/interfaces/ITwapOracle.sol";
 
-abstract contract FxLSDOracleBase {
+abstract contract FxTwapOracleBase {
   /*************
    * Constants *
    *************/
@@ -14,20 +14,11 @@ abstract contract FxLSDOracleBase {
   /// @dev The precison use to calculation.
   uint256 internal constant PRECISION = 1e18;
 
-  /// @dev Ideal TWAP interval.
-  uint32 internal constant TWAP_PERIOD = 30 minutes;
-
-  /// @dev The address of WETH token.
-  address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-
-  /// @dev The address of USDT token.
-  address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
-
   /// @notice The address of base token.
   address public immutable base;
 
-  /// @notice The address of Uniswap V3 WETH/USDT pool.
-  address public immutable uniswapV3Pool;
+  /// @notice The address of chainlink base/USD twap oracle.
+  address public immutable baseTwapOracle;
 
   /// @notice The address of chainlink ETH/USD twap oracle.
   address public immutable ethTwapOracle;
@@ -38,11 +29,11 @@ abstract contract FxLSDOracleBase {
 
   constructor(
     address _base,
-    address _uniswapV3Pool,
+    address _baseTwapOracle,
     address _ethTwapOracle
   ) {
     base = _base;
-    uniswapV3Pool = _uniswapV3Pool;
+    baseTwapOracle = _baseTwapOracle;
     ethTwapOracle = _ethTwapOracle;
   }
 
@@ -50,17 +41,14 @@ abstract contract FxLSDOracleBase {
    * Internal Functions *
    **********************/
 
-  /// @dev Internal function to get the ETH TWAP USD price from chainlink.
-  function _getChainlinkTwapUSDPrice() internal view virtual returns (uint256) {
-    return ITwapOracle(ethTwapOracle).getTwap(block.timestamp);
+  /// @dev Internal function to get the base TWAP USD price from chainlink.
+  function _getChainlinkBaseTwapUSDPrice() internal view virtual returns (uint256) {
+    return ITwapOracle(baseTwapOracle).getTwap(block.timestamp);
   }
 
-  /// @dev Internal function to get the ETH TWAP USD price from Uniswap V3.
-  function _getUniV3TwapUSDPrice() internal view returns (uint256) {
-    (int24 timeWeightedAverageTick, ) = OracleLibrary.consult(uniswapV3Pool, TWAP_PERIOD);
-    uint256 quote = OracleLibrary.getQuoteAtTick(timeWeightedAverageTick, 1 ether, WETH, USDT);
-    // decimal of USDT is 6
-    return quote * 10**12;
+  /// @dev Internal function to get the eth TWAP USD price from chainlink.
+  function _getChainlinkETHTwapUSDPrice() internal view virtual returns (uint256) {
+    return ITwapOracle(ethTwapOracle).getTwap(block.timestamp);
   }
 
   /// @dev Internal function to determine whether the price is valid.

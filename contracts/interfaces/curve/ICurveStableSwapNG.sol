@@ -13,7 +13,11 @@ interface ICurveStableSwapNG {
 
   function ema_price(uint256 index) external view returns (uint256);
 
-  function get_p(uint256 index) external view returns (uint256);
+  /// @notice Returns the AMM State price of token
+  /// @dev if i = 0, it will return the state price of coin[1].
+  /// @param i index of state price (0 for coin[1], 1 for coin[2], ...)
+  /// @return uint256 The state price quoted by the AMM for coin[i+1]
+  function get_p(uint256 i) external view returns (uint256);
 
   function price_oracle(uint256 index) external view returns (uint256);
 

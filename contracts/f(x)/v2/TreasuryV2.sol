@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity =0.8.20;
-pragma abicoder v2;
 
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/access/AccessControlUpgradeable.sol";
 import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
@@ -15,7 +14,7 @@ import { IAssetStrategy } from "../../interfaces/f(x)/IAssetStrategy.sol";
 import { IFxFractionalTokenV2 } from "../../interfaces/f(x)/IFxFractionalTokenV2.sol";
 import { IFxLeveragedTokenV2 } from "../../interfaces/f(x)/IFxLeveragedTokenV2.sol";
 import { IFxMarketV2 } from "../../interfaces/f(x)/IFxMarketV2.sol";
-import { IFxPriceOracle } from "../../interfaces/f(x)/IFxPriceOracle.sol";
+import { IFxPriceOracleV2 } from "../../interfaces/f(x)/IFxPriceOracleV2.sol";
 import { IFxRateProvider } from "../../interfaces/f(x)/IFxRateProvider.sol";
 import { IFxRebalancePoolSplitter } from "../../interfaces/f(x)/IFxRebalancePoolSplitter.sol";
 import { IFxTreasuryV2 } from "../../interfaces/f(x)/IFxTreasuryV2.sol";
@@ -253,12 +252,13 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
   /// @inheritdoc IFxTreasuryV2
   function currentBaseTokenPrice() external view override returns (uint256) {
-    return _fetchTwapPrice(Action.None);
+    (, uint256 price) = _fetchBaseTokenPrice(Action.None);
+    return price;
   }
 
   /// @inheritdoc IFxTreasuryV2
   function isBaseTokenPriceValid() public view returns (bool _isValid) {
-    (_isValid, , , ) = IFxPriceOracle(priceOracle).getPrice();
+    (_isValid, , , ) = IFxPriceOracleV2(priceOracle).getPrice();
   }
 
   /// @inheritdoc IFxTreasuryV2
@@ -343,7 +343,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
     if (_state.xNav == 0) {
       if (_xTokenIn > 0) revert ErrorUnderCollateral();
-      // only redeem fToken proportionallly when under collateral.
+      // only redeem fToken proportionally when under collateral.
       _baseOut = (_fTokenIn * _state.baseSupply) / _state.fSupply;
     } else {
       _baseOut = _state.redeem(_fTokenIn, _xTokenIn);
@@ -367,7 +367,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
     if (totalBaseToken == 0) return;
 
     uint256 _oldPrice = referenceBaseTokenPrice;
-    uint256 _newPrice = _fetchTwapPrice(Action.None);
+    (uint256 _newPrice, ) = _fetchBaseTokenPrice(Action.None);
     referenceBaseTokenPrice = _newPrice;
 
     emit Settle(_oldPrice, _newPrice);
@@ -449,7 +449,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @notice Update the fee ratio distributed to treasury.
-  /// @param _newRatio The new ratio to update, multipled by 1e9.
+  /// @param _newRatio The new ratio to update, multiplied by 1e9.
   function updateRebalancePoolRatio(uint32 _newRatio) external onlyRole(DEFAULT_ADMIN_ROLE) {
     if (uint256(_newRatio) > MAX_REBALANCE_POOL_RATIO) {
       revert ErrorRebalancePoolRatioTooLarge();
@@ -463,7 +463,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @notice Update the fee ratio distributed to harvester.
-  /// @param _newRatio The new ratio to update, multipled by 1e9.
+  /// @param _newRatio The new ratio to update, multiplied by 1e9.
   function updateHarvesterRatio(uint32 _newRatio) external onlyRole(DEFAULT_ADMIN_ROLE) {
     if (uint256(_newRatio) > MAX_HARVESTER_RATIO) {
       revert ErrorHarvesterRatioTooLarge();
@@ -517,7 +517,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
     // initialize reference price
     address _sender = _msgSender();
-    uint256 _price = _fetchTwapPrice(Action.None);
+    (uint256 _price, ) = _fetchBaseTokenPrice(Action.None);
     referenceBaseTokenPrice = _price;
     emit Settle(0, _price);
 
@@ -624,7 +624,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   /// @dev Internal function to load swap variable to memory
   function _loadSwapState(Action _action) internal view virtual returns (FxStableMath.SwapState memory _state) {
     _state.baseSupply = totalBaseToken;
-    _state.baseNav = _fetchTwapPrice(_action);
+    (_state.baseTwapNav, _state.baseNav) = _fetchBaseTokenPrice(_action);
 
     if (_state.baseSupply == 0) {
       _state.xNav = PRECISION;
@@ -658,22 +658,17 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @dev Internal function to fetch twap price.
-  /// @return _twapPrice The twap price of the base token.
-  function _fetchTwapPrice(Action _action) internal view returns (uint256 _twapPrice) {
-    (bool _isValid, uint256 _safePrice, uint256 _minPrice, uint256 _maxPrice) = IFxPriceOracle(priceOracle).getPrice();
+  /// @return _twap The twap price of the base token.
+  function _fetchBaseTokenPrice(Action _action) internal view returns (uint256 _twap, uint256 _price) {
+    uint256 _minPrice;
+    uint256 _maxPrice;
+    (, _twap, _minPrice, _maxPrice) = IFxPriceOracleV2(priceOracle).getPrice();
 
-    _twapPrice = _safePrice;
-    if (_action == Action.MintFToken || _action == Action.MintXToken) {
-      if (!_isValid) revert ErrorInvalidOraclePrice();
-    } else if (!_isValid) {
-      if (_action == Action.RedeemFToken) {
-        _twapPrice = _maxPrice;
-      } else if (_action == Action.RedeemXToken) {
-        _twapPrice = _minPrice;
-      }
-    }
+    if (_action == Action.MintFToken || _action == Action.RedeemXToken) _price = _minPrice;
+    else if (_action == Action.MintXToken || _action == Action.RedeemFToken) _price = _maxPrice;
+    else _price = _maxPrice;
 
-    if (_twapPrice == 0) revert ErrorInvalidTwapPrice();
+    if (_twap == 0) revert ErrorInvalidTwapPrice();
   }
 
   /// @dev Internal function to distribute rewards to rebalance pool.

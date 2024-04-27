@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.0 || ^0.8.0;
 
 // solhint-disable var-name-mixedcase, func-name-mixedcase
 
@@ -43,6 +43,10 @@ interface ICurvePlainPool {
   function coins(uint256 index) external view returns (address);
 
   function balances(uint256 index) external view returns (uint256);
+
+  function A() external view returns (uint256);
+
+  function A_precise() external view returns (uint256);
 
   // ren and sbtc pool
   function coins(int128 index) external view returns (address);

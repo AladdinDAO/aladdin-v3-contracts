@@ -6,9 +6,9 @@ import { Math } from "@openzeppelin/contracts/math/Math.sol";
 
 import { FxTwapOracleBase } from "./FxTwapOracleBase.sol";
 
-import { IFxPriceOracle } from "../../interfaces/f(x)/IFxPriceOracle.sol";
-import { ICurvePoolOracle } from "../../interfaces/ICurvePoolOracle.sol";
-import { ITwapOracle } from "../../price-oracle/interfaces/ITwapOracle.sol";
+import { IFxPriceOracle } from "../../../interfaces/f(x)/IFxPriceOracle.sol";
+import { ICurvePoolOracle } from "../../../interfaces/ICurvePoolOracle.sol";
+import { ITwapOracle } from "../../../price-oracle/interfaces/ITwapOracle.sol";
 
 // solhint-disable var-name-mixedcase
 
