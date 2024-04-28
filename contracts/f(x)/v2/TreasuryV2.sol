@@ -251,8 +251,10 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
+  /// @dev This function is used to calculate the nav of fToken and xToken.
+  /// To avoid, price manipulation, we return the twap.
   function currentBaseTokenPrice() external view override returns (uint256) {
-    (, uint256 price) = _fetchBaseTokenPrice(Action.None);
+    (uint256 price, ) = _fetchBaseTokenPrice(Action.None);
     return price;
   }
 

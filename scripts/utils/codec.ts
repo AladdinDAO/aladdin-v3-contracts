@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
 import { assert } from "console";
-import { getAddress, toBigInt } from "ethers";
+import { concat, getAddress, toBeHex, toBigInt } from "ethers";
 import { ethers } from "hardhat";
 import { TOKENS } from "./tokens";
 
@@ -250,4 +250,181 @@ export function decodePoolV3(encoding: bigint): string {
     }
   }
   return `${PoolTypeV3[Number(poolType)]}[${poolName}].${actionDesc} ${extra}`;
+}
+
+export enum SpotPricePoolType {
+  UniswapV2,
+  UniswapV3,
+  BalancerV2Weighted,
+  BalancerV2Stable,
+  CurvePlain,
+  CurvePlainWithOracle,
+  CurvePlainNG,
+  CurveCrypto,
+  CurveTriCrypto,
+  ERC4626,
+  ETHLSD,
+}
+
+export function encodeSpotPricePool(
+  poolAddress: string,
+  poolType: SpotPricePoolType,
+  options: {
+    base_index?: number;
+    base_scale?: number;
+    quote_index?: number;
+    quote_scale?: number;
+    tokens?: number;
+    scales?: number[];
+    has_amm_precise?: boolean;
+    base_is_underlying?: boolean;
+    base_is_ETH?: boolean;
+  }
+) {
+  let encoding = BigInt(poolAddress);
+  let customized = 0n;
+  switch (poolType) {
+    case SpotPricePoolType.UniswapV2:
+    case SpotPricePoolType.UniswapV3:
+      assert(options.base_index !== undefined, "no base_index");
+      assert(options.base_scale !== undefined, "no base_scale");
+      assert(options.quote_scale !== undefined, "no quote_scale");
+      customized = (customized << 8n) | BigInt(options.quote_scale!);
+      customized = (customized << 8n) | BigInt(options.base_scale!);
+      customized = (customized << 1n) | BigInt(options.base_index!);
+      break;
+    case SpotPricePoolType.BalancerV2Weighted:
+      assert(options.base_index !== undefined, "no base_index");
+      assert(options.quote_index !== undefined, "no quote_index");
+      assert(options.base_scale !== undefined, "no base_scale");
+      assert(options.quote_scale !== undefined, "no quote_scale");
+      customized = (customized << 8n) | BigInt(options.quote_scale!);
+      customized = (customized << 8n) | BigInt(options.base_scale!);
+      customized = (customized << 3n) | BigInt(options.quote_index!);
+      customized = (customized << 3n) | BigInt(options.base_index!);
+      break;
+    case SpotPricePoolType.BalancerV2Stable:
+      assert(options.base_index !== undefined, "no base_index");
+      assert(options.quote_index !== undefined, "no quote_index");
+      customized = (customized << 3n) | BigInt(options.quote_index!);
+      customized = (customized << 3n) | BigInt(options.base_index!);
+      break;
+    case SpotPricePoolType.CurvePlain:
+      assert(options.tokens !== undefined, "no tokens");
+      assert(options.base_index !== undefined, "no base_index");
+      assert(options.quote_index !== undefined, "no quote_index");
+      assert(options.has_amm_precise !== undefined, "no has_amm_precise");
+      assert(options.scales !== undefined, "no scales");
+      for (const scale of options.scales!.reverse()) {
+        customized = (customized << 8n) | BigInt(scale);
+      }
+      customized = (customized << 1n) | BigInt(options.has_amm_precise! ? 1 : 0);
+      customized = (customized << 3n) | BigInt(options.quote_index!);
+      customized = (customized << 3n) | BigInt(options.base_index!);
+      customized = (customized << 3n) | BigInt(options.tokens! - 1);
+      break;
+    case SpotPricePoolType.CurvePlainWithOracle:
+      assert(options.base_index !== undefined, "no base_index");
+      customized = (customized << 1n) | BigInt(options.base_index!);
+      break;
+    case SpotPricePoolType.CurvePlainNG:
+      assert(options.base_index !== undefined, "no base_index");
+      assert(options.quote_index !== undefined, "no quote_index");
+      customized = (customized << 3n) | BigInt(options.quote_index!);
+      customized = (customized << 3n) | BigInt(options.base_index!);
+      break;
+    case SpotPricePoolType.CurveCrypto:
+      assert(options.base_index !== undefined, "no base_index");
+      customized = (customized << 1n) | BigInt(options.base_index!);
+      break;
+    case SpotPricePoolType.CurveTriCrypto:
+      assert(options.base_index !== undefined, "no base_index");
+      assert(options.quote_index !== undefined, "no quote_index");
+      customized = (customized << 2n) | BigInt(options.quote_index!);
+      customized = (customized << 2n) | BigInt(options.base_index!);
+      break;
+    case SpotPricePoolType.ERC4626:
+      assert(options.base_is_underlying !== undefined, "no base_is_underlying");
+      customized = (customized << 1n) | BigInt(options.base_is_underlying! ? 1 : 0);
+      break;
+    case SpotPricePoolType.ETHLSD:
+      assert(options.base_is_ETH !== undefined, "no base_is_ETH");
+      customized = (customized << 1n) | BigInt(options.base_is_ETH! ? 1 : 0);
+      break;
+  }
+  encoding = (customized << 168n) | (encoding << 8n) | BigInt(poolType);
+  return encoding;
+}
+
+export function decodeSpotPricePool(encoding: bigint): string {
+  const poolType = Number(encoding & 255n);
+  const pool = getAddress(((encoding >> 8n) & (2n ** 160n - 1n)).toString(16).padStart(40, "0"));
+  encoding >>= 168n;
+  const poolName = pool;
+  let extra: string = "";
+  let baseIndex;
+  let quoteIndex;
+  let baseIsUnderlying;
+  let baseIsETH;
+  switch (poolType) {
+    case SpotPricePoolType.UniswapV2:
+    case SpotPricePoolType.UniswapV3:
+      baseIndex = encoding & 1n;
+      extra = `baseIndex[${baseIndex}] quoteIndex[${baseIndex ^ 1n}]`;
+      break;
+    case SpotPricePoolType.BalancerV2Weighted:
+      baseIndex = encoding & 7n;
+      quoteIndex = (encoding >> 3n) & 7n;
+      extra = `baseIndex[${baseIndex}] quoteIndex[${quoteIndex}]`;
+      break;
+    case SpotPricePoolType.BalancerV2Stable:
+      baseIndex = encoding & 7n;
+      quoteIndex = (encoding >> 3n) & 7n;
+      extra = `baseIndex[${baseIndex}] quoteIndex[${quoteIndex}]`;
+      break;
+    case SpotPricePoolType.CurvePlain:
+      baseIndex = (encoding >> 3n) & 7n;
+      quoteIndex = (encoding >> 6n) & 7n;
+      extra = `baseIndex[${baseIndex}] quoteIndex[${quoteIndex}]`;
+      break;
+    case SpotPricePoolType.CurvePlainWithOracle:
+      baseIndex = encoding & 1n;
+      extra = `baseIndex[${baseIndex}] quoteIndex[${baseIndex ^ 1n}]`;
+      break;
+    case SpotPricePoolType.CurvePlainNG:
+      baseIndex = encoding & 7n;
+      quoteIndex = (encoding >> 3n) & 7n;
+      extra = `baseIndex[${baseIndex}] quoteIndex[${quoteIndex}]`;
+      break;
+    case SpotPricePoolType.CurveCrypto:
+      baseIndex = encoding & 1n;
+      extra = `baseIndex[${baseIndex}] quoteIndex[${baseIndex ^ 1n}]`;
+      break;
+    case SpotPricePoolType.CurveTriCrypto:
+      baseIndex = encoding & 3n;
+      quoteIndex = (encoding >> 2n) & 3n;
+      extra = `baseIndex[${baseIndex}] quoteIndex[${quoteIndex}]`;
+      break;
+    case SpotPricePoolType.ERC4626:
+      baseIsUnderlying = encoding & 1n;
+      extra = `BaseIsUnderlying[${baseIsUnderlying === 1n}]`;
+      break;
+    case SpotPricePoolType.ETHLSD:
+      baseIsETH = encoding & 1n;
+      extra = `BaseIsETH[${baseIsETH === 1n}]`;
+      break;
+  }
+  return `${SpotPricePoolType[Number(poolType)]}[${poolName}] ${extra}`;
+}
+
+export function encodeSpotPriceSources(sources: Array<Array<bigint>>): string {
+  const encoded = sources.map((source) => {
+    const encoded = source.map((x) => "0x" + x.toString(16).padStart(64, "0"));
+    return concat([toBeHex(encoded.length), ...encoded]);
+  });
+  return concat([toBeHex(encoded.length), ...encoded]);
+}
+
+export function encodeChainlinkPriceFeed(feed: string, scale: bigint, heartbeat: number): bigint {
+  return (BigInt(feed) << 96n) | (scale << 32n) | BigInt(heartbeat);
 }

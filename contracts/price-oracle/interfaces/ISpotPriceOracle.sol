@@ -40,7 +40,7 @@ interface ISpotPriceOracle {
   /// + pool_type = 9: ERC4626
   ///   customized = |       1  bit       | ... |
   ///                | base_is_underlying | ... |
-  /// + pool_type = 10: LSD, wstETH, weETH, ezETH
+  /// + pool_type = 10: ETHLSD, wstETH, weETH, ezETH
   ///   customized = |    1 bit    | ... |
   ///                | base_is_ETH | ... |
   ///

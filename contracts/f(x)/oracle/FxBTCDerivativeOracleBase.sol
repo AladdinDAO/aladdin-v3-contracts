@@ -14,17 +14,21 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
    * Constants *
    *************/
 
+  /// @notice The Chainlink BTC/USD price feed.
   /// @dev See comments of `_readSpotPriceByChainlink` for more details.
   bytes32 public immutable Chainlink_BTC_USD_Spot;
 
+  /// @notice The address of the Chainlink BTC/USD Twap.
   address public immutable Chainlink_BTC_USD_Twap;
 
   /*************
    * Variables *
    *************/
 
+  /// @dev The encodings for BTCDerivative/USD spot sources.
   bytes private onchainSpotEncodings_BTCDerivativeUSD;
 
+  /// @notice The value of maximum price deviation, multiplied by 1e18.
   uint256 public maxPriceDeviation;
 
   /***************
@@ -35,26 +39,33 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
     Chainlink_BTC_USD_Spot = _Chainlink_BTC_USD_Spot;
     Chainlink_BTC_USD_Twap = _Chainlink_BTC_USD_Twap;
 
-    _updateMaxPriceDeviation(1e6); // 1%
+    _updateMaxPriceDeviation(1e16); // 1%
   }
 
   /*************************
    * Public View Functions *
    *************************/
 
-  function getBTCDerivativeUSDSpotPrices() public view returns (uint256[] memory) {
-    return _getSpotPriceByEncoding(onchainSpotEncodings_BTCDerivativeUSD);
+  /// @notice Return the BTCDerivative/USD spot prices.
+  /// @return prices The list of spot price among all available sources, multiplied by 1e18.
+  function getBTCDerivativeUSDSpotPrices() public view returns (uint256[] memory prices) {
+    prices = _getSpotPriceByEncoding(onchainSpotEncodings_BTCDerivativeUSD);
   }
 
-  function getBTCUSDTwapPrice() external view returns (uint256) {
-    return _getBTCUSDTwapPrice();
+  /// @notice Return the BTC/USD time-weighted average price.
+  /// @return price The time-weighted average price, multiplied by 1e18.
+  function getBTCUSDTwapPrice() external view returns (uint256 price) {
+    price = _getBTCUSDTwapPrice();
   }
 
-  function getBTCDerivativeUSDTwapPrice() external view returns (uint256) {
-    return _getBTCDerivativeUSDTwapPrice();
+  /// @notice Return the BTCDerivative/USD time-weighted average price.
+  /// @return price The time-weighted average price, multiplied by 1e18.
+  function getBTCDerivativeUSDTwapPrice() external view returns (uint256 price) {
+    price = _getBTCDerivativeUSDTwapPrice();
   }
 
   /// @inheritdoc IFxPriceOracleV2
+  /// @dev The price is valid iff |maxPrice-minPrice|/minPrice < maxPriceDeviation
   function getPrice()
     external
     view
@@ -77,6 +88,8 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
    * Restricted Functions *
    ************************/
 
+  /// @notice Update the on-chain spot encodings.
+  /// @param encodings The encodings to update. See `_getSpotPriceByEncoding` for more details.
   function updateOnchainSpotEncodings(bytes memory encodings) external onlyOwner {
     // validate encoding
     uint256[] memory prices = _getSpotPriceByEncoding(encodings);
@@ -85,6 +98,8 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
     onchainSpotEncodings_BTCDerivativeUSD = encodings;
   }
 
+  /// @notice Update the value of maximum price deviation.
+  /// @param newMaxPriceDeviation The new value of maximum price deviation, multiplied by 1e18.
   function updateMaxPriceDeviation(uint256 newMaxPriceDeviation) external onlyOwner {
     _updateMaxPriceDeviation(newMaxPriceDeviation);
   }
@@ -93,32 +108,26 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
    * Internal Functions *
    **********************/
 
+  /// @dev Internal function to update the value of maximum price deviation.
+  /// @param newMaxPriceDeviation The new value of maximum price deviation, multiplied by 1e18.
   function _updateMaxPriceDeviation(uint256 newMaxPriceDeviation) private {
+    uint256 oldMaxPriceDeviation = maxPriceDeviation;
     maxPriceDeviation = newMaxPriceDeviation;
+
+    emit UpdateMaxPriceDeviation(oldMaxPriceDeviation, newMaxPriceDeviation);
   }
 
-  function _getBTCUSDSpotPrice()
-    internal
-    view
-    returns (
-      uint256 chainlinkPrice,
-      uint256 minPrice,
-      uint256 maxPrice
-    )
-  {
-    chainlinkPrice = _readSpotPriceByChainlink(Chainlink_BTC_USD_Spot);
-    uint256[] memory prices = _getSpotPriceByEncoding(onchainSpotEncodings_BTCDerivativeUSD);
-    minPrice = maxPrice = chainlinkPrice;
-    for (uint256 i = 0; i < prices.length; i++) {
-      if (prices[i] > maxPrice) maxPrice = prices[i];
-      if (prices[i] < minPrice) minPrice = prices[i];
-    }
-  }
-
+  /// @dev Internal function to return the BTC/USD time-weighted average price.
+  /// @return price The time-weighted average price of BTC/USD, multiplied by 1e18.
   function _getBTCUSDTwapPrice() internal view returns (uint256) {
     return ITwapOracle(Chainlink_BTC_USD_Twap).getTwap(block.timestamp);
   }
 
+  /// @dev Internal function to return the min/max BTCDerivative/USD prices.
+  /// @param twap The BTCDerivative/USD time-weighted average price, multiplied by 1e18.
+  /// @param useBTCSpot Whether to use BTC/USD spot for BTCDerivative/USD prices.
+  /// @return minPrice The minimum price among all available sources (including twap), multiplied by 1e18.
+  /// @return maxPrice The maximum price among all available sources (including twap), multiplied by 1e18.
   function _getBTCDerivativeMinMaxPrice(uint256 twap, bool useBTCSpot)
     internal
     view
@@ -142,5 +151,7 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
     }
   }
 
+  /// @dev Internal function to return the BTCDerivative/USD time-weighted average price.
+  /// @return price The time-weighted average price of BTCDerivative/USD, multiplied by 1e18.
   function _getBTCDerivativeUSDTwapPrice() internal view virtual returns (uint256);
 }

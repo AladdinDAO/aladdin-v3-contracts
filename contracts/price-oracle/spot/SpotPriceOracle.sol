@@ -26,34 +26,48 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
    * Constants *
    *************/
 
+  /// @dev The precision for spot price.
   uint256 private constant PRECISION = 1e18;
 
+  /// @dev The value of sqrt(PRECISION).
   uint256 private constant HALF_PRECISION = 1e9;
 
+  /// @dev The value of `2^96`.
   uint256 private constant E96 = 2**96;
 
+  /// @dev The address of wstETH token.
   address private constant wstETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
+  /// @dev The address of weETH token.
   address private constant weETH = 0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee;
 
+  /// @dev The address of ezETH token.
   address private constant ezETH = 0xbf5495Efe5DB9ce00f80364C8B423567e58d2110;
 
+  /// @dev The address of rate provider for ezETH.
   address private constant ezETH_RATE_PROVIDER = 0x387dBc0fB00b26fb085aa658527D5BE98302c84C;
 
+  /// @dev The address of Balancer V2 vault.
   address private constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
   /**********
    * Events *
    **********/
 
+  /// @notice Emitted when the address of reader is updated.
+  /// @param poolType The type of reader.
+  /// @param oldReader The address of the previous reader.
+  /// @param newReader The address of the current reader.
   event UpdateReader(uint256 poolType, address oldReader, address newReader);
 
   /**********
    * Errors *
    **********/
 
+  /// @dev Thrown when the pool encoding is invalid.
   error ErrorInvalidEncoding();
 
+  /// @dev Thrown when the pool is not supported.
   error ErrorUnsupportedPoolType();
 
   /*************
@@ -108,6 +122,9 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
    * Public Mutated Functions *
    ****************************/
 
+  /// @notice Update the reader for a specific pool.
+  /// @param poolType The type of the pool.
+  /// @param newReader The address of the new reader.
   function updateReader(uint256 poolType, address newReader) external onlyOwner {
     address oldReader = readers[poolType];
     readers[poolType] = newReader;
@@ -119,6 +136,8 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
    * Internal Functions *
    **********************/
 
+  /// @dev Internal function to get spot price from Uniswap V2 pairs.
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByUniswapV2(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_index = (encoding >> 160) & 1;
@@ -131,6 +150,8 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     return (r_quote * PRECISION) / r_base;
   }
 
+  /// @dev Internal function to get spot price from Uniswap V3 pools.
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByUniswapV3(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_index = (encoding >> 160) & 1;
@@ -141,19 +162,21 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     uint256 base_scale = 10**((encoding >> 161) & 255);
     uint256 quote_scale = 10**((encoding >> 169) & 255);
     // sqrt(base/quote) = sqrtPriceX96 / 2^96
-    // (base*base_scale)/(quote*quote_scale) = (sqrtPriceX96^2 * base_scale) / (2^192 * quote_scale)
-    // (sqrtPriceX96^2 * base_scale * 10^18) / (2^192 * quote_scale)
-    // ((sqrtPriceX96 * 10^9) / 2^96)^2 * base_scale / quote_scale
-    if (base_scale > quote_scale) {
-      uint256 scale = Math.sqrt(base_scale / quote_scale);
+    // (base * quote_scale * 10^18) / (quote * base_scale) = (sqrtPriceX96 / 2^96) ^ 2 * quote_scale / base_scale * 10^18
+    // sqrtPriceX96^2 * 10^18 * quote_scale / (2^192 * base_scale)
+    // (sqrtPriceX96 * 10^9 / 2^96)^2 * quote_scale / base_scale
+    if (quote_scale > base_scale) {
+      uint256 scale = Math.sqrt(quote_scale / base_scale);
       uint256 price = (sqrtPriceX96 * HALF_PRECISION * scale) / E96;
       return price * price;
     } else {
       uint256 price = (sqrtPriceX96 * HALF_PRECISION) / E96;
-      return (price * price) / (quote_scale / base_scale);
+      return (price * price * quote_scale) / base_scale;
     }
   }
 
+  /// @dev Internal function to get spot price from Balancer V2's weighted pools.
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByBalancerV2Weighted(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     bytes32 poolId = IBalancerPool(pool).getPoolId();
@@ -167,6 +190,8 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     return (price * weights[base_index]) / weights[quote_index];
   }
 
+  /// @dev Internal function to get spot price from Balance V2's composable stable pools.
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByBalancerV2Stable(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_index = (encoding >> 160) & 7;
@@ -178,7 +203,7 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     uint256 j;
     for (uint256 i = 0; i < balances.length; ++i) {
       if (tokens[i] == pool) continue;
-      realBalances[j] = (balances[j] * scales[j]) / PRECISION;
+      realBalances[j] = (balances[i] * scales[i]) / PRECISION;
       j += 1;
     }
     (uint256 amp, , ) = IBalancerPool(pool).getAmplificationParameter();
@@ -186,6 +211,8 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     return StableMath.calculateSpotPrice(base_index, quote_index, amp, invariant, realBalances);
   }
 
+  /// @dev Internal function to get spot price from Curve's plain pools (without oracle supported).
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByCurvePlain(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 tokens = ((encoding >> 160) & 7) + 1;
@@ -211,6 +238,8 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     return StableMath.calculateSpotPrice(base_index, quote_index, amp, invariant, balances);
   }
 
+  /// @dev Internal function to get spot price from Curve's plain pools (with oracle supported).
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByCurvePlainWithOracle(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_index = (encoding >> 160) & 1;
@@ -221,6 +250,8 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     return last_price;
   }
 
+  /// @dev Internal function to get spot price from Curve's stable swap ng pools.
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByCurvePlainNG(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_index = (encoding >> 160) & 7;
@@ -236,6 +267,8 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     }
   }
 
+  /// @dev Internal function to get spot price from Curve's crypto pools (with only two tokens).
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByCurveCrypto(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_index = (encoding >> 160) & 1;
@@ -246,6 +279,8 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     return last_price;
   }
 
+  /// @dev Internal function to get spot price from Curve's TriCrypto pools (with three tokens).
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByCurveTriCrypto(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_index = (encoding >> 160) & 3;
@@ -261,12 +296,16 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     }
   }
 
+  /// @dev Internal function to get spot price from ERC4626 vault.
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByERC4626(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_is_underlying = (encoding >> 160) & 1;
     return base_is_underlying == 1 ? IERC4626(pool).convertToShares(1 ether) : IERC4626(pool).convertToAssets(1 ether);
   }
 
+  /// @dev Internal function to get spot price from LSD wrapper.
+  /// @param encoding The encoding for the pool.
   function _getSpotPriceByLSD(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_is_ETH = (encoding >> 160) & 1;

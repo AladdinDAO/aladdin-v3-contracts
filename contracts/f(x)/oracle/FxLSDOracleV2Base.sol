@@ -14,21 +14,27 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
    * Constants *
    *************/
 
+  /// @notice The Chainlink ETH/USD price feed.
   /// @dev See comments of `_readSpotPriceByChainlink` for more details.
   bytes32 public immutable Chainlink_ETH_USD_Spot;
 
+  /// @notice The address of the Chainlink ETH/USD Twap.
   address public immutable Chainlink_ETH_USD_Twap;
 
   /*************
    * Variables *
    *************/
 
+  /// @dev The encodings for ETH/USD spot sources.
   bytes private onchainSpotEncodings_ETHUSD;
 
+  /// @dev The encodings for LSD/ETH spot sources.
   bytes private onchainSpotEncodings_LSDETH;
 
+  /// @dev The encodings for LSD/USD spot sources.
   bytes private onchainSpotEncodings_LSDUSD;
 
+  /// @notice The value of maximum price deviation, multiplied by 1e18.
   uint256 public maxPriceDeviation;
 
   /***************
@@ -39,13 +45,17 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
     Chainlink_ETH_USD_Spot = _Chainlink_ETH_USD_Spot;
     Chainlink_ETH_USD_Twap = _Chainlink_ETH_USD_Twap;
 
-    _updateMaxPriceDeviation(1e6); // 1%
+    _updateMaxPriceDeviation(1e16); // 1%
   }
 
   /*************************
    * Public View Functions *
    *************************/
 
+  /// @notice Return the ETH/USD spot price.
+  /// @return chainlinkPrice The spot price from Chainlink price feed.
+  /// @return minPrice The minimum spot price among all available sources.
+  /// @return maxPrice The maximum spot price among all available sources.
   function getETHUSDSpotPrice()
     external
     view
@@ -58,27 +68,38 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
     (chainlinkPrice, minPrice, maxPrice) = _getETHUSDSpotPrice();
   }
 
-  function getETHUSDSpotPrices() external view returns (uint256[] memory) {
-    return _getSpotPriceByEncoding(onchainSpotEncodings_ETHUSD);
+  /// @notice Return the ETH/USD spot prices.
+  /// @return prices The list of spot price among all available sources, multiplied by 1e18.
+  function getETHUSDSpotPrices() external view returns (uint256[] memory prices) {
+    prices = _getSpotPriceByEncoding(onchainSpotEncodings_ETHUSD);
   }
 
-  function getLSDETHSpotPrices() public view returns (uint256[] memory) {
-    return _getSpotPriceByEncoding(onchainSpotEncodings_LSDETH);
+  /// @notice Return the LSD/ETH spot prices.
+  /// @return prices The list of spot price among all available sources, multiplied by 1e18.
+  function getLSDETHSpotPrices() public view returns (uint256[] memory prices) {
+    prices = _getSpotPriceByEncoding(onchainSpotEncodings_LSDETH);
   }
 
-  function getLSDUSDSpotPrices() public view returns (uint256[] memory) {
-    return _getSpotPriceByEncoding(onchainSpotEncodings_LSDUSD);
+  /// @notice Return the LSD/ETH spot prices.
+  /// @return prices The list of spot price among all available sources, multiplied by 1e18.
+  function getLSDUSDSpotPrices() public view returns (uint256[] memory prices) {
+    prices = _getSpotPriceByEncoding(onchainSpotEncodings_LSDUSD);
   }
 
-  function getETHUSDTwapPrice() external view returns (uint256) {
-    return _getETHUSDTwapPrice();
+  /// @notice Return the ETH/USD time-weighted average price.
+  /// @return price The time-weighted average price, multiplied by 1e18.
+  function getETHUSDTwap() external view returns (uint256 price) {
+    price = _getETHUSDTwap();
   }
 
-  function getLSDUSDTwapPrice() external view returns (uint256) {
-    return _getLSDUSDTwapPrice();
+  /// @notice Return the LSD/USD time-weighted average price.
+  /// @return price The time-weighted average price, multiplied by 1e18.
+  function getLSDUSDTwap() external view returns (uint256 price) {
+    price = _getLSDUSDTwap();
   }
 
   /// @inheritdoc IFxPriceOracleV2
+  /// @dev The price is valid iff |maxPrice-minPrice|/minPrice < maxPriceDeviation
   function getPrice()
     external
     view
@@ -90,7 +111,7 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
       uint256 maxPrice
     )
   {
-    twap = _getLSDUSDTwapPrice();
+    twap = _getLSDUSDTwap();
     (minPrice, maxPrice) = _getLSDMinMaxPrice(twap, true);
     unchecked {
       isValid = (maxPrice - minPrice) * PRECISION < maxPriceDeviation * minPrice;
@@ -101,13 +122,16 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
    * Restricted Functions *
    ************************/
 
+  /// @notice Update the on-chain spot encodings.
+  /// @param encodings The encodings to update. See `_getSpotPriceByEncoding` for more details.
+  /// @param spotType The type of the encodings.
   function updateOnchainSpotEncodings(bytes memory encodings, uint256 spotType) external onlyOwner {
     // validate encoding
     uint256[] memory prices = _getSpotPriceByEncoding(encodings);
 
     if (spotType == 0) {
       onchainSpotEncodings_ETHUSD = encodings;
-      if (prices.length == 0) revert();
+      if (prices.length == 0) revert ErrorInvalidEncodings();
     } else if (spotType == 1) {
       onchainSpotEncodings_LSDETH = encodings;
     } else if (spotType == 2) {
@@ -115,6 +139,8 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
     }
   }
 
+  /// @notice Update the value of maximum price deviation.
+  /// @param newMaxPriceDeviation The new value of maximum price deviation, multiplied by 1e18.
   function updateMaxPriceDeviation(uint256 newMaxPriceDeviation) external onlyOwner {
     _updateMaxPriceDeviation(newMaxPriceDeviation);
   }
@@ -123,10 +149,19 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
    * Internal Functions *
    **********************/
 
+  /// @dev Internal function to update the value of maximum price deviation.
+  /// @param newMaxPriceDeviation The new value of maximum price deviation, multiplied by 1e18.
   function _updateMaxPriceDeviation(uint256 newMaxPriceDeviation) private {
+    uint256 oldMaxPriceDeviation = maxPriceDeviation;
     maxPriceDeviation = newMaxPriceDeviation;
+
+    emit UpdateMaxPriceDeviation(oldMaxPriceDeviation, newMaxPriceDeviation);
   }
 
+  /// @dev Internal function to calculate the ETH/USD spot price.
+  /// @return chainlinkPrice The spot price from Chainlink price feed, multiplied by 1e18.
+  /// @return minPrice The minimum spot price among all available sources, multiplied by 1e18.
+  /// @return maxPrice The maximum spot price among all available sources, multiplied by 1e18.
   function _getETHUSDSpotPrice()
     internal
     view
@@ -145,10 +180,17 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
     }
   }
 
-  function _getETHUSDTwapPrice() internal view returns (uint256) {
-    return ITwapOracle(Chainlink_ETH_USD_Twap).getTwap(block.timestamp);
+  /// @dev Internal function to return the ETH/USD time-weighted average price.
+  /// @return price The time-weighted average price of ETH/USD, multiplied by 1e18.
+  function _getETHUSDTwap() internal view returns (uint256 price) {
+    price = ITwapOracle(Chainlink_ETH_USD_Twap).getTwap(block.timestamp);
   }
 
+  /// @dev Internal function to return the min/max LSD/USD prices.
+  /// @param twap The LSD/USD time-weighted average price, multiplied by 1e18.
+  /// @param useETHSpot Whether to use ETH/USD spot for LSD/USD prices.
+  /// @return minPrice The minimum price among all available sources (including twap), multiplied by 1e18.
+  /// @return maxPrice The maximum price among all available sources (including twap), multiplied by 1e18.
   function _getLSDMinMaxPrice(uint256 twap, bool useETHSpot)
     internal
     view
@@ -157,7 +199,7 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
     minPrice = maxPrice = twap;
     (, uint256 minETHUSDPrice, uint256 maxETHUSDPrice) = _getETHUSDSpotPrice();
     uint256[] memory LSD_ETH_prices = getLSDETHSpotPrices();
-    uint256[] memory LSD_USD_prices = getLSDETHSpotPrices();
+    uint256[] memory LSD_USD_prices = getLSDUSDSpotPrices();
 
     uint256 length = LSD_ETH_prices.length;
     uint256 LSD_ETH_minPrice = type(uint256).max;
@@ -188,5 +230,7 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
     }
   }
 
-  function _getLSDUSDTwapPrice() internal view virtual returns (uint256);
+  /// @dev Internal function to return the LSD/USD time-weighted average price.
+  /// @return price The time-weighted average price of LSD/USD, multiplied by 1e18.
+  function _getLSDUSDTwap() internal view virtual returns (uint256 price);
 }

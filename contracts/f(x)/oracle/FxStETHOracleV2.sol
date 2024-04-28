@@ -4,7 +4,6 @@ pragma solidity =0.8.20;
 
 import { Math } from "@openzeppelin/contracts-v4/utils/math/Math.sol";
 
-import { IFxPriceOracleV2 } from "../../interfaces/f(x)/IFxPriceOracleV2.sol";
 import { ICurvePoolOracle } from "../../interfaces/ICurvePoolOracle.sol";
 
 import { FxSpotOracleBase } from "./FxSpotOracleBase.sol";
@@ -37,9 +36,9 @@ contract FxStETHOracleV2 is FxLSDOracleV2Base {
 
   /// @inheritdoc FxLSDOracleV2Base
   /// @dev [Curve stETH/ETH ema price] * [Chainlink ETH/USD twap]
-  function _getLSDUSDTwapPrice() internal view virtual override returns (uint256) {
+  function _getLSDUSDTwap() internal view virtual override returns (uint256) {
     uint256 stETH_ETH_CurveEma = ICurvePoolOracle(Curve_ETH_stETH_Pool).price_oracle();
-    uint256 ETH_USD_ChainlinkTwap = _getETHUSDTwapPrice();
+    uint256 ETH_USD_ChainlinkTwap = _getETHUSDTwap();
     unchecked {
       return (stETH_ETH_CurveEma * ETH_USD_ChainlinkTwap) / PRECISION;
     }

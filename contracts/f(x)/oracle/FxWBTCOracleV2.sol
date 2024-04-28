@@ -4,8 +4,7 @@ pragma solidity =0.8.20;
 
 import { Math } from "@openzeppelin/contracts-v4/utils/math/Math.sol";
 
-import { IFxPriceOracleV2 } from "../../interfaces/f(x)/IFxPriceOracleV2.sol";
-import { ICurvePoolOracle } from "../../interfaces/ICurvePoolOracle.sol";
+import { ITwapOracle } from "../../price-oracle/interfaces/ITwapOracle.sol";
 
 import { FxSpotOracleBase } from "./FxSpotOracleBase.sol";
 import { FxBTCDerivativeOracleBase } from "./FxBTCDerivativeOracleBase.sol";
@@ -15,8 +14,8 @@ contract FxWBTCOracleV2 is FxBTCDerivativeOracleBase {
    * Constants *
    *************/
 
-  /// @dev See comments of `_readSpotPriceByChainlink` for more details.
-  bytes32 public immutable Chainlink_WBTC_BTC_Spot;
+  /// @notice The address of the Chainlink WBTC/BTC Twap.
+  address public immutable Chainlink_WBTC_BTC_Twap;
 
   /***************
    * Constructor *
@@ -26,9 +25,9 @@ contract FxWBTCOracleV2 is FxBTCDerivativeOracleBase {
     address _spotPriceOracle,
     bytes32 _Chainlink_BTC_USD_Spot,
     address _Chainlink_BTC_USD_Twap,
-    bytes32 _Chainlink_WBTC_BTC_Spot
+    address _Chainlink_WBTC_BTC_Twap
   ) FxSpotOracleBase(_spotPriceOracle) FxBTCDerivativeOracleBase(_Chainlink_BTC_USD_Spot, _Chainlink_BTC_USD_Twap) {
-    Chainlink_WBTC_BTC_Spot = _Chainlink_WBTC_BTC_Spot;
+    Chainlink_WBTC_BTC_Twap = _Chainlink_WBTC_BTC_Twap;
   }
 
   /**********************
@@ -36,12 +35,12 @@ contract FxWBTCOracleV2 is FxBTCDerivativeOracleBase {
    **********************/
 
   /// @inheritdoc FxBTCDerivativeOracleBase
-  /// @dev [Chainlink BTC/USD twap] * [Chainlink WBTC/BTC spot]
+  /// @dev [Chainlink BTC/USD twap] * [Chainlink WBTC/BTC twap]
   function _getBTCDerivativeUSDTwapPrice() internal view virtual override returns (uint256) {
     uint256 BTC_USD_ChainlinkTwap = _getBTCUSDTwapPrice();
-    uint256 WBTC_BTC_ChainlinkSpotPrice = _readSpotPriceByChainlink(Chainlink_WBTC_BTC_Spot);
+    uint256 WBTC_BTC_ChainlinkTwap = ITwapOracle(Chainlink_WBTC_BTC_Twap).getTwap(block.timestamp);
     unchecked {
-      return (BTC_USD_ChainlinkTwap * WBTC_BTC_ChainlinkSpotPrice) / PRECISION;
+      return (BTC_USD_ChainlinkTwap * WBTC_BTC_ChainlinkTwap) / PRECISION;
     }
   }
 }
