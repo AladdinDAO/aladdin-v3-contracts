@@ -17,7 +17,7 @@ import {
 import { TOKENS, same, selectDeployments } from "@/utils/index";
 
 import { ProxyAdminDeployment } from "./ProxyAdmin";
-import { ContractCallHelper, DeploymentHelper, abiDecode, contractCall } from "./helpers";
+import { ContractCallHelper, DeploymentHelper, abiDecode, contractCall, ownerContractCall } from "./helpers";
 import { FxGovernanceDeployment, FxUSDDeployment, MarketConfig } from "./FxConfig";
 import * as FxGovernance from "./FxGovernance";
 import { MultisigDeployment } from "./Multisig";
@@ -44,11 +44,11 @@ async function doUpgrade(
       await contractCall(proxy.connect(admin), desc + " set implementation", "upgradeTo", [implAddr]);
     }
   } catch (_) {
-    await ethers.provider.call({
-      to: await proxy.getAddress(),
-      from: newAdmin,
-      data: proxy.interface.encodeFunctionData("implementation"),
-    });
+    const proxyAdmin = await ethers.getContractAt("ProxyAdmin", newAdmin, admin);
+    const proxyImplementation = await proxyAdmin.getProxyImplementation(proxy.getAddress());
+    if (!same(proxyImplementation, implAddr)) {
+      await ownerContractCall(proxyAdmin, desc + " upgrade implementation", "upgrade", [proxyAddr, implAddr]);
+    }
   }
   try {
     const [proxyAdmin] = abiDecode(
@@ -247,13 +247,11 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
   const oracle = selectDeployments(network.name, "Fx.Oracle").toObject() as FxOracleDeployment;
 
   const OracleMapping: { [symbol: string]: string } = {
-    wstETH: oracle.FxStETHTwapOracle,
-    sfrxETH: oracle.FxFrxETHTwapOracle,
-    weETH: oracle.FxEETHTwapOracle,
-    apxETH: oracle.FxPxETHTwapOracle,
-    ezETH: oracle.FxEzETHTwapOracle,
-    aCVX: oracle.FxCVXTwapOracle,
-    WBTC: oracle.FxWBTCTwapOracle,
+    wstETH: oracle.FxStETHOracleV2,
+    sfrxETH: oracle.FxFrxETHOracleV2,
+    weETH: oracle.FxEETHOracleV2,
+    ezETH: oracle.FxEzETHOracleV2,
+    WBTC: oracle.FxWBTCOracleV2,
   };
 
   const AMMMapping: { [symbol: string]: string } = {
