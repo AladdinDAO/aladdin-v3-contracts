@@ -230,7 +230,7 @@ async function main(round: string) {
         );
 
         console.log(`Burn token[${symbol}] address[${item.token}] to SDT/CRV`);
-        const minSDT = (amountSDT * 9990n) / 10000n;
+        const minSDT = (amountSDT * 9730n) / 10000n;
         const minCRV = (amountCRV * 9990n) / 10000n;
         const routeSDT = await getSwapData(item.token, TOKENS.SDT.address, boostFee, minSDT);
         const routeCRV = await getSwapData(item.token, TOKENS.CRV.address, amount - platformFee - boostFee, minCRV);
