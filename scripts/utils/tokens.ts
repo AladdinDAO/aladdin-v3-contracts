@@ -80,6 +80,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   UZD: { decimals: 18, address: "0xb40b6608b2743e691c9b54ddbdee7bf03cd79f1c" },
   WBTC: { decimals: 8, address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599" },
   WETH: { decimals: 18, address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
+  ZETA: { decimals: 18, address: "0xf091867EC603A6628eD83D274E835539D82e9cc8" },
   YFI: { decimals: 18, address: "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e" },
   aCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV },
   aCVX: { decimals: 18, address: "0xb0903Ab70a7467eE5756074b31ac88aEBb8fB777" },
