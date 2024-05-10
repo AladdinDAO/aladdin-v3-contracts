@@ -112,7 +112,7 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
     )
   {
     twap = _getLSDUSDTwap();
-    (minPrice, maxPrice) = _getLSDMinMaxPrice(twap, true);
+    (minPrice, maxPrice) = _getLSDMinMaxPrice(twap);
     unchecked {
       isValid = (maxPrice - minPrice) * PRECISION < maxPriceDeviation * minPrice;
     }
@@ -188,14 +188,9 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
 
   /// @dev Internal function to return the min/max LSD/USD prices.
   /// @param twap The LSD/USD time-weighted average price, multiplied by 1e18.
-  /// @param useETHSpot Whether to use ETH/USD spot for LSD/USD prices.
   /// @return minPrice The minimum price among all available sources (including twap), multiplied by 1e18.
   /// @return maxPrice The maximum price among all available sources (including twap), multiplied by 1e18.
-  function _getLSDMinMaxPrice(uint256 twap, bool useETHSpot)
-    internal
-    view
-    returns (uint256 minPrice, uint256 maxPrice)
-  {
+  function _getLSDMinMaxPrice(uint256 twap) internal view returns (uint256 minPrice, uint256 maxPrice) {
     minPrice = maxPrice = twap;
     (, uint256 minETHUSDPrice, uint256 maxETHUSDPrice) = _getETHUSDSpotPrice();
     uint256[] memory LSD_ETH_prices = getLSDETHSpotPrices();
@@ -220,12 +215,6 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
         uint256 price = LSD_USD_prices[i];
         if (price > maxPrice) maxPrice = price;
         if (price < minPrice) minPrice = price;
-      }
-
-      // take min/max with ETH/USD spot price
-      if (useETHSpot) {
-        minPrice = Math.min(minPrice, minETHUSDPrice);
-        maxPrice = Math.max(maxPrice, maxETHUSDPrice);
       }
     }
   }

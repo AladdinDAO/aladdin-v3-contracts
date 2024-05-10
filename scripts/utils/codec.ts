@@ -264,6 +264,7 @@ export enum SpotPricePoolType {
   CurveTriCrypto,
   ERC4626,
   ETHLSD,
+  BalancerV2CachedRate,
 }
 
 export function encodeSpotPricePool(
@@ -351,6 +352,10 @@ export function encodeSpotPricePool(
       assert(options.base_is_ETH !== undefined, "no base_is_ETH");
       customized = (customized << 1n) | BigInt(options.base_is_ETH! ? 1 : 0);
       break;
+    case SpotPricePoolType.BalancerV2CachedRate:
+      assert(options.base_index !== undefined, "no base_index");
+      customized = (customized << 3n) | BigInt(options.base_index!);
+      break;
   }
   encoding = (customized << 168n) | (encoding << 8n) | BigInt(poolType);
   return encoding;
@@ -412,6 +417,10 @@ export function decodeSpotPricePool(encoding: bigint): string {
     case SpotPricePoolType.ETHLSD:
       baseIsETH = encoding & 1n;
       extra = `BaseIsETH[${baseIsETH === 1n}]`;
+      break;
+    case SpotPricePoolType.BalancerV2CachedRate:
+      baseIndex = encoding & 7n;
+      extra = `baseIndex[${baseIndex}]`;
       break;
   }
   return `${SpotPricePoolType[Number(poolType)]}[${poolName}] ${extra}`;

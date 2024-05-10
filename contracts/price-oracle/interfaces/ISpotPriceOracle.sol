@@ -43,6 +43,9 @@ interface ISpotPriceOracle {
   /// + pool_type = 10: ETHLSD, wstETH, weETH, ezETH
   ///   customized = |    1 bit    | ... |
   ///                | base_is_ETH | ... |
+  /// + pool_type = 11: BalancerV2CachedRate
+  ///   customized = |   3 bits   | ... |
+  ///                | base_index | ... |
   ///
   /// @param encoding The encoding of the price source.
   /// @return spotPrice The spot price with 18 decimal places.

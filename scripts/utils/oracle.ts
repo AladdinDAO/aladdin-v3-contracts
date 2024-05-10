@@ -15,6 +15,7 @@ export const SpotPricePool: { [name: string]: bigint } = {
   "eETH/WETH-CrvNG-22": encodeSpotPricePool(ADDRESS["CURVE_STABLE_NG_weETH/WETH_22_POOL"], SpotPricePoolType.CurvePlainNG, {base_index: 0, quote_index: 1}),
   "eETH/weETH-LSD": encodeSpotPricePool(TOKENS.weETH.address, SpotPricePoolType.ETHLSD, {base_is_ETH: true}),
   "ezETH/WETH-BalV2-S": encodeSpotPricePool(ADDRESS["BalancerV2_ezETH/WETH_Stable"], SpotPricePoolType.BalancerV2Stable, {base_index: 0, quote_index: 1}),
+  "ezETH/WETH-BalV2-C": encodeSpotPricePool(ADDRESS["BalancerV2_ezETH/WETH_Stable"], SpotPricePoolType.BalancerV2CachedRate, {base_index: 1}),
   "ezETH/WETH-CrvNG-79": encodeSpotPricePool(ADDRESS["CURVE_STABLE_NG_ezETH/WETH_79_POOL"], SpotPricePoolType.CurvePlainNG, {base_index: 0, quote_index: 1}),
   "frxETH/WETH-CrvBase": encodeSpotPricePool(ADDRESS["CRV_BASE_ETH/frxETH_POOL"], SpotPricePoolType.CurvePlainWithOracle, {base_index: 1}),
   "frxETH/WETH-CrvCrvUSD-15": encodeSpotPricePool(ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"], SpotPricePoolType.CurvePlainWithOracle, {base_index: 1}),

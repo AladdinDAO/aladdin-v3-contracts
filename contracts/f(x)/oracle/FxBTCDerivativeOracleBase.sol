@@ -14,10 +14,6 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
    * Constants *
    *************/
 
-  /// @notice The Chainlink BTC/USD price feed.
-  /// @dev See comments of `_readSpotPriceByChainlink` for more details.
-  bytes32 public immutable Chainlink_BTC_USD_Spot;
-
   /// @notice The address of the Chainlink BTC/USD Twap.
   address public immutable Chainlink_BTC_USD_Twap;
 
@@ -35,8 +31,7 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
    * Constructor *
    ***************/
 
-  constructor(bytes32 _Chainlink_BTC_USD_Spot, address _Chainlink_BTC_USD_Twap) {
-    Chainlink_BTC_USD_Spot = _Chainlink_BTC_USD_Spot;
+  constructor(address _Chainlink_BTC_USD_Twap) {
     Chainlink_BTC_USD_Twap = _Chainlink_BTC_USD_Twap;
 
     _updateMaxPriceDeviation(1e16); // 1%
@@ -78,7 +73,7 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
     )
   {
     twap = _getBTCDerivativeUSDTwapPrice();
-    (minPrice, maxPrice) = _getBTCDerivativeMinMaxPrice(twap, true);
+    (minPrice, maxPrice) = _getBTCDerivativeMinMaxPrice(twap);
     unchecked {
       isValid = (maxPrice - minPrice) * PRECISION < maxPriceDeviation * minPrice;
     }
@@ -125,16 +120,10 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
 
   /// @dev Internal function to return the min/max BTCDerivative/USD prices.
   /// @param twap The BTCDerivative/USD time-weighted average price, multiplied by 1e18.
-  /// @param useBTCSpot Whether to use BTC/USD spot for BTCDerivative/USD prices.
   /// @return minPrice The minimum price among all available sources (including twap), multiplied by 1e18.
   /// @return maxPrice The maximum price among all available sources (including twap), multiplied by 1e18.
-  function _getBTCDerivativeMinMaxPrice(uint256 twap, bool useBTCSpot)
-    internal
-    view
-    returns (uint256 minPrice, uint256 maxPrice)
-  {
+  function _getBTCDerivativeMinMaxPrice(uint256 twap) internal view returns (uint256 minPrice, uint256 maxPrice) {
     minPrice = maxPrice = twap;
-    uint256 BTCSpotPrice = _readSpotPriceByChainlink(Chainlink_BTC_USD_Spot);
     uint256[] memory BTCDerivative_USD_prices = getBTCDerivativeUSDSpotPrices();
 
     uint256 length = BTCDerivative_USD_prices.length;
@@ -142,12 +131,6 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
       uint256 price = BTCDerivative_USD_prices[i];
       if (price > maxPrice) maxPrice = price;
       if (price < minPrice) minPrice = price;
-    }
-
-    // take min/max with BTC/USD spot price
-    if (useBTCSpot) {
-      minPrice = Math.min(minPrice, BTCSpotPrice);
-      maxPrice = Math.max(maxPrice, BTCSpotPrice);
     }
   }
 

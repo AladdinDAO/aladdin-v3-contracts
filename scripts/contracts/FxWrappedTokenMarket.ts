@@ -257,7 +257,7 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
     sfrxETH: oracle.ERC4626RateProvider.sfrxETH,
     weETH: TOKENS.weETH.address,
     apxETH: oracle.ERC4626RateProvider.apxETH,
-    ezETH: "0x387dBc0fB00b26fb085aa658527D5BE98302c84C",
+    ezETH: oracle.BalancerV2CachedRateProvider.ezETH,
     aCVX: oracle.ERC4626RateProvider.aCVX,
   };
 
@@ -400,6 +400,11 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
   if ((await treasury.priceOracle()) !== OracleMapping[baseSymbol]) {
     await caller.ownerCall(treasury, `Treasury for ${baseSymbol} updatePriceOracle`, "updatePriceOracle", [
       OracleMapping[baseSymbol],
+    ]);
+  }
+  if ((await treasury.rateProvider()) !== RateProviderMapping[baseSymbol]) {
+    await caller.ownerCall(treasury, `Treasury for ${baseSymbol} updateRateProvider`, "updateRateProvider", [
+      RateProviderMapping[baseSymbol],
     ]);
   }
 

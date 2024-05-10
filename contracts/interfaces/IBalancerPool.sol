@@ -10,6 +10,18 @@ interface IBalancerPool {
   /// not relevant for outside parties, but which might be useful for some types of Pools.
   function getScalingFactors() external view returns (uint256[] memory);
 
+  /// @notice Returns the cached value for token's rate. Reverts if the token doesn't belong to the pool or has no rate
+  /// provider.
+  function getTokenRateCache(address token)
+    external
+    view
+    returns (
+      uint256 rate,
+      uint256 oldRate,
+      uint256 duration,
+      uint256 expires
+    );
+
   /**************************
    * WeightedPool Functions *
    **************************/

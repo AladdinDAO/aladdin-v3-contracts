@@ -67,6 +67,9 @@ export interface FxOracleDeployment {
   FxWBTCOracleV2: string;
 
   WstETHRateProvider: string;
+  BalancerV2CachedRateProvider: {
+    ezETH: string;
+  };
   ERC4626RateProvider: {
     sfrxETH: string;
     apxETH: string;
@@ -146,10 +149,6 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   // deploy FxWBTCOracleV2
   await deployment.contractDeploy("FxWBTCOracleV2", "FxWBTCOracleV2", "FxWBTCOracleV2", [
     deployment.get("SpotPriceOracle"),
-    "0x" +
-      encodeChainlinkPriceFeed(ChainlinkPriceFeed["BTC-USD"].feed, 10n ** 10n, ChainlinkPriceFeed["BTC-USD"].heartbeat)
-        .toString(16)
-        .padStart(64, "0"),
     deployment.get("FxChainlinkTwapOracle.BTC-USD"),
     deployment.get("FxChainlinkTwapOracle.WBTC-BTC"),
   ]);
@@ -158,6 +157,14 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   await deployment.contractDeploy("WstETHRateProvider", "WstETHRateProvider", "WstETHRateProvider", [
     TOKENS.wstETH.address,
   ]);
+
+  // deploy BalancerV2CachedRateProvider ezETH
+  await deployment.contractDeploy(
+    "BalancerV2CachedRateProvider.ezETH",
+    "BalancerV2CachedRateProvider for ezETH",
+    "BalancerV2CachedRateProvider",
+    [ADDRESS["BalancerV2_ezETH/WETH_Stable"], TOKENS.ezETH.address]
+  );
 
   // deploy ERC4626RateProvider sfrxETH
   await deployment.contractDeploy(

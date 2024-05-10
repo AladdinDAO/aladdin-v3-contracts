@@ -68,6 +68,6 @@ describe("FxEzETHOracleV2.spec", async () => {
       `maxPrice[${ethers.formatEther(maxPrice)}]`,
       `GasEstimated[${gas - 21000n}]`
     );
-    expect(isValid).to.eq(false);
+    expect(isValid).to.eq(true);
   });
 });

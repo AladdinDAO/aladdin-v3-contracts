@@ -565,6 +565,21 @@ const ETHLSDTestCases: Array<ITestCase> = [
   },
 ];
 
+const BalancerV2CachedRateTestCases: Array<ITestCase> = [
+  {
+    fork: 19752120,
+    name: "ezETH/WETH by Balancer V2 ezETH-WETH-BPT",
+    encoding: encodeSpotPricePool(
+      "0x596192bb6e41802428ac943d2f1476c1af25cc0e",
+      SpotPricePoolType.BalancerV2CachedRate,
+      {
+        base_index: 1,
+      }
+    ),
+    expected: ethers.parseEther("1.008346445507228219"),
+  },
+];
+
 const TestCases = [
   ...UniswapV2TestCases,
   ...UniswapV3TestCases,
@@ -577,6 +592,7 @@ const TestCases = [
   ...CurveTriCryptoTestCases,
   ...ERC4626TestCases,
   ...ETHLSDTestCases,
+  ...BalancerV2CachedRateTestCases,
 ];
 
 describe("SpotPriceOracle.spec", async () => {
@@ -599,7 +615,7 @@ describe("SpotPriceOracle.spec", async () => {
         const price = await oracle.getSpotPrice(testcase.encoding);
         const gas = await oracle.getSpotPrice.estimateGas(testcase.encoding);
         console.log(`Price[${ethers.formatEther(price)}]`, `GasEstimated[${gas - 21000n}]`);
-        if (testcase.name === "sfrxETH/frxETH by ERC4626/sfrxETH") {
+        if (testcase.name.includes("ERC4626")) {
           expect(price).to.closeTo(testcase.expected, testcase.expected / 1000n);
         } else {
           expect(price).to.eq(testcase.expected);

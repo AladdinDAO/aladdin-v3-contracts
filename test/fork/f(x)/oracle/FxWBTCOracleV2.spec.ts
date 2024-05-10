@@ -6,7 +6,7 @@ import { ethers } from "hardhat";
 
 import { request_fork } from "@/test/utils";
 import { FxWBTCOracleV2 } from "@/types/index";
-import { SpotPriceEncodings, encodeChainlinkPriceFeed } from "@/utils/index";
+import { SpotPriceEncodings } from "@/utils/index";
 
 const FORK_HEIGHT = 19752120;
 
@@ -30,15 +30,7 @@ describe("FxWBTCOracleV2.spec", async () => {
     const WBTC_BTCTwap = await FxChainlinkTwapOracle.deploy(60 * 30, CHAINLINK_WBTC_BTC, 1, 86400 * 2, "WBTC/BTC");
 
     const FxWBTCOracleV2 = await ethers.getContractFactory("FxWBTCOracleV2", deployer);
-    oracle = await FxWBTCOracleV2.deploy(
-      spot.getAddress(),
-      "0x" +
-        encodeChainlinkPriceFeed(CHAINLINK_BTC_USD, 10n ** 10n, 3600 * 3)
-          .toString(16)
-          .padStart(64, "0"),
-      BTC_USDTwap.getAddress(),
-      WBTC_BTCTwap.getAddress()
-    );
+    oracle = await FxWBTCOracleV2.deploy(spot.getAddress(), BTC_USDTwap.getAddress(), WBTC_BTCTwap.getAddress());
 
     await oracle.updateOnchainSpotEncodings(SpotPriceEncodings["WBTC/USDC"]);
   });

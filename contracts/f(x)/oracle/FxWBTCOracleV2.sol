@@ -23,10 +23,9 @@ contract FxWBTCOracleV2 is FxBTCDerivativeOracleBase {
 
   constructor(
     address _spotPriceOracle,
-    bytes32 _Chainlink_BTC_USD_Spot,
     address _Chainlink_BTC_USD_Twap,
     address _Chainlink_WBTC_BTC_Twap
-  ) FxSpotOracleBase(_spotPriceOracle) FxBTCDerivativeOracleBase(_Chainlink_BTC_USD_Spot, _Chainlink_BTC_USD_Twap) {
+  ) FxSpotOracleBase(_spotPriceOracle) FxBTCDerivativeOracleBase(_Chainlink_BTC_USD_Twap) {
     Chainlink_WBTC_BTC_Twap = _Chainlink_WBTC_BTC_Twap;
   }
 

@@ -113,6 +113,8 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
       spotPrice = _getSpotPriceByERC4626(encoding);
     } else if (poolType == 10) {
       spotPrice = _getSpotPriceByLSD(encoding);
+    } else if (poolType == 11) {
+      spotPrice = _getSpotPriceByBalancerV2RateCache(encoding);
     } else {
       revert ErrorUnsupportedPoolType();
     }
@@ -321,6 +323,17 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     } else {
       revert ErrorInvalidEncoding();
     }
+  }
+
+  /// @dev Internal function to get spot price from Balancer V2 TokenRateCache.
+  /// @param encoding The encoding for the pool.
+  function _getSpotPriceByBalancerV2RateCache(uint256 encoding) internal view returns (uint256) {
+    address pool = _getPool(encoding);
+    bytes32 poolId = IBalancerPool(pool).getPoolId();
+    (address[] memory tokens, , ) = IBalancerVault(BALANCER_VAULT).getPoolTokens(poolId);
+    uint256 base_index = (encoding >> 160) & 7;
+    (uint256 rate, , , ) = IBalancerPool(pool).getTokenRateCache(tokens[base_index]);
+    return rate;
   }
 
   /// @dev Internal function to get the address of pool.
