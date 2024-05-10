@@ -449,12 +449,12 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
   }
   const xTokenRedeemFeeRatio = await market.xTokenRedeemFeeRatio();
   if (
-    xTokenRedeemFeeRatio.defaultFee !== marketConfig.Market.LeveragedRdeeemFeeRatio.default ||
-    xTokenRedeemFeeRatio.deltaFee !== marketConfig.Market.LeveragedRdeeemFeeRatio.delta
+    xTokenRedeemFeeRatio.defaultFee !== marketConfig.Market.LeveragedRedeemFeeRatio.default ||
+    xTokenRedeemFeeRatio.deltaFee !== marketConfig.Market.LeveragedRedeemFeeRatio.delta
   ) {
     await caller.ownerCall(market, `Market for ${baseSymbol} updateRedeemFeeRatio xToken`, "updateRedeemFeeRatio", [
-      marketConfig.Market.LeveragedRdeeemFeeRatio.default,
-      marketConfig.Market.LeveragedRdeeemFeeRatio.delta,
+      marketConfig.Market.LeveragedRedeemFeeRatio.default,
+      marketConfig.Market.LeveragedRedeemFeeRatio.delta,
       false,
     ]);
   }
@@ -485,11 +485,6 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
 
   // Setup FxUSDRebalancer
   const REBALANCE_POOL_ROLE = await fxUSDRebalancer.REBALANCE_POOL_ROLE();
-  if ((await fxUSDRebalancer.bonus()) !== ethers.parseEther("1")) {
-    await caller.ownerCall(fxUSDRebalancer, "FxUSDRebalancer set bonus to 1 FXN", "updateBonus", [
-      ethers.parseEther("1"),
-    ]);
-  }
   if (!(await fxUSDRebalancer.hasRole(REBALANCE_POOL_ROLE, rebalancePoolA.getAddress()))) {
     await caller.ownerCall(
       fxUSDRebalancer,

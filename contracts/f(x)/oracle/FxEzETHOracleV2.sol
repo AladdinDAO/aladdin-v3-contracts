@@ -5,6 +5,7 @@ pragma solidity =0.8.20;
 import { Math } from "@openzeppelin/contracts-v4/utils/math/Math.sol";
 
 import { IFxRateProvider } from "../../interfaces/f(x)/IFxRateProvider.sol";
+import { IBalancerPool } from "../../interfaces/IBalancerPool.sol";
 import { ITwapOracle } from "../../price-oracle/interfaces/ITwapOracle.sol";
 
 import { FxSpotOracleBase } from "./FxSpotOracleBase.sol";
@@ -18,8 +19,8 @@ contract FxEzETHOracleV2 is FxLSDOracleV2Base {
   /// @dev The address of ezETH token.
   address internal constant ezETH = 0xbf5495Efe5DB9ce00f80364C8B423567e58d2110;
 
-  /// @dev The address of ezETH rate provider.
-  address internal constant RATE_PROVIDER = 0x387dBc0fB00b26fb085aa658527D5BE98302c84C;
+  /// @dev The address of Balancer V2 pool with ezETH.
+  address public immutable Balancer_ezETH_Pool;
 
   /// @notice The address of the RedStone ezETH/ETH Twap.
   address public immutable RedStone_ezETH_ETH_Twap;
@@ -32,8 +33,10 @@ contract FxEzETHOracleV2 is FxLSDOracleV2Base {
     address _spotPriceOracle,
     bytes32 _Chainlink_ETH_USD_Spot,
     address _Chainlink_ETH_USD_Twap,
+    address _Balancer_ezETH_Pool,
     address _RedStone_ezETH_ETH_Twap
   ) FxSpotOracleBase(_spotPriceOracle) FxLSDOracleV2Base(_Chainlink_ETH_USD_Spot, _Chainlink_ETH_USD_Twap) {
+    Balancer_ezETH_Pool = _Balancer_ezETH_Pool;
     RedStone_ezETH_ETH_Twap = _RedStone_ezETH_ETH_Twap;
   }
 
@@ -46,8 +49,9 @@ contract FxEzETHOracleV2 is FxLSDOracleV2Base {
   function _getLSDUSDTwap() internal view virtual override returns (uint256) {
     uint256 ezETH_ETH_RedStoneTwap = ITwapOracle(RedStone_ezETH_ETH_Twap).getTwap(block.timestamp);
     uint256 ETH_USD_ChainlinkTwap = _getETHUSDTwap();
+    (uint256 rate, , , ) = IBalancerPool(Balancer_ezETH_Pool).getTokenRateCache(ezETH);
     unchecked {
-      return (ezETH_ETH_RedStoneTwap * ETH_USD_ChainlinkTwap) / IFxRateProvider(RATE_PROVIDER).getRate();
+      return (ezETH_ETH_RedStoneTwap * ETH_USD_ChainlinkTwap) / rate;
     }
   }
 }

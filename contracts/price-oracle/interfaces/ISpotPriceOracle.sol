@@ -26,11 +26,11 @@ interface ISpotPriceOracle {
   ///   customized = | 3 bits |   3 bits   |   3  bits   |     1  bits     |  8 bits  | ... |  8 bits  | ... |
   ///                | tokens | base_index | quote_index | has_amm_precise | scale[0] | ... | scale[n] | ... |
   /// + pool_type = 5: Curve Plain with oracle
-  ///   customized = |   1  bit   | ... |
-  ///                | base_index | ... |
+  ///   customized = |   1  bit   |   1 bit   |... |
+  ///                | base_index | use_cache | ... |
   /// + pool_type = 6: Curve Plain NG
-  ///   customized = |   3 bits   |   3  bits   | ... |
-  ///                | base_index | quote_index | ... |
+  ///   customized = |   3 bits   |   3  bits   |   1 bit   | ... |
+  ///                | base_index | quote_index | use_cache | ... |
   /// + pool_type = 7: Curve Crypto
   ///   customized = |   1  bit   | ... |
   ///                | base_index | ... |

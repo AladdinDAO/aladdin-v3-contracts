@@ -143,6 +143,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
         .toString(16)
         .padStart(64, "0"),
     deployment.get("FxChainlinkTwapOracle.ETH-USD"),
+    ADDRESS["BalancerV2_ezETH/WETH_Stable"],
     deployment.get("FxChainlinkTwapOracle.ezETH-ETH"),
   ]);
 

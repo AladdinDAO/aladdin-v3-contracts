@@ -245,7 +245,15 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
   function _getSpotPriceByCurvePlainWithOracle(uint256 encoding) internal view returns (uint256) {
     address pool = _getPool(encoding);
     uint256 base_index = (encoding >> 160) & 1;
-    uint256 last_price = ICurvePoolOracle(pool).get_p();
+    uint256 use_cache = (encoding >> 161) & 1;
+    // @note The value of `last_price()` and `get_p()` normally are very close to it.
+    // But `last_price()` uses less gas. So we add a flag to read from cache.
+    uint256 last_price;
+    if (use_cache == 1) {
+      last_price = ICurvePoolOracle(pool).last_price();
+    } else {
+      last_price = ICurvePoolOracle(pool).get_p();
+    }
     if (base_index == 0) {
       last_price = (PRECISION * PRECISION) / last_price;
     }
@@ -258,15 +266,19 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
     address pool = _getPool(encoding);
     uint256 base_index = (encoding >> 160) & 7;
     uint256 quote_index = (encoding >> 163) & 7;
-    if (quote_index == 0) {
-      return ICurvePoolOracle(pool).get_p(base_index - 1);
-    } else if (base_index == 0) {
-      return (PRECISION * PRECISION) / ICurvePoolOracle(pool).get_p(quote_index - 1);
+    uint256 use_cache = (encoding >> 166) & 1;
+    uint256 base_price = PRECISION;
+    uint256 quote_price = PRECISION;
+    // @note The value of `last_price(index)` and `get_p(index)` normally are very close to it.
+    // But `last_price(index)` uses less gas. So we add a flag to read from cache.
+    if (use_cache == 1) {
+      if (base_index > 0) base_price = ICurvePoolOracle(pool).last_price(base_index - 1);
+      if (quote_index > 0) quote_price = ICurvePoolOracle(pool).last_price(quote_index - 1);
     } else {
-      uint256 base_price = ICurvePoolOracle(pool).get_p(base_index - 1);
-      uint256 quote_price = ICurvePoolOracle(pool).get_p(quote_index - 1);
-      return (base_price * PRECISION) / quote_price;
+      if (base_index > 0) base_price = ICurvePoolOracle(pool).get_p(base_index - 1);
+      if (quote_index > 0) quote_price = ICurvePoolOracle(pool).get_p(quote_index - 1);
     }
+    return (base_price * PRECISION) / quote_price;
   }
 
   /// @dev Internal function to get spot price from Curve's crypto pools (with only two tokens).

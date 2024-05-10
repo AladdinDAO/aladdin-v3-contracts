@@ -360,15 +360,29 @@ const CurvePlainTestCases: Array<ITestCase> = [
 const CurvePlainWithOracleTestCases: Array<ITestCase> = [
   {
     fork: 19752120,
-    name: "frxETH/ETH by Curve frxeth ETH/frxETH",
+    name: "frxETH/ETH by Curve frxeth ETH/frxETH, no cache",
     encoding: encodeSpotPricePool(
       "0xa1f8a6807c402e4a15ef4eba36528a3fed24e577",
       SpotPricePoolType.CurvePlainWithOracle,
       {
         base_index: 1,
+        use_cache: false,
       }
     ),
     expected: ethers.parseEther("0.996694298849812058"),
+  },
+  {
+    fork: 19752120,
+    name: "frxETH/ETH by Curve WETH/frxETH, no cache",
+    encoding: encodeSpotPricePool(
+      "0x9c3b46c0ceb5b9e304fcd6d88fc50f7dd24b31bc",
+      SpotPricePoolType.CurvePlainWithOracle,
+      {
+        base_index: 1,
+        use_cache: false,
+      }
+    ),
+    expected: ethers.parseEther("0.996672265561320278"),
   },
   {
     fork: 19752120,
@@ -378,21 +392,53 @@ const CurvePlainWithOracleTestCases: Array<ITestCase> = [
       SpotPricePoolType.CurvePlainWithOracle,
       {
         base_index: 1,
+        use_cache: true,
       }
     ),
-    expected: ethers.parseEther("0.996672265561320278"),
+    expected: ethers.parseEther("0.996672265509764609"),
   },
 ];
 
 const CurvePlainNGTestCases: Array<ITestCase> = [
   {
     fork: 19752120,
+    name: "ezETHUnderlying/ETH by Curve ezETH/WETH, no cache",
+    encoding: encodeSpotPricePool("0x85de3add465a219ee25e04d22c39ab027cf5c12e", SpotPricePoolType.CurvePlainNG, {
+      base_index: 0,
+      quote_index: 1,
+      use_cache: false,
+    }),
+    expected: ethers.parseEther("0.973665548316908716"),
+  },
+  {
+    fork: 19752120,
+    name: "eETH/ETH by Curve weETH/WETH, no cache",
+    encoding: encodeSpotPricePool("0x13947303f63b363876868d070f14dc865c36463b", SpotPricePoolType.CurvePlainNG, {
+      base_index: 0,
+      quote_index: 1,
+      use_cache: false,
+    }),
+    expected: ethers.parseEther("0.999987172238060857"),
+  },
+  {
+    fork: 19752120,
+    name: "USDC/PYUSD by Curve PYUSD/USDC, no cache",
+    encoding: encodeSpotPricePool("0x383e6b4437b59fff47b619cba855ca29342a8559", SpotPricePoolType.CurvePlainNG, {
+      base_index: 1,
+      quote_index: 0,
+      use_cache: false,
+    }),
+    expected: ethers.parseEther("1.000197391972776221"),
+  },
+  {
+    fork: 19752120,
     name: "ezETHUnderlying/ETH by Curve ezETH/WETH",
     encoding: encodeSpotPricePool("0x85de3add465a219ee25e04d22c39ab027cf5c12e", SpotPricePoolType.CurvePlainNG, {
       base_index: 0,
       quote_index: 1,
+      use_cache: true,
     }),
-    expected: ethers.parseEther("0.973665548316908716"),
+    expected: ethers.parseEther("0.973665567060388291"),
   },
   {
     fork: 19752120,
@@ -400,8 +446,9 @@ const CurvePlainNGTestCases: Array<ITestCase> = [
     encoding: encodeSpotPricePool("0x13947303f63b363876868d070f14dc865c36463b", SpotPricePoolType.CurvePlainNG, {
       base_index: 0,
       quote_index: 1,
+      use_cache: true,
     }),
-    expected: ethers.parseEther("0.999987172238060857"),
+    expected: ethers.parseEther("0.999987178645456716"),
   },
   {
     fork: 19752120,
@@ -409,8 +456,9 @@ const CurvePlainNGTestCases: Array<ITestCase> = [
     encoding: encodeSpotPricePool("0x383e6b4437b59fff47b619cba855ca29342a8559", SpotPricePoolType.CurvePlainNG, {
       base_index: 1,
       quote_index: 0,
+      use_cache: true,
     }),
-    expected: ethers.parseEther("1.000197391972776221"),
+    expected: ethers.parseEther("1.000202981563437642"),
   },
 ];
 

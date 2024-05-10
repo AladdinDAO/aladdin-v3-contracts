@@ -277,6 +277,7 @@ export function encodeSpotPricePool(
     quote_scale?: number;
     tokens?: number;
     scales?: number[];
+    use_cache?: boolean;
     has_amm_precise?: boolean;
     base_is_underlying?: boolean;
     base_is_ETH?: boolean;
@@ -326,11 +327,15 @@ export function encodeSpotPricePool(
       break;
     case SpotPricePoolType.CurvePlainWithOracle:
       assert(options.base_index !== undefined, "no base_index");
+      assert(options.use_cache !== undefined, "no use_cache");
+      customized = (customized << 1n) | BigInt(options.use_cache! ? 1 : 0);
       customized = (customized << 1n) | BigInt(options.base_index!);
       break;
     case SpotPricePoolType.CurvePlainNG:
       assert(options.base_index !== undefined, "no base_index");
       assert(options.quote_index !== undefined, "no quote_index");
+      assert(options.use_cache !== undefined, "no use_cache");
+      customized = (customized << 1n) | BigInt(options.use_cache! ? 1 : 0);
       customized = (customized << 3n) | BigInt(options.quote_index!);
       customized = (customized << 3n) | BigInt(options.base_index!);
       break;

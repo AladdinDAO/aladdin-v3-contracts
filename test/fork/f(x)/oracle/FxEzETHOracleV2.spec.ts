@@ -6,7 +6,7 @@ import { ethers } from "hardhat";
 
 import { request_fork } from "@/test/utils";
 import { FxEzETHOracleV2 } from "@/types/index";
-import { SpotPriceEncodings, encodeChainlinkPriceFeed, encodeSpotPriceSources } from "@/utils/index";
+import { ADDRESS, SpotPriceEncodings, encodeChainlinkPriceFeed, encodeSpotPriceSources } from "@/utils/index";
 
 const FORK_HEIGHT = 19752120;
 
@@ -27,7 +27,7 @@ describe("FxEzETHOracleV2.spec", async () => {
 
     const FxChainlinkTwapOracle = await ethers.getContractFactory("FxChainlinkTwapOracle", deployer);
     const ETH_USDTwap = await FxChainlinkTwapOracle.deploy(60 * 30, CHAINLINK_ETH_USD, 1, 3600 * 3, "ETH/USD");
-    const wezETH_ETHTwap = await FxChainlinkTwapOracle.deploy(60 * 30, RedStone_ezETH_ETH, 1, 86400 * 2, "wezETH/ETH");
+    const ezETH_ETHTwap = await FxChainlinkTwapOracle.deploy(60 * 30, RedStone_ezETH_ETH, 1, 86400 * 2, "ezETH/ETH");
 
     const FxEzETHOracleV2 = await ethers.getContractFactory("FxEzETHOracleV2", deployer);
     oracle = await FxEzETHOracleV2.deploy(
@@ -37,7 +37,8 @@ describe("FxEzETHOracleV2.spec", async () => {
           .toString(16)
           .padStart(64, "0"),
       ETH_USDTwap.getAddress(),
-      wezETH_ETHTwap.getAddress()
+      ADDRESS["BalancerV2_ezETH/WETH_Stable"],
+      ezETH_ETHTwap.getAddress()
     );
 
     await oracle.updateOnchainSpotEncodings(SpotPriceEncodings["WETH/USDC"], 0);
