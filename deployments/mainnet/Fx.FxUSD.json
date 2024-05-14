@@ -13,7 +13,7 @@
     "wstETH": {
       "Treasury": {
         "proxy": "0xED803540037B0ae069c93420F89Cd653B6e3Df1f",
-        "implementation": "0x8B10fdf42F5ecADA5210c14F5C209c1eB1266F11"
+        "implementation": "0x678B5eCFE9Fb6f9D900262F7b196d87168A1ef16"
       },
       "Market": {
         "proxy": "0xAD9A0E7C08bc9F747dF97a3E7E7f620632CB6155",
@@ -25,7 +25,7 @@
       },
       "LeveragedToken": {
         "proxy": "0x5a097b014C547718e79030a077A91Ae37679EfF5",
-        "implementation": "0x6BC45630Ef423f75c3B7280Cf819661b2Dc3051A"
+        "implementation": "0xdFC3683a0179A02Bfb5373243d105fF25e4F40C6"
       },
       "FxInitialFund": "0xe6b953BB4c4B8eEd78b40B81e457ee4BDA461D55",
       "RebalancePoolRegistry": "0x86e987a89Fd7345457d97b9e82906f346D61Df39",
@@ -45,7 +45,7 @@
     "sfrxETH": {
       "Treasury": {
         "proxy": "0xcfEEfF214b256063110d3236ea12Db49d2dF2359",
-        "implementation": "0xedeD972215008a0D033D3d641511d40d382317E8"
+        "implementation": "0x9317139aCBdbd53686C4531216a95Ccc8514cdcb"
       },
       "Market": {
         "proxy": "0x714B853b3bA73E439c652CfE79660F329E6ebB42",
@@ -57,7 +57,7 @@
       },
       "LeveragedToken": {
         "proxy": "0x2bb0C32101456F5960d4e994Bac183Fe0dc6C82c",
-        "implementation": "0x1BA2de0e2F7Fd59535Bc5B29D742fD23b050df18"
+        "implementation": "0xBC113e63C3E5Bcc9b829053c31a6c3868d7CD674"
       },
       "FxInitialFund": "0xFC3862c33b54E0BBA61d966Ff51973C20be4fC62",
       "RebalancePoolRegistry": "0x345a345DAd48c3504113539ce83c0cB765627B54",
@@ -77,7 +77,7 @@
     "weETH": {
       "Treasury": {
         "proxy": "0x781BA968d5cc0b40EB592D5c8a9a3A4000063885",
-        "implementation": "0x9eaFdd0D204061Fb98CC305bDacF84Fa243B0a8b"
+        "implementation": "0xDd8F6860f5A3eeCd8B7a902Df75CB7548387C224"
       },
       "Market": {
         "proxy": "0x267C6A96Db7422faA60Aa7198FfEeeC4169CD65f",
@@ -89,7 +89,7 @@
       },
       "LeveragedToken": {
         "proxy": "0xACB3604AaDF26e6C0bb8c720420380629A328d2C",
-        "implementation": "0x4bbD78629B2794d73a3def4C502C422De674831d"
+        "implementation": "0x4bE29f398DBF33C13A6C8463a4a45bA97577aDD1"
       },
       "FxInitialFund": "0x6dc7a100d09DDbF344FC4Dd0398f79500D0c2716",
       "RebalancePoolRegistry": "0xb1dD23468a69DFDDb7211298e609C0DB1522B2D6",
@@ -109,7 +109,7 @@
     "ezETH": {
       "Treasury": {
         "proxy": "0x38965311507D4E54973F81475a149c09376e241e",
-        "implementation": "0x6c3197E00a96bc3f390D2443e989C48F4C88BBf8"
+        "implementation": "0xA553c27FFF4D09c69e367C20Eb95Cc7fD0b0f3d3"
       },
       "Market": {
         "proxy": "0x69518D1D70AD537C41401303BDf96032338E40dE",
@@ -121,7 +121,7 @@
       },
       "LeveragedToken": {
         "proxy": "0x2e5A5AF7eE900D34BCFB70C47023bf1d6bE35CF5",
-        "implementation": "0x15100606433Dc500451e8289984acfCEeAD03149"
+        "implementation": "0x0B46Aeb66f97b1586CA6588FdA50A6f277a56753"
       },
       "FxInitialFund": "0x7612bCAbd3D66c71fF740472e063be6a74f126D1",
       "RebalancePoolRegistry": "0x5e3ca2A5736fb093328e4CA19A9A1966025f3905",

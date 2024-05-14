@@ -397,7 +397,7 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
       marketConfig.BaseTokenCapacity,
     ]);
   }
-  if ((await treasury.priceOracle()) !== OracleMapping[baseSymbol]) {
+  if (OracleMapping[baseSymbol] && (await treasury.priceOracle()) !== OracleMapping[baseSymbol]) {
     await caller.ownerCall(treasury, `Treasury for ${baseSymbol} updatePriceOracle`, "updatePriceOracle", [
       OracleMapping[baseSymbol],
     ]);
