@@ -104,12 +104,14 @@ export const DeployedGauges: {
   },
   "eUSD+fxUSD": {
     token: TOKENS["CURVE_STABLE_NG_eUSD/fxUSD_114"].address,
+    rewarder: "0x056056063ba7cE97fB4a1bCAaeDEE6AB0DA2Ac6a",
     immutable: false,
     harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
     managerRatio: ethers.parseUnits("0.01", 9), // 1%
   },
   "rgUSD+fxUSD": {
     token: TOKENS["CURVE_STABLE_NG_rgUSD/fxUSD_127"].address,
+    rewarder: "0xd39D1F27C1a4b2aCd10C493D9639384bE024Dc2B",
     immutable: false,
     harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
     managerRatio: ethers.parseUnits("0.01", 9), // 1%
