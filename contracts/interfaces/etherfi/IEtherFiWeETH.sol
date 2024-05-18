@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.7.0 || ^0.8.0;
 
 /// @dev from: https://etherscan.io/token/0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee
 interface IEtherFiWeETH {

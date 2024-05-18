@@ -116,7 +116,8 @@ async function main() {
   const governance = await FxGovernance.deploy(deployer, overrides);
   await FxGovernance.initialize(deployer, governance, overrides);
 
-  await FxOracle.deploy(deployer, overrides);
+  const oracle = await FxOracle.deploy(deployer, overrides);
+  await FxOracle.initialize(deployer, oracle, overrides);
 
   const fxsteth = await FxStETH.deploy(deployer, overrides);
   await FxStETH.initialize(deployer, fxsteth);

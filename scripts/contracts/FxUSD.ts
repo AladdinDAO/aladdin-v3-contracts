@@ -3,7 +3,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides, getAddress, id } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { FxUSD, FxUSD__factory, PlatformFeeSpliter, ReservePoolV2 } from "@/types/index";
+import { FxUSD, FxUSDRebalancer, FxUSD__factory, PlatformFeeSpliter, ReservePoolV2 } from "@/types/index";
 import { TOKENS, selectDeployments } from "@/utils/index";
 
 import { ContractCallHelper, DeploymentHelper } from "./helpers";
@@ -167,6 +167,14 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxUS
     ["WBTC"],
     [deployment.Markets.WBTC.RebalancePool.WBTC.pool, deployment.Markets.WBTC.RebalancePool.xWBTC.pool]
   );
+
+  // Setup FxUSDRebalancer
+  const fxUSDRebalancer = await caller.contract<FxUSDRebalancer>("FxUSDRebalancer", deployment.FxUSDRebalancer);
+  if ((await fxUSDRebalancer.bonus()) !== ethers.parseEther("2")) {
+    await caller.ownerCall(fxUSDRebalancer, "FxUSDRebalancer set bonus to 2 FXN", "updateBonus", [
+      ethers.parseEther("2"),
+    ]);
+  }
 
   // Setup ReservePool
   for (const baseSymbol of ["wstETH", "sfrxETH", "weETH", "ezETH", "WBTC"]) {

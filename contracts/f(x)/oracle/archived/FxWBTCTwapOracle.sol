@@ -5,8 +5,8 @@ pragma solidity ^0.7.6;
 import { Math } from "@openzeppelin/contracts/math/Math.sol";
 import { OracleLibrary } from "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 
-import { IFxPriceOracle } from "../../interfaces/f(x)/IFxPriceOracle.sol";
-import { ITwapOracle } from "../../price-oracle/interfaces/ITwapOracle.sol";
+import { IFxPriceOracle } from "../../../interfaces/f(x)/IFxPriceOracle.sol";
+import { ITwapOracle } from "../../../price-oracle/interfaces/ITwapOracle.sol";
 
 contract FxWBTCTwapOracle is IFxPriceOracle {
   /// @dev Ideal TWAP interval.

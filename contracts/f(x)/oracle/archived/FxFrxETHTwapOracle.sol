@@ -5,9 +5,9 @@ pragma solidity ^0.7.6;
 import { Math } from "@openzeppelin/contracts/math/Math.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import { IFxPriceOracle } from "../../interfaces/f(x)/IFxPriceOracle.sol";
-import { ICurvePoolOracle } from "../../interfaces/ICurvePoolOracle.sol";
-import { ITwapOracle } from "../../price-oracle/interfaces/ITwapOracle.sol";
+import { IFxPriceOracle } from "../../../interfaces/f(x)/IFxPriceOracle.sol";
+import { ICurvePoolOracle } from "../../../interfaces/ICurvePoolOracle.sol";
+import { ITwapOracle } from "../../../price-oracle/interfaces/ITwapOracle.sol";
 
 // solhint-disable var-name-mixedcase
 

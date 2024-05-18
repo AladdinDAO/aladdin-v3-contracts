@@ -17,7 +17,7 @@ import {
 import { TOKENS, same, selectDeployments } from "@/utils/index";
 
 import { ProxyAdminDeployment } from "./ProxyAdmin";
-import { ContractCallHelper, DeploymentHelper, abiDecode, contractCall } from "./helpers";
+import { ContractCallHelper, DeploymentHelper, abiDecode, contractCall, ownerContractCall } from "./helpers";
 import { FxGovernanceDeployment, FxUSDDeployment, MarketConfig } from "./FxConfig";
 import * as FxGovernance from "./FxGovernance";
 import { MultisigDeployment } from "./Multisig";
@@ -44,11 +44,11 @@ async function doUpgrade(
       await contractCall(proxy.connect(admin), desc + " set implementation", "upgradeTo", [implAddr]);
     }
   } catch (_) {
-    await ethers.provider.call({
-      to: await proxy.getAddress(),
-      from: newAdmin,
-      data: proxy.interface.encodeFunctionData("implementation"),
-    });
+    const proxyAdmin = await ethers.getContractAt("ProxyAdmin", newAdmin, admin);
+    const proxyImplementation = await proxyAdmin.getProxyImplementation(proxy.getAddress());
+    if (!same(proxyImplementation, implAddr)) {
+      await ownerContractCall(proxyAdmin, desc + " upgrade implementation", "upgrade", [proxyAddr, implAddr]);
+    }
   }
   try {
     const [proxyAdmin] = abiDecode(
@@ -247,19 +247,17 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
   const oracle = selectDeployments(network.name, "Fx.Oracle").toObject() as FxOracleDeployment;
 
   const OracleMapping: { [symbol: string]: string } = {
-    wstETH: oracle.FxStETHTwapOracle,
-    sfrxETH: oracle.FxFrxETHTwapOracle,
-    weETH: oracle.FxEETHTwapOracle,
-    apxETH: oracle.FxPxETHTwapOracle,
-    ezETH: oracle.FxEzETHTwapOracle,
-    aCVX: oracle.FxCVXTwapOracle,
+    wstETH: oracle.FxStETHOracleV2,
+    sfrxETH: oracle.FxFrxETHOracleV2,
+    weETH: oracle.FxEETHOracleV2,
+    ezETH: oracle.FxEzETHOracleV2,
   };
   const RateProviderMapping: { [symbol: string]: string } = {
     wstETH: oracle.WstETHRateProvider,
     sfrxETH: oracle.ERC4626RateProvider.sfrxETH,
     weETH: TOKENS.weETH.address,
     apxETH: oracle.ERC4626RateProvider.apxETH,
-    ezETH: "0x387dBc0fB00b26fb085aa658527D5BE98302c84C",
+    ezETH: oracle.BalancerV2CachedRateProvider.ezETH,
     aCVX: oracle.ERC4626RateProvider.aCVX,
   };
 
@@ -399,6 +397,16 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
       marketConfig.BaseTokenCapacity,
     ]);
   }
+  if (OracleMapping[baseSymbol] && (await treasury.priceOracle()) !== OracleMapping[baseSymbol]) {
+    await caller.ownerCall(treasury, `Treasury for ${baseSymbol} updatePriceOracle`, "updatePriceOracle", [
+      OracleMapping[baseSymbol],
+    ]);
+  }
+  if ((await treasury.rateProvider()) !== RateProviderMapping[baseSymbol]) {
+    await caller.ownerCall(treasury, `Treasury for ${baseSymbol} updateRateProvider`, "updateRateProvider", [
+      RateProviderMapping[baseSymbol],
+    ]);
+  }
 
   // setup Market
   if ((await market.reservePool()) !== governance.ReservePool) {
@@ -444,12 +452,12 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
   }
   const xTokenRedeemFeeRatio = await market.xTokenRedeemFeeRatio();
   if (
-    xTokenRedeemFeeRatio.defaultFee !== marketConfig.Market.LeveragedRdeeemFeeRatio.default ||
-    xTokenRedeemFeeRatio.deltaFee !== marketConfig.Market.LeveragedRdeeemFeeRatio.delta
+    xTokenRedeemFeeRatio.defaultFee !== marketConfig.Market.LeveragedRedeemFeeRatio.default ||
+    xTokenRedeemFeeRatio.deltaFee !== marketConfig.Market.LeveragedRedeemFeeRatio.delta
   ) {
     await caller.ownerCall(market, `Market for ${baseSymbol} updateRedeemFeeRatio xToken`, "updateRedeemFeeRatio", [
-      marketConfig.Market.LeveragedRdeeemFeeRatio.default,
-      marketConfig.Market.LeveragedRdeeemFeeRatio.delta,
+      marketConfig.Market.LeveragedRedeemFeeRatio.default,
+      marketConfig.Market.LeveragedRedeemFeeRatio.delta,
       false,
     ]);
   }
@@ -480,11 +488,6 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
 
   // Setup FxUSDRebalancer
   const REBALANCE_POOL_ROLE = await fxUSDRebalancer.REBALANCE_POOL_ROLE();
-  if ((await fxUSDRebalancer.bonus()) !== ethers.parseEther("1")) {
-    await caller.ownerCall(fxUSDRebalancer, "FxUSDRebalancer set bonus to 1 FXN", "updateBonus", [
-      ethers.parseEther("1"),
-    ]);
-  }
   if (!(await fxUSDRebalancer.hasRole(REBALANCE_POOL_ROLE, rebalancePoolA.getAddress()))) {
     await caller.ownerCall(
       fxUSDRebalancer,

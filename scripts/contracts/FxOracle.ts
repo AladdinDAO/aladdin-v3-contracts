@@ -2,8 +2,9 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
 import { network } from "hardhat";
 
-import { DeploymentHelper } from "./helpers";
-import { ADDRESS, TOKENS } from "../utils";
+import { FxEETHOracleV2, FxEzETHOracleV2, FxFrxETHOracleV2, FxStETHOracleV2, FxWBTCOracleV2 } from "@/types/index";
+import { ADDRESS, SpotPriceEncodings, TOKENS, encodeChainlinkPriceFeed } from "@/utils/index";
+import { ContractCallHelper, DeploymentHelper } from "./helpers";
 
 const ChainlinkPriceFeed: {
   [name: string]: {
@@ -33,30 +34,42 @@ const ChainlinkPriceFeed: {
   },
 };
 
-/*
-const RedStonePriceFeed: { [name: string]: string } = {
-  weETH: "0xdDb6F90fFb4d3257dd666b69178e5B3c5Bf41136", // weETH-USD
-  ezETH: "0xF4a3e183F59D2599ee3DF213ff78b1B3b1923696", // ezETH/ETH
+const RedStonePriceFeed: {
+  [name: string]: {
+    feed: string;
+    heartbeat: number;
+  };
+} = {
+  "weETH-ETH": {
+    feed: "0x8751F736E94F6CD167e8C5B97E245680FbD9CC36",
+    heartbeat: (86400 * 3) / 2, // 1.5 multiple
+  },
+  "ezETH-ETH": {
+    feed: "0xF4a3e183F59D2599ee3DF213ff78b1B3b1923696",
+    heartbeat: 43200 * 3, // 3 multiple
+  },
 };
-*/
 
 export interface FxOracleDeployment {
-  ChainlinkTwapOracle: {
-    ETH: string;
-    stETH: string;
-  };
-  RedStoneTwapOracle: {
-    ezETH: string;
-  };
+  ChainlinkTwapOracle: { [name: string]: string };
+  RedStoneTwapOracle: { [name: string]: string };
   FxStETHTwapOracle: string;
   FxFrxETHTwapOracle: string;
   FxEETHTwapOracle: string;
-  FxPxETHTwapOracle: string;
   FxEzETHTwapOracle: string;
-  FxCVXTwapOracle: string;
   FxWBTCTwapOracle: string;
 
+  SpotPriceOracle: string;
+  FxStETHOracleV2: string;
+  FxFrxETHOracleV2: string;
+  FxEETHOracleV2: string;
+  FxEzETHOracleV2: string;
+  FxWBTCOracleV2: string;
+
   WstETHRateProvider: string;
+  BalancerV2CachedRateProvider: {
+    ezETH: string;
+  };
   ERC4626RateProvider: {
     sfrxETH: string;
     apxETH: string;
@@ -67,8 +80,8 @@ export interface FxOracleDeployment {
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<FxOracleDeployment> {
   const deployment = new DeploymentHelper(network.name, "Fx.Oracle", deployer, overrides);
 
-  // deploy chainlink twap oracle
-  for (const symbol of ["ETH-USD", "stETH-USD", "BTC-USD", "WBTC-BTC"]) {
+  // deploy Chainlink twap oracle
+  for (const symbol of ["ETH-USD", "BTC-USD", "WBTC-BTC"]) {
     await deployment.contractDeploy(
       "FxChainlinkTwapOracle." + symbol,
       "FxChainlinkTwapOracle for " + symbol,
@@ -76,74 +89,83 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
       [60 * 30, ChainlinkPriceFeed[symbol].feed, 1, ChainlinkPriceFeed[symbol].heartbeat, symbol]
     );
   }
-
-  /*
-  // deploy redstone twap oracle
-  for (const symbol of ["ezETH"]) {
+  // deploy RedStone twap oracle
+  for (const symbol of ["weETH-ETH", "ezETH-ETH"]) {
     await deployment.contractDeploy(
-      "RedStoneTwapOracle." + symbol,
-      "RedStoneTwapOracle for " + symbol,
-      "ChainlinkTwapOracleV3",
-      [RedStonePriceFeed[symbol], 1, 10800, symbol]
+      "FxChainlinkTwapOracle." + symbol,
+      "FxChainlinkTwapOracle for " + symbol,
+      "FxChainlinkTwapOracle",
+      [60 * 30, RedStonePriceFeed[symbol].feed, 1, RedStonePriceFeed[symbol].heartbeat, symbol]
     );
   }
-  */
 
-  // deploy FxStETHTwapOracle
-  await deployment.contractDeploy("FxStETHTwapOracle", "FxStETHTwapOracle", "FxStETHTwapOracle", [
-    deployment.get("FxChainlinkTwapOracle.stETH-USD"),
+  // deploy SpotPriceOracle
+  await deployment.contractDeploy("SpotPriceOracle", "SpotPriceOracle", "SpotPriceOracle", []);
+
+  // deploy FxStETHOracleV2
+  await deployment.contractDeploy("FxStETHOracleV2", "FxStETHOracleV2", "FxStETHOracleV2", [
+    deployment.get("SpotPriceOracle"),
+    "0x" +
+      encodeChainlinkPriceFeed(ChainlinkPriceFeed["ETH-USD"].feed, 10n ** 10n, ChainlinkPriceFeed["ETH-USD"].heartbeat)
+        .toString(16)
+        .padStart(64, "0"),
     deployment.get("FxChainlinkTwapOracle.ETH-USD"),
-    "0x21e27a5e5513d6e65c4f830167390997aa84843a", // Curve ETH/stETH pool
+    ADDRESS["CRV_PLAIN_ETH/stETH_303_POOL"],
   ]);
 
-  // deploy FxFrxETHTwapOracle
-  await deployment.contractDeploy("FxFrxETHTwapOracle", "FxFrxETHTwapOracle", "FxFrxETHTwapOracle", [
+  // deploy FxFrxETHOracleV2
+  await deployment.contractDeploy("FxFrxETHOracleV2", "FxFrxETHOracleV2", "FxFrxETHOracleV2", [
+    deployment.get("SpotPriceOracle"),
+    "0x" +
+      encodeChainlinkPriceFeed(ChainlinkPriceFeed["ETH-USD"].feed, 10n ** 10n, ChainlinkPriceFeed["ETH-USD"].heartbeat)
+        .toString(16)
+        .padStart(64, "0"),
     deployment.get("FxChainlinkTwapOracle.ETH-USD"),
-    "0x9c3b46c0ceb5b9e304fcd6d88fc50f7dd24b31bc", // Curve ETH/frxETH pool
+    ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
   ]);
 
-  // deploy FxEETHTwapOracle
-  await deployment.contractDeploy("FxEETHTwapOracle", "FxEETHTwapOracle", "FxEETHTwapOracle", [
-    TOKENS["CURVE_STABLE_NG_weETH/WETH_22"].address,
-    "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36", // Uniswap V3 USDT/WETH 0.3% pool
+  // deploy FxEETHOracleV2
+  await deployment.contractDeploy("FxEETHOracleV2", "FxEETHOracleV2", "FxEETHOracleV2", [
+    deployment.get("SpotPriceOracle"),
+    "0x" +
+      encodeChainlinkPriceFeed(ChainlinkPriceFeed["ETH-USD"].feed, 10n ** 10n, ChainlinkPriceFeed["ETH-USD"].heartbeat)
+        .toString(16)
+        .padStart(64, "0"),
     deployment.get("FxChainlinkTwapOracle.ETH-USD"),
+    deployment.get("FxChainlinkTwapOracle.weETH-ETH"),
   ]);
 
-  // deploy FxEzETHTwapOracle
-  await deployment.contractDeploy("FxEzETHTwapOracle", "FxEzETHTwapOracle", "FxEzETHTwapOracle", [
-    ADDRESS["CURVE_STABLE_NG_ezETH/WETH_79_POOL"],
-    "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36", // Uniswap V3 USDT/WETH 0.3% pool
+  // deploy FxEzETHOracleV2
+  await deployment.contractDeploy("FxEzETHOracleV2", "FxEzETHOracleV2", "FxEzETHOracleV2", [
+    deployment.get("SpotPriceOracle"),
+    "0x" +
+      encodeChainlinkPriceFeed(ChainlinkPriceFeed["ETH-USD"].feed, 10n ** 10n, ChainlinkPriceFeed["ETH-USD"].heartbeat)
+        .toString(16)
+        .padStart(64, "0"),
     deployment.get("FxChainlinkTwapOracle.ETH-USD"),
+    ADDRESS["BalancerV2_ezETH/WETH_Stable"],
+    deployment.get("FxChainlinkTwapOracle.ezETH-ETH"),
   ]);
 
-  // deploy FxWBTCTwapOracle
-  await deployment.contractDeploy("FxWBTCTwapOracle", "FxWBTCTwapOracle", "FxWBTCTwapOracle", [
-    "0x9db9e0e53058c89e5b94e29621a205198648425b", // Uniswap V3 WBTC/USDT 0.3% pool
+  // deploy FxWBTCOracleV2
+  await deployment.contractDeploy("FxWBTCOracleV2", "FxWBTCOracleV2", "FxWBTCOracleV2", [
+    deployment.get("SpotPriceOracle"),
     deployment.get("FxChainlinkTwapOracle.BTC-USD"),
     deployment.get("FxChainlinkTwapOracle.WBTC-BTC"),
   ]);
-
-  /*
-  // deploy FxPxETHTwapOracle
-  await deployment.contractDeploy("FxPxETHTwapOracle", "FxPxETHTwapOracle", "FxPxETHTwapOracle", [
-    TOKENS["CURVE_STABLE_NG_pxETH/stETH_30"].address,
-    deployment.get("ChainlinkTwapOracle.stETH"),
-    "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36", // Uniswap V3 USDT/WETH 0.3% pool
-    deployment.get("ChainlinkTwapOracle.ETH"),
-  ]);
-
-  // deploy FxCVXTwapOracle
-  await deployment.contractDeploy("FxCVXTwapOracle", "FxCVXTwapOracle", "FxCVXTwapOracle", [
-    ADDRESS.CURVE_CVXETH_POOL,
-    deployment.get("ChainlinkTwapOracle.CVX"),
-    deployment.get("ChainlinkTwapOracle.ETH"),
-  ]);
-  */
 
   // deploy WstETHRateProvider
   await deployment.contractDeploy("WstETHRateProvider", "WstETHRateProvider", "WstETHRateProvider", [
     TOKENS.wstETH.address,
   ]);
+
+  // deploy BalancerV2CachedRateProvider ezETH
+  await deployment.contractDeploy(
+    "BalancerV2CachedRateProvider.ezETH",
+    "BalancerV2CachedRateProvider for ezETH",
+    "BalancerV2CachedRateProvider",
+    [ADDRESS["BalancerV2_ezETH/WETH_Stable"], TOKENS.ezETH.address]
+  );
 
   // deploy ERC4626RateProvider sfrxETH
   await deployment.contractDeploy(
@@ -153,19 +175,74 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     [TOKENS.sfrxETH.address]
   );
 
-  /* // deploy ERC4626RateProvider apxETH
-  await deployment.contractDeploy(
-    "ERC4626RateProvider.apxETH",
-    "ERC4626RateProvider for apxETH",
-    "ERC4626RateProvider",
-    [TOKENS.apxETH.address]
-  );
-
-  // deploy ERC4626RateProvider aCVX
-  await deployment.contractDeploy("ERC4626RateProvider.aCVX", "ERC4626RateProvider for aCVX", "ERC4626RateProvider", [
-    TOKENS.aCVX.address,
-  ]);
-  */
-
   return deployment.toObject() as FxOracleDeployment;
+}
+
+export async function initialize(deployer: HardhatEthersSigner, deployment: FxOracleDeployment, overrides?: Overrides) {
+  const caller = new ContractCallHelper(deployer, overrides);
+
+  const stETHOracle = await caller.contract<FxStETHOracleV2>("FxStETHOracleV2", deployment.FxStETHOracleV2);
+  if ((await stETHOracle.getETHUSDSpotPrices()).length === 0) {
+    await caller.call(stETHOracle, "FxStETHOracleV2 Update ETH/USD encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["WETH/USDC"],
+      0,
+    ]);
+  }
+  if ((await stETHOracle.getLSDETHSpotPrices()).length === 0) {
+    await caller.call(stETHOracle, "FxStETHOracleV2 Update stETH/ETH encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["stETH/WETH"],
+      1,
+    ]);
+  }
+
+  const frxETHOracle = await caller.contract<FxFrxETHOracleV2>("FxFrxETHOracleV2", deployment.FxFrxETHOracleV2);
+  if ((await frxETHOracle.getETHUSDSpotPrices()).length === 0) {
+    caller.overrides!.nonce = 821;
+    await caller.call(frxETHOracle, "FxFrxETHOracleV2 Update ETH/USD encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["WETH/USDC"],
+      0,
+    ]);
+    caller.overrides!.nonce = undefined;
+  }
+  if ((await frxETHOracle.getLSDETHSpotPrices()).length === 0) {
+    await caller.call(frxETHOracle, "FxFrxETHOracleV2 Update frxETH/ETH encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["frxETH/WETH"],
+      1,
+    ]);
+  }
+
+  const eETHOracle = await caller.contract<FxEETHOracleV2>("FxEETHOracleV2", deployment.FxEETHOracleV2);
+  if ((await eETHOracle.getETHUSDSpotPrices()).length === 0) {
+    await caller.call(eETHOracle, "FxEETHOracleV2 Update ETH/USD encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["WETH/USDC"],
+      0,
+    ]);
+  }
+  if ((await eETHOracle.getLSDETHSpotPrices()).length === 0) {
+    await caller.call(eETHOracle, "FxEETHOracleV2 Update eETH/ETH encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["eETH/WETH"],
+      1,
+    ]);
+  }
+
+  const ezETHOracle = await caller.contract<FxEzETHOracleV2>("FxEzETHOracleV2", deployment.FxEzETHOracleV2);
+  if ((await ezETHOracle.getETHUSDSpotPrices()).length === 0) {
+    await caller.call(ezETHOracle, "FxEzETHOracleV2 Update ETH/USD encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["WETH/USDC"],
+      0,
+    ]);
+  }
+  if ((await ezETHOracle.getLSDETHSpotPrices()).length === 0) {
+    await caller.call(ezETHOracle, "FxEzETHOracleV2 Update ezETH/ETH encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["ezETH/WETH"],
+      1,
+    ]);
+  }
+
+  const WBTCOracle = await caller.contract<FxWBTCOracleV2>("FxWBTCOracleV2", deployment.FxWBTCOracleV2);
+  if ((await WBTCOracle.getBTCDerivativeUSDSpotPrices()).length === 0) {
+    await caller.call(WBTCOracle, "FxWBTCOracleV2 Update WBTC/USD encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["WBTC/USDC"],
+    ]);
+  }
 }
