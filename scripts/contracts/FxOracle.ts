@@ -2,7 +2,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
 import { network } from "hardhat";
 
-import { FxEETHOracleV2, FxEzETHOracleV2, FxFrxETHOracleV2, FxStETHOracleV2 } from "@/types/index";
+import { FxEETHOracleV2, FxEzETHOracleV2, FxFrxETHOracleV2, FxStETHOracleV2, FxWBTCOracleV2 } from "@/types/index";
 import { ADDRESS, SpotPriceEncodings, TOKENS, encodeChainlinkPriceFeed } from "@/utils/index";
 import { ContractCallHelper, DeploymentHelper } from "./helpers";
 
@@ -147,14 +147,12 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.get("FxChainlinkTwapOracle.ezETH-ETH"),
   ]);
 
-  /*
   // deploy FxWBTCOracleV2
   await deployment.contractDeploy("FxWBTCOracleV2", "FxWBTCOracleV2", "FxWBTCOracleV2", [
     deployment.get("SpotPriceOracle"),
     deployment.get("FxChainlinkTwapOracle.BTC-USD"),
     deployment.get("FxChainlinkTwapOracle.WBTC-BTC"),
   ]);
-  */
 
   // deploy WstETHRateProvider
   await deployment.contractDeploy("WstETHRateProvider", "WstETHRateProvider", "WstETHRateProvider", [
@@ -196,16 +194,6 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxOr
       1,
     ]);
   }
-  /*
-  try {
-    await stETHOracle.getLSDUSDSpotPrices();
-  } catch {
-    await caller.call(stETHOracle, "FxStETHOracleV2 Update stETH/USD encodings", "updateOnchainSpotEncodings", [
-      encodeSpotPriceSources([]),
-      2,
-    ]);
-  }
-  */
 
   const frxETHOracle = await caller.contract<FxFrxETHOracleV2>("FxFrxETHOracleV2", deployment.FxFrxETHOracleV2);
   if ((await frxETHOracle.getETHUSDSpotPrices()).length === 0) {
@@ -222,16 +210,6 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxOr
       1,
     ]);
   }
-  /*
-  try {
-    await frxETHOracle.getLSDUSDSpotPrices();
-  } catch {
-    await caller.call(frxETHOracle, "FxFrxETHOracleV2 Update frxETH/USD encodings", "updateOnchainSpotEncodings", [
-      encodeSpotPriceSources([]),
-      2,
-    ]);
-  }
-  */
 
   const eETHOracle = await caller.contract<FxEETHOracleV2>("FxEETHOracleV2", deployment.FxEETHOracleV2);
   if ((await eETHOracle.getETHUSDSpotPrices()).length === 0) {
@@ -246,16 +224,6 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxOr
       1,
     ]);
   }
-  /*
-  try {
-    await eETHOracle.getLSDUSDSpotPrices();
-  } catch {
-    await caller.call(eETHOracle, "FxEETHOracleV2 Update eETH/USD encodings", "updateOnchainSpotEncodings", [
-      encodeSpotPriceSources([]),
-      2,
-    ]);
-  }
-  */
 
   const ezETHOracle = await caller.contract<FxEzETHOracleV2>("FxEzETHOracleV2", deployment.FxEzETHOracleV2);
   if ((await ezETHOracle.getETHUSDSpotPrices()).length === 0) {
@@ -270,21 +238,11 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxOr
       1,
     ]);
   }
-  /*
-  try {
-    await ezETHOracle.getLSDUSDSpotPrices();
-  } catch {
-    await caller.call(ezETHOracle, "FxEzETHOracleV2 Update ezETH/USD encodings", "updateOnchainSpotEncodings", [
-      encodeSpotPriceSources([]),
-      2,
+
+  const WBTCOracle = await caller.contract<FxWBTCOracleV2>("FxWBTCOracleV2", deployment.FxWBTCOracleV2);
+  if ((await WBTCOracle.getBTCDerivativeUSDSpotPrices()).length === 0) {
+    await caller.call(WBTCOracle, "FxWBTCOracleV2 Update WBTC/USD encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["WBTC/USDC"],
     ]);
   }
-  */
-
-  /*
-  const WBTCOracle = await caller.contract<FxWBTCOracleV2>("FxWBTCOracleV2", deployment.FxWBTCOracleV2);
-  await caller.call(WBTCOracle, "FxWBTCOracleV2 Update WBTC/USD encodings", "updateOnchainSpotEncodings", [
-    SpotPriceEncodings["WBTC/USDC"],
-  ]);
-  */
 }

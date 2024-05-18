@@ -141,7 +141,7 @@
     "WBTC": {
       "Treasury": {
         "proxy": "0x63Fe55B3fe3f74B42840788cFbe6229869590f83",
-        "implementation": "0x6c981A842b7238185A5C2dd27c8F939F98A99D97"
+        "implementation": "0x456517eE29aF17E59eA1c70852D3fb15804BD122"
       },
       "Market": {
         "proxy": "0x56B85438F1E16a91eAc5Fe2DAAb2C3Dd57690175",
@@ -153,7 +153,7 @@
       },
       "LeveragedToken": {
         "proxy": "0x9f23562ec47249761222EF7Ac02b327a8C45Ba7D",
-        "implementation": "0xbd09e936De95A7D90B84E3c6FF7D2139511D5AEB"
+        "implementation": "0x69556a04b10D16dC62f0B8ea739D03947863cD0B"
       },
       "FxInitialFund": "0x29eE4B752fE14B0BC1F279DCA98415f2Fa6F3A8d",
       "RebalancePoolRegistry": "0x163283D59FE2A579f2920A7F8eA19F7799B32fA0",
