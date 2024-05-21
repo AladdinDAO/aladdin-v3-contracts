@@ -45,7 +45,9 @@ library LibGatewayRouter {
     FxMarket,
     FxInitialFundVault,
     FxRebalancePool,
-    FxUSD
+    FxUSD,
+    ERC4626Compounder,
+    ERC5115Compounder
   }
 
   /***********
@@ -122,8 +124,8 @@ library LibGatewayRouter {
     gs.whitelisted[account] = kind;
   }
 
-  /// @dev Check whether the account is whitelised with specific type.
-  function ensureWhitelised(address account, WhitelistKind kind) internal view {
+  /// @dev Check whether the account is whitelisted with specific type.
+  function ensureWhitelisted(address account, WhitelistKind kind) internal view {
     GatewayStorage storage gs = gatewayStorage();
 
     WhitelistKind cachedKind = gs.whitelisted[account];
@@ -200,7 +202,7 @@ library LibGatewayRouter {
   /// @dev Internal function to transfer token to this contract.
   /// @param token The address of token to transfer.
   /// @param amount The amount of token to transfer.
-  /// @return uint256 The amount of token transfered.
+  /// @return uint256 The amount of token transferred.
   function transferTokenIn(
     address token,
     address receiver,

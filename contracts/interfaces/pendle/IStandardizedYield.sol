@@ -21,12 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  */
 
-pragma solidity ^0.8.0;
-
-import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
+pragma solidity ^0.7.0 || ^0.8.0;
 
 /// @dev copy from https://github.com/pendle-finance/pendle-core-v2-public/blob/main/contracts/interfaces/IStandardizedYield.sol
-interface IStandardizedYield is IERC20MetadataUpgradeable {
+interface IStandardizedYield {
   /// @dev Emitted when any base tokens is deposited to mint shares
   event Deposit(
     address indexed caller,

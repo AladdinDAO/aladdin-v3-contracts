@@ -19,6 +19,36 @@ import { FxUSDStandardizedYieldBase } from "./FxUSDStandardizedYieldBase.sol";
 contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
+  /**********
+   * Events *
+   **********/
+
+  /// @notice Emitted when the `minRebalanceProfit` is updated.
+  /// @param oldValue The value of the previous `minRebalanceProfit`.
+  /// @param newValue The value of the current `minRebalanceProfit`.
+  event UpdateMinRebalanceProfit(uint256 oldValue, uint256 newValue);
+
+  /// @notice Emitted when the converting routes are updated.
+  /// @param token The address of token.
+  /// @param routes The new converting routes.
+  event UpdateConvertRoutes(address token, uint256[] routes);
+
+  /**********
+   * Errors *
+   **********/
+
+  /// @dev Thrown when the amount of rebalanced FxUSD is not enough.
+  error ErrInsufficientRebalancedFxUSD();
+
+  /// @dev Thrown when the amount of harvested base token is not enough.
+  error ErrInsufficientHarvestedBaseToken();
+
+  /// @dev Thrown when the amount of harvested FxUSD is not enough.
+  error ErrInsufficientHarvestedFxUSD();
+
+  /// @dev Thrown when no active liquidation currently.
+  error ErrNotLiquidatedBefore();
+
   /*************
    * Constants *
    *************/
@@ -31,9 +61,6 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
 
   /// @dev The balance precision for FxUSD in rebalance pool.
   uint256 private constant BALANCE_EPS = 10000;
-
-  /// @notice The pid of convex pool
-  uint256 private immutable pid;
 
   /*************
    * Variables *
@@ -55,10 +82,6 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
    * Constructor *
    ***************/
 
-  constructor(uint256 _pid) {
-    pid = _pid;
-  }
-
   function initialize(
     address _treasury,
     address _harvester,
@@ -66,7 +89,8 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
     address _fxUSD,
     address _pool,
     string memory _name,
-    string memory _symbol
+    string memory _symbol,
+    uint256 _pid
   ) external initializer {
     __Context_init();
     __ERC165_init();
@@ -78,7 +102,7 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
 
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
-    address cachedVault = IConvexFXNBooster(BOOSTER).createVault(pid);
+    address cachedVault = IConvexFXNBooster(BOOSTER).createVault(_pid);
     vault = cachedVault;
     _updateMinRebalanceProfit(5e7); // 5%
 
@@ -104,7 +128,9 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
     uint256 cachedTotalBaseToken = totalPendingBaseToken;
     uint256 cachedTotalDepositedFxUSD = totalDepositedFxUSD;
     uint256 currentTotalFxUSD = IFxShareableRebalancePool(pool).balanceOf(cachedVault);
-    if (!_hasLiquidation(cachedTotalBaseToken, currentTotalFxUSD, cachedTotalDepositedFxUSD)) revert();
+    if (!_hasLiquidation(cachedTotalBaseToken, currentTotalFxUSD, cachedTotalDepositedFxUSD)) {
+      revert ErrNotLiquidatedBefore();
+    }
 
     // claim pending base token first.
     IStakingProxyRebalancePool(cachedVault).getReward();
@@ -119,7 +145,7 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
       fxUSDOut <
       ((cachedTotalDepositedFxUSD - currentTotalFxUSD) * (RATE_PRECISION + minRebalanceProfit)) / RATE_PRECISION
     ) {
-      revert();
+      revert ErrInsufficientRebalancedFxUSD();
     }
     IStakingProxyRebalancePool(cachedVault).depositFxUsd(fxUSDOut);
 
@@ -135,7 +161,6 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
     uint256 minBaseOut,
     uint256 minFxUSD
   ) external override onlyHarvester returns (uint256 baseOut, uint256 fxUSDOut) {
-    address cachedFxUSD = yieldToken;
     address cachedBaseToken = baseToken;
     address cachedVault = vault;
 
@@ -153,7 +178,7 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
         if (cachedToken == cachedBaseToken) continue;
         baseOut += _doConvert(cachedConverter, cachedToken, IERC20Upgradeable(cachedToken).balanceOf(address(this)));
       }
-      if (baseOut < minBaseOut) revert();
+      if (baseOut < minBaseOut) revert ErrInsufficientHarvestedBaseToken();
     }
 
     // if liquidated, do nothing and return
@@ -180,10 +205,11 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
         IERC20Upgradeable(cachedBaseToken).safeTransfer(receiver, bounty);
       }
 
+      address cachedFxUSD = yieldToken;
       uint256 amountBaseToken = baseOut - expense - bounty;
       _doApprove(cachedBaseToken, cachedFxUSD, amountBaseToken);
       fxUSDOut = IFxUSD(cachedFxUSD).mint(cachedBaseToken, amountBaseToken, address(this), 0);
-      if (fxUSDOut < minFxUSD) revert();
+      if (fxUSDOut < minFxUSD) revert ErrInsufficientHarvestedFxUSD();
 
       // already approved in `initialize` function.
       IStakingProxyRebalancePool(cachedVault).depositFxUsd(fxUSDOut);
@@ -197,13 +223,20 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
    * Restricted Functions *
    ************************/
 
+  /// @notice Update the converting routes for the given token.
+  /// @param token The address of token to update.
+  /// @param newRoutes The new converting routes.
   function updateConvertRoutes(address token, uint256[] memory newRoutes) external onlyRole(DEFAULT_ADMIN_ROLE) {
     delete routes[token];
     routes[token] = newRoutes;
+
+    emit UpdateConvertRoutes(token, newRoutes);
   }
 
-  function updateMinRebalanceProfit(uint256 _newMinRebalanceProfit) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    _updateMinRebalanceProfit(_newMinRebalanceProfit);
+  /// @notice Update the minimum rebalance profit.
+  /// @param newMinRebalanceProfit The new minimum rebalance profit.
+  function updateMinRebalanceProfit(uint256 newMinRebalanceProfit) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _updateMinRebalanceProfit(newMinRebalanceProfit);
   }
 
   /**********************
@@ -268,7 +301,7 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
     // If has liquidation, can only redeem as baseToken
     // Otherwise, withdraw as FxUSD first
     if (_hasLiquidation(cachedTotalBaseToken, currentTotalFxUSD, cachedTotalDepositedFxUSD)) {
-      if (tokenOut != cachedBaseToken) revert();
+      if (tokenOut != cachedBaseToken) revert ErrInvalidTokenOut();
 
       // claim pending base token first.
       IStakingProxyRebalancePool(cachedVault).getReward();
@@ -279,7 +312,7 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
       amountBaseToken = (cachedTotalBaseToken * amountSharesToRedeem) / cachedTotalSupply;
 
       // withdraw as base token, since it may be impossible to wrap to FxUSD.
-      IStakingProxyRebalancePool(cachedVault).withdrawAsBase(amountFxUSD, 0);
+      _withdrawAsBase(cachedVault, amountFxUSD);
       uint256 baseTokenDelta = IERC20Upgradeable(cachedBaseToken).balanceOf(address(this)) - cachedTotalBaseToken;
 
       totalPendingBaseToken = cachedTotalBaseToken - amountBaseToken;
@@ -300,8 +333,9 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
         IStakingProxyRebalancePool(cachedVault).withdrawFxUsd(amountFxUSD);
       } else {
         amountBaseToken = IERC20Upgradeable(cachedBaseToken).balanceOf(address(this));
-        IStakingProxyRebalancePool(cachedVault).withdrawAsBase(amountFxUSD, 0);
+        _withdrawAsBase(cachedVault, amountFxUSD);
         amountBaseToken = IERC20Upgradeable(cachedBaseToken).balanceOf(address(this)) - amountBaseToken;
+        amountFxUSD = 0;
       }
     }
 
@@ -354,7 +388,36 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
     }
   }
 
-  function _updateMinRebalanceProfit(uint256 _newMinRebalanceProfit) private {
-    minRebalanceProfit = _newMinRebalanceProfit;
+  /// @dev Internal function to check whether a + err < b
+  function _isSmallerWithError(
+    uint256 a,
+    uint256 b,
+    uint256 err
+  ) internal pure returns (bool) {
+    return a + err < b;
+  }
+
+  /// @dev Internal function to update rebalance profit.
+  /// @param newMinRebalanceProfit The new minimum rebalance profit.
+  function _updateMinRebalanceProfit(uint256 newMinRebalanceProfit) private {
+    uint256 oldValue = minRebalanceProfit;
+    minRebalanceProfit = newMinRebalanceProfit;
+
+    emit UpdateMinRebalanceProfit(oldValue, newMinRebalanceProfit);
+  }
+
+  /// @dev Internal function to withdraw fxUSD to base token from convex vault
+  /// @param cachedVault The address of convex vault.
+  /// @param amountFxUSD The amount of fxUSD to withdraw
+  function _withdrawAsBase(address cachedVault, uint256 amountFxUSD) private {
+    try
+      IStakingProxyRebalancePool(cachedVault).withdrawAsBase(
+        amountFxUSD,
+        0xA5e2Ec4682a32605b9098Ddd7204fe84Ab932fE4,
+        0x11C907b3aeDbD863e551c37f21DD3F36b28A6784
+      )
+    {} catch {
+      IStakingProxyRebalancePool(cachedVault).withdrawAsBase(amountFxUSD, 0);
+    }
   }
 }

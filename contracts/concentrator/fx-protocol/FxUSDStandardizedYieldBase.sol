@@ -26,6 +26,31 @@ abstract contract FxUSDStandardizedYieldBase is
 {
   using SafeERC20Upgradeable for IERC20Upgradeable;
 
+  /**********
+   * Errors *
+   **********/
+
+  /// @dev Thrown when the deposited amount is zero.
+  error ErrDepositZeroAmount();
+
+  /// @dev Thrown when the pool has been liquidated and not rebalanced.
+  error ErrHasLiquidation();
+
+  /// @dev Thrown when the minted shares are not enough.
+  error ErrInsufficientSharesOut();
+
+  /// @dev Thrown when the redeemed tokens are not enough.
+  error ErrInsufficientTokensOut();
+
+  /// @dev Thrown the input token in invalid.
+  error ErrInvalidTokenIn();
+
+  /// @dev Thrown the output token in invalid.
+  error ErrInvalidTokenOut();
+
+  /// @dev Thrown when the redeemed shares is zero.
+  error ErrRedeemZeroShares();
+
   /*************
    * Constants *
    *************/
@@ -75,7 +100,7 @@ abstract contract FxUSDStandardizedYieldBase is
    * Public View Functions *
    *************************/
 
-  /// @notice Return whether the pool is liquidated or not.
+  /// @notice Return whether the pool has been liquidated or not.
   function liquidated() external view returns (bool) {
     return _liquidated();
   }
@@ -112,15 +137,15 @@ abstract contract FxUSDStandardizedYieldBase is
   }
 
   /// @inheritdoc IStandardizedYield
-  /// @dev This function use lots of gas, not recommend to use on chain.
-  /// This function won't return correct when there is a liquidation.
+  /// @dev This function use lots of gas, not recommended to use on chain.
+  /// This function won't return correct data when there is a liquidation.
   function previewDeposit(address tokenIn, uint256 amountTokenToDeposit)
     external
     view
     override
     returns (uint256 amountSharesOut)
   {
-    if (!isValidTokenIn(tokenIn)) revert();
+    if (!isValidTokenIn(tokenIn)) revert ErrInvalidTokenIn();
 
     uint256 amountFxUSD;
     if (tokenIn == yieldToken) {
@@ -142,14 +167,15 @@ abstract contract FxUSDStandardizedYieldBase is
   }
 
   /// @inheritdoc IStandardizedYield
-  /// @dev This function won't return correct when there is a liquidation.
+  /// @dev This function use lots of gas, not recommended to use on chain.
+  /// This function won't return correct data when there is a liquidation.
   function previewRedeem(address tokenOut, uint256 amountSharesToRedeem)
     external
     view
     override
     returns (uint256 amountTokenOut)
   {
-    if (!isValidTokenOut(tokenOut)) revert();
+    if (!isValidTokenOut(tokenOut)) revert ErrInvalidTokenOut();
 
     amountTokenOut = (amountSharesToRedeem * totalDepositedFxUSD) / totalSupply();
     // tokenOut is fxUSD or baseToken
@@ -222,20 +248,22 @@ abstract contract FxUSDStandardizedYieldBase is
     uint256 amountTokenToDeposit,
     uint256 minSharesOut
   ) external payable override returns (uint256 amountSharesOut) {
-    if (!isValidTokenIn(tokenIn)) revert();
-    if (amountTokenToDeposit == 0) revert();
-    if (_liquidated()) revert();
+    if (!isValidTokenIn(tokenIn)) revert ErrInvalidTokenIn();
+    if (amountTokenToDeposit == 0) revert ErrDepositZeroAmount();
+    if (_liquidated()) revert ErrHasLiquidation();
 
     // we are very sure every token is normal token, so no fot check here.
     IERC20Upgradeable(tokenIn).safeTransferFrom(_msgSender(), address(this), amountTokenToDeposit);
 
     amountSharesOut = _deposit(tokenIn, amountTokenToDeposit);
-    if (amountSharesOut < minSharesOut) revert();
+    if (amountSharesOut < minSharesOut) revert ErrInsufficientSharesOut();
 
     _mint(receiver, amountSharesOut);
+
     emit Deposit(_msgSender(), receiver, tokenIn, amountTokenToDeposit, amountSharesOut);
   }
 
+  /// @inheritdoc IStandardizedYield
   function redeem(
     address receiver,
     uint256 amountSharesToRedeem,
@@ -243,18 +271,19 @@ abstract contract FxUSDStandardizedYieldBase is
     uint256 minTokenOut,
     bool burnFromInternalBalance
   ) external override returns (uint256 amountTokenOut) {
-    if (!isValidTokenOut(tokenOut)) revert();
+    if (!isValidTokenOut(tokenOut)) revert ErrInvalidTokenOut();
+    if (amountSharesToRedeem == 0) revert ErrRedeemZeroShares();
 
     if (burnFromInternalBalance) {
       _burn(address(this), amountSharesToRedeem);
     } else {
-      _burn(msg.sender, amountSharesToRedeem);
+      _burn(_msgSender(), amountSharesToRedeem);
     }
 
     amountTokenOut = _redeem(receiver, tokenOut, amountSharesToRedeem);
-    if (amountTokenOut < minTokenOut) revert();
+    if (amountTokenOut < minTokenOut) revert ErrInsufficientTokensOut();
 
-    emit Redeem(msg.sender, receiver, tokenOut, amountSharesToRedeem, amountTokenOut);
+    emit Redeem(_msgSender(), receiver, tokenOut, amountSharesToRedeem, amountTokenOut);
   }
 
   /// @inheritdoc IStandardizedYield
@@ -268,16 +297,10 @@ abstract contract FxUSDStandardizedYieldBase is
    * Internal Functions *
    **********************/
 
-  /// @dev Internal function to check whether a + err < b
-  function _isSmallerWithError(
-    uint256 a,
-    uint256 b,
-    uint256 err
-  ) internal pure returns (bool) {
-    return a + err < b;
-  }
-
   /// @dev Internal function to do token approval.
+  /// @param token The address of token to approve.
+  /// @param spender The address of token spender.
+  /// @param amount The expected amount of token to approve.
   function _doApprove(
     address token,
     address spender,

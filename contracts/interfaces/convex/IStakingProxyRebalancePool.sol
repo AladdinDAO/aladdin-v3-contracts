@@ -21,6 +21,13 @@ interface IStakingProxyRebalancePool {
   // withdraw from rebalance pool(v2) and return underlying base
   function withdrawAsBase(uint256 _amount, uint256 _minOut) external;
 
+  //withdraw from rebalance pool(v2) and return underlying base
+  function withdrawAsBase(
+    uint256 _amount,
+    address _fxfacet,
+    address _fxconverter
+  ) external;
+
   // return earned tokens on staking contract and any tokens that are on this vault
   function earned() external returns (address[] memory token_addresses, uint256[] memory total_earned);
 
