@@ -31,6 +31,10 @@ contract MultiPathConverter {
       IWETH(WETH).deposit{ value: _amount }();
       IERC20(WETH).safeTransfer(converter, _amount);
     } else {
+      // convert all approved.
+      if (_amount == uint256(-1)) {
+        _amount = IERC20(_tokenIn).allowance(msg.sender, address(this));
+      }
       IERC20(_tokenIn).safeTransferFrom(msg.sender, converter, _amount);
     }
 

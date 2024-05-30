@@ -74,7 +74,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     uint128 totalDebt;
     // The amount of distributed reward.
     uint128 rewards;
-    // The paid accumulated reward per share, multipled by 1e18.
+    // The paid accumulated reward per share, multiplied by 1e18.
     uint192 rewardPerSharePaid;
     // The block number of the last interacted block (deposit, unlock, withdraw, repay, borrow).
     uint64 lastInteractedBlock;
@@ -103,10 +103,10 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev The address of clevCVX contract.
   address public clevCVX;
 
-  /// @dev Assumptons:
+  /// @dev Assumptions:
   ///  1. totalLockedGlobal + totalPendingUnlockGlobal is the total amount of CVX locked in CVXLockerV2.
   ///  2. totalUnlockedGlobal is the total amount of CVX unlocked from CVXLockerV2 but still in contract.
-  ///  3. totalDebtGlobal is the total amount of clevCVX borrowed, will decrease when debt is repayed.
+  ///  3. totalDebtGlobal is the total amount of clevCVX borrowed, will decrease when debt is repaid.
   /// @dev The total amount of CVX locked in contract.
   uint256 public totalLockedGlobal;
   /// @dev The total amount of CVX going to unlocked.
@@ -116,7 +116,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev The total amount of clevCVX borrowed from this contract.
   uint256 public totalDebtGlobal;
 
-  /// @dev The reward per share of CVX accumulated, will be updated in each harvest, multipled by 1e18.
+  /// @dev The reward per share of CVX accumulated, will be updated in each harvest, multiplied by 1e18.
   uint256 public accRewardPerShare;
   /// @dev Mapping from user address to user info.
   mapping(address => UserInfo) public userInfo;
@@ -203,7 +203,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @param _account The address of user.
   /// @return totalDeposited The amount of CVX deposited in this contract of the user.
   /// @return totalPendingUnlocked The amount of CVX pending to be unlocked.
-  /// @return totalUnlocked The amount of CVX unlokced of the user and can be withdrawed.
+  /// @return totalUnlocked The amount of CVX unlocked of the user and can be withdrawn.
   /// @return totalBorrowed The amount of clevCVX borrowed by the user.
   /// @return totalReward The amount of CVX reward accrued for the user.
   function getUserInfo(address _account)
@@ -350,7 +350,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     _info.epochLocked[_reminder] = _amount + _info.epochLocked[_reminder]; // should never overflow
 
     // 4. update global info
-    totalLockedGlobal = _amount.add(totalLockedGlobal); // direct cast shoule be safe
+    totalLockedGlobal = _amount.add(totalLockedGlobal); // direct cast should be safe
 
     emit Deposit(msg.sender, _amount);
   }
@@ -466,7 +466,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
       _totalDebt = _totalDebt - _clevCVXAmount; // never overflow
       _totalDebtGlobal = _totalDebtGlobal - _clevCVXAmount;
 
-      // burn debt token and tranfer fee to platform
+      // burn debt token and transfer fee to platform
       if (_fee > 0) {
         IERC20Upgradeable(clevCVX).safeTransferFrom(msg.sender, platform, _fee);
       }
@@ -604,7 +604,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     address[] memory _rewardTokens = new address[](length);
     uint256[] memory _amounts = new uint256[](length);
     for (uint256 i = 0; i < length; i++) {
-      // ignore fee on transfer token (currently, such token doesn't exsist)
+      // ignore fee on transfer token (currently, such token doesn't exist)
       _rewardTokens[i] = _claimParams[i].token;
       _amounts[i] = _claimParams[i].amount;
 
@@ -643,7 +643,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     IMultiMerkleDistributor.ClaimParams memory _claimParam;
     for (uint256 i = 0; i < _claimParams.length; i++) {
       _claimParam = _claimParams[i];
-      // ignore fee on transfer token (currently, such token doesn't exsist)
+      // ignore fee on transfer token (currently, such token doesn't exist)
       address _token = IMultiMerkleDistributor(distributor).questRewardToken(_claimParam.questID);
       if (index == 0 || _token != _rewardTokens[index - 1]) {
         _rewardTokens[index] = _token;
@@ -722,14 +722,14 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     ISnapshotDelegateRegistry(_registry).setDelegate(_id, _delegate);
   }
 
-  /// @notice delegate vlCVX voting power to L2. The current address of `_commiter`
+  /// @notice delegate vlCVX voting power to L2. The current address of `_committer`
   /// is `0x861cBbFCFDbd42AD69b3f626F23C3E36388FF01E`.
   function commitUserSurrogate(
-    address _commiter,
+    address _committer,
     address _surrogate,
     address _contractAddr
   ) external onlyGovernorOrOwner {
-    ICommitUserSurrogate(_commiter).commit(_surrogate, _contractAddr);
+    ICommitUserSurrogate(_committer).commit(_surrogate, _contractAddr);
   }
 
   /// @dev Update the address of governor.
@@ -742,7 +742,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   }
 
   /// @dev Update stake percentage for CVX in this contract.
-  /// @param _percentage The stake percentage to be updated, multipled by 1e9.
+  /// @param _percentage The stake percentage to be updated, multiplied by 1e9.
   function updateStakePercentage(uint256 _percentage) external onlyGovernorOrOwner {
     require(_percentage <= FEE_PRECISION, "percentage too large");
     stakePercentage = _percentage;
@@ -818,7 +818,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
 
   /// @dev Withdraw all manual swap reward tokens from the contract.
   /// @param _tokens The address list of tokens to withdraw.
-  /// @param _recipient The address of user who will recieve the tokens.
+  /// @param _recipient The address of user who will receive the tokens.
   function withdrawManualSwapRewardTokens(address[] memory _tokens, address _recipient) external onlyOwner {
     for (uint256 i = 0; i < _tokens.length; i++) {
       if (!manualSwapRewardToken[_tokens[i]]) continue;
