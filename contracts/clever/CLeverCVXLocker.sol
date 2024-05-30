@@ -449,7 +449,8 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @param _cvxAmount The amount of CVX used to pay debt.
   /// @param _clevCVXAmount The amount of clevCVX used to pay debt.
   function repay(uint256 _cvxAmount, uint256 _clevCVXAmount) external override {
-    require(_cvxAmount > 0 || _clevCVXAmount > 0, "repay zero amount");
+    require(_cvxAmount == 0, "no repay with CVX");
+    require(_clevCVXAmount > 0, "repay zero amount");
 
     // 1. update reward info
     _updateReward(msg.sender);
@@ -458,26 +459,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     uint256 _totalDebt = _info.totalDebt;
     uint256 _totalDebtGlobal = totalDebtGlobal;
 
-    // 3. check repay with cvx and take fee
-    if (_cvxAmount > 0 && _totalDebt > 0) {
-      if (_cvxAmount > _totalDebt) _cvxAmount = _totalDebt;
-
-      uint256 _fee = _cvxAmount.mul(repayFeePercentage) / FEE_PRECISION;
-      _totalDebt = _totalDebt - _cvxAmount; // never overflow
-      _totalDebtGlobal = _totalDebtGlobal - _cvxAmount; // never overflow
-
-      // distribute to furnace and transfer fee to platform
-      IERC20Upgradeable(CVX).safeTransferFrom(msg.sender, address(this), _cvxAmount + _fee);
-      if (_fee > 0) {
-        IERC20Upgradeable(CVX).safeTransfer(platform, _fee);
-      }
-      address _furnace = furnace;
-      IERC20Upgradeable(CVX).safeApprove(_furnace, 0);
-      IERC20Upgradeable(CVX).safeApprove(_furnace, _cvxAmount);
-      IFurnace(_furnace).distribute(address(this), _cvxAmount);
-    }
-
-    // 4. check repay with clevCVX
+    // 2. check repay with clevCVX
     if (_clevCVXAmount > 0 && _totalDebt > 0) {
       if (_clevCVXAmount > _totalDebt) _clevCVXAmount = _totalDebt;
       uint256 _fee = _clevCVXAmount.mul(repayFeePercentage) / FEE_PRECISION;
