@@ -13,6 +13,8 @@ import { IConvexFXNBooster } from "../../interfaces/convex/IConvexFXNBooster.sol
 import { IStakingProxyRebalancePool } from "../../interfaces/convex/IStakingProxyRebalancePool.sol";
 import { IFxUSD } from "../../interfaces/f(x)/IFxUSD.sol";
 import { IFxShareableRebalancePool } from "../../interfaces/f(x)/IFxShareableRebalancePool.sol";
+import { IFxTreasuryV2 } from "../../interfaces/f(x)/IFxTreasuryV2.sol";
+import { IFxPriceOracleV2 } from "../../interfaces/f(x)/IFxPriceOracleV2.sol";
 
 import { FxUSDStandardizedYieldBase } from "./FxUSDStandardizedYieldBase.sol";
 
@@ -116,6 +118,35 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
   /// @inheritdoc IFxUSDCompounder
   function getConvertRoutes(address token) external view returns (uint256[] memory) {
     return routes[token];
+  }
+
+  /// @inheritdoc IFxUSDCompounder
+  function nav() external view returns (uint256) {
+    uint256 cachedTotalSupply = totalSupply();
+    if (cachedTotalSupply == 0) return PRECISION;
+
+    address cachedVault = vault;
+    address cachedPool = pool;
+    uint256 currentTotalFxUSD = IFxShareableRebalancePool(cachedPool).balanceOf(cachedVault);
+    uint256 cachedTotalDepositedFxUSD = totalDepositedFxUSD;
+    // Just in case someone deposits FxUSD for the vault to manipulate the nav.
+    if (currentTotalFxUSD > cachedTotalDepositedFxUSD) {
+      currentTotalFxUSD = cachedTotalDepositedFxUSD;
+    }
+    uint256 totalValue = IFxUSD(yieldToken).nav() * currentTotalFxUSD;
+
+    uint256 cachedTotalBaseToken = totalPendingBaseToken;
+    cachedTotalBaseToken += IMultipleRewardAccumulator(cachedPool).claimable(cachedVault, baseToken);
+    if (cachedTotalBaseToken > 0) {
+      address cachedTreasury = IFxShareableRebalancePool(cachedPool).treasury();
+      address oracle = IFxTreasuryV2(cachedTreasury).priceOracle();
+      // use twap price to avoid price manipulation.
+      (, uint256 price, , ) = IFxPriceOracleV2(oracle).getPrice();
+      cachedTotalBaseToken = IFxTreasuryV2(cachedTreasury).getUnderlyingValue(cachedTotalBaseToken);
+      totalValue += cachedTotalBaseToken * price;
+    }
+
+    return totalValue / cachedTotalSupply;
   }
 
   /****************************

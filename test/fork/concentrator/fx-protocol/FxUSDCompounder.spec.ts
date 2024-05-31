@@ -145,9 +145,11 @@ describe("FxUSDCompounder.spec", async () => {
         expect(await compounder.totalDepositedFxUSD()).to.eq(amountIn);
         expect(await compounder.totalPendingBaseToken()).to.eq(0n);
         expect(await compounder.exchangeRate()).to.eq(10n ** 18n);
+        expect(await compounder.nav()).to.eq(await compounder.exchangeRate());
 
         const harvested = await earn(ethers.parseEther("1")); // harvest 1 FXN
         expect(await compounder.exchangeRate()).to.eq(((harvested + amountIn) * 10n ** 18n) / amountIn);
+        expect(await compounder.nav()).to.eq(await compounder.exchangeRate());
         await token.connect(holder).approve(compounder.getAddress(), amountIn);
         const sharesOut = await compounder
           .connect(holder)
@@ -165,6 +167,10 @@ describe("FxUSDCompounder.spec", async () => {
         expect(await compounder.totalPendingBaseToken()).to.eq(0n);
         expect(await compounder.exchangeRate()).to.eq(
           ((harvested + amountIn * 2n) * 10n ** 18n) / (amountIn + sharesOut)
+        );
+        expect(await compounder.nav()).to.closeTo(
+          await compounder.exchangeRate(),
+          (await compounder.exchangeRate()) / 10000n
         );
       });
     });

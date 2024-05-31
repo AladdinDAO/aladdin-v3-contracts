@@ -31,6 +31,9 @@ interface IFxUSDCompounder is IStandardizedYield {
   /// @return routes The converting routes.
   function getConvertRoutes(address token) external view returns (uint256[] memory routes);
 
+  /// @notice Return the net asset value.
+  function nav() external view returns (uint256);
+
   /****************************
    * Public Mutated Functions *
    ****************************/

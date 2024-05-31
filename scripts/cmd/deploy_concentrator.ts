@@ -5,6 +5,7 @@ import { ensureDeployer } from "@/contracts/helpers";
 import * as ConcentratorCvxCrv from "@/contracts/ConcentratorCvxCRV";
 import * as ConcentratorCVX from "@/contracts/ConcentratorCVX";
 import * as ConcentratorFrxETH from "@/contracts/ConcentratorFrxETH";
+import * as ConcentratorFxUSD from "@/contracts/ConcentratorFxUSD";
 import * as ConcentratorStakeDAO from "@/contracts/ConcentratorStakeDAO";
 import { showConverterRoute } from "../utils";
 
@@ -19,27 +20,34 @@ async function main() {
   const deployer = await ensureDeployer(network.name);
 
   const cmd = process.env.CMD;
-  if (cmd === "cvxcrv") {
-    const cvx = await ConcentratorCvxCrv.deploy(deployer, overrides);
-    await ConcentratorCvxCrv.initialize(deployer, cvx, overrides);
+  if (cmd === "cvxCRV") {
+    const cvxCRV = await ConcentratorCvxCrv.deploy(deployer, overrides);
+    await ConcentratorCvxCrv.initialize(deployer, cvxCRV, overrides);
   }
 
-  if (cmd === "cvx") {
+  if (cmd === "CVX") {
     showConverterRoute("aCVX", "aCRV");
     const cvx = await ConcentratorCVX.deploy(deployer, overrides);
     await ConcentratorCVX.initialize(deployer, cvx, overrides);
   }
 
-  if (cmd === "frxeth") {
+  if (cmd === "frxETH") {
     showConverterRoute("CURVE_ETH/frxETH", "aCRV");
-    const frxeth = await ConcentratorFrxETH.deploy(deployer, overrides);
-    await ConcentratorFrxETH.initialize(deployer, frxeth, overrides);
+    const frxETH = await ConcentratorFrxETH.deploy(deployer, overrides);
+    await ConcentratorFrxETH.initialize(deployer, frxETH, overrides);
   }
 
-  if (cmd === "sdcrv") {
+  if (cmd === "sdCRV") {
     showConverterRoute("sdCRV", "aCRV");
-    const sdcrv = await ConcentratorStakeDAO.deploy(deployer, overrides);
-    await ConcentratorStakeDAO.initialize(deployer, sdcrv, overrides);
+    const sdCRV = await ConcentratorStakeDAO.deploy(deployer, overrides);
+    await ConcentratorStakeDAO.initialize(deployer, sdCRV, overrides);
+  }
+
+  if (cmd === "FxUSD") {
+    showConverterRoute("wstETH", "aCRV");
+    showConverterRoute("weETH", "aCRV");
+    const fxUSD = await ConcentratorFxUSD.deploy(deployer, overrides);
+    await ConcentratorFxUSD.initialize(deployer, fxUSD, overrides);
   }
 }
 
