@@ -1,8 +1,7 @@
 {
   "clevCVX": "0xf05e58fCeA29ab4dA01A495140B349F8410Ba904",
   "CVXLocker": {
-    "proxy": "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
-    "implementation": "0x9d8945755fF12A989c4d5e78C9f6F3A4257Db90A"
+    "proxy": "0x96C68D861aDa016Ed98c30C810879F9df7c64154"
   },
   "Furnace": {
     "proxy": "0xCe4dCc5028588377E279255c0335Effe2d7aB72a",
