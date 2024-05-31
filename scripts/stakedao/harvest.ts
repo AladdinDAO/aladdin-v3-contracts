@@ -71,9 +71,9 @@ async function getSwapData(
           // [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-UniV3"], routes["WETH-SDT-PancakeV3"]],
           [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Curve3Crypto"], routes["WETH-SDT-UniV2"]],
           [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Curve3Crypto"], routes["WETH-SDT-Curve2Crypto"]],
-          [routes["sdCRV-CRV-Curve"], routes["CRV-crvUSD-Curve3Crypto"], routes["crvUSD-SDT-Curve3Crypto"]],
+          // [routes["sdCRV-CRV-Curve"], routes["CRV-crvUSD-Curve3Crypto"], routes["crvUSD-SDT-Curve3Crypto"]],
         ],
-        [0n, 0n, 0n]
+        [0n, 0n]
       );
       return {
         target: await converter.getAddress(),
