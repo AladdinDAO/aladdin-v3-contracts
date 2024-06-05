@@ -67,13 +67,13 @@ abstract contract FxUSDStandardizedYieldBase is
   address public yieldToken;
 
   /// @notice The address of rebalance pool.
-  address public pool;
+  address internal pool;
 
   /// @notice The address of the corresponding base token with the rebalance pool.
-  address public baseToken;
+  address internal baseToken;
 
-  /// @notice The total amount of yield token deposited
-  uint256 public totalDepositedFxUSD;
+  /// @dev The total amount of yield token deposited
+  uint256 internal totalDepositedFxUSD;
 
   /// @dev reserved slots.
   uint256[46] private __gap;

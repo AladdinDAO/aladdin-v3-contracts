@@ -26,6 +26,15 @@ interface IFxUSDCompounder is IStandardizedYield {
   /// @notice The amount of unconverted base token.
   function totalPendingBaseToken() external view returns (uint256);
 
+  /// @notice The total amount of deposited yield token.
+  function getTotalAssets() external view returns (uint256);
+
+  /// @notice The address of rebalance pool.
+  function getPool() external view returns (address);
+
+  /// @notice The address of base token.
+  function getBaseToken() external view returns (address);
+
   /// @notice Return the token converting routes.
   /// @param token The address of token to query.
   /// @return routes The converting routes.

@@ -116,6 +116,21 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
    *************************/
 
   /// @inheritdoc IFxUSDCompounder
+  function getTotalAssets() external view returns (uint256) {
+    return totalDepositedFxUSD;
+  }
+
+  /// @inheritdoc IFxUSDCompounder
+  function getPool() external view returns (address) {
+    return pool;
+  }
+
+  /// @inheritdoc IFxUSDCompounder
+  function getBaseToken() external view returns (address) {
+    return baseToken;
+  }
+
+  /// @inheritdoc IFxUSDCompounder
   function getConvertRoutes(address token) external view returns (uint256[] memory) {
     return routes[token];
   }
