@@ -56,6 +56,7 @@ describe("CLeverCVXLocker.spec", async () => {
     const newImpl = await CLeverCVXLocker.deploy();
 
     await proxyAdmin.upgrade(locker.getAddress(), newImpl.getAddress());
+    await locker.updateApprovedTargets([await converter.getAddress()], true);
   });
 
   it("should succeed to harvest votium round 71", async () => {

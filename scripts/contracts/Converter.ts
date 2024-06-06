@@ -60,6 +60,7 @@ export async function initialize(
   const converter = await ethers.getContractAt("GeneralTokenConverter", deployment.GeneralTokenConverter, deployer);
 
   for (let i = 0; i < 10; i++) {
+    if ([1].includes(i)) continue;
     if ((await registry.getConverter(i)) !== deployment.GeneralTokenConverter) {
       await ownerContractCall(
         registry as unknown as Contract,
