@@ -492,6 +492,7 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.OGN_WETH_UNIV3_3000, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
     ],
+    WETH: [encodePoolHintV2(ADDRESS.OGN_WETH_UNIV3_3000, PoolType.UniswapV3, 2, 0, 1, Action.Swap)],
   },
   GNO: {
     // GNO ==(UniV3)==> WETH ==(CurveV2)==> CVX
@@ -641,6 +642,9 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
   },
   TXJP: {
     WETH: [encodePoolHintV2(ADDRESS["UniV3_TXJP/WETH_3000"], PoolType.UniswapV3, 2, 0, 1, Action.Swap)],
+  },
+  ZETA: {
+    WETH: [encodePoolHintV2(ADDRESS["UniV3_WETH/ZETA_3000"], PoolType.UniswapV3, 2, 1, 0, Action.Swap)],
   },
   crvUSD: {
     WETH: [encodePoolHintV2(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolType.CurveTriCryptoPool, 3, 0, 1, Action.Swap)],
