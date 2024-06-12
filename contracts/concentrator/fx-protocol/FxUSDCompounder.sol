@@ -362,6 +362,8 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
       uint256 baseTokenDelta = IERC20Upgradeable(cachedBaseToken).balanceOf(address(this)) - cachedTotalBaseToken;
 
       totalPendingBaseToken = cachedTotalBaseToken - amountBaseToken;
+      // calculate the real FxUSD amount to deduct to make exchange rate consistent.
+      amountFxUSD = (amountSharesToRedeem * cachedTotalDepositedFxUSD) / cachedTotalSupply;
       totalDepositedFxUSD = cachedTotalDepositedFxUSD - amountFxUSD;
       amountBaseToken += baseTokenDelta;
       amountFxUSD = 0;
