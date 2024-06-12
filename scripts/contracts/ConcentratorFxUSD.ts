@@ -3,7 +3,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides, id } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { FxUSDCompounder, FxUSDCompounder__factory } from "@/types/index";
+import { FxUSDCompounder, FxUSDCompounder4626__factory, FxUSDCompounder__factory } from "@/types/index";
 import { CONVERTER_ROUTRS as CONVERTER_ROUTES, TOKENS, selectDeployments } from "@/utils/index";
 
 import { ContractCallHelper, DeploymentHelper } from "./helpers";
@@ -17,6 +17,13 @@ const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
 
 export interface ConcentratorFxUSDDeployment {
   FxUSDCompounder: {
+    proxy: {
+      afxUSD: string;
+      arUSD: string;
+    };
+    implementation: string;
+  };
+  FxUSDCompounder4626: {
     proxy: {
       afxUSD: string;
       arUSD: string;
@@ -43,6 +50,12 @@ export async function deploy(
     "FxUSDCompounder.implementation",
     "FxUSDCompounder implementation",
     "FxUSDCompounder",
+    []
+  );
+  await deployment.contractDeploy(
+    "FxUSDCompounder4626.implementation",
+    "FxUSDCompounder4626 implementation",
+    "FxUSDCompounder4626",
     []
   );
 
@@ -77,6 +90,26 @@ export async function deploy(
       "Aladdin rUSD",
       "arUSD",
       19,
+    ])
+  );
+
+  await deployment.proxyDeploy(
+    "FxUSDCompounder4626.proxy.afxUSD",
+    "afxUSD-ERC4626",
+    deployment.get("FxUSDCompounder4626.implementation"),
+    admin.Concentrator,
+    FxUSDCompounder4626__factory.createInterface().encodeFunctionData("initialize", [
+      deployment.get("FxUSDCompounder.proxy.afxUSD"),
+    ])
+  );
+
+  await deployment.proxyDeploy(
+    "FxUSDCompounder4626.proxy.arUSD",
+    "arUSD-ERC4626",
+    deployment.get("FxUSDCompounder4626.implementation"),
+    admin.Concentrator,
+    FxUSDCompounder4626__factory.createInterface().encodeFunctionData("initialize", [
+      deployment.get("FxUSDCompounder.proxy.arUSD"),
     ])
   );
 
@@ -125,6 +158,7 @@ export async function initialize(
   deployment: ConcentratorFxUSDDeployment,
   overrides?: Overrides
 ): Promise<void> {
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
   const caller = new ContractCallHelper(deployer, overrides);
 
   const afxUSD = await caller.contract<FxUSDCompounder>("FxUSDCompounder", deployment.FxUSDCompounder.proxy.afxUSD);
@@ -132,4 +166,17 @@ export async function initialize(
 
   await setupFxUSDCompounder(caller, afxUSD, CONVERTER_ROUTES.FXN.wstETH);
   await setupFxUSDCompounder(caller, arUSD, CONVERTER_ROUTES.FXN.weETH);
+
+  await caller.upgrade(
+    admin.Concentrator,
+    "afxUSD upgrade",
+    await afxUSD.getAddress(),
+    deployment.FxUSDCompounder.implementation
+  );
+  await caller.upgrade(
+    admin.Concentrator,
+    "arUSD upgrade",
+    await arUSD.getAddress(),
+    deployment.FxUSDCompounder.implementation
+  );
 }

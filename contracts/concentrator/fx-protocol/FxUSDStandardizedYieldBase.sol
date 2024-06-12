@@ -147,11 +147,12 @@ abstract contract FxUSDStandardizedYieldBase is
   {
     if (!isValidTokenIn(tokenIn)) revert ErrInvalidTokenIn();
 
+    address fxUSD = yieldToken;
     uint256 amountFxUSD;
-    if (tokenIn == yieldToken) {
+    if (tokenIn == fxUSD) {
       amountFxUSD = amountTokenToDeposit;
     } else {
-      address _treasury = IFxShareableRebalancePool(pool).treasury();
+      (, address _treasury, , , ) = FxUSD(fxUSD).markets(tokenIn);
       address oracle = IFxTreasuryV2(_treasury).priceOracle();
       (, , uint256 price, ) = IFxPriceOracleV2(oracle).getPrice();
       amountTokenToDeposit = IFxTreasuryV2(_treasury).getUnderlyingValue(amountTokenToDeposit);
