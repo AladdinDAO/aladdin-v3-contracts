@@ -136,6 +136,8 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
   }
 
   /// @inheritdoc IFxUSDCompounder
+  /// @dev The nav may not represent the real value. To get the real value, you may
+  /// need to call `IFxShareableRebalancePool(pool).checkpoint(vault)` first.
   function nav() external view returns (uint256) {
     uint256 cachedTotalSupply = totalSupply();
     if (cachedTotalSupply == 0) return PRECISION;
@@ -179,6 +181,7 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
     }
 
     // claim pending base token first.
+    // There will also be some FXN tokens, we will left them to be converted in `harvest` function.
     IStakingProxyRebalancePool(cachedVault).getReward();
 
     address cachedBaseToken = baseToken;
@@ -188,6 +191,7 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
     _doApprove(cachedBaseToken, cachedFxUSD, cachedTotalBaseToken);
     fxUSDOut = IFxUSD(cachedFxUSD).mint(cachedBaseToken, cachedTotalBaseToken, address(this), minFxUSD);
     if (
+      cachedTotalDepositedFxUSD > currentTotalFxUSD &&
       fxUSDOut <
       ((cachedTotalDepositedFxUSD - currentTotalFxUSD) * (RATE_PRECISION + minRebalanceProfit)) / RATE_PRECISION
     ) {
@@ -196,7 +200,8 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
     IStakingProxyRebalancePool(cachedVault).depositFxUsd(fxUSDOut);
 
     totalDepositedFxUSD = currentTotalFxUSD + fxUSDOut;
-    totalPendingBaseToken = 0;
+    // it is possible that `IFxUSD(cachedFxUSD).mint` won't use all the base token.
+    totalPendingBaseToken = IERC20Upgradeable(cachedBaseToken).balanceOf(address(this));
 
     emit Rebalance(_msgSender(), cachedTotalBaseToken, fxUSDOut);
   }
@@ -252,7 +257,9 @@ contract FxUSDCompounder is FxUSDStandardizedYieldBase, IFxUSDCompounder {
       }
 
       address cachedFxUSD = yieldToken;
-      uint256 amountBaseToken = baseOut - expense - bounty;
+      // It is possible that there are some leftover base token. But this would also leave a way
+      // to manipulate (increasing) the nav of the compounder. We are fine with that.
+      uint256 amountBaseToken = IERC20Upgradeable(cachedBaseToken).balanceOf(address(this));
       _doApprove(cachedBaseToken, cachedFxUSD, amountBaseToken);
       fxUSDOut = IFxUSD(cachedFxUSD).mint(cachedBaseToken, amountBaseToken, address(this), 0);
       if (fxUSDOut < minFxUSD) revert ErrInsufficientHarvestedFxUSD();
