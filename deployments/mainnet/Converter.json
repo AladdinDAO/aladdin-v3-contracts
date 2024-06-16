@@ -4,5 +4,6 @@
   "UniswapV3Converter": "0xfeEcE010d3a5dC93e395adD89d13c9aDcA872F13",
   "LidoConverter": "0xb1154DFCD2F542b876EcdeD8C1047F4de40aca4E",
   "CurveNGConverter": "0xDe3eaf9794B9556004bb57239355ED409EFbc477",
-  "MultiPathConverter": "0xCa1D3F8f770Fd50b8cF76551ec54012C26036c2A"
+  "MultiPathConverter": "0xCa1D3F8f770Fd50b8cF76551ec54012C26036c2A",
+  "ETHLSDConverter": "0x150F62ec3A9d9aE30b7da4d413aF73d8adC15C9f"
 }

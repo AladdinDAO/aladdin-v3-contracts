@@ -60,6 +60,14 @@ contract FxUSDCompounder4626 is ERC20PermitUpgradeable, IERC4626Upgradeable {
    * Public View Functions *
    *************************/
 
+  /// @notice Return the net asset value.
+  /// @dev The nav may not represent the real value. To get the real value, you may
+  /// need to call `IFxShareableRebalancePool(pool).checkpoint(vault)` first.
+  /// The `pool` and `vault` can be found in the `compounder` contract.
+  function nav() external view returns (uint256) {
+    return IFxUSDCompounder(compounder).nav();
+  }
+
   /// @inheritdoc IERC4626Upgradeable
   function totalAssets() external view override returns (uint256 totalManagedAssets) {
     totalManagedAssets = IFxUSDCompounder(compounder).getTotalAssets();

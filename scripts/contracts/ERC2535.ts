@@ -75,12 +75,14 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     fxsteth.LeveragedToken.proxy,
   ]);
   await deployment.contractDeploy("FxUSDFacet", "FxUSDFacet implementation", "FxUSDFacet", []);
+  /*
   await deployment.contractDeploy(
     "ERC5115CompounderFacet",
     "ERC5115CompounderFacet implementation",
     "ERC5115CompounderFacet",
     []
   );
+  */
 
   return deployment.toObject() as ERC2535Deployment;
 }

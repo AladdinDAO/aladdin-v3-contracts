@@ -158,7 +158,7 @@ export async function initialize(
   deployment: ConcentratorFxUSDDeployment,
   overrides?: Overrides
 ): Promise<void> {
-  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
+  // const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
   const caller = new ContractCallHelper(deployer, overrides);
 
   const afxUSD = await caller.contract<FxUSDCompounder>("FxUSDCompounder", deployment.FxUSDCompounder.proxy.afxUSD);
@@ -167,6 +167,7 @@ export async function initialize(
   await setupFxUSDCompounder(caller, afxUSD, CONVERTER_ROUTES.FXN.wstETH);
   await setupFxUSDCompounder(caller, arUSD, CONVERTER_ROUTES.FXN.weETH);
 
+  /*
   await caller.upgrade(
     admin.Concentrator,
     "afxUSD upgrade",
@@ -179,4 +180,5 @@ export async function initialize(
     await arUSD.getAddress(),
     deployment.FxUSDCompounder.implementation
   );
+  */
 }

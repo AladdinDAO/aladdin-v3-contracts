@@ -40,9 +40,11 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.get("ConverterRegistry"),
   ]);
 
+  /*
   await deployment.contractDeploy("WETHConverter", "WETHConverter", "WETHConverter", [
     deployment.get("ConverterRegistry"),
   ]);
+  */
 
   await deployment.contractDeploy("MultiPathConverter", "MultiPathConverter", "MultiPathConverter", [
     deployment.get("GeneralTokenConverter"),
@@ -60,6 +62,7 @@ export async function initialize(
   const converter = await ethers.getContractAt("GeneralTokenConverter", deployment.GeneralTokenConverter, deployer);
 
   for (let i = 0; i < 10; i++) {
+    if ([1].includes(i)) continue;
     if ((await registry.getConverter(i)) !== deployment.GeneralTokenConverter) {
       await ownerContractCall(
         registry as unknown as Contract,
@@ -125,7 +128,7 @@ export async function initialize(
       );
     }
   }
-  // setup WETHConverter
+  /* setup WETHConverter
   if ((await registry.getConverter(14)) !== deployment.WETHConverter) {
     await ownerContractCall(
       registry,
@@ -135,4 +138,5 @@ export async function initialize(
       overrides
     );
   }
+  */
 }

@@ -9,8 +9,8 @@ import * as ConcentratorFxUSD from "@/contracts/ConcentratorFxUSD";
 import * as ConcentratorStakeDAO from "@/contracts/ConcentratorStakeDAO";
 import { showConverterRoute } from "../utils";
 
-const maxFeePerGas = 50e9;
-const maxPriorityFeePerGas = 0.1e9;
+const maxFeePerGas = 10e9;
+const maxPriorityFeePerGas = 0.01e9;
 
 async function main() {
   const overrides = {
