@@ -70,6 +70,9 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
   /// @dev Thrown when the pool is not supported.
   error ErrorUnsupportedPoolType();
 
+  /// @dev Thrown when update some parameters to the same value.
+  error ErrorParameterUnchanged();
+
   /*************
    * Variables *
    *************/
@@ -129,6 +132,10 @@ contract SpotPriceOracle is Ownable2Step, ISpotPriceOracle {
   /// @param newReader The address of the new reader.
   function updateReader(uint256 poolType, address newReader) external onlyOwner {
     address oldReader = readers[poolType];
+    if (oldReader == newReader) {
+      revert ErrorParameterUnchanged();
+    }
+
     readers[poolType] = newReader;
 
     emit UpdateReader(poolType, oldReader, newReader);

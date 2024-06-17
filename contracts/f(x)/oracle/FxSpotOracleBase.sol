@@ -15,6 +15,9 @@ abstract contract FxSpotOracleBase is Ownable2Step {
   /// @dev Thrown when the given encodings are invalid.
   error ErrorInvalidEncodings();
 
+  /// @dev Thrown when update some parameters to the same value.
+  error ErrorParameterUnchanged();
+
   /*************
    * Constants *
    *************/
