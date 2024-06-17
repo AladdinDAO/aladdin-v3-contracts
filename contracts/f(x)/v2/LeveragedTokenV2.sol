@@ -50,6 +50,13 @@ contract LeveragedTokenV2 is ERC20PermitUpgradeable, AccessControlUpgradeable, I
   /// @dev The maximum value of `coolingOffPeriod`.
   uint256 private constant MAX_COOLING_OFF_PERIOD = 1 days;
 
+  /// @notice The role for third party minter, such as CoW Swap, 1inch.
+  bytes32 public constant THIRD_PARTY_MINTER_ROLE = keccak256("THIRD_PARTY_MINTER_ROLE");
+
+  /*************
+   * Variables *
+   *************/
+
   /// @notice The minimum hold seconds after minting.
   uint256 public coolingOffPeriod;
 
@@ -155,7 +162,14 @@ contract LeveragedTokenV2 is ERC20PermitUpgradeable, AccessControlUpgradeable, I
     address to,
     uint256 /*amount*/
   ) internal virtual override {
+    // when mint to third-party minter, we don't add `CoolingOffPeriod` check.
+    // when transfer from third-party minter, we apply `mintAt`.
+    // otherwise, we do `CoolingOffPeriod` check.
     if (from == address(0)) {
+      if (!hasRole(THIRD_PARTY_MINTER_ROLE, to)) {
+        mintAt[to] = block.timestamp;
+      }
+    } else if (hasRole(THIRD_PARTY_MINTER_ROLE, from)) {
       mintAt[to] = block.timestamp;
     } else if (block.timestamp - mintAt[from] < coolingOffPeriod) {
       revert ErrorTransferBeforeCoolingOffPeriod();
