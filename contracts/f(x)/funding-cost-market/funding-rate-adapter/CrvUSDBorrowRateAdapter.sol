@@ -87,7 +87,7 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
    ************************/
 
   /// @notice Internal function update the funding cost scale.
-  /// @param _newScale The value of new funding rate scale, multipled by 1e18.
+  /// @param _newScale The value of new funding rate scale, multiplied by 1e18.
   function updateFundingCostScale(uint256 _newScale) external onlyRole(DEFAULT_ADMIN_ROLE) {
     _updateFundingCostScale(_newScale);
   }
@@ -109,7 +109,7 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
   }
 
   /// @dev Internal function update the funding cost scale.
-  /// @param _newScale The value of new funding rate scale, multipled by 1e18.
+  /// @param _newScale The value of new funding rate scale, multiplied by 1e18.
   function _updateFundingCostScale(uint256 _newScale) internal {
     uint256 _oldScale = fundingCostScale;
     fundingCostScale = _newScale;
