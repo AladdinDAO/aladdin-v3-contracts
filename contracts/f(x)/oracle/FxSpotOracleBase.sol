@@ -53,6 +53,7 @@ abstract contract FxSpotOracleBase is Ownable2Step {
       heartbeat := and(encoding, 0xffffffff)
     }
     (, int256 answer, , uint256 updatedAt, ) = AggregatorV3Interface(aggregator).latestRoundData();
+    if (answer < 0) revert("invalid");
     if (block.timestamp - updatedAt > heartbeat) revert("expired");
     return uint256(answer) * scale;
   }
