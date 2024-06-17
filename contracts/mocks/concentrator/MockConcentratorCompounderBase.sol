@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.8.20;
+pragma solidity ^0.8.20;
 
 import { LinearRewardDistributor } from "../../common/rewards/distributor/LinearRewardDistributor.sol";
 import { ConcentratorCompounderBase } from "../../concentrator/ConcentratorCompounderBase.sol";

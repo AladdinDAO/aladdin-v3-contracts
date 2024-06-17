@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.8.20;
+pragma solidity ^0.8.20;
 
 import { ICrvUSDAmm } from "../interfaces/curve/ICrvUSDAmm.sol";
 import { IFxPriceOracle } from "../interfaces/f(x)/IFxPriceOracle.sol";

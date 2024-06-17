@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.8.20;
+pragma solidity ^0.8.20;
 
 import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol";
 import { EnumerableSet } from "@openzeppelin/contracts-v4/utils/structs/EnumerableSet.sol";

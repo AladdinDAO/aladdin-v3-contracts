@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.8.20;
+pragma solidity ^0.8.20;
 
 import { IVotingEscrow } from "../interfaces/voting-escrow/IVotingEscrow.sol";
 import { IVotingEscrowHelper } from "../interfaces/voting-escrow/IVotingEscrowHelper.sol";
