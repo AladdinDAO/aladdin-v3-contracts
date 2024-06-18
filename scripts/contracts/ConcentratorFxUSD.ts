@@ -158,11 +158,19 @@ export async function initialize(
   deployment: ConcentratorFxUSDDeployment,
   overrides?: Overrides
 ): Promise<void> {
-  // const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
   const caller = new ContractCallHelper(deployer, overrides);
 
   const afxUSD = await caller.contract<FxUSDCompounder>("FxUSDCompounder", deployment.FxUSDCompounder.proxy.afxUSD);
   const arUSD = await caller.contract<FxUSDCompounder>("FxUSDCompounder", deployment.FxUSDCompounder.proxy.arUSD);
+  const afxUSD4626 = await caller.contract<FxUSDCompounder>(
+    "FxUSDCompounder4626",
+    deployment.FxUSDCompounder4626.proxy.afxUSD
+  );
+  const arUSD4626 = await caller.contract<FxUSDCompounder>(
+    "FxUSDCompounder4626",
+    deployment.FxUSDCompounder4626.proxy.arUSD
+  );
 
   await setupFxUSDCompounder(caller, afxUSD, CONVERTER_ROUTES.FXN.wstETH);
   await setupFxUSDCompounder(caller, arUSD, CONVERTER_ROUTES.FXN.weETH);
@@ -181,4 +189,16 @@ export async function initialize(
     deployment.FxUSDCompounder.implementation
   );
   */
+  await caller.upgrade(
+    admin.Concentrator,
+    "afxUSD4626 upgrade",
+    await afxUSD4626.getAddress(),
+    deployment.FxUSDCompounder4626.implementation
+  );
+  await caller.upgrade(
+    admin.Concentrator,
+    "arUSD4626 upgrade",
+    await arUSD4626.getAddress(),
+    deployment.FxUSDCompounder4626.implementation
+  );
 }
