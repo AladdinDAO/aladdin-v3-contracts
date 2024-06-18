@@ -1,0 +1,16 @@
+{
+  "FxUSDCompounder": {
+    "implementation": "0xcbFC063185e2ceffAcbD050976479EfD53f5fe76",
+    "proxy": {
+      "afxUSD": "0xdcB9a696419B54851307FFC62c8c4E50dDaCfBB0",
+      "arUSD": "0x549716F858aefF9CB845d4C78c67A7599B0Df240"
+    }
+  },
+  "FxUSDCompounder4626": {
+    "implementation": "0xa1013D9ec8073d51FeE9Ea35B3225d0eBc2b47D7",
+    "proxy": {
+      "afxUSD": "0xe7F847C62025eD672CFc57c244D16F76f8Eac66d",
+      "arUSD": "0x07D1718fF05a8C53C8F05aDAEd57C0d672945f9a"
+    }
+  }
+}

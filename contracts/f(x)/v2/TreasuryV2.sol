@@ -82,7 +82,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
    *************/
 
   /// @notice The address of price oracle contract.
-  address public priceOracle;
+  address public override priceOracle;
 
   /// @inheritdoc IFxTreasuryV2
   uint256 public override referenceBaseTokenPrice;

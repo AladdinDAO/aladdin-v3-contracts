@@ -33,7 +33,7 @@ contract FxUSDFacet {
     payable
     returns (uint256 _baseOut)
   {
-    LibGatewayRouter.ensureWhitelised(_vault, LibGatewayRouter.WhitelistKind.FxInitialFundVault);
+    LibGatewayRouter.ensureWhitelisted(_vault, LibGatewayRouter.WhitelistKind.FxInitialFundVault);
 
     address _baseToken = FxInitialFund(_vault).baseToken();
     _baseOut = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
@@ -51,7 +51,7 @@ contract FxUSDFacet {
     address _market,
     uint256 _minFTokenMinted
   ) external payable returns (uint256 _fTokenMinted) {
-    LibGatewayRouter.ensureWhitelised(_market, LibGatewayRouter.WhitelistKind.FxMarket);
+    LibGatewayRouter.ensureWhitelisted(_market, LibGatewayRouter.WhitelistKind.FxMarket);
 
     address _baseToken = IFxMarketV2(_market).baseToken();
     uint256 _amount = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
@@ -71,7 +71,7 @@ contract FxUSDFacet {
     address _market,
     uint256 _minXTokenMinted
   ) external payable returns (uint256 _xTokenMinted, uint256 _bonusOut) {
-    LibGatewayRouter.ensureWhitelised(_market, LibGatewayRouter.WhitelistKind.FxMarket);
+    LibGatewayRouter.ensureWhitelisted(_market, LibGatewayRouter.WhitelistKind.FxMarket);
 
     address _baseToken = IFxMarketV2(_market).baseToken();
     uint256 _amount = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
@@ -101,7 +101,7 @@ contract FxUSDFacet {
       uint256 _bonusOut
     )
   {
-    LibGatewayRouter.ensureWhitelised(_market, LibGatewayRouter.WhitelistKind.FxMarket);
+    LibGatewayRouter.ensureWhitelisted(_market, LibGatewayRouter.WhitelistKind.FxMarket);
 
     address _fToken = IFxMarketV2(_market).fToken();
     address _baseToken = IFxMarketV2(_market).baseToken();
@@ -125,7 +125,7 @@ contract FxUSDFacet {
     uint256 _xTokenIn,
     uint256 _minBaseToken
   ) external returns (uint256 _baseOut, uint256 _dstOut) {
-    LibGatewayRouter.ensureWhitelised(_market, LibGatewayRouter.WhitelistKind.FxMarket);
+    LibGatewayRouter.ensureWhitelisted(_market, LibGatewayRouter.WhitelistKind.FxMarket);
 
     address _xToken = IFxMarketV2(_market).xToken();
     address _baseToken = IFxMarketV2(_market).baseToken();
@@ -149,7 +149,7 @@ contract FxUSDFacet {
     bool _fTokenForXToken,
     uint256 _minOut
   ) external returns (uint256 _amountOut, uint256 _bonusOut) {
-    LibGatewayRouter.ensureWhitelised(_market, LibGatewayRouter.WhitelistKind.FxMarket);
+    LibGatewayRouter.ensureWhitelisted(_market, LibGatewayRouter.WhitelistKind.FxMarket);
 
     address _fToken = IFxMarketV2(_market).fToken();
     address _xToken = IFxMarketV2(_market).xToken();
@@ -187,7 +187,7 @@ contract FxUSDFacet {
     bool _fxUSDForXToken,
     uint256 _minOut
   ) external returns (uint256 _amountOut, uint256 _bonusOut) {
-    LibGatewayRouter.ensureWhitelised(_market, LibGatewayRouter.WhitelistKind.FxMarket);
+    LibGatewayRouter.ensureWhitelisted(_market, LibGatewayRouter.WhitelistKind.FxMarket);
 
     address fxUSD = IFxMarketV2(_market).fxUSD();
     address _xToken = IFxMarketV2(_market).xToken();
@@ -222,7 +222,7 @@ contract FxUSDFacet {
     address _baseToken,
     uint256 _minFxUSDMinted
   ) external payable returns (uint256 _fxUSDMinted) {
-    LibGatewayRouter.ensureWhitelised(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
+    LibGatewayRouter.ensureWhitelisted(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
 
     uint256 _amount = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
     LibGatewayRouter.approve(_baseToken, _fxUSD, _amount);
@@ -242,7 +242,7 @@ contract FxUSDFacet {
     address _pool,
     uint256 _minFxUSDMinted
   ) external payable returns (uint256 _fxUSDMinted) {
-    LibGatewayRouter.ensureWhitelised(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
+    LibGatewayRouter.ensureWhitelisted(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
 
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     uint256 _amount = LibGatewayRouter.transferInAndConvert(_params, _baseToken);
@@ -261,7 +261,7 @@ contract FxUSDFacet {
     address _pool,
     uint256 _amountIn
   ) external payable returns (uint256 _amountOut) {
-    LibGatewayRouter.ensureWhitelised(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
+    LibGatewayRouter.ensureWhitelisted(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
 
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     address _fToken = IFxShareableRebalancePool(_pool).asset();
@@ -279,7 +279,7 @@ contract FxUSDFacet {
     address _pool,
     uint256 _amountIn
   ) external payable returns (uint256 _amountOut) {
-    LibGatewayRouter.ensureWhitelised(_pool, LibGatewayRouter.WhitelistKind.FxRebalancePool);
+    LibGatewayRouter.ensureWhitelisted(_pool, LibGatewayRouter.WhitelistKind.FxRebalancePool);
 
     address _baseToken = IFxShareableRebalancePool(_pool).baseToken();
     address _fToken = IFxShareableRebalancePool(_pool).asset();
@@ -316,7 +316,7 @@ contract FxUSDFacet {
       uint256 _bonusOut
     )
   {
-    LibGatewayRouter.ensureWhitelised(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
+    LibGatewayRouter.ensureWhitelisted(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
 
     _fxUSDIn = LibGatewayRouter.transferTokenIn(_fxUSD, address(this), _fxUSDIn);
     (_baseOut, _bonusOut) = IFxUSD(_fxUSD).redeem(_baseToken, _fxUSDIn, address(this), _minBaseToken);
@@ -348,7 +348,7 @@ contract FxUSDFacet {
       uint256 _dstOut
     )
   {
-    LibGatewayRouter.ensureWhitelised(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
+    LibGatewayRouter.ensureWhitelisted(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
 
     _fxUSDIn = LibGatewayRouter.transferTokenIn(_fxUSD, address(this), _fxUSDIn);
     address[] memory _baseTokens;
@@ -382,7 +382,7 @@ contract FxUSDFacet {
     address _baseTokenOut,
     uint256 _minOut
   ) external returns (uint256 _amountOut, uint256 _bonusOut) {
-    LibGatewayRouter.ensureWhitelised(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
+    LibGatewayRouter.ensureWhitelisted(_fxUSD, LibGatewayRouter.WhitelistKind.FxUSD);
 
     _amountIn = LibGatewayRouter.transferTokenIn(_baseTokenIn, address(this), _amountIn);
     LibGatewayRouter.approve(_baseTokenIn, _fxUSD, _amountIn);
