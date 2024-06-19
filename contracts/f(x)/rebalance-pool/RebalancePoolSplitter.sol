@@ -3,12 +3,17 @@
 pragma solidity =0.8.20;
 
 import { Ownable2Step } from "@openzeppelin/contracts-v4/access/Ownable2Step.sol";
-import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts-v4/interfaces/IERC20.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts-v4/interfaces/IERC20Metadata.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 import { EnumerableSet } from "@openzeppelin/contracts-v4/utils/structs/EnumerableSet.sol";
 
 import { IFxRebalancePool } from "../../interfaces/f(x)/IFxRebalancePool.sol";
 import { IFxRebalancePoolSplitter } from "../../interfaces/f(x)/IFxRebalancePoolSplitter.sol";
+
+interface IRewardTokenWrapper {
+  function mint(address to, uint256 amount) external;
+}
 
 contract RebalancePoolSplitter is Ownable2Step, IFxRebalancePoolSplitter {
   using SafeERC20 for IERC20;
@@ -24,7 +29,7 @@ contract RebalancePoolSplitter is Ownable2Step, IFxRebalancePoolSplitter {
   /// @dev Thrown when add an already added receiver.
   error ErrorReceiverAlreadyAdded();
 
-  /// @dev Thrown when remove an unkown receiver.
+  /// @dev Thrown when remove an unknown receiver.
   error ErrorUnknownReceiver();
 
   /// @dev Thrown when try to withdraw protected token.
@@ -61,6 +66,9 @@ contract RebalancePoolSplitter is Ownable2Step, IFxRebalancePoolSplitter {
   /// The ratio of the `i`-th receiver is encoded in bits `[i * 32, i * 32 + 32)`.
   mapping(address => uint256) private ratioEncoding;
 
+  /// @notice Mapping from reward token address to reward token wrapper.
+  mapping(address => address) public tokenWrapper;
+
   /*************************
    * Public View Functions *
    *************************/
@@ -96,6 +104,15 @@ contract RebalancePoolSplitter is Ownable2Step, IFxRebalancePoolSplitter {
     uint256 _balance = IERC20(_token).balanceOf(address(this));
     EnumerableSet.AddressSet storage _receivers = receivers[_token];
     uint256 _encoding = ratioEncoding[_token];
+    uint256 decimals = IERC20Metadata(_token).decimals();
+    if (decimals < 18) {
+      address wrapper = tokenWrapper[_token];
+      IERC20(_token).safeApprove(wrapper, 0);
+      IERC20(_token).safeApprove(wrapper, _balance);
+      IRewardTokenWrapper(wrapper).mint(address(this), _balance);
+      _token = wrapper;
+      _balance *= 10**(18 - decimals);
+    }
 
     uint256 _length = _receivers.length();
     for (uint256 i = 0; i < _length; i++) {
@@ -125,6 +142,16 @@ contract RebalancePoolSplitter is Ownable2Step, IFxRebalancePoolSplitter {
     emit UpdateSplitter(_token, _oldSplitter, _newSplitter);
   }
 
+  /// @notice Update the reward token wrapper.
+  /// @param _token The address of token.
+  /// @param _newWrapper The address of reward token wrapper.
+  function updateTokenWrapper(address _token, address _newWrapper) external onlyOwner {
+    address _oldWrapper = tokenWrapper[_token];
+    tokenWrapper[_token] = _newWrapper;
+
+    emit UpdateTokenWrapper(_token, _oldWrapper, _newWrapper);
+  }
+
   /// @notice Add a receiver to the list.
   /// @param _token The address of token.
   /// @param _receiver The address of receiver to add.
@@ -142,7 +169,7 @@ contract RebalancePoolSplitter is Ownable2Step, IFxRebalancePoolSplitter {
     _updateSplitRatios(_token, _ratios);
   }
 
-  /// @notice Remove an exsiting receiver.
+  /// @notice Remove an existing receiver.
   /// @param _token The address of token.
   /// @param _receiver The address of receiver to remove.
   /// @param _ratios The new split ratio list.

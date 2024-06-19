@@ -13,12 +13,18 @@ interface IFxRebalancePoolSplitter {
   /// @param newSplitter The address of current token splitter.
   event UpdateSplitter(address indexed token, address indexed oldSplitter, address indexed newSplitter);
 
+  /// @notice Emitted when the address of token wrapper is updated.
+  /// @param token The address of the token.
+  /// @param oldWrapper The address of previous token wrapper.
+  /// @param newWrapper The address of current token wrapper.
+  event UpdateTokenWrapper(address indexed token, address indexed oldWrapper, address indexed newWrapper);
+
   /// @notice Emitted when a new receiver is added.
   /// @param token The address of the token.
   /// @param receiver The address of the receiver.
   event RegisterReceiver(address indexed token, address indexed receiver);
 
-  /// @notice Emitted when an exsited receiver is removed.
+  /// @notice Emitted when an existed receiver is removed.
   /// @param token The address of the token.
   /// @param receiver The address of the receiver.
   event DeregisterReceiver(address indexed token, address indexed receiver);
