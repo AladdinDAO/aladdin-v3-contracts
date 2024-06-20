@@ -307,7 +307,7 @@ export const MarketConfig: {
       RebalancePoolRatio: ethers.parseUnits("0.666666666", 9), // 50%,
     },
     Market: {
-      FractionalMintFeeRatio: { default: ethers.parseEther("0.0025"), delta: 0n }, // 0.25% and 0%
+      FractionalMintFeeRatio: { default: ethers.parseEther("0"), delta: 0n }, // 0.25% and 0%
       LeveragedMintFeeRatio: { default: ethers.parseEther("0"), delta: -ethers.parseEther("0") }, // 0.25% and -0.25%
       FractionalRedeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and -0.25%
       LeveragedRedeemFeeRatio: { default: ethers.parseEther("0.02"), delta: ethers.parseEther("0.07") }, // 2% and 7%
@@ -378,6 +378,10 @@ export interface FxUSDDeployment {
   FxUSDRebalancer: string;
   FxUSDShareableRebalancePool: string;
   ShareableRebalancePoolV2: string;
+  Implementation: {
+    RewardTokenWrapper: string;
+  };
+  RewardTokenWrapper: string;
   Markets: {
     [baseToken: string]: {
       FractionalToken: {
@@ -398,7 +402,8 @@ export interface FxUSDDeployment {
       };
       FxInitialFund: string;
       RebalancePoolRegistry: string;
-      RebalancePoolSplitter: string;
+      RewardTokenWrapper?: string;
+      RebalancePoolSplitter: { [symbol: string]: string };
       RebalancePoolGauge: string;
       RebalancePoolGaugeClaimer: string;
       RebalancePool: {

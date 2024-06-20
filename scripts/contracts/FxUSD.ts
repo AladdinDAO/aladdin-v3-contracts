@@ -37,6 +37,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     governance.TokenMinter,
   ]);
   */
+  await deployment.contractDeploy("Implementation.RewardTokenWrapper", "RewardTokenWrapper", "RewardTokenWrapper", []);
 
   // deploy fxUSD
   await deployment.contractDeploy("FxUSD.implementation", "FxUSD implementation", "FxUSD", []);
