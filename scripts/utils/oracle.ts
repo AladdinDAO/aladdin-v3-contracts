@@ -5,6 +5,8 @@ import { TOKENS } from "./tokens";
 /* eslint-disable prettier/prettier */
 // prettier-ignore
 export const SpotPricePool: { [name: string]: bigint } = {
+  "CVX/WETH-CrvCrypto": encodeSpotPricePool(ADDRESS.CURVE_CVXETH_POOL, SpotPricePoolType.CurveCrypto, {base_index: 1}),
+  "CVX/frxETH-CrvCrypto-234": encodeSpotPricePool(ADDRESS["CURVE_frxETH/CVX_POOL"], SpotPricePoolType.CurveCrypto, {base_index: 1}),
   "WBTC/USDC-CrvTriCrypto-0": encodeSpotPricePool(ADDRESS["CURVE_TRICRYPTO_USDC/WBTC/WETH_0_POOL"], SpotPricePoolType.CurveTriCrypto, {base_index: 1, quote_index: 0}),
   "WBTC/USDC-UniV3-0.3%": encodeSpotPricePool(ADDRESS["UniV3_WBTC/USDC_3000"], SpotPricePoolType.UniswapV3, {base_index: 0, base_scale: 10, quote_scale: 12}),
   "WBTC/WETH-UniV3-0.3%": encodeSpotPricePool(ADDRESS["UniV3_WBTC/WETH_3000"], SpotPricePoolType.UniswapV3, {base_index: 0, base_scale: 10, quote_scale: 0}),
@@ -32,6 +34,10 @@ export const SpotPricePool: { [name: string]: bigint } = {
 
 // prettier-ignore
 export const SpotPriceEncodings: { [pair: string]: string } = {
+  "CVX/WETH": encodeSpotPriceSources([
+    [SpotPricePool["CVX/WETH-CrvCrypto"]],
+    [SpotPricePool["CVX/frxETH-CrvCrypto-234"], SpotPricePool["frxETH/WETH-CrvCrvUSD-15"]]
+  ]),
   "WBTC/USDC": encodeSpotPriceSources([
     [SpotPricePool["WBTC/WETH-UniV3-0.3%"], SpotPricePool["WETH/USDC-UniV3-0.05%"]],
     [SpotPricePool["WBTC/USDC-CrvTriCrypto-0"]],
