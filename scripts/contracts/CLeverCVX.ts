@@ -3,12 +3,13 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
 import { network } from "hardhat";
 
-import { CLeverCVXLocker__factory, Furnace__factory } from "@/types/index";
+import { CLeverCVXLocker, CLeverCVXLocker__factory, Furnace__factory } from "@/types/index";
 import { selectDeployments } from "@/utils/index";
 
 import { ContractCallHelper, DeploymentHelper } from "./helpers";
 import { MultisigDeployment } from "./Multisig";
 import { ProxyAdminDeployment } from "./ProxyAdmin";
+import { ConverterDeployment } from "./Converter";
 
 export interface CLeverCVXDeployment {
   clevCVX: string;
@@ -77,9 +78,23 @@ export async function initialize(
 ) {
   const caller = new ContractCallHelper(deployer, overrides);
   const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
+  const converter = selectDeployments(network.name, "Converter").toObject() as ConverterDeployment;
 
-  caller.upgrade(admin.CLever, "CLeverCVXLocker", deployment.CVXLocker.proxy, deployment.CVXLocker.implementation);
-  caller.upgrade(admin.CLever, "Furnace", deployment.Furnace.proxy, deployment.Furnace.implementation);
+  await caller.upgrade(
+    admin.CLever,
+    "CLeverCVXLocker",
+    deployment.CVXLocker.proxy,
+    deployment.CVXLocker.implementation
+  );
+  await caller.upgrade(admin.CLever, "Furnace", deployment.Furnace.proxy, deployment.Furnace.implementation);
+
+  const locker = await caller.contract<CLeverCVXLocker>("CLeverCVXLocker", deployment.CVXLocker.proxy);
+  if (!(await locker.approvedTargets(converter.MultiPathConverter))) {
+    await caller.ownerCall(locker, "CLeverCVXLocker updateApprovedTargets", "updateApprovedTargets", [
+      [converter.MultiPathConverter],
+      true,
+    ]);
+  }
 }
 
 export async function deployVoter(
