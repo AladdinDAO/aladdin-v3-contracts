@@ -51,6 +51,7 @@ async function getSwapData(
   // prettier-ignore
   const routes: {[name: string]: bigint} = {
     "sdCRV-CRV-Curve": encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+    "CRV-WETH-Sushi": encodePoolHintV3(ADDRESS["Sushi_WETH/CRV"], PoolTypeV3.UniswapV2, 2, 1, 0, Action.Swap, { fee_num: 997000 }),
     "CRV-WETH-UniV3": encodePoolHintV3(ADDRESS["UniV3_WETH/CRV_3000"], PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {fee_num: 3000}),
     "CRV-crvUSD-Curve3Crypto": encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap),
     "CRV-WETH-Curve3Crypto": encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
@@ -69,11 +70,11 @@ async function getSwapData(
       const encoding = encodeMultiPath(
         [
           // [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-UniV3"], routes["WETH-SDT-PancakeV3"]],
-          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Curve3Crypto"], routes["WETH-SDT-UniV2"]],
+          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Sushi"], routes["WETH-SDT-UniV2"]],
           [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Curve3Crypto"], routes["WETH-SDT-Curve2Crypto"]],
           // [routes["sdCRV-CRV-Curve"], routes["CRV-crvUSD-Curve3Crypto"], routes["crvUSD-SDT-Curve3Crypto"]],
         ],
-        [0n, 0n]
+        [18n, 82n]
       );
       return {
         target: await converter.getAddress(),

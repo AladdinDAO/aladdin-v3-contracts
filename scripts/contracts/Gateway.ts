@@ -9,6 +9,7 @@ import {
   DiamondLoupeFacet,
   DiamondLoupeFacet__factory,
   FxMarketV1Facet__factory,
+  FxUSDCompounderHarvestFacet__factory,
   FxUSDFacet__factory,
   IDiamond,
   OwnershipFacet__factory,
@@ -86,8 +87,22 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   return deployment.toObject() as GatewayDeployment;
 }
 
-export async function initialize(deployer: HardhatEthersSigner, deployment: GatewayDeployment, overrides?: Overrides) {
-  const caller = new ContractCallHelper(deployer, overrides);
+async function initializeConcentratorHarvester(caller: ContractCallHelper, deployment: GatewayDeployment) {
+  const cutFacet = (await caller.contract("DiamondCutFacet", deployment.ConcentratorHarvester)) as DiamondCutFacet;
+  const facets = selectDeployments(network.name, "ERC2535").toObject() as ERC2535.ERC2535Deployment;
+  const cuts: IDiamond.FacetCutStruct[] = [];
+  cuts.push({
+    facetAddress: facets.FxUSDCompounderHarvestFacet,
+    action: 0,
+    functionSelectors: getAllSignatures(FxUSDCompounderHarvestFacet__factory.createInterface()),
+  });
+  if (cuts[0].functionSelectors.length > 0) {
+    await caller.ownerCall(cutFacet, "ConcentratorHarvester diamondCut", "diamondCut", [cuts, ZeroAddress, "0x"]);
+  }
+}
+
+// eslint-disable-next-line no-unused-vars
+async function initializeGatewayRouter(caller: ContractCallHelper, deployment: GatewayDeployment) {
   const facets = selectDeployments(network.name, "ERC2535").toObject() as ERC2535.ERC2535Deployment;
   const fxusd = selectDeployments(network.name, "Fx.FxUSD").toObject() as FxUSDDeployment;
 
@@ -95,15 +110,32 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
   const loupeFacet = (await caller.contract("DiamondLoupeFacet", deployment.GatewayRouter)) as DiamondLoupeFacet;
   const cutFacet = (await caller.contract("DiamondCutFacet", deployment.GatewayRouter)) as DiamondCutFacet;
   const cuts: IDiamond.FacetCutStruct[] = [];
+  /*
+    cuts.push({
+      facetAddress: ZeroAddress,
+      action: 2,
+      functionSelectors: await loupeFacet.facetFunctionSelectors("0x5fd37C3b46d05859B333D6E418ce7d6d405c20b6"),
+    });
+    cuts.push({
+      facetAddress: ZeroAddress,
+      action: 2,
+      functionSelectors: await loupeFacet.facetFunctionSelectors("0x2eD6624Cc9E6200c2a60631f8cEb69FbAFbE3733"),
+    });
+    cuts.push({
+      facetAddress: facets.TokenConvertManagementFacet,
+      action: 0,
+      functionSelectors: getAllSignatures(TokenConvertManagementFacet__factory.createInterface()),
+    });
+    cuts.push({
+      facetAddress: facets.FxUSDFacet,
+      action: 0,
+      functionSelectors: getAllSignatures(FxUSDFacet__factory.createInterface()),
+    });
+    */
   cuts.push({
     facetAddress: ZeroAddress,
     action: 2,
     functionSelectors: await loupeFacet.facetFunctionSelectors("0x5fd37C3b46d05859B333D6E418ce7d6d405c20b6"),
-  });
-  cuts.push({
-    facetAddress: ZeroAddress,
-    action: 2,
-    functionSelectors: await loupeFacet.facetFunctionSelectors("0x2eD6624Cc9E6200c2a60631f8cEb69FbAFbE3733"),
   });
   cuts.push({
     facetAddress: facets.TokenConvertManagementFacet,
@@ -111,9 +143,9 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
     functionSelectors: getAllSignatures(TokenConvertManagementFacet__factory.createInterface()),
   });
   cuts.push({
-    facetAddress: facets.FxUSDFacet,
+    facetAddress: facets.FxUSDCompounderHarvestFacet,
     action: 0,
-    functionSelectors: getAllSignatures(FxUSDFacet__factory.createInterface()),
+    functionSelectors: getAllSignatures(FxUSDCompounderHarvestFacet__factory.createInterface()),
   });
   if (cuts[0].functionSelectors.length > 0) {
     await caller.ownerCall(cutFacet, "GatewayRouter diamondCut", "diamondCut", [cuts, ZeroAddress, "0x"]);
@@ -199,4 +231,11 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
   ]) {
     await caller.grantRole(pool, name + " WITHDRAW_FROM_ROLE", WITHDRAW_FROM_ROLE, deployment.GatewayRouter);
   }
+}
+
+export async function initialize(deployer: HardhatEthersSigner, deployment: GatewayDeployment, overrides?: Overrides) {
+  const caller = new ContractCallHelper(deployer, overrides);
+
+  await initializeConcentratorHarvester(caller, deployment);
+  // await initializeGatewayRouter(caller, deployment);
 }

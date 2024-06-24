@@ -143,7 +143,7 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
   }
 
   /// @notice Update the fee ratio distributed to treasury.
-  /// @param _newRatio The new ratio to update, multipled by 1e9.
+  /// @param _newRatio The new ratio to update, multiplied by 1e9.
   function updateExpenseRatio(uint32 _newRatio) external onlyRole(DEFAULT_ADMIN_ROLE) {
     if (uint256(_newRatio) > MAX_EXPENSE_RATIO) {
       revert ExpenseRatioTooLarge();
@@ -157,7 +157,7 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
   }
 
   /// @notice Update the fee ratio distributed to harvester.
-  /// @param _newRatio The new ratio to update, multipled by 1e9.
+  /// @param _newRatio The new ratio to update, multiplied by 1e9.
   function updateHarvesterRatio(uint32 _newRatio) external onlyRole(DEFAULT_ADMIN_ROLE) {
     if (uint256(_newRatio) > MAX_HARVESTER_RATIO) {
       revert HarvesterRatioTooLarge();
@@ -171,7 +171,7 @@ abstract contract ConcentratorBaseV2 is AccessControlUpgradeable, IConcentratorB
   }
 
   /// @notice Update the withdraw fee percentage
-  /// @param _newPercentage The new ratio to update, multipled by 1e9.
+  /// @param _newPercentage The new ratio to update, multiplied by 1e9.
   function updateWithdrawFeePercentage(uint32 _newPercentage) external onlyRole(DEFAULT_ADMIN_ROLE) {
     if (uint256(_newPercentage) > MAX_WITHDRAW_FEE_PERCENTAGE) {
       revert WithdrawFeePercentageTooLarge();

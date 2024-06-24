@@ -43,13 +43,13 @@ interface IFxTreasuryV2 {
   event Settle(uint256 oldPrice, uint256 newPrice);
 
   /// @notice Emitted when the ratio for rebalance pool is updated.
-  /// @param oldRatio The value of the previous ratio, multipled by 1e9.
-  /// @param newRatio The value of the current ratio, multipled by 1e9.
+  /// @param oldRatio The value of the previous ratio, multiplied by 1e9.
+  /// @param newRatio The value of the current ratio, multiplied by 1e9.
   event UpdateRebalancePoolRatio(uint256 oldRatio, uint256 newRatio);
 
   /// @notice Emitted when the ratio for harvester is updated.
-  /// @param oldRatio The value of the previous ratio, multipled by 1e9.
-  /// @param newRatio The value of the current ratio, multipled by 1e9.
+  /// @param oldRatio The value of the previous ratio, multiplied by 1e9.
+  /// @param newRatio The value of the current ratio, multiplied by 1e9.
   event UpdateHarvesterRatio(uint256 oldRatio, uint256 newRatio);
 
   /// @notice Emitted when someone harvest pending stETH rewards.
@@ -112,6 +112,9 @@ interface IFxTreasuryV2 {
    * Public View Functions *
    *************************/
 
+  /// @notice Return the address of price oracle contract.
+  function priceOracle() external view returns (address);
+
   /// @notice Return the address of base token.
   function baseToken() external view returns (address);
 
@@ -139,14 +142,14 @@ interface IFxTreasuryV2 {
   /// @notice Return the total amount of base token managed by strategy.
   function strategyUnderlying() external view returns (uint256);
 
-  /// @notice Return the current collateral ratio of fToken, multipled by 1e18.
+  /// @notice Return the current collateral ratio of fToken, multiplied by 1e18.
   function collateralRatio() external view returns (uint256);
 
   /// @notice Return whether the system is under collateral.
   function isUnderCollateral() external view returns (bool);
 
   /// @notice Compute the amount of base token needed to reach the new collateral ratio.
-  /// @param newCollateralRatio The target collateral ratio, multipled by 1e18.
+  /// @param newCollateralRatio The target collateral ratio, multiplied by 1e18.
   /// @return maxBaseIn The amount of underlying value of base token needed.
   /// @return maxFTokenMintable The amount of fToken can be minted.
   function maxMintableFToken(uint256 newCollateralRatio)
@@ -155,7 +158,7 @@ interface IFxTreasuryV2 {
     returns (uint256 maxBaseIn, uint256 maxFTokenMintable);
 
   /// @notice Compute the amount of base token needed to reach the new collateral ratio.
-  /// @param newCollateralRatio The target collateral ratio, multipled by 1e18.
+  /// @param newCollateralRatio The target collateral ratio, multiplied by 1e18.
   /// @return maxBaseIn The amount of underlying value of base token needed.
   /// @return maxXTokenMintable The amount of xToken can be minted.
   function maxMintableXToken(uint256 newCollateralRatio)
@@ -164,7 +167,7 @@ interface IFxTreasuryV2 {
     returns (uint256 maxBaseIn, uint256 maxXTokenMintable);
 
   /// @notice Compute the amount of fToken needed to reach the new collateral ratio.
-  /// @param newCollateralRatio The target collateral ratio, multipled by 1e18.
+  /// @param newCollateralRatio The target collateral ratio, multiplied by 1e18.
   /// @return maxBaseOut The amount of underlying value of base token redeemed.
   /// @return maxFTokenRedeemable The amount of fToken needed.
   function maxRedeemableFToken(uint256 newCollateralRatio)
@@ -173,7 +176,7 @@ interface IFxTreasuryV2 {
     returns (uint256 maxBaseOut, uint256 maxFTokenRedeemable);
 
   /// @notice Compute the amount of xToken needed to reach the new collateral ratio.
-  /// @param newCollateralRatio The target collateral ratio, multipled by 1e18.
+  /// @param newCollateralRatio The target collateral ratio, multiplied by 1e18.
   /// @return maxBaseOut The amount of underlying value of base token redeemed.
   /// @return maxXTokenRedeemable The amount of xToken needed.
   function maxRedeemableXToken(uint256 newCollateralRatio)
@@ -192,10 +195,10 @@ interface IFxTreasuryV2 {
   /// @param amount The wrapped token amount.
   function getUnderlyingValue(uint256 amount) external view returns (uint256);
 
-  /// @notice Return the fee ratio distributed to rebalance pool, multipled by 1e9.
+  /// @notice Return the fee ratio distributed to rebalance pool, multiplied by 1e9.
   function getRebalancePoolRatio() external view returns (uint256);
 
-  /// @notice Return the fee ratio distributed to harvester, multipled by 1e9.
+  /// @notice Return the fee ratio distributed to harvester, multiplied by 1e9.
   function getHarvesterRatio() external view returns (uint256);
 
   /****************************
@@ -218,7 +221,7 @@ interface IFxTreasuryV2 {
   /// @return xTokenOut The amount of xToken minted.
   function mintXToken(uint256 baseIn, address recipient) external returns (uint256 xTokenOut);
 
-  /// @notice Redeem fToken and xToken to base tokne.
+  /// @notice Redeem fToken and xToken to base token.
   /// @param fTokenIn The amount of fToken to redeem.
   /// @param xTokenIn The amount of xToken to redeem.
   /// @param owner The owner of the fToken or xToken.
