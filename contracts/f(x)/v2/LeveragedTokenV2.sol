@@ -31,6 +31,9 @@ contract LeveragedTokenV2 is ERC20PermitUpgradeable, AccessControlUpgradeable, I
   /// @dev Thrown when the updated `coolingOffPeriod` is larger than `MAX_COOLING_OFF_PERIOD`.
   error ErrorCoolingOffPeriodTooLarge();
 
+  /// @dev Thrown when update some parameters to the same value.
+  error ErrorParameterUnchanged();
+
   /*************
    * Constants *
    *************/
@@ -137,6 +140,10 @@ contract LeveragedTokenV2 is ERC20PermitUpgradeable, AccessControlUpgradeable, I
       revert ErrorCoolingOffPeriodTooLarge();
     }
     uint256 oldCoolingOffPeriod = coolingOffPeriod;
+    if (_newCoolingOffPeriod == oldCoolingOffPeriod) {
+      revert ErrorParameterUnchanged();
+    }
+
     coolingOffPeriod = _newCoolingOffPeriod;
 
     emit UpdateCoolingOffPeriod(oldCoolingOffPeriod, _newCoolingOffPeriod);
