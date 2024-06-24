@@ -1,14 +1,15 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
-import { ethers, network } from "hardhat";
+import { network } from "hardhat";
 
-import { CLeverCVXLocker__factory, Furnace__factory } from "@/types/index";
+import { CLeverCVXLocker, CLeverCVXLocker__factory, Furnace__factory } from "@/types/index";
 import { selectDeployments } from "@/utils/index";
 
-import { DeploymentHelper, upgradeCall } from "./helpers";
-import * as Multisig from "./Multisig";
-import * as ProxyAdmin from "./ProxyAdmin";
+import { ContractCallHelper, DeploymentHelper } from "./helpers";
+import { MultisigDeployment } from "./Multisig";
+import { ProxyAdminDeployment } from "./ProxyAdmin";
+import { ConverterDeployment } from "./Converter";
 
 export interface CLeverCVXDeployment {
   clevCVX: string;
@@ -29,8 +30,8 @@ export interface CLeverCVXHermezDeployment {
 const CONVEX_VOTE_PLATFORM = "0x6D024Fa49dE64A975980Cddd4C3212492D189e57";
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<CLeverCVXDeployment> {
-  const multisig = Multisig.deploy(network.name);
-  const admin = await ProxyAdmin.deploy(deployer);
+  const multisig = selectDeployments(network.name, "Multisig").toObject() as MultisigDeployment;
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
   const deployment = new DeploymentHelper(network.name, "CLever.CVX", deployer, overrides);
 
   await deployment.contractDeploy("clevCVX", "clevCVX", "CLeverToken", ["CLever CVX", "clevCVX"]);
@@ -75,28 +76,36 @@ export async function initialize(
   deployment: CLeverCVXDeployment,
   overrides?: Overrides
 ) {
-  const admin = await ProxyAdmin.deploy(deployer);
-  const proxyAdmin = await ethers.getContractAt("ProxyAdmin", admin.CLever, deployer);
+  const caller = new ContractCallHelper(deployer, overrides);
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
+  const converter = selectDeployments(network.name, "Converter").toObject() as ConverterDeployment;
 
-  /* eslint-disable prettier/prettier */
-  // prettier-ignore
-  // eslint-disable-next-line no-lone-blocks
-  {
-  await upgradeCall(proxyAdmin, "CLeverCVXLocker", deployment.CVXLocker.proxy, deployment.CVXLocker.implementation, overrides);
-  await upgradeCall(proxyAdmin, "Furnace", deployment.Furnace.proxy, deployment.Furnace.implementation, overrides);
+  await caller.upgrade(
+    admin.CLever,
+    "CLeverCVXLocker",
+    deployment.CVXLocker.proxy,
+    deployment.CVXLocker.implementation
+  );
+  await caller.upgrade(admin.CLever, "Furnace", deployment.Furnace.proxy, deployment.Furnace.implementation);
+
+  const locker = await caller.contract<CLeverCVXLocker>("CLeverCVXLocker", deployment.CVXLocker.proxy);
+  if (!(await locker.approvedTargets(converter.MultiPathConverter))) {
+    await caller.ownerCall(locker, "CLeverCVXLocker updateApprovedTargets", "updateApprovedTargets", [
+      [converter.MultiPathConverter],
+      true,
+    ]);
   }
-  /* eslint-enable prettier/prettier */
 }
 
 export async function deployVoter(
   deployer: HardhatEthersSigner,
   overrides?: Overrides
 ): Promise<CLeverCVXHermezDeployment> {
-  const clevcvx = selectDeployments("mainnet", "CLever.CVX");
+  const clevcvx = selectDeployments("mainnet", "CLever.CVX").toObject() as CLeverCVXDeployment;
   const deployment = new DeploymentHelper(network.name, "vlCVX.Voter", deployer, overrides);
 
   await deployment.contractDeploy("ConvexHermezVoter", "ConvexHermezVoter", "ConvexHermezVoter", [
-    clevcvx.get("CVXLocker"),
+    clevcvx.CVXLocker.proxy,
     CONVEX_VOTE_PLATFORM,
   ]);
 
