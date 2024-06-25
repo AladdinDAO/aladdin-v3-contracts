@@ -80,8 +80,9 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   UZD: { decimals: 18, address: "0xb40b6608b2743e691c9b54ddbdee7bf03cd79f1c" },
   WBTC: { decimals: 8, address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599" },
   WETH: { decimals: 18, address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
-  ZETA: { decimals: 18, address: "0xf091867EC603A6628eD83D274E835539D82e9cc8" },
   YFI: { decimals: 18, address: "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e" },
+  ZETA: { decimals: 18, address: "0xf091867EC603A6628eD83D274E835539D82e9cc8" },
+  ZUN: { decimals: 18, address: "0x6b5204B0Be36771253Cc38e88012E02B752f0f36" },
   aCRV: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxCRV.aCRV },
   aCVX: { decimals: 18, address: "0xb0903Ab70a7467eE5756074b31ac88aEBb8fB777" },
   aFXS: { decimals: 18, address: DEPLOYED_CONTRACTS.Concentrator.cvxFXS.aFXS },
@@ -195,6 +196,8 @@ TOKENS["CURVE_CRYPTO_crvUSD/fETH_299"] = { decimals: 18, address: "0x19033d99A7b
 TOKENS["CURVE_CRYPTO_fETH/FRAXBP_301"] = { decimals: 18, address: "0x3d28f9192E34e51414e69FBEE5b11B35590FB9Fb" };
 TOKENS["CURVE_CRYPTO_ETH/xETH_302"] = { decimals: 18, address: "0x16eAd9a10b1A77007E6E329B076aD1Fe97a6F7C0" };
 TOKENS["CURVE_CRYPTO_ETH/FXN_311"] = { decimals: 18, address: "0xE06A65e09Ae18096B99770A809BA175FA05960e2" };
+// Curve TwoCrypto LP (including factory pools)
+TOKENS["CRV_2C_WETH/ZUN_22"] = { decimals: 18, address: "0x9dbcfc09e651c040ee68d6dbeb8a09f8dd0caa77" };
 // Curve TriCrypto LP (including factory pools)
 TOKENS["CURVE_TRICRYPTO_USDT/WBTC/ETH"] = { decimals: 18, address: "0xc4AD29ba4B3c580e6D59105FFf484999997675Ff" };
 TOKENS["CURVE_TRICRYPTO_USDC/WBTC/WETH_0"] = { decimals: 18, address: "0x7F86Bf177Dd4F3494b841a37e810A34dD56c829B" };

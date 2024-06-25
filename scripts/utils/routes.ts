@@ -176,7 +176,9 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.FXS_WETH_UNIV3_10000, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
       */
       encodePoolHintV2("0x03b59bd1c8b9f6c265ba0c3421923b93f15036fa", PoolType.UniswapV2, 2, 0, 1, Action.Swap),
-      encodePoolHintV2("0x31351Bf3fba544863FBff44DDC27bA880916A199", PoolType.UniswapV2, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      // encodePoolHintV2("0x31351Bf3fba544863FBff44DDC27bA880916A199", PoolType.UniswapV2, 2, 0, 1, Action.Swap),
     ],
     // FXS ==(UniV2)==> FRAX ==(Curve)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CRV
     CRV: [
@@ -383,6 +385,9 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.CURVE_USDD3CRV_POOL, PoolType.CurveFactoryUSDMetaPoolUnderlying, 4, 0, 2, Action.Swap),
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
     ],
+  },
+  ZUN: {
+    WETH: [encodePoolHintV2(ADDRESS["CRV_2C_WETH/ZUN_22_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap)],
   },
   eUSD: {
     // eUSD ==(Curve)==> USDC ==(UniV3)==> WETH ==(CurveV2)==> CVX
