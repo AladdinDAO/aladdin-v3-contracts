@@ -69,12 +69,13 @@ async function getSwapData(
     if (same(dst, TOKENS.SDT.address)) {
       const encoding = encodeMultiPath(
         [
-          // [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-UniV3"], routes["WETH-SDT-PancakeV3"]],
-          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Sushi"], routes["WETH-SDT-UniV2"]],
-          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Curve3Crypto"], routes["WETH-SDT-Curve2Crypto"]],
+          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-UniV3"], routes["WETH-SDT-Curve2Crypto"]],
+          // [routes["sdCRV-CRV-Curve"], routes["CRV-crvUSD-Curve3Crypto"], routes["crvUSD-SDT-Curve3Crypto"]],
+          // [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Sushi"], routes["WETH-SDT-UniV2"]],
+          // [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Curve3Crypto"], routes["WETH-SDT-Curve2Crypto"]],
           // [routes["sdCRV-CRV-Curve"], routes["CRV-crvUSD-Curve3Crypto"], routes["crvUSD-SDT-Curve3Crypto"]],
         ],
-        [18n, 82n]
+        [0n, 0n]
       );
       return {
         target: await converter.getAddress(),
@@ -232,7 +233,7 @@ async function main(round: string) {
         );
 
         console.log(`Burn token[${symbol}] address[${item.token}] to SDT/CRV`);
-        const minSDT = (amountSDT * 9990n) / 10000n;
+        const minSDT = (amountSDT * 9965n) / 10000n;
         const minCRV = (amountCRV * 9990n) / 10000n;
         const routeSDT = await getSwapData(item.token, TOKENS.SDT.address, boostFee, minSDT);
         const routeCRV = await getSwapData(item.token, TOKENS.CRV.address, amount - platformFee - boostFee, minCRV);
