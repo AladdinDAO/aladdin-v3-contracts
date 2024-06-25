@@ -54,6 +54,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   MULTI: { decimals: 18, address: "0x65Ef703f5594D2573eb71Aaf55BC0CB548492df4" },
   OGN: { decimals: 18, address: "0x8207c1FfC5B6804F6024322CcF34F29c3541Ae26" },
   OGV: { decimals: 18, address: "0x9c354503C38481a7A7a51629142963F98eCC12D0" },
+  PENDLE: { decimals: 18, address: "0x808507121B80c02388fAd14726482e061B8da827" },
   PRISMA: { decimals: 18, address: "0xdA47862a83dac0c112BA89c6abC2159b95afd71C" },
   PUSD: { decimals: 18, address: "0x466a756E9A7401B5e2444a3fCB3c2C12FBEa0a54" },
   PYUSD: { decimals: 6, address: "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8" },
@@ -137,6 +138,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   sdCRV: { decimals: 18, address: "0xD1b5651E55D4CeeD36251c61c50C889B36F6abB5" },
   sdFXN: { decimals: 18, address: "0xe19d1c837B8A1C83A56cD9165b2c0256D39653aD" },
   sdFXS: { decimals: 18, address: "0x402f878bdd1f5c66fdaf0fababcf74741b68ac36" },
+  sdPENDLE: { decimals: 18, address: "0x5Ea630e00D6eE438d3deA1556A110359ACdc10A9" },
   sdveCRV: { decimals: 18, address: "0x478bBC744811eE8310B461514BDc29D03739084D" },
   sfrxETH: { decimals: 18, address: "0xac3E018457B222d93114458476f3E3416Abbe38F" },
   stETH: { decimals: 18, address: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" },
@@ -165,6 +167,7 @@ TOKENS["CURVE_PLAIN_WETH/stETH_117"] = { decimals: 18, address: "0x828b154032950
 TOKENS["CRV_PLAIN_stETH/frxETH_274"] = { decimals: 18, address: "0x4d9f9D15101EEC665F77210cB999639f760F831E" };
 TOKENS["CRV_P_CRV/cvxCRV_283"] = { decimals: 18, address: "0x971add32Ea87f10bD192671630be3BE8A11b8623" };
 TOKENS["CURVE_PLAIN_ETH/stETH_303"] = { decimals: 18, address: "0x21E27a5E5513D6e65C4f830167390997aA84843a" };
+TOKENS["CRV_P_PENDLE/sdPENDLE_306"] = { decimals: 18, address: "0x26f3f26f46cbee59d1f8860865e13aa39e36a8c0" };
 TOKENS["CURVE_PLAIN_FXN/cvxFXN_358"] = { decimals: 18, address: "0x1062FD8eD633c1f080754c19317cb3912810B5e5" };
 TOKENS["CURVE_PLAIN_FXN/sdFXN_359"] = { decimals: 18, address: "0x28Ca243dc0aC075dD012fCf9375C25D18A844d96" };
 TOKENS["CURVE_CRVUSD_WETH/frxETH_15"] = { decimals: 18, address: "0x9c3B46C0Ceb5B9e304FCd6D88Fc50f7DD24B31Bc" };

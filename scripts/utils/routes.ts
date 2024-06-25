@@ -949,6 +949,7 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
   WETH: {
     CVX: [encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
     FXN: [encodePoolHintV3(ADDRESS["CURVE_ETH/FXN_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
+    PENDLE: [encodePoolHintV3(ADDRESS["UniV3_PENDLE/WETH_3000"], PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, { fee_num: 3000 })],
     WBTC: [encodePoolHintV3(ADDRESS.WBTC_WETH_UNIV3_500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, { fee_num: 500 })],
     aCVX: [
       encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),

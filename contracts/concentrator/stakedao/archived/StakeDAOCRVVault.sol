@@ -6,9 +6,9 @@ pragma abicoder v2;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "../../interfaces/concentrator/IConcentratorSdCrvVault.sol";
-import "../../interfaces/stakedao/IStakeDAOCRVDepositor.sol";
-import "../../interfaces/ICurveFactoryPlainPool.sol";
+import "../../../interfaces/concentrator/IConcentratorSdCrvVault.sol";
+import "../../../interfaces/stakedao/IStakeDAOCRVDepositor.sol";
+import "../../../interfaces/ICurveFactoryPlainPool.sol";
 
 import "./SdCRVLocker.sol";
 import "./StakeDAOVaultBase.sol";
