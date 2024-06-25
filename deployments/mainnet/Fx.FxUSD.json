@@ -157,7 +157,10 @@
       },
       "FxInitialFund": "0x29eE4B752fE14B0BC1F279DCA98415f2Fa6F3A8d",
       "RebalancePoolRegistry": "0x163283D59FE2A579f2920A7F8eA19F7799B32fA0",
-      "RebalancePoolSplitter": "0x054fAC7aA44F85A59FD41c33006336EC8b03E916",
+      "RebalancePoolSplitter": {
+        "FXN": "0x054fAC7aA44F85A59FD41c33006336EC8b03E916",
+        "WBTC": "0x6e854737E091cA0d2Ad9DA36F93302B9AA995a62"
+      },
       "RebalancePoolGauge": "0x4E6A1dC233f264dd07b63E206Fc451d986bA9908",
       "RebalancePoolGaugeClaimer": "0x93670efe073e0d75BE16445779a8399E6b418004",
       "RebalancePool": {
@@ -168,8 +171,12 @@
           "pool": "0xBB549046497364A1E26F94f7e93685Dc29FAd8c0",
           "wrapper": "0x1A17Ccf198E03858227c27205f15a4b388235DB7"
         }
-      }
+      },
+      "RewardTokenWrapper": "0xAe34EE329Ee91ddBFbe50443df9DEdb076477f55"
     }
   },
-  "FxUSDShareableRebalancePool": "0x72A6239F1651a4556f4C40fe97575885A195f535"
+  "FxUSDShareableRebalancePool": "0x72A6239F1651a4556f4C40fe97575885A195f535",
+  "Implementation": {
+    "RewardTokenWrapper": "0x1925e197FFfa52060F0D2515cD3781e26C63F08C"
+  }
 }
