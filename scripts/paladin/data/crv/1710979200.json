@@ -1,0 +1,21 @@
+[
+  {
+    "id": 14042,
+    "user": "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
+    "token": "0x9c354503C38481a7A7a51629142963F98eCC12D0",
+    "amount": "63699658280642425872668",
+    "index": 11,
+    "period": 1710979200,
+    "questId": 102,
+    "gauge": "0xd03BE91b1932715709e18021734fcB91BB431715",
+    "proofs": [
+      "0x92acd7cc403f89ddf0f919ab5947ada0b88501a0e011830ae544b668061e7352",
+      "0xcd8346e44b6334acb04e2d1b68678d31e71125a767710038443ae962772d6003",
+      "0xd2138477ea17ea01c667e0338e2f791ceef8f502d8330b38cfa044f5af15f915",
+      "0x05d113329698cd6a1833c293d958ae7f84095dd63278e0c1ac784b7d0bbe736b"
+    ],
+    "path": "crv",
+    "distributor": "0x999881aA210B637ffF7d22c8566319444B38695B",
+    "chainId": 1
+  }
+]
