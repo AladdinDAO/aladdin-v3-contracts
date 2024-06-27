@@ -28,6 +28,12 @@ contract LeveragedTokenV2 is ERC20PermitUpgradeable, AccessControlUpgradeable, I
   /// @dev Thrown when users try to transfer token before cooling-off period.
   error ErrorTransferBeforeCoolingOffPeriod();
 
+  /// @dev Thrown when the updated `coolingOffPeriod` is larger than `MAX_COOLING_OFF_PERIOD`.
+  error ErrorCoolingOffPeriodTooLarge();
+
+  /// @dev Thrown when update some parameters to the same value.
+  error ErrorParameterUnchanged();
+
   /*************
    * Constants *
    *************/
@@ -40,6 +46,9 @@ contract LeveragedTokenV2 is ERC20PermitUpgradeable, AccessControlUpgradeable, I
 
   /// @dev The precision used to compute nav.
   uint256 private constant PRECISION = 1e18;
+
+  /// @dev The maximum value of `coolingOffPeriod`.
+  uint256 private constant MAX_COOLING_OFF_PERIOD = 1 days;
 
   /// @notice The minimum hold seconds after minting.
   uint256 public coolingOffPeriod;
@@ -127,7 +136,14 @@ contract LeveragedTokenV2 is ERC20PermitUpgradeable, AccessControlUpgradeable, I
   /// @dev Internal function to update cooling-off period.
   /// @param _newCoolingOffPeriod The value of new cooling-off period.
   function _updateCoolingOffPeriod(uint256 _newCoolingOffPeriod) private {
+    if (_newCoolingOffPeriod > MAX_COOLING_OFF_PERIOD) {
+      revert ErrorCoolingOffPeriodTooLarge();
+    }
     uint256 oldCoolingOffPeriod = coolingOffPeriod;
+    if (_newCoolingOffPeriod == oldCoolingOffPeriod) {
+      revert ErrorParameterUnchanged();
+    }
+
     coolingOffPeriod = _newCoolingOffPeriod;
 
     emit UpdateCoolingOffPeriod(oldCoolingOffPeriod, _newCoolingOffPeriod);

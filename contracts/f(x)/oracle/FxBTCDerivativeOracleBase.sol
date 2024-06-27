@@ -107,6 +107,10 @@ abstract contract FxBTCDerivativeOracleBase is FxSpotOracleBase, IFxPriceOracleV
   /// @param newMaxPriceDeviation The new value of maximum price deviation, multiplied by 1e18.
   function _updateMaxPriceDeviation(uint256 newMaxPriceDeviation) private {
     uint256 oldMaxPriceDeviation = maxPriceDeviation;
+    if (oldMaxPriceDeviation == newMaxPriceDeviation) {
+      revert ErrorParameterUnchanged();
+    }
+
     maxPriceDeviation = newMaxPriceDeviation;
 
     emit UpdateMaxPriceDeviation(oldMaxPriceDeviation, newMaxPriceDeviation);
