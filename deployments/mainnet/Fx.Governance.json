@@ -109,6 +109,10 @@
       },
       "MIM+fxUSD": {
         "gauge": "0xDF7fbDBAE50C7931a11765FAEd9fe1A002605B55"
+      },
+      "zunUSD+fxUSD": {
+        "gauge": "0x9516c367952430371A733E5eBb587E01eE082F99",
+        "manager": "0xD4e96D498AF2B1E647cf2cbA0564c241F814F57b"
       }
     }
   },
