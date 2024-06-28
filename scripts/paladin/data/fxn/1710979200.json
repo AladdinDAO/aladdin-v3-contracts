@@ -1,0 +1,39 @@
+[
+  {
+    "id": 13980,
+    "user": "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
+    "token": "0x41D5D79431A913C4aE7d69a668ecdfE5fF9DFB68",
+    "amount": "16532890637029536892",
+    "index": 3,
+    "period": 1710979200,
+    "questId": 1,
+    "gauge": "0x61F32964C39Cca4353144A6DB2F8Efdb3216b35B",
+    "proofs": [
+      "0xce300ce2d5c6f2d8c326e5a7017ed3d31ca3c8401ce83fc8c7bc146385428a06",
+      "0x298c6c50feaeafc0e944063327712d6888d4e5f58fe7ccca655a7919c1585cf1",
+      "0x24698fc7924f02b887562df35adb3c57de763ef4014a919adfb36a930671c2e9",
+      "0xc05c3e129f70acb1004437a69020ff6d725c936567c33cc2e1f70ae29dab61d8",
+      "0xea9e38fd71637b68c0f856f0c9384b9be23a826e6bce6d03cd80bb672c65aaac"
+    ],
+    "path": "fxn",
+    "distributor": "0x1cfd55b818a34FFA135F0FFC2dc6A790dECD6079",
+    "chainId": 1
+  },
+  {
+    "id": 14059,
+    "user": "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
+    "token": "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+    "amount": "1439307985193035413476",
+    "index": 8,
+    "period": 1710979200,
+    "questId": 0,
+    "gauge": "0xf0A3ECed42Dbd8353569639c0eaa833857aA0A75",
+    "proofs": [
+      "0xfbfedcf44d5eb11168f46027cbc4152f6a4dd77441a5edea54fe900f523c4c57",
+      "0xcfa3835d43eb9c2e583ca29edadd1a263a0586a02c7460010cbf71891bbceb07"
+    ],
+    "path": "fxn",
+    "distributor": "0x1cfd55b818a34FFA135F0FFC2dc6A790dECD6079",
+    "chainId": 1
+  }
+]

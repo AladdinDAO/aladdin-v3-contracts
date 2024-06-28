@@ -1,16 +1,16 @@
 import axios from "axios";
 import { Command } from "commander";
 import * as hre from "hardhat";
-import { toBigInt } from "ethers";
+import { MaxUint256, toBigInt } from "ethers";
 import "@nomicfoundation/hardhat-ethers";
 
 import { loadParams } from "./config";
 
 import { CLeverCVXDeployment } from "@/contracts/CLeverCVX";
-
+import { CLeverCVXLocker } from "@/types/index";
 import { same } from "@/utils/address";
 import { DEPLOYED_CONTRACTS, selectDeployments } from "@/utils/deploys";
-import { ZAP_ROUTES } from "@/utils/routes";
+import { MULTI_PATH_CONVERTER_ROUTES, ZAP_ROUTES } from "@/utils/routes";
 import { TOKENS } from "@/utils/tokens";
 
 const ethers = hre.ethers;
@@ -18,6 +18,8 @@ const program = new Command();
 program.version("1.0.0");
 
 const KEEPER = "0x11E91BB6d1334585AA37D8F4fde3932C7960B938";
+const VOTIUM_MERKLE_STASH = "0x378Ba9B73309bE80BF4C2c027aAD799766a7ED5A";
+const MULTI_PATH_CONVERTER = "0x0c439DB9b9f11E7F2D4624dE6d0f8FfC23DCd1f8";
 
 interface ICoinGeckoResponse {
   [symbol: string]: {
@@ -42,6 +44,7 @@ const symbol2ids: { [symbol: string]: string } = {
   USDC: "usd-coin",
   eCFX: "conflux",
   wBETH: "wrapped-beacon-eth",
+  GHO: "gho",
 };
 
 async function main(round: number, manualStr: string) {
@@ -60,22 +63,40 @@ async function main(round: number, manualStr: string) {
 
   const [deployer] = await ethers.getSigners();
   const locker = await ethers.getContractAt("CLeverCVXLocker", deployment.CVXLocker.proxy, deployer);
+  const converter = await ethers.getContractAt("MultiPathConverter", MULTI_PATH_CONVERTER, deployer);
 
   const manualTokens = manualStr === "" ? [] : manualStr.split(",");
   console.log("Harvest Round:", round);
-  const routes: bigint[][] = [];
   const claimParams = loadParams(round);
+  const routes: Array<CLeverCVXLocker.ConvertParamStruct> = [];
+  const routeToCVX = MULTI_PATH_CONVERTER_ROUTES.WETH.CVX;
+  const paramToCVX = {
+    target: await converter.getAddress(),
+    spender: await converter.getAddress(),
+    data: converter.interface.encodeFunctionData("convert", [
+      TOKENS.WETH.address,
+      MaxUint256,
+      routeToCVX.encoding,
+      routeToCVX.routes,
+    ]),
+  };
+
   for (const item of claimParams) {
     const symbol: string = Object.entries(TOKENS).filter(
       ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
     )[0][0];
     const routeToETH = symbol === "WETH" ? [] : ZAP_ROUTES[symbol].WETH;
-    const routeToCVX = ZAP_ROUTES.WETH.CVX;
+    const routeToCVX = MULTI_PATH_CONVERTER_ROUTES.WETH.CVX;
     const estimate = toBigInt(
       await ethers.provider.call({
         from: KEEPER,
         to: deployment.CVXLocker.proxy,
-        data: locker.interface.encodeFunctionData("harvestVotium", [[item], [routeToETH, routeToCVX], 0]),
+        data: locker.interface.encodeFunctionData("harvestVotiumLikeBribes", [
+          VOTIUM_MERKLE_STASH,
+          [item],
+          [routeToETH, routeToCVX],
+          0,
+        ]),
       })
     );
     const tokenAmountStr = ethers.formatUnits(item.amount, TOKENS[symbol].decimals);
@@ -92,33 +113,46 @@ async function main(round: number, manualStr: string) {
     }
     routes.push(routeToETH);
   }
-  routes.push(ZAP_ROUTES.WETH.CVX);
+  routes.push(paramToCVX);
 
-  const estimate = toBigInt(
-    await ethers.provider.call({
-      from: KEEPER,
-      to: await locker.getAddress(),
-      data: locker.interface.encodeFunctionData("harvestVotium", [claimParams, routes, 0]),
-    })
-  );
-  console.log("estimate harvested CVX:", ethers.formatEther(estimate.toString()));
-  const gasEstimate = await ethers.provider.estimateGas({
+  const calldataForEstimation = locker.interface.encodeFunctionData("harvestVotiumLikeBribes", [
+    VOTIUM_MERKLE_STASH,
+    claimParams,
+    routes,
+    0n,
+  ]);
+  const estimationTx = {
     from: KEEPER,
     to: await locker.getAddress(),
-    data: locker.interface.encodeFunctionData("harvestVotium", [claimParams, routes, 0]),
-  });
-  console.log("gas estimate:", gasEstimate.toString());
+    data: calldataForEstimation,
+  };
+
+  const gasEstimation = await ethers.provider.estimateGas(estimationTx);
+  const cvxEstimation = toBigInt(await ethers.provider.call(estimationTx));
+  console.log(
+    "GasEstimate:",
+    gasEstimation.toString(),
+    "Estimate Harvested CVX:",
+    ethers.formatEther(cvxEstimation.toString())
+  );
+  const minCVXOut = (cvxEstimation * 9990n) / 10000n;
 
   if (KEEPER === deployer.address) {
     const block = await ethers.provider.getBlock("latest");
-    const tx = await locker.harvestVotium(claimParams, routes, (estimate * 9990n) / 10000n, {
-      gasLimit: (gasEstimate * 12n) / 10n,
+    const tx = await locker.harvestVotiumLikeBribes(VOTIUM_MERKLE_STASH, claimParams, routes, minCVXOut, {
+      gasLimit: (gasEstimation * 12n) / 10n,
       maxFeePerGas: (block!.baseFeePerGas! * 3n) / 2n,
       maxPriorityFeePerGas: ethers.parseUnits("1", "gwei"),
     });
-    console.log("waiting for tx:", tx.hash);
+    console.log("Waiting for tx:", tx.hash);
     const receipt = await tx.wait();
-    console.log("confirmed, gas used:", receipt!.gasUsed.toString());
+    console.log(
+      ">> ✅ Done, GasUsed:",
+      receipt!.gasUsed.toString(),
+      "GasFees:",
+      ethers.formatUnits(receipt!.gasUsed * receipt!.gasPrice)
+    );
+
     let furnaceCVX = 0n;
     let treasuryCVX = 0n;
     for (const log of receipt!.logs) {
@@ -133,16 +167,16 @@ async function main(round: number, manualStr: string) {
       }
     }
     console.log(
-      "actual furnace CVX:",
+      "Actual Furnace CVX:",
       ethers.formatEther(furnaceCVX),
-      "treasury CVX:",
+      "Treasury CVX:",
       ethers.formatEther(treasuryCVX)
     );
     for (const symbol of manualTokens) {
       const { address, decimals } = TOKENS[symbol];
       const token = await ethers.getContractAt("IERC20", address, deployer);
       const balance = await token.balanceOf(deployment.CVXLocker.proxy);
-      console.log(`harvested ${symbol}:`, ethers.formatUnits(balance, decimals));
+      console.log(`Pending Manual Swap ${symbol}:`, ethers.formatUnits(balance, decimals));
     }
   }
 }
