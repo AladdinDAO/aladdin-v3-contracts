@@ -475,6 +475,12 @@ contract AladdinCRVV2 is
     emit MigrateStrategy(_oldStrategy, _newStrategy);
   }
 
+  /// @notice Update rewards list of underlying strategy.
+  /// @param newRewards The list of addresses of new rewards.
+  function updateStrategyRewards(address[] memory newRewards) external onlyOwner {
+    IConcentratorStrategy(strategy).updateRewards(newRewards);
+  }
+
   /// @notice Update withdraw fee for certain user.
   /// @param _user The address of user to update.
   /// @param _percentage The withdraw fee percentage to be updated, multipled by 1e9.
