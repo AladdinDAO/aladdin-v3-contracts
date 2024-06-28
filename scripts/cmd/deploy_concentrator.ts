@@ -7,7 +7,7 @@ import * as ConcentratorCVX from "@/contracts/ConcentratorCVX";
 import * as ConcentratorFrxETH from "@/contracts/ConcentratorFrxETH";
 import * as ConcentratorFxUSD from "@/contracts/ConcentratorFxUSD";
 import * as ConcentratorStakeDAO from "@/contracts/ConcentratorStakeDAO";
-import { showConverterRoute } from "../utils";
+import { showConverterRoute, showZapRoute } from "../utils";
 
 const maxFeePerGas = 10e9;
 const maxPriorityFeePerGas = 0.01e9;
@@ -21,6 +21,7 @@ async function main() {
 
   const cmd = process.env.CMD;
   if (cmd === "cvxCRV") {
+    showZapRoute("crvUSD", "CRV");
     const cvxCRV = await ConcentratorCvxCrv.deploy(deployer, overrides);
     await ConcentratorCvxCrv.initialize(deployer, cvxCRV, overrides);
   }

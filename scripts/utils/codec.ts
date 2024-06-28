@@ -173,7 +173,7 @@ export function decodePoolV2(encoding: bigint): string {
   } else {
     extra = `tokenIn[${tokenIn}] tokenOut[${tokenOut}]`;
   }
-  return `${PoolTypeV3[Number(poolType)]}[${poolName}].${actionDesc} ${extra}`;
+  return `${PoolType[Number(poolType)]}[${poolName}].${actionDesc} ${extra}`;
 }
 
 export function decodePoolV3(encoding: bigint): string {

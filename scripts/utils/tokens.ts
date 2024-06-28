@@ -140,6 +140,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   sdveCRV: { decimals: 18, address: "0x478bBC744811eE8310B461514BDc29D03739084D" },
   sfrxETH: { decimals: 18, address: "0xac3E018457B222d93114458476f3E3416Abbe38F" },
   stETH: { decimals: 18, address: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" },
+  stkCvxCrv: { decimals: 18, address: "0xaa0C3f5F7DFD688C6E646F66CD2a6B66ACdbE434" },
   tBTC: { decimals: 18, address: "0x18084fba666a33d37592fa2633fd49a74dd93a88" },
   wBETH: { decimals: 18, address: "0xa2e3356610840701bdf5611a53974510ae27e2e1" },
   weETH: { decimals: 18, address: "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee" },
@@ -162,6 +163,7 @@ TOKENS["CURVE_BASE_ETH/frxETH"] = { decimals: 18, address: "0xf43211935C781D5ca1
 // 3. stable-ng factory: 0x6A8cbed756804B16E05E741eDaBd5cB544AE21bf
 TOKENS["CURVE_PLAIN_WETH/stETH_117"] = { decimals: 18, address: "0x828b154032950C8ff7CF8085D841723Db2696056" };
 TOKENS["CRV_PLAIN_stETH/frxETH_274"] = { decimals: 18, address: "0x4d9f9D15101EEC665F77210cB999639f760F831E" };
+TOKENS["CRV_P_CRV/cvxCRV_283"] = { decimals: 18, address: "0x971add32Ea87f10bD192671630be3BE8A11b8623" };
 TOKENS["CURVE_PLAIN_ETH/stETH_303"] = { decimals: 18, address: "0x21E27a5E5513D6e65C4f830167390997aA84843a" };
 TOKENS["CURVE_PLAIN_FXN/cvxFXN_358"] = { decimals: 18, address: "0x1062FD8eD633c1f080754c19317cb3912810B5e5" };
 TOKENS["CURVE_PLAIN_FXN/sdFXN_359"] = { decimals: 18, address: "0x28Ca243dc0aC075dD012fCf9375C25D18A844d96" };
