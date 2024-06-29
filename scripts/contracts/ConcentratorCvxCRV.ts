@@ -2,8 +2,10 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { AVAILABLE_VAULTS, DEPLOYED_VAULTS, selectDeployments } from "@/utils/index";
-import { ownerContractCall } from "./helpers";
+import { AVAILABLE_VAULTS, DEPLOYED_VAULTS, TOKENS, selectDeployments } from "@/utils/index";
+import { ContractCallHelper, DeploymentHelper, ownerContractCall } from "./helpers";
+import { ProxyAdminDeployment } from "./ProxyAdmin";
+import { AladdinCRVV2 } from "../@types";
 
 export interface ConcentratorCvxCrvDeployment {
   CvxCrvCompounder: {
@@ -22,10 +24,17 @@ export interface ConcentratorCvxCrvDeployment {
 }
 
 export async function deploy(
-  _deployer: HardhatEthersSigner,
-  _overrides?: Overrides
+  deployer: HardhatEthersSigner,
+  overrides?: Overrides
 ): Promise<ConcentratorCvxCrvDeployment> {
-  const deployment = selectDeployments(network.name, "Concentrator.cvxCRV");
+  const deployment = new DeploymentHelper(network.name, "Concentrator.cvxCRV", deployer, overrides);
+
+  await deployment.contractDeploy(
+    "CvxCrvCompounder.implementation",
+    "CvxCrvCompounder implementation",
+    "AladdinCRVV2",
+    [TOKENS["CRV_P_CRV/cvxCRV_283"].address, TOKENS.stkCvxCrv.address]
+  );
 
   return deployment.toObject() as ConcentratorCvxCrvDeployment;
 }
@@ -35,6 +44,22 @@ export async function initialize(
   deployment: ConcentratorCvxCrvDeployment,
   overrides?: Overrides
 ): Promise<void> {
+  const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
+  const caller = new ContractCallHelper(deployer, overrides);
+
+  const aCRV = await caller.contract<AladdinCRVV2>("AladdinCRVV2", deployment.CvxCrvCompounder.proxy);
+
+  await caller.upgrade(
+    admin.Concentrator,
+    "aCRV upgrade",
+    await aCRV.getAddress(),
+    deployment.CvxCrvCompounder.implementation
+  );
+
+  await caller.ownerCall(aCRV, "updateStrategyRewards", "updateStrategyRewards", [
+    [TOKENS.CRV.address, TOKENS.CVX.address, TOKENS.TRICRV.address, TOKENS.crvUSD.address],
+  ]);
+
   const vault = await ethers.getContractAt("ConcentratorIFOVault", deployment.ConcentratorVault.proxy, deployer);
   const pools = DEPLOYED_VAULTS.aCRV;
 

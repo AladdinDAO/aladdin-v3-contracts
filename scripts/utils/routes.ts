@@ -1,6 +1,6 @@
 import assert from "assert";
 import { ADDRESS } from "./address";
-import { Action, decodePoolV3, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3 } from "./codec";
+import { Action, decodePoolV2, decodePoolV3, encodePoolHintV2, encodePoolHintV3, PoolType, PoolTypeV3 } from "./codec";
 import { TOKENS } from "./tokens";
 import { toBigInt, ZeroAddress } from "ethers";
 
@@ -771,6 +771,16 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
         Action.Swap
       ),
     ],
+    CRV: [
+      encodePoolHintV2(
+        ADDRESS["CURVE_TRICRYPTO_crvUSD/ETH/CRV_4_POOL"],
+        PoolType.CurveTriCryptoPool,
+        3,
+        0,
+        2,
+        Action.Swap
+      ),
+    ],
   },
   mkUSD: {
     WETH: [
@@ -1395,7 +1405,7 @@ export function showZapRoute(src: string, dst: string, space?: number) {
     `[${routes.map((r) => `"0x${r.toString(16)}"`).join(",")}]`
   );
   routes.forEach((route, index) => {
-    console.log(" ".repeat(space ?? 0), `  route #${index + 1}: ${decodePoolV3(route)}`);
+    console.log(" ".repeat(space ?? 0), `  route #${index + 1}: ${decodePoolV2(route)}`);
   });
 }
 

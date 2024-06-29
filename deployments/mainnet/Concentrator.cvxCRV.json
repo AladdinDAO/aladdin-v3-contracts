@@ -1,7 +1,7 @@
 {
   "CvxCrvCompounder": {
     "proxy": "0x2b95A1Dcc3D405535f9ed33c219ab38E8d7e0884",
-    "implementation": "0xAF3406D5b9C8D921042a30713aA3f72FEa89E35B"
+    "implementation": "0x9A68dEa7DCddfC5c4c6B3cB8aB278BF2cD87d3d3"
   },
   "LegacyConcentratorVault": {
     "proxy": "0xc8fF37F7d057dF1BB9Ad681b53Fa4726f268E0e8",
