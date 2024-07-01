@@ -5,8 +5,11 @@ pragma solidity ^0.8.0;
 import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/utils/structs/EnumerableSetUpgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/token/ERC20/IERC20Upgradeable.sol";
+import { ECDSA } from "@openzeppelin/contracts-v4/utils/cryptography/ECDSA.sol";
 
 import { ITokenConverter } from "../../helpers/converter/ITokenConverter.sol";
+
+import { LibEIP712 } from "./LibEIP712.sol";
 
 library LibGatewayRouter {
   using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -28,12 +31,22 @@ library LibGatewayRouter {
   /// @dev Thrown when the whitelisted account type is incorrect.
   error ErrorNotWhitelisted(WhitelistKind expected, WhitelistKind found);
 
+  error ErrorInvalidSignature();
+
   /*************
    * Constants *
    *************/
 
   /// @dev The storage slot for gateway storage.
   bytes32 private constant GATEWAY_STORAGE_POSITION = keccak256("diamond.gateway.storage");
+
+  // solhint-disable-next-line var-name-mixedcase
+  bytes32 private constant _CONVERT_IN_TYPEHASH =
+    keccak256("ConvertIn(address src,uint256 amount,address target,bytes data,uint256 minOut,uint256 deadline)");
+
+  // solhint-disable-next-line var-name-mixedcase
+  bytes32 private constant _CONVERT_OUT_TYPEHASH =
+    keccak256("ConvertOut(address converter,bytes routes,uint256 minOut,uint256 deadline)");
 
   /*********
    * Enums *
@@ -60,6 +73,7 @@ library LibGatewayRouter {
     mapping(address => address) spenders;
     EnumerableSetUpgradeable.AddressSet approvedTargets;
     mapping(address => WhitelistKind) whitelisted;
+    EnumerableSetUpgradeable.AddressSet signers;
   }
 
   /// @notice The struct for input token convert parameters.
@@ -75,6 +89,8 @@ library LibGatewayRouter {
     address target;
     bytes data;
     uint256 minOut;
+    uint256 deadline;
+    bytes signature;
   }
 
   /// @notice The struct for output token convert parameters.
@@ -83,8 +99,10 @@ library LibGatewayRouter {
   /// @param routes The convert route encodings.
   struct ConvertOutParams {
     address converter;
-    uint256 minOut;
     uint256[] routes;
+    uint256 minOut;
+    uint256 deadline;
+    bytes signature;
   }
 
   /**********************
@@ -117,6 +135,13 @@ library LibGatewayRouter {
     }
   }
 
+  /// @dev Update the status of signers.
+  function updateSigner(address account, bool status) internal {
+    GatewayStorage storage gs = gatewayStorage();
+    if (status) gs.signers.add(account);
+    else gs.signers.remove(account);
+  }
+
   /// @dev Whitelist account with type.
   function updateWhitelist(address account, WhitelistKind kind) internal {
     GatewayStorage storage gs = gatewayStorage();
@@ -141,6 +166,7 @@ library LibGatewayRouter {
   function transferInAndConvert(ConvertInParams memory params, address tokenOut) internal returns (uint256 amountOut) {
     GatewayStorage storage gs = gatewayStorage();
     if (!gs.approvedTargets.contains(params.target)) revert ErrorTargetNotApproved();
+    verifyConvertInParams(params);
 
     transferTokenIn(params.src, address(this), params.amount);
 
@@ -184,6 +210,8 @@ library LibGatewayRouter {
   ) internal returns (uint256 amountOut) {
     GatewayStorage storage gs = gatewayStorage();
     if (!gs.approvedTargets.contains(params.converter)) revert ErrorTargetNotApproved();
+    verifyConvertOutParams(params);
+
     if (amountIn == 0) return 0;
 
     amountOut = amountIn;
@@ -233,5 +261,39 @@ library LibGatewayRouter {
   ) internal {
     IERC20Upgradeable(token).safeApprove(spender, 0);
     IERC20Upgradeable(token).safeApprove(spender, amount);
+  }
+
+  function verifyConvertInParams(ConvertInParams memory params) private view {
+    bytes32 structHash = keccak256(
+      abi.encode(
+        _CONVERT_IN_TYPEHASH,
+        params.src,
+        params.amount,
+        params.target,
+        keccak256(params.data),
+        params.minOut,
+        params.deadline
+      )
+    );
+    bytes32 hash = LibEIP712.hashTypedDataV4(structHash);
+
+    address signer = ECDSA.recover(hash, params.signature);
+    if (!gatewayStorage().signers.contains(signer)) revert ErrorInvalidSignature();
+  }
+
+  function verifyConvertOutParams(ConvertOutParams memory params) private view {
+    bytes32 structHash = keccak256(
+      abi.encode(
+        _CONVERT_OUT_TYPEHASH,
+        params.converter,
+        keccak256(abi.encode(params.routes)),
+        params.minOut,
+        params.deadline
+      )
+    );
+    bytes32 hash = LibEIP712.hashTypedDataV4(structHash);
+
+    address signer = ECDSA.recover(hash, params.signature);
+    if (!gatewayStorage().signers.contains(signer)) revert ErrorInvalidSignature();
   }
 }
