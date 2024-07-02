@@ -129,6 +129,18 @@ export const DeployedGauges: {
     harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
     managerRatio: ethers.parseUnits("0.01", 9), // 1%
   },
+  "USDC+fxUSD": {
+    token: TOKENS["CURVE_S_NG_USDC/fxUSD_193"].address,
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "USD0+fxUSD": {
+    token: TOKENS["CURVE_S_NG_USD0/fxUSD_195"].address,
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
 };
 
 export const GaugeTypeLists: Array<{ name: string; weight: bigint }> = [
