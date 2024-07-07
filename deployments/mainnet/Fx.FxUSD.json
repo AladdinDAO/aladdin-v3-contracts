@@ -29,7 +29,9 @@
       },
       "FxInitialFund": "0xe6b953BB4c4B8eEd78b40B81e457ee4BDA461D55",
       "RebalancePoolRegistry": "0x86e987a89Fd7345457d97b9e82906f346D61Df39",
-      "RebalancePoolSplitter": "0x78Ef19714c8b3c71997970C156f59605A99C3ff3",
+      "RebalancePoolSplitter": {
+        "FXN": "0x78Ef19714c8b3c71997970C156f59605A99C3ff3"
+      },
       "RebalancePoolGauge": "0xf422446F7730e50B9CAb4618343425d9927b35ED",
       "RebalancePoolGaugeClaimer": "0xCa0563ab14a87ee64d6b097B0dfC46E9B56820aD",
       "RebalancePool": {
@@ -61,7 +63,9 @@
       },
       "FxInitialFund": "0xFC3862c33b54E0BBA61d966Ff51973C20be4fC62",
       "RebalancePoolRegistry": "0x345a345DAd48c3504113539ce83c0cB765627B54",
-      "RebalancePoolSplitter": "0xb26cA48fe4Ee94a4Fe8815F7E54E99124f997540",
+      "RebalancePoolSplitter": {
+        "FXN": "0xb26cA48fe4Ee94a4Fe8815F7E54E99124f997540"
+      },
       "RebalancePoolGauge": "0xB3886b8c94C8635B786b1CA88942337669BB1e1E",
       "RebalancePoolGaugeClaimer": "0x4ae3BE52c411CC08434d28645FD391497C69c815",
       "RebalancePool": {
@@ -93,7 +97,9 @@
       },
       "FxInitialFund": "0x6dc7a100d09DDbF344FC4Dd0398f79500D0c2716",
       "RebalancePoolRegistry": "0xb1dD23468a69DFDDb7211298e609C0DB1522B2D6",
-      "RebalancePoolSplitter": "0x015729C84A1C5E541DFbF6f0dDc59AE66527B5eD",
+      "RebalancePoolSplitter": {
+        "FXN": "0x015729C84A1C5E541DFbF6f0dDc59AE66527B5eD"
+      },
       "RebalancePoolGauge": "0xf594bDfafE4197144C6459FcA611d7B868d36bEa",
       "RebalancePoolGaugeClaimer": "0x835191186745e63f9e325E741B273ff925174d7e",
       "RebalancePool": {
@@ -125,7 +131,9 @@
       },
       "FxInitialFund": "0x7612bCAbd3D66c71fF740472e063be6a74f126D1",
       "RebalancePoolRegistry": "0x5e3ca2A5736fb093328e4CA19A9A1966025f3905",
-      "RebalancePoolSplitter": "0x2755EEbf220BFD31B83Fd9244B6D061bCa225311",
+      "RebalancePoolSplitter": {
+        "FXN": "0x2755EEbf220BFD31B83Fd9244B6D061bCa225311"
+      },
       "RebalancePoolGauge": "0xb2E43ECecA7c110c74Cf13Ba35105B0633B74E91",
       "RebalancePoolGaugeClaimer": "0xb259515748c75A7216a4849e67cEB166b0DAa98b",
       "RebalancePool": {

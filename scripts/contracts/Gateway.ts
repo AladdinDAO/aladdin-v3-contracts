@@ -163,7 +163,7 @@ async function initializeGatewayRouter(caller: ContractCallHelper, deployment: G
       name: "1inch AggregationRouterV5",
     },
     {
-      target: "0x4F96fe476e7dcD0404894454927b9885Eb8B57c3",
+      target: "0x0c439DB9b9f11E7F2D4624dE6d0f8FfC23DCd1f8",
       name: "MultiPathConverter",
     },
     {
@@ -188,13 +188,13 @@ async function initializeGatewayRouter(caller: ContractCallHelper, deployment: G
     [fxusd.Markets.weETH.Market.proxy, 2n],
     [fxusd.Markets.ezETH.Market.proxy, 2n],
     [fxusd.Markets.WBTC.Market.proxy, 2n],
-    // [fxusd.Markets.aCVX.Market.proxy, 2n],
+    [fxusd.Markets.aCVX.Market.proxy, 2n],
     [fxusd.Markets.wstETH.FxInitialFund, 3n],
     [fxusd.Markets.sfrxETH.FxInitialFund, 3n],
     [fxusd.Markets.weETH.FxInitialFund, 3n],
     [fxusd.Markets.ezETH.FxInitialFund, 3n],
     [fxusd.Markets.WBTC.FxInitialFund, 3n],
-    // [fxusd.Markets.aCVX.FxInitialFund, 3n],
+    [fxusd.Markets.aCVX.FxInitialFund, 3n],
     [fxusd.Markets.wstETH.RebalancePool.wstETH.pool, 4n],
     [fxusd.Markets.wstETH.RebalancePool.xstETH.pool, 4n],
     [fxusd.Markets.sfrxETH.RebalancePool.sfrxETH.pool, 4n],
@@ -205,11 +205,12 @@ async function initializeGatewayRouter(caller: ContractCallHelper, deployment: G
     [fxusd.Markets.ezETH.RebalancePool.xezETH.pool, 4n],
     [fxusd.Markets.WBTC.RebalancePool.WBTC.pool, 4n],
     [fxusd.Markets.WBTC.RebalancePool.xWBTC.pool, 4n],
-    // [fxusd.Markets.aCVX.RebalancePool.aCVX.pool, 4n],
-    // [fxusd.Markets.aCVX.RebalancePool.xCVX.pool, 4n],
+    [fxusd.Markets.aCVX.RebalancePool.aCVX.pool, 4n],
+    [fxusd.Markets.aCVX.RebalancePool.xCVX.pool, 4n],
     [fxusd.FxUSD.proxy.fxUSD, 5n],
     [fxusd.FxUSD.proxy.rUSD, 5n],
     [fxusd.FxUSD.proxy.btcUSD, 5n],
+    [fxusd.FxUSD.proxy.cvxUSD, 5n],
   ]) {
     if ((await manageFacet.getWhitelistKind(target as string)) !== kind) {
       await caller.ownerCall(manageFacet, "GatewayRouter updateWhitelist ", "updateWhitelist", [target, kind]);
@@ -228,6 +229,8 @@ async function initializeGatewayRouter(caller: ContractCallHelper, deployment: G
     [fxusd.Markets.ezETH.RebalancePool.xezETH.pool, "FxUSDShareableRebalancePool/xezETH"],
     [fxusd.Markets.WBTC.RebalancePool.WBTC.pool, "FxUSDShareableRebalancePool/WBTC"],
     [fxusd.Markets.WBTC.RebalancePool.xWBTC.pool, "FxUSDShareableRebalancePool/xWBTC"],
+    [fxusd.Markets.aCVX.RebalancePool.aCVX.pool, "FxUSDShareableRebalancePool/aCVX"],
+    [fxusd.Markets.aCVX.RebalancePool.xCVX.pool, "FxUSDShareableRebalancePool/xCVX"],
   ]) {
     await caller.grantRole(pool, name + " WITHDRAW_FROM_ROLE", WITHDRAW_FROM_ROLE, deployment.GatewayRouter);
   }
@@ -237,5 +240,5 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: Gate
   const caller = new ContractCallHelper(deployer, overrides);
 
   await initializeConcentratorHarvester(caller, deployment);
-  // await initializeGatewayRouter(caller, deployment);
+  await initializeGatewayRouter(caller, deployment);
 }

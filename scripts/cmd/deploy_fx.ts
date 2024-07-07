@@ -113,17 +113,20 @@ async function main() {
   ]);
   */
 
-  const governance = await FxGovernance.deploy(deployer, overrides);
-  await FxGovernance.initialize(deployer, governance, overrides);
-
-  const oracle = await FxOracle.deploy(deployer, overrides);
-  await FxOracle.initialize(deployer, oracle, overrides);
-
-  const fxsteth = await FxStETH.deploy(deployer, overrides);
-  await FxStETH.initialize(deployer, fxsteth);
-
-  const fxusd = await FxUSD.deploy(deployer, overrides);
-  await FxUSD.initialize(deployer, fxusd, overrides);
+  const cmd = process.env.CMD;
+  if (cmd === "gov") {
+    const governance = await FxGovernance.deploy(deployer, overrides);
+    await FxGovernance.initialize(deployer, governance, overrides);
+  } else if (cmd === "oracle") {
+    const oracle = await FxOracle.deploy(deployer, overrides);
+    await FxOracle.initialize(deployer, oracle, overrides);
+  } else if (cmd === "steth") {
+    const fxsteth = await FxStETH.deploy(deployer, overrides);
+    await FxStETH.initialize(deployer, fxsteth);
+  } else if (cmd && cmd.length > 0) {
+    const fxusd = await FxUSD.deploy(deployer, cmd, overrides);
+    await FxUSD.initialize(deployer, fxusd, cmd, overrides);
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere

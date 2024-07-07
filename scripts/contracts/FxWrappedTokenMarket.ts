@@ -181,8 +181,8 @@ export async function deploy(deployment: DeploymentHelper, symbol: string, fxUSD
 
   // deploy RebalancePoolSplitter
   await deployment.contractDeploy(
-    `${selectorPrefix}.RebalancePoolSplitter`,
-    "RebalancePoolSplitter",
+    `${selectorPrefix}.RebalancePoolSplitter.FXN`,
+    "RebalancePoolSplitter for FXN",
     "RebalancePoolSplitter",
     []
   );
@@ -202,7 +202,7 @@ export async function deploy(deployment: DeploymentHelper, symbol: string, fxUSD
       governance.ReservePool,
       deployment.get(`${selectorPrefix}.Treasury.proxy`),
       deployment.get(`${selectorPrefix}.RebalancePoolGauge`),
-      deployment.get(`${selectorPrefix}.RebalancePoolSplitter`),
+      deployment.get(`${selectorPrefix}.RebalancePoolSplitter.FXN`),
     ]
   );
 
@@ -251,6 +251,7 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
     sfrxETH: oracle.FxFrxETHOracleV2,
     weETH: oracle.FxEETHOracleV2,
     ezETH: oracle.FxEzETHOracleV2,
+    aCVX: oracle.FxCVXOracle,
   };
   const RateProviderMapping: { [symbol: string]: string } = {
     wstETH: oracle.WstETHRateProvider,
@@ -275,7 +276,7 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
   );
   const rebalancePoolSplitter = await caller.contract<RebalancePoolSplitter>(
     "RebalancePoolSplitter",
-    marketDeployment.RebalancePoolSplitter
+    marketDeployment.RebalancePoolSplitter.FXN
   );
   const rebalancePoolGauge = await caller.contract<FundraisingGaugeFx>(
     "FundraisingGaugeFx",
@@ -307,7 +308,7 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
   if ((await treasury.platform()) === ZeroAddress) {
     await caller.call(treasury, `Treasury for ${baseSymbol} initialize`, "initialize", [
       governance.PlatformFeeSpliter,
-      marketDeployment.RebalancePoolSplitter,
+      marketDeployment.RebalancePoolSplitter.FXN,
       RateProviderMapping[baseSymbol],
       OracleMapping[baseSymbol],
       marketConfig.BaseTokenCapacity,
@@ -355,15 +356,17 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
   const admin = selectDeployments(network.name, "ProxyAdmin").toObject() as ProxyAdminDeployment;
   await caller.upgrade(
     admin.Fx,
-    `FxUSDShareableRebalancePool/${baseSymbol}`,
+    `${fxUSD === ZeroAddress ? "ShareableRebalancePoolV2" : "FxUSDShareableRebalancePool"}/${baseSymbol}`,
     await rebalancePoolA.getAddress(),
-    deployment.FxUSDShareableRebalancePool
+    fxUSD === ZeroAddress ? deployment.ShareableRebalancePoolV2 : deployment.FxUSDShareableRebalancePool
   );
   await caller.upgrade(
     admin.Fx,
-    `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol}`,
+    `${fxUSD === ZeroAddress ? "ShareableRebalancePoolV2" : "FxUSDShareableRebalancePool"}/${
+      marketConfig.LeveragedToken.symbol
+    }`,
     await rebalancePoolB.getAddress(),
-    deployment.FxUSDShareableRebalancePool
+    fxUSD === ZeroAddress ? deployment.ShareableRebalancePoolV2 : deployment.FxUSDShareableRebalancePool
   );
 
   // setup Treasury
@@ -527,7 +530,7 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
       rebalancePoolA,
       `FxUSDShareableRebalancePool/${baseSymbol} add ${baseSymbol} as reward`,
       "registerRewardToken",
-      [TOKENS[baseSymbol].address, marketDeployment.RebalancePoolSplitter]
+      [TOKENS[baseSymbol].address, marketDeployment.RebalancePoolSplitter.FXN]
     );
   }
   if ((await rebalancePoolA.distributors(TOKENS.FXN.address)) === ZeroAddress) {
@@ -535,7 +538,7 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
       rebalancePoolA,
       `FxUSDShareableRebalancePool/${baseSymbol} add FXN as reward`,
       "registerRewardToken",
-      [TOKENS.FXN.address, marketDeployment.RebalancePoolSplitter]
+      [TOKENS.FXN.address, marketDeployment.RebalancePoolSplitter.FXN]
     );
   }
   if ((await rebalancePoolA.liquidatableCollateralRatio()) !== marketConfig.Market.StabilityRatio) {
@@ -569,7 +572,7 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
       rebalancePoolB,
       `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} add ${baseSymbol} as reward`,
       "registerRewardToken",
-      [TOKENS[baseSymbol].address, marketDeployment.RebalancePoolSplitter]
+      [TOKENS[baseSymbol].address, marketDeployment.RebalancePoolSplitter.FXN]
     );
   }
   if ((await rebalancePoolB.distributors(TOKENS.FXN.address)) === ZeroAddress) {
@@ -577,7 +580,7 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
       rebalancePoolB,
       `FxUSDShareableRebalancePool/${marketConfig.LeveragedToken.symbol} add FXN as reward`,
       "registerRewardToken",
-      [TOKENS.FXN.address, marketDeployment.RebalancePoolSplitter]
+      [TOKENS.FXN.address, marketDeployment.RebalancePoolSplitter.FXN]
     );
   }
   if ((await rebalancePoolB.distributors(marketDeployment.LeveragedToken.proxy)) === ZeroAddress) {

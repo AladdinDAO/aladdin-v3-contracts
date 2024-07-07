@@ -36,7 +36,7 @@ export const SpotPricePool: { [name: string]: bigint } = {
 export const SpotPriceEncodings: { [pair: string]: string } = {
   "CVX/WETH": encodeSpotPriceSources([
     [SpotPricePool["CVX/WETH-CrvCrypto"]],
-    [SpotPricePool["CVX/frxETH-CrvCrypto-234"], SpotPricePool["frxETH/WETH-CrvCrvUSD-15"]]
+    // [SpotPricePool["CVX/frxETH-CrvCrypto-234"], SpotPricePool["frxETH/WETH-CrvCrvUSD-15"]]
   ]),
   "WBTC/USDC": encodeSpotPriceSources([
     [SpotPricePool["WBTC/WETH-UniV3-0.3%"], SpotPricePool["WETH/USDC-UniV3-0.05%"]],
