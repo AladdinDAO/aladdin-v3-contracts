@@ -1,7 +1,7 @@
 import axios from "axios";
 import { Command } from "commander";
 import * as hre from "hardhat";
-import { MaxUint256, toBigInt } from "ethers";
+import { MaxUint256, toBigInt, ZeroAddress } from "ethers";
 import "@nomicfoundation/hardhat-ethers";
 
 import { loadParams } from "./config";
@@ -10,7 +10,7 @@ import { CLeverCVXDeployment } from "@/contracts/CLeverCVX";
 import { CLeverCVXLocker } from "@/types/index";
 import { same } from "@/utils/address";
 import { DEPLOYED_CONTRACTS, selectDeployments } from "@/utils/deploys";
-import { MULTI_PATH_CONVERTER_ROUTES, ZAP_ROUTES } from "@/utils/routes";
+import { MULTI_PATH_CONVERTER_ROUTES } from "@/utils/routes";
 import { TOKENS } from "@/utils/tokens";
 
 const ethers = hre.ethers;
@@ -85,8 +85,22 @@ async function main(round: number, manualStr: string) {
     const symbol: string = Object.entries(TOKENS).filter(
       ([, { address }]) => address.toLowerCase() === item.token.toLowerCase()
     )[0][0];
-    const routeToETH = symbol === "WETH" ? [] : ZAP_ROUTES[symbol].WETH;
-    const routeToCVX = MULTI_PATH_CONVERTER_ROUTES.WETH.CVX;
+    const routeToWETH = ["WETH", "CVX"].includes(symbol)
+      ? { encoding: 0n, routes: [] }
+      : MULTI_PATH_CONVERTER_ROUTES[symbol].WETH;
+    const paramToWETH =
+      routeToWETH.encoding === 0n
+        ? { target: ZeroAddress, spender: ZeroAddress, data: "0x" }
+        : {
+            target: await converter.getAddress(),
+            spender: await converter.getAddress(),
+            data: converter.interface.encodeFunctionData("convert", [
+              item.token,
+              item.amount,
+              routeToWETH.encoding,
+              routeToWETH.routes,
+            ]),
+          };
     const estimate = toBigInt(
       await ethers.provider.call({
         from: KEEPER,
@@ -94,7 +108,7 @@ async function main(round: number, manualStr: string) {
         data: locker.interface.encodeFunctionData("harvestVotiumLikeBribes", [
           VOTIUM_MERKLE_STASH,
           [item],
-          [routeToETH, routeToCVX],
+          [paramToWETH, paramToCVX],
           0,
         ]),
       })
@@ -111,7 +125,7 @@ async function main(round: number, manualStr: string) {
     } else {
       console.log(`  token[${symbol}]`, `address[${item.token}]`, `amount[${tokenAmountStr}]`, `CVX[${cvxAmountStr}]`);
     }
-    routes.push(routeToETH);
+    routes.push(paramToWETH);
   }
   routes.push(paramToCVX);
 
@@ -142,7 +156,7 @@ async function main(round: number, manualStr: string) {
     const tx = await locker.harvestVotiumLikeBribes(VOTIUM_MERKLE_STASH, claimParams, routes, minCVXOut, {
       gasLimit: (gasEstimation * 12n) / 10n,
       maxFeePerGas: (block!.baseFeePerGas! * 3n) / 2n,
-      maxPriorityFeePerGas: ethers.parseUnits("1", "gwei"),
+      maxPriorityFeePerGas: ethers.parseUnits("0.1", "gwei"),
     });
     console.log("Waiting for tx:", tx.hash);
     const receipt = await tx.wait();

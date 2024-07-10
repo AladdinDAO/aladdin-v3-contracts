@@ -9,16 +9,7 @@ import { MultisigDeployment } from "@/contracts/Multisig";
 import { abiDecode } from "@/contracts/helpers";
 
 import { SdCRVBribeBurnerV2 } from "@/types/index";
-import {
-  Action,
-  ADDRESS,
-  encodeMultiPath,
-  encodePoolHintV3,
-  PoolTypeV3,
-  same,
-  selectDeployments,
-  TOKENS,
-} from "@/utils/index";
+import { MULTI_PATH_CONVERTER_ROUTES, same, selectDeployments, TOKENS } from "@/utils/index";
 
 import { loadParams } from "./config";
 
@@ -47,36 +38,12 @@ async function getSwapData(
   amountIn: bigint,
   minOut: bigint
 ): Promise<SdCRVBribeBurnerV2.ConvertParamsStruct> {
-  /* eslint-disable prettier/prettier */
-  // prettier-ignore
-  const routes: {[name: string]: bigint} = {
-    "sdCRV-CRV-Curve": encodePoolHintV3(ADDRESS["CURVE_CRV/sdCRV_V2_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
-    "CRV-WETH-Sushi": encodePoolHintV3(ADDRESS["Sushi_WETH/CRV"], PoolTypeV3.UniswapV2, 2, 1, 0, Action.Swap, { fee_num: 997000 }),
-    "CRV-WETH-UniV3": encodePoolHintV3(ADDRESS["UniV3_WETH/CRV_3000"], PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {fee_num: 3000}),
-    "CRV-crvUSD-Curve3Crypto": encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap),
-    "CRV-WETH-Curve3Crypto": encodePoolHintV3(ADDRESS["CURVE_crvUSD/ETH/CRV_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
-    "WETH-SDT-Curve2Crypto": encodePoolHintV3(ADDRESS["CURVE_ETH/SDT_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap, {use_eth: true}),
-    "WETH-SDT-PancakeV3": encodePoolHintV3(ADDRESS.SDT_WETH_PancakeV3_2500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {fee_num: 2500}),
-    "WETH-SDT-UniV2": encodePoolHintV3(ADDRESS.SDT_WETH_UNIV2, PoolTypeV3.UniswapV2, 2, 1, 0, Action.Swap, { fee_num: 997000 }),
-    "crvUSD-SDT-Curve3Crypto": encodePoolHintV3(ADDRESS["CURVE_crvUSD/frxETH/SDT_POOL"], PoolTypeV3.CurveCryptoPool, 3, 0, 2, Action.Swap)
-  };
-  /* eslint-enable prettier/prettier */
-
   // @note should change before actually call
   const converter = await ethers.getContractAt("MultiPathConverter", "0x4F96fe476e7dcD0404894454927b9885Eb8B57c3");
   if (same(src, dst)) return { target: ZeroAddress, data: "0x", minOut };
   if (same(src, TOKENS.sdCRV.address)) {
     if (same(dst, TOKENS.SDT.address)) {
-      const encoding = encodeMultiPath(
-        [
-          [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-UniV3"], routes["WETH-SDT-Curve2Crypto"]],
-          // [routes["sdCRV-CRV-Curve"], routes["CRV-crvUSD-Curve3Crypto"], routes["crvUSD-SDT-Curve3Crypto"]],
-          // [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Sushi"], routes["WETH-SDT-UniV2"]],
-          // [routes["sdCRV-CRV-Curve"], routes["CRV-WETH-Curve3Crypto"], routes["WETH-SDT-Curve2Crypto"]],
-          // [routes["sdCRV-CRV-Curve"], routes["CRV-crvUSD-Curve3Crypto"], routes["crvUSD-SDT-Curve3Crypto"]],
-        ],
-        [0n, 0n]
-      );
+      const encoding = MULTI_PATH_CONVERTER_ROUTES.sdCRV.SDT;
       return {
         target: await converter.getAddress(),
         data: converter.interface.encodeFunctionData("convert", [src, amountIn, encoding.encoding, encoding.routes]),
@@ -170,7 +137,7 @@ async function main(round: string) {
   const root = await stash.merkleRoot.staticCall(claimParams[0].token);
   if (!(await locker.claimed(claimParams[0].token, root))) {
     const data = wrapper.interface.encodeFunctionData("harvestBribes", [claimParams]);
-    console.log("data:", data);
+    console.log("claim data:", data);
     const gasEstimate = await ethers.provider.estimateGas({
       from: KEEPER,
       to: await wrapper.getAddress(),
@@ -233,11 +200,11 @@ async function main(round: string) {
         );
 
         console.log(`Burn token[${symbol}] address[${item.token}] to SDT/CRV`);
-        const minSDT = (amountSDT * 9965n) / 10000n;
+        const minSDT = (amountSDT * 9770n) / 10000n;
         const minCRV = (amountCRV * 9990n) / 10000n;
         const routeSDT = await getSwapData(item.token, TOKENS.SDT.address, boostFee, minSDT);
         const routeCRV = await getSwapData(item.token, TOKENS.CRV.address, amount - platformFee - boostFee, minCRV);
-        console.log(burner.interface.encodeFunctionData("burn", [item.token, routeSDT, routeCRV]));
+        console.log("burn data:", burner.interface.encodeFunctionData("burn", [item.token, routeSDT, routeCRV]));
         const gasEstimate = await burner.burn.estimateGas(item.token, routeSDT, routeCRV);
         console.log("  gas estimate:", gasEstimate.toString());
         const tx = await burner.burn(item.token, routeSDT, routeCRV, {
