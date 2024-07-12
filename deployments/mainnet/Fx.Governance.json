@@ -115,7 +115,8 @@
         "manager": "0xD4e96D498AF2B1E647cf2cbA0564c241F814F57b"
       },
       "USDC+fxUSD": {
-        "gauge": "0xf1E141C804BA39b4a031fDF46e8c08dBa7a0df60"
+        "gauge": "0xf1E141C804BA39b4a031fDF46e8c08dBa7a0df60",
+        "manager": "0xb9314Bbd207375D0aef3029C5652D6379e497779"
       },
       "USD0+fxUSD": {
         "gauge": "0x0B700C60de435D522081cC5eB12B63875FE7e65a"
