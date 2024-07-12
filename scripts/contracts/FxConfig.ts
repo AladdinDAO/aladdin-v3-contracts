@@ -312,7 +312,7 @@ export const MarketConfig: {
       LeveragedMintFeeRatio: { default: ethers.parseEther("0.01"), delta: -ethers.parseEther("0.01") }, // 1% and -1%
       FractionalRedeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and -0.25%
       LeveragedRedeemFeeRatio: { default: ethers.parseEther("0.01"), delta: ethers.parseEther("0.07") }, // 1% and 7%
-      StabilityRatio: ethers.parseEther("1.4987"), // 149.87%
+      StabilityRatio: ethers.parseEther("1.50"), // 150%
     },
     BaseTokenCapacity: ethers.parseEther("3000000"),
     FxUSDMintCapacity: MaxUint256,

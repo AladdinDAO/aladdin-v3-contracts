@@ -5,7 +5,8 @@
     "proxy": {
       "fxUSD": "0x085780639CC2cACd35E474e71f4d000e2405d8f6",
       "rUSD": "0x65D72AA8DA931F047169112fcf34f52DbaAE7D18",
-      "btcUSD": "0x9D11ab23d33aD026C466CE3c124928fDb69Ba20E"
+      "btcUSD": "0x9D11ab23d33aD026C466CE3c124928fDb69Ba20E",
+      "cvxUSD": "0x9f0D5E33617A1Db6f1CBd5580834422684f09269"
     },
     "implementation": "0xAd95d0c8782f8c9076e8F081F7A5E1A4ac4499a3"
   },
@@ -181,6 +182,40 @@
         }
       },
       "RewardTokenWrapper": "0xAe34EE329Ee91ddBFbe50443df9DEdb076477f55"
+    },
+    "aCVX": {
+      "Treasury": {
+        "proxy": "0xdFac83173A96b06C5D6176638124d028269cfCd2",
+        "implementation": "0x58465fff9F31F0d46822d3A4cea0395f017e161a"
+      },
+      "Market": {
+        "proxy": "0x8e3815Ef103B8d8528778969cD53baa2E94bE25e",
+        "implementation": "0x98ea26A76fd78a22691c9FF64F26893A13CD9B28"
+      },
+      "FractionalToken": {
+        "proxy": "0x9Fcb2c47DaB11e38fec4b8c886F63741bfED4c41",
+        "implementation": "0xf5a3C54CFD96837c5eFCE8A4b260de7B117f2681"
+      },
+      "LeveragedToken": {
+        "proxy": "0xB90D347e10a085B591955Cbd0603aC7866fCADC8",
+        "implementation": "0x1146cb9F7D8633C5f2Ed62ff74aB81CB488780DC"
+      },
+      "FxInitialFund": "0x05abFAD11c275F91Cc79f6ec507CB273e9f59dE7",
+      "RebalancePoolRegistry": "0x63B038A7298FbDCf0945068637Ec59B8A5E9C6Bd",
+      "RebalancePoolSplitter": {
+        "FXN": "0xce5A14C662f00C614aA467b82c654548540F2fcA"
+      },
+      "RebalancePoolGauge": "0xb5152D159fce50a7576eBa7FAb61C2B98F0Ed692",
+      "RebalancePoolGaugeClaimer": "0x05c630E9FC8A064f0e8E6fBB9e2B5D2215Da5653",
+      "RebalancePool": {
+        "aCVX": {
+          "pool": "0x0AB9Dc99a33Cd02A776a9117f211803Fb69Fd7C4"
+        },
+        "xCVX": {
+          "pool": "0xA04d761adad1029e4f2F60ac973a76c5307EfceA",
+          "wrapper": "0x08A602616593b79591cFC88A130c8825a0fcbd94"
+        }
+      }
     }
   },
   "FxUSDShareableRebalancePool": "0x72A6239F1651a4556f4C40fe97575885A195f535",
