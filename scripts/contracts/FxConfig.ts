@@ -312,9 +312,9 @@ export const MarketConfig: {
       LeveragedMintFeeRatio: { default: ethers.parseEther("0.01"), delta: -ethers.parseEther("0.01") }, // 1% and -1%
       FractionalRedeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and -0.25%
       LeveragedRedeemFeeRatio: { default: ethers.parseEther("0.01"), delta: ethers.parseEther("0.07") }, // 1% and 7%
-      StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
+      StabilityRatio: ethers.parseEther("1.50"), // 150%
     },
-    BaseTokenCapacity: ethers.parseEther("10000"),
+    BaseTokenCapacity: ethers.parseEther("3000000"),
     FxUSDMintCapacity: MaxUint256,
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },
@@ -439,6 +439,7 @@ export interface FxUSDDeployment {
       fxUSD: string;
       rUSD: string;
       btcUSD: string;
+      cvxUSD: string;
     };
   };
 }

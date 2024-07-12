@@ -2,7 +2,14 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Overrides } from "ethers";
 import { network } from "hardhat";
 
-import { FxEETHOracleV2, FxEzETHOracleV2, FxFrxETHOracleV2, FxStETHOracleV2, FxWBTCOracleV2 } from "@/types/index";
+import {
+  FxCVXOracle,
+  FxEETHOracleV2,
+  FxEzETHOracleV2,
+  FxFrxETHOracleV2,
+  FxStETHOracleV2,
+  FxWBTCOracleV2,
+} from "@/types/index";
 import { ADDRESS, SpotPriceEncodings, TOKENS, encodeChainlinkPriceFeed } from "@/utils/index";
 import { ContractCallHelper, DeploymentHelper } from "./helpers";
 
@@ -65,6 +72,7 @@ export interface FxOracleDeployment {
   FxEETHOracleV2: string;
   FxEzETHOracleV2: string;
   FxWBTCOracleV2: string;
+  FxCVXOracle: string;
 
   WstETHRateProvider: string;
   BalancerV2CachedRateProvider: {
@@ -81,7 +89,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   const deployment = new DeploymentHelper(network.name, "Fx.Oracle", deployer, overrides);
 
   // deploy Chainlink twap oracle
-  for (const symbol of ["ETH-USD", "BTC-USD", "WBTC-BTC"]) {
+  for (const symbol of ["ETH-USD", "BTC-USD", "WBTC-BTC", "CVX-USD"]) {
     await deployment.contractDeploy(
       "FxChainlinkTwapOracle." + symbol,
       "FxChainlinkTwapOracle for " + symbol,
@@ -154,6 +162,17 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.get("FxChainlinkTwapOracle.WBTC-BTC"),
   ]);
 
+  // deploy FxCVXOracle
+  await deployment.contractDeploy("FxCVXOracle", "FxCVXOracle", "FxCVXOracle", [
+    deployment.get("SpotPriceOracle"),
+    "0x" +
+      encodeChainlinkPriceFeed(ChainlinkPriceFeed["ETH-USD"].feed, 10n ** 10n, ChainlinkPriceFeed["ETH-USD"].heartbeat)
+        .toString(16)
+        .padStart(64, "0"),
+    deployment.get("FxChainlinkTwapOracle.ETH-USD"),
+    deployment.get("FxChainlinkTwapOracle.CVX-USD"),
+  ]);
+
   // deploy WstETHRateProvider
   await deployment.contractDeploy("WstETHRateProvider", "WstETHRateProvider", "WstETHRateProvider", [
     TOKENS.wstETH.address,
@@ -174,6 +193,11 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "ERC4626RateProvider",
     [TOKENS.sfrxETH.address]
   );
+
+  // deploy ERC4626RateProvider aCVX
+  await deployment.contractDeploy("ERC4626RateProvider.aCVX", "ERC4626RateProvider for aCVX", "ERC4626RateProvider", [
+    TOKENS.aCVX.address,
+  ]);
 
   return deployment.toObject() as FxOracleDeployment;
 }
@@ -243,6 +267,20 @@ export async function initialize(deployer: HardhatEthersSigner, deployment: FxOr
   if ((await WBTCOracle.getBTCDerivativeUSDSpotPrices()).length === 0) {
     await caller.call(WBTCOracle, "FxWBTCOracleV2 Update WBTC/USD encodings", "updateOnchainSpotEncodings", [
       SpotPriceEncodings["WBTC/USDC"],
+    ]);
+  }
+
+  const CVXOracle = await caller.contract<FxCVXOracle>("FxCVXOracle", deployment.FxCVXOracle);
+  if ((await CVXOracle.getETHUSDSpotPrices()).length === 0) {
+    await caller.call(CVXOracle, "FxCVXOracle Update ETH/USD encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["WETH/USDC"],
+      0,
+    ]);
+  }
+  if ((await CVXOracle.getERC20ETHSpotPrices()).length === 0) {
+    await caller.call(CVXOracle, "FxCVXOracle Update CVX/ETH encodings", "updateOnchainSpotEncodings", [
+      SpotPriceEncodings["CVX/WETH"],
+      1,
     ]);
   }
 }
