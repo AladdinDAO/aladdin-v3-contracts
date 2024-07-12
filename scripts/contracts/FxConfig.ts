@@ -131,6 +131,7 @@ export const DeployedGauges: {
   },
   "USDC+fxUSD": {
     token: TOKENS["CURVE_S_NG_USDC/fxUSD_193"].address,
+    rewarder: "0x64973eE75eB00B99E99EEb8c380550a5C4Eb680d",
     immutable: false,
     harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
     managerRatio: ethers.parseUnits("0.01", 9), // 1%
