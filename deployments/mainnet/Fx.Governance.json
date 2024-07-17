@@ -120,6 +120,10 @@
       },
       "USD0+fxUSD": {
         "gauge": "0x0B700C60de435D522081cC5eB12B63875FE7e65a"
+      },
+      "fxUSD+rUSD+btcUSD": {
+        "gauge": "0x7a505e920d5d7E4b402D9Ee345fB7E8Cdc265262",
+        "manager": "0x321B1Ee5D26386436b9aF3725eBaF4c52731B9be"
       }
     }
   },
