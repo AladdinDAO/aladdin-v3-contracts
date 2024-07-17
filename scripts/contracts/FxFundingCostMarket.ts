@@ -364,6 +364,11 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
       marketConfig.LeveragedToken.symbol,
     ]);
   }
+  if ((await xToken.coolingOffPeriod()) === 0n) {
+    await caller.call(xToken, `LeveragedToken for ${baseSymbol} updateCoolingOffPeriod`, "updateCoolingOffPeriod", [
+      30 * 60,
+    ]);
+  }
   if ((await treasury.platform()) === ZeroAddress) {
     await caller.call(treasury, `Treasury for ${baseSymbol} initialize`, "initialize", [
       governance.PlatformFeeSpliter,
@@ -425,6 +430,19 @@ export async function initialize(caller: ContractCallHelper, baseSymbol: string,
     await rebalancePoolB.getAddress(),
     deployment.FxUSDShareableRebalancePool
   );
+
+  // setup xToken
+  if (
+    !(await xToken.hasRole(
+      id("THIRD_PARTY_MINTER_ROLE"),
+      marketDeployment.RebalancePool[MarketConfig[baseSymbol].LeveragedToken.symbol].wrapper!
+    ))
+  ) {
+    await caller.ownerCall(xToken, `xToken for ${baseSymbol} grant THIRD_PARTY_MINTER_ROLE`, "grantRole", [
+      id("THIRD_PARTY_MINTER_ROLE"),
+      marketDeployment.RebalancePool[MarketConfig[baseSymbol].LeveragedToken.symbol].wrapper!,
+    ]);
+  }
 
   // setup Treasury
   if ((await treasury.getHarvesterRatio()) !== marketConfig.Treasury.HarvesterRatio) {

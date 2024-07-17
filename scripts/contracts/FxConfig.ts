@@ -142,6 +142,13 @@ export const DeployedGauges: {
     harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
     managerRatio: ethers.parseUnits("0.01", 9), // 1%
   },
+  "fxUSD+rUSD+btcUSD": {
+    token: TOKENS["CURVE_S_NG_fxUSD/rUSD/btcUSD_204"].address,
+    rewarder: "0xE00Da4e45b5ddF09C1E4AB99C7bb47C18687611F",
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
 };
 
 export const GaugeTypeLists: Array<{ name: string; weight: bigint }> = [
@@ -219,9 +226,9 @@ export const MarketConfig: {
       RebalancePoolRatio: ethers.parseUnits("0.5", 9), // 50%,
     },
     Market: {
-      FractionalMintFeeRatio: { default: ethers.parseEther("0.01"), delta: 0n }, // 0% and 0%
+      FractionalMintFeeRatio: { default: ethers.parseEther("0"), delta: 0n }, // 0% and 0%
       LeveragedMintFeeRatio: { default: ethers.parseEther("0.015"), delta: -ethers.parseEther("0.015") }, // 1.5% and -1.5%
-      FractionalRedeemFeeRatio: { default: ethers.parseEther("0.01"), delta: -ethers.parseEther("0.01") }, // 0.25% and -0.25%
+      FractionalRedeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and 0.25%
       LeveragedRedeemFeeRatio: { default: ethers.parseEther("0.015"), delta: ethers.parseEther("0.07") }, // 1.5% and 7%
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
@@ -237,9 +244,9 @@ export const MarketConfig: {
       RebalancePoolRatio: ethers.parseUnits("0.5", 9), // 50%,
     },
     Market: {
-      FractionalMintFeeRatio: { default: ethers.parseEther("0.01"), delta: 0n }, // 0% and 0%
+      FractionalMintFeeRatio: { default: ethers.parseEther("0"), delta: 0n }, // 0% and 0%
       LeveragedMintFeeRatio: { default: ethers.parseEther("0.015"), delta: -ethers.parseEther("0.015") }, // 1.5% and -1.5%
-      FractionalRedeemFeeRatio: { default: ethers.parseEther("0.01"), delta: -ethers.parseEther("0.01") }, // 0.25% and -0.25%
+      FractionalRedeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and -0.25%
       LeveragedRedeemFeeRatio: { default: ethers.parseEther("0.015"), delta: ethers.parseEther("0.07") }, // 1.5% and 7%
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
@@ -255,10 +262,10 @@ export const MarketConfig: {
       RebalancePoolRatio: ethers.parseUnits("0.5", 9), // 50%,
     },
     Market: {
-      FractionalMintFeeRatio: { default: ethers.parseEther("0.01"), delta: 0n }, // 0% and 0%
-      LeveragedMintFeeRatio: { default: ethers.parseEther("0.02"), delta: -ethers.parseEther("0.02") }, // 2% and -2%
-      FractionalRedeemFeeRatio: { default: ethers.parseEther("0.01"), delta: -ethers.parseEther("0.01") }, // 0.25% and -0.25%
-      LeveragedRedeemFeeRatio: { default: ethers.parseEther("0.02"), delta: ethers.parseEther("0.07") }, // 2% and 7%
+      FractionalMintFeeRatio: { default: ethers.parseEther("0"), delta: 0n }, // 0% and 0%
+      LeveragedMintFeeRatio: { default: ethers.parseEther("0.015"), delta: -ethers.parseEther("0.015") }, // 2% and -2%
+      FractionalRedeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and -0.25%
+      LeveragedRedeemFeeRatio: { default: ethers.parseEther("0.015"), delta: ethers.parseEther("0.07") }, // 2% and 7%
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
     BaseTokenCapacity: ethers.parseEther("5000"),
@@ -291,13 +298,13 @@ export const MarketConfig: {
       RebalancePoolRatio: ethers.parseUnits("0.5", 9), // 50%,
     },
     Market: {
-      FractionalMintFeeRatio: { default: ethers.parseEther("0.01"), delta: 0n }, // 0% and 0%
+      FractionalMintFeeRatio: { default: ethers.parseEther("0"), delta: 0n }, // 0% and 0%
       LeveragedMintFeeRatio: { default: ethers.parseEther("0.02"), delta: -ethers.parseEther("0.02") }, // 2% and -2%
-      FractionalRedeemFeeRatio: { default: ethers.parseEther("0.01"), delta: -ethers.parseEther("0.01") }, // 0.25% and -0.25%
+      FractionalRedeemFeeRatio: { default: ethers.parseEther("0.0025"), delta: -ethers.parseEther("0.0025") }, // 0.25% and -0.25%
       LeveragedRedeemFeeRatio: { default: ethers.parseEther("0.02"), delta: ethers.parseEther("0.07") }, // 1% and 7%
       StabilityRatio: ethers.parseEther("1.3055"), // 130.55%
     },
-    BaseTokenCapacity: ethers.parseEther("500"),
+    BaseTokenCapacity: ethers.parseEther("200"),
     FxUSDMintCapacity: MaxUint256,
     ReservePoolBonusRatio: ethers.parseEther("0.05"), // 5%
   },

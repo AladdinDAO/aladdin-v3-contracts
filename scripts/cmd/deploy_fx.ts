@@ -118,7 +118,15 @@ async function main() {
         ["USDT", "ezETH"],
       ]);
     } else if (cmd === "btcUSD.WBTC") {
-      showRoutes("Fx Convert Routes (WBTC)", [["WBTC", "wstETH"]]);
+      showRoutes("Fx Convert Routes (WBTC)", [
+        ["WBTC", "wstETH"],
+        ["WBTC", "WETH"],
+        ["WBTC", "USDC"],
+        ["WBTC", "USDT"],
+        ["WETH", "WBTC"],
+        ["USDC", "WBTC"],
+        ["USDT", "WBTC"],
+      ]);
     } else if (cmd === "cvxUSD.aCVX") {
       showRoutes("Fx Convert Routes (aCVX)", [
         ["aCVX", "CVX"],

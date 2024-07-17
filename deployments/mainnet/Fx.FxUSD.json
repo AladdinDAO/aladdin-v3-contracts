@@ -26,7 +26,7 @@
       },
       "LeveragedToken": {
         "proxy": "0x5a097b014C547718e79030a077A91Ae37679EfF5",
-        "implementation": "0xdFC3683a0179A02Bfb5373243d105fF25e4F40C6"
+        "implementation": "0xa3A8E0B7aA53A9b9abD795DdB290e93FEaFe6e97"
       },
       "FxInitialFund": "0xe6b953BB4c4B8eEd78b40B81e457ee4BDA461D55",
       "RebalancePoolRegistry": "0x86e987a89Fd7345457d97b9e82906f346D61Df39",
@@ -60,7 +60,7 @@
       },
       "LeveragedToken": {
         "proxy": "0x2bb0C32101456F5960d4e994Bac183Fe0dc6C82c",
-        "implementation": "0xBC113e63C3E5Bcc9b829053c31a6c3868d7CD674"
+        "implementation": "0xFA1dc2B0775c5699e195Bb5f64BAfbA3C36a9AC4"
       },
       "FxInitialFund": "0xFC3862c33b54E0BBA61d966Ff51973C20be4fC62",
       "RebalancePoolRegistry": "0x345a345DAd48c3504113539ce83c0cB765627B54",
@@ -94,7 +94,7 @@
       },
       "LeveragedToken": {
         "proxy": "0xACB3604AaDF26e6C0bb8c720420380629A328d2C",
-        "implementation": "0x4bE29f398DBF33C13A6C8463a4a45bA97577aDD1"
+        "implementation": "0x51E286478519924a400554bae7A3FA139F9b1576"
       },
       "FxInitialFund": "0x6dc7a100d09DDbF344FC4Dd0398f79500D0c2716",
       "RebalancePoolRegistry": "0xb1dD23468a69DFDDb7211298e609C0DB1522B2D6",
@@ -128,7 +128,7 @@
       },
       "LeveragedToken": {
         "proxy": "0x2e5A5AF7eE900D34BCFB70C47023bf1d6bE35CF5",
-        "implementation": "0x0B46Aeb66f97b1586CA6588FdA50A6f277a56753"
+        "implementation": "0x9Efd39499dD56106b106a2206e79fb6117Baf2C7"
       },
       "FxInitialFund": "0x7612bCAbd3D66c71fF740472e063be6a74f126D1",
       "RebalancePoolRegistry": "0x5e3ca2A5736fb093328e4CA19A9A1966025f3905",
@@ -162,7 +162,7 @@
       },
       "LeveragedToken": {
         "proxy": "0x9f23562ec47249761222EF7Ac02b327a8C45Ba7D",
-        "implementation": "0x69556a04b10D16dC62f0B8ea739D03947863cD0B"
+        "implementation": "0xC50EA03795b1C6E618FbBC304b55e5F7c31D7AdB"
       },
       "FxInitialFund": "0x29eE4B752fE14B0BC1F279DCA98415f2Fa6F3A8d",
       "RebalancePoolRegistry": "0x163283D59FE2A579f2920A7F8eA19F7799B32fA0",
@@ -198,7 +198,7 @@
       },
       "LeveragedToken": {
         "proxy": "0xB90D347e10a085B591955Cbd0603aC7866fCADC8",
-        "implementation": "0x1146cb9F7D8633C5f2Ed62ff74aB81CB488780DC"
+        "implementation": "0x81E9ed9b654460212f04c2bde0467CdE4628782A"
       },
       "FxInitialFund": "0x05abFAD11c275F91Cc79f6ec507CB273e9f59dE7",
       "RebalancePoolRegistry": "0x63B038A7298FbDCf0945068637Ec59B8A5E9C6Bd",
