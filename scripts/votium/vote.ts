@@ -419,13 +419,8 @@ async function snapshot_vote(
     if (fs.existsSync(bribes_file) && !force) {
       bribes = JSON.parse(fs.readFileSync(bribes_file).toString());
     } else {
-      const response = await axios.post<IVotiumBribeResponse>(
-        "https://api.llama.airforce/bribes",
-        JSON.stringify({
-          platform: "votium",
-          protocol: ProtocolMapping[protocol],
-          round: round.toString(),
-        }),
+      const response = await axios.get<IVotiumBribeResponse>(
+        `https://api.llama.airforce/bribes/votium/${ProtocolMapping[protocol]}/${round}`,
         {
           headers: {
             "content-type": "application/json; charset=utf-8",
