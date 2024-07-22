@@ -48,9 +48,9 @@ contract SdPendleBribeBurner is AccessControl {
   /// @notice The address of `SdPendleCompounder` contract.
   address public immutable compounder;
 
-  /*************
+  /***********
    * Structs *
-   *************/
+   ***********/
 
   /// @notice The struct for convert parameters.
   ///

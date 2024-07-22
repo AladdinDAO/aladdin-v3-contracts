@@ -15,6 +15,12 @@ interface ISdPendleCompounder is IConcentratorCompounder {
   /// @param newRatio The value of the current ratio, multiplied by 1e9.
   event UpdateBoosterRatio(uint256 oldRatio, uint256 newRatio);
 
+  /// @notice Emitted when the bribe burner contract is updated.
+  ///
+  /// @param oldBurner The address of the previous bribe burner contract.
+  /// @param newBurner The address of the current bribe burner contract.
+  event UpdateBribeBurner(address indexed oldBurner, address indexed newBurner);
+
   /// @notice Emitted when someone harvest pending bribe rewards.
   ///
   /// @param token The address of the reward token.

@@ -45,6 +45,13 @@ contract SdPendleCompounder is ConcentratorCompounderBase, ISdPendleCompounder {
   /// @dev The address of `StakeDAOBribeClaimer` contract.
   address public immutable bribeClaimer;
 
+  /*************
+   * Variables *
+   *************/
+
+  /// @notice The address of `SdPendleBribeBurner` contract.
+  address public bribeBurner;
+
   /***************
    * Constructor *
    ***************/
@@ -59,7 +66,8 @@ contract SdPendleCompounder is ConcentratorCompounderBase, ISdPendleCompounder {
     address _treasury,
     address _harvester,
     address _converter,
-    address _strategy
+    address _strategy,
+    address _bribeBurner
   ) external initializer {
     __Context_init(); // from ContextUpgradeable
     __ERC165_init(); // from ERC165Upgradeable
@@ -78,6 +86,8 @@ contract SdPendleCompounder is ConcentratorCompounderBase, ISdPendleCompounder {
     // approval
     IERC20Upgradeable(SdPendleHelper.PENDLE).safeApprove(SdPendleHelper.DEPOSITOR, type(uint256).max);
     IERC20Upgradeable(SdPendleHelper.PENDLE).safeApprove(SdPendleHelper.CURVE_POOL, type(uint256).max);
+
+    _updateBribeBurner(_bribeBurner);
   }
 
   /*************************
@@ -135,7 +145,7 @@ contract SdPendleCompounder is ConcentratorCompounderBase, ISdPendleCompounder {
     // claim token to converter, and it will do the rest parts.
     IMultiMerkleStash.claimParam[] memory _claims = new IMultiMerkleStash.claimParam[](1);
     _claims[0] = _claim;
-    StakeDAOBribeClaimer(bribeClaimer).claim(_claims, converter);
+    StakeDAOBribeClaimer(bribeClaimer).claim(_claims, bribeBurner);
 
     uint256 _amount = _claim.amount;
     uint256 _expenseRatio = getExpenseRatio();
@@ -164,6 +174,13 @@ contract SdPendleCompounder is ConcentratorCompounderBase, ISdPendleCompounder {
     emit UpdateBoosterRatio(_oldRatio, _newRatio);
   }
 
+  /// @notice Update the address of bribe burner contract.
+  ///
+  /// @param _newBurner The address of the new bribe burner contract.
+  function updateBribeBurner(address _newBurner) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _updateBribeBurner(_newBurner);
+  }
+
   /**********************
    * Internal Functions *
    **********************/
@@ -176,5 +193,15 @@ contract SdPendleCompounder is ConcentratorCompounderBase, ISdPendleCompounder {
   /// @inheritdoc ConcentratorCompounderBase
   function _getIntermediateToken() internal view virtual override returns (address) {
     return SdPendleHelper.PENDLE;
+  }
+
+  /// @dev Internal function to update the address of bribe burner contract.
+  ///
+  /// @param _newBurner The address of the new bribe burner contract.
+  function _updateBribeBurner(address _newBurner) private {
+    address _oldBurner = bribeBurner;
+    bribeBurner = _newBurner;
+
+    emit UpdateBribeBurner(_oldBurner, _newBurner);
   }
 }

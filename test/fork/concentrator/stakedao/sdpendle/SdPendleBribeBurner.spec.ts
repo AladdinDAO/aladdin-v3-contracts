@@ -75,7 +75,8 @@ describe("SdPendleBribeBurner.spec", async () => {
       operator.address,
       deployer.address,
       converter.getAddress(),
-      strategy.getAddress()
+      strategy.getAddress(),
+      burner.getAddress()
     );
 
     const REWARD_DEPOSITOR_ROLE = await compounder.REWARD_DEPOSITOR_ROLE();

@@ -76,9 +76,10 @@ describe("SdPendleCompounder.spec", async () => {
 
     const SdPendleGaugeStrategy = await ethers.getContractFactory("SdPendleGaugeStrategy", deployer);
     strategy = await SdPendleGaugeStrategy.deploy(compounder.getAddress());
+    const stash = await strategy.stash();
 
-    const StakeDAOGaugeWrapperStash = await ethers.getContractFactory("StakeDAOGaugeWrapperStash", deployer);
-    const stash = await StakeDAOGaugeWrapperStash.deploy(strategy.getAddress());
+    const SdPendleBribeBurner = await ethers.getContractFactory("SdPendleBribeBurner", deployer);
+    const burner = await SdPendleBribeBurner.deploy(compounder.getAddress());
 
     await compounder.initialize(
       "Aladdin sdPENDLE",
@@ -86,12 +87,12 @@ describe("SdPendleCompounder.spec", async () => {
       deployer.address,
       deployer.address,
       converter.getAddress(),
-      strategy.getAddress()
+      strategy.getAddress(),
+      burner.getAddress()
     );
-    await strategy.updateStash(stash.getAddress());
     await locker.updateClaimer(claimer.getAddress());
     await locker.updateOperator(SdPendleGauge, strategy.getAddress());
-    await locker.updateGaugeRewardReceiver(SdPendleGauge, stash.getAddress());
+    await locker.updateGaugeRewardReceiver(SdPendleGauge, stash);
     await registry.updateRoute(TOKENS.WETH.address, TOKENS.PENDLE.address, CONVERTER_ROUTRS.WETH.PENDLE);
     await claimer.grantRole(await claimer.BRIBE_RECEIVER_ROLE(), compounder.getAddress());
   });
@@ -129,7 +130,7 @@ describe("SdPendleCompounder.spec", async () => {
 
       // reinitialize
       await expect(
-        compounder.initialize("XX", "YY", ZeroAddress, ZeroAddress, ZeroAddress, ZeroAddress)
+        compounder.initialize("XX", "YY", ZeroAddress, ZeroAddress, ZeroAddress, ZeroAddress, ZeroAddress)
       ).to.revertedWith("Initializable: contract is already initialized");
     });
   });
@@ -362,14 +363,14 @@ describe("SdPendleCompounder.spec", async () => {
       const root = solidityPackedKeccak256(["uint256", "address", "uint256"], [0n, Locker, amount]);
       await merkle.updateMerkleRoot(TOKENS.sdPENDLE.address, root);
 
-      const before = await sdPendle.balanceOf(compounder.converter());
+      const before = await sdPendle.balanceOf(compounder.bribeBurner());
       const tx = await compounder.harvestBribe({
         token: TOKENS.sdPENDLE.address,
         index: 0n,
         amount,
         merkleProof: [],
       });
-      expect(await sdPendle.balanceOf(compounder.converter())).eq(before + amount);
+      expect(await sdPendle.balanceOf(compounder.bribeBurner())).eq(before + amount);
       expect(tx)
         .to.emit(compounder, "HarvestBribe")
         .withArgs(TOKENS.sdPENDLE.address, amount, (amount * 2n) / 10n, (amount * 2n) / 10n);
