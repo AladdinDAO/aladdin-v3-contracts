@@ -207,8 +207,11 @@ async function main(round: string) {
         console.log("burn data:", burner.interface.encodeFunctionData("burn", [item.token, routeSDT, routeCRV]));
         const gasEstimate = await burner.burn.estimateGas(item.token, routeSDT, routeCRV);
         console.log("  gas estimate:", gasEstimate.toString());
+        const block = await ethers.provider.getBlock("latest");
         const tx = await burner.burn(item.token, routeSDT, routeCRV, {
           gasLimit: (gasEstimate * 12n) / 10n,
+          maxFeePerGas: (block!.baseFeePerGas! * 3n) / 2n,
+          maxPriorityFeePerGas: ethers.parseUnits("0.1", "gwei"),
         });
         console.log("  waiting for tx:", tx.hash);
         const receipt = await tx.wait();
