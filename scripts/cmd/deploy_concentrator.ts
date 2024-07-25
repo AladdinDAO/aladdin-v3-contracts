@@ -55,6 +55,12 @@ async function main() {
   }
 
   if (cmd === "cvxFXN") {
+    showZapRoute("WETH", "cvxFXN");
+    showZapRoute("USDC", "cvxFXN");
+    showZapRoute("USDT", "cvxFXN");
+    showZapRoute("cvxFXN", "WETH");
+    showZapRoute("cvxFXN", "USDC");
+    showZapRoute("cvxFXN", "USDT");
     const cvxFXN = await ConcentratorCvxFXN.deploy(deployer, overrides);
     await ConcentratorCvxFXN.initialize(deployer, cvxFXN, overrides);
   }
