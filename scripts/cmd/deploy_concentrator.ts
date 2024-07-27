@@ -61,6 +61,7 @@ async function main() {
     showZapRoute("cvxFXN", "WETH");
     showZapRoute("cvxFXN", "USDC");
     showZapRoute("cvxFXN", "USDT");
+    showConverterRoute("aFXN", "aCRV");
     const cvxFXN = await ConcentratorCvxFXN.deploy(deployer, overrides);
     await ConcentratorCvxFXN.initialize(deployer, cvxFXN, overrides);
   }

@@ -18,7 +18,7 @@ export interface ConcentratorCvxFxnDeployment {
   CvxFxnStakingStrategy: string;
 }
 
-const PERIOD_LENGTH = 0; // distribute immediately
+const PERIOD_LENGTH = 86400 * 7; // lineally distribute in 7 days
 
 export async function deploy(
   deployer: HardhatEthersSigner,
