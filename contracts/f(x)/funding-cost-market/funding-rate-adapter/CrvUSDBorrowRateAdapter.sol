@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.8.20;
+pragma solidity ^0.8.20;
 
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/access/AccessControlUpgradeable.sol";
 
@@ -87,7 +87,7 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
    ************************/
 
   /// @notice Internal function update the funding cost scale.
-  /// @param _newScale The value of new funding rate scale, multipled by 1e18.
+  /// @param _newScale The value of new funding rate scale, multiplied by 1e18.
   function updateFundingCostScale(uint256 _newScale) external onlyRole(DEFAULT_ADMIN_ROLE) {
     _updateFundingCostScale(_newScale);
   }
@@ -109,7 +109,7 @@ abstract contract CrvUSDBorrowRateAdapter is AccessControlUpgradeable {
   }
 
   /// @dev Internal function update the funding cost scale.
-  /// @param _newScale The value of new funding rate scale, multipled by 1e18.
+  /// @param _newScale The value of new funding rate scale, multiplied by 1e18.
   function _updateFundingCostScale(uint256 _newScale) internal {
     uint256 _oldScale = fundingCostScale;
     fundingCostScale = _newScale;

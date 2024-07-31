@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.8.20;
+pragma solidity ^0.8.20;
 
 import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable-v4/interfaces/IERC20MetadataUpgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v4/interfaces/IERC20Upgradeable.sol";
