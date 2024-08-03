@@ -166,7 +166,7 @@ contract SdPendleGaugeStrategy is ConcentratorStrategyBaseV2 {
 
     // 6. deposit
     if (_harvested > 0) {
-      IConcentratorStakeDAOLocker(SdPendleHelper.LOCKER).deposit(
+      _harvested = IConcentratorStakeDAOLocker(SdPendleHelper.LOCKER).deposit(
         SdPendleHelper.SD_PENDLE_GAUGE,
         SdPendleHelper.sdPENDLE
       );
