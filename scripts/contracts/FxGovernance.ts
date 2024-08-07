@@ -4,7 +4,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ZeroAddress, Overrides, Contract, MaxUint256, ZeroHash } from "ethers";
 import { network, ethers } from "hardhat";
 
-import { GaugeController, SharedLiquidityGauge__factory } from "@/types/index";
+import { GaugeController, LiquidityGauge__factory, SharedLiquidityGauge__factory } from "@/types/index";
 import { DEPLOYED_CONTRACTS, selectDeployments } from "@/utils/deploys";
 import { TOKENS } from "@/utils/tokens";
 
@@ -57,6 +57,12 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
 
   // LiquidityGauge related contracts
   await deployment.contractDeploy(
+    "LiquidityGauge.implementation.LiquidityGauge",
+    "LiquidityGauge implementation",
+    "LiquidityGauge",
+    [deployment.get("TokenMinter")]
+  );
+  await deployment.contractDeploy(
     "LiquidityGauge.implementation.SharedLiquidityGauge",
     "SharedLiquidityGauge implementation",
     "SharedLiquidityGauge",
@@ -68,6 +74,17 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "ConvexCurveManager",
     []
   );
+
+  for (const name of ["uniBTC"]) {
+    await deployment.proxyDeploy(
+      "LiquidityGauge.StakingGauge." + name,
+      `LiquidityGauge of ${name}`,
+      deployment.get("LiquidityGauge.implementation.LiquidityGauge"),
+      admin.Fx,
+      LiquidityGauge__factory.createInterface().encodeFunctionData("initialize", [TOKENS[name].address])
+    );
+  }
+
   for (const name of [
     "ETH+FXN",
     "FXN+cvxFXN",

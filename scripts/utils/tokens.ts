@@ -143,6 +143,7 @@ export const TOKENS: { [symbol: string]: { address: string; decimals: number } }
   stETH: { decimals: 18, address: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" },
   stkCvxCrv: { decimals: 18, address: "0xaa0C3f5F7DFD688C6E646F66CD2a6B66ACdbE434" },
   tBTC: { decimals: 18, address: "0x18084fba666a33d37592fa2633fd49a74dd93a88" },
+  uniBTC: { decimals: 8, address: "0x004E9C3EF86bc1ca1f0bB5C7662861Ee93350568" },
   wBETH: { decimals: 18, address: "0xa2e3356610840701bdf5611a53974510ae27e2e1" },
   weETH: { decimals: 18, address: "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee" },
   wstETH: { decimals: 18, address: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" },
