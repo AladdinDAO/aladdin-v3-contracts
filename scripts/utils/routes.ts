@@ -1315,6 +1315,7 @@ export const PATH_ENCODING: { [name: string]:  bigint } = {
   "CRV-WETH-Crv3C": encodePoolHintV3(ADDRESS["CURVE_TRICRYPTO_crvUSD/ETH/CRV_4_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 1, Action.Swap),
   "CRV-WETH-UniV3": encodePoolHintV3(ADDRESS["UniV3_WETH/CRV_3000"], PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, {fee_num: 3000}),
   "CRV-crvUSD-Crv3C": encodePoolHintV3(ADDRESS["CURVE_TRICRYPTO_crvUSD/ETH/CRV_4_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap),
+  "DINERO-WETH-UniV3": encodePoolHintV3(ADDRESS["UniV3_DINERO/WETH_3000"], PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, {fee_num: 3000}),
   "FRAX-USDC-CrvP": encodePoolHintV3(ADDRESS.CURVE_FRAXUSDC_POOL, PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
   "FRAX-USDT-UniV3": encodePoolHintV3(ADDRESS["UniV3_FRAX/USDT_500"], PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, {fee_num: 500}),
   "FRAX-WETH-Sushi": encodePoolHintV3(ADDRESS["Sushi_FRAX/WETH"], PoolTypeV3.UniswapV2, 2, 0, 1, Action.Swap, { fee_num: 997000 }),
@@ -1366,7 +1367,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
   };
 } = {
   ALCX: {
-    WETH: encodeMultiPath([PATH_ENCODING["ALCX-WETH-Sushi"], PATH_ENCODING["ALCX-WETH-BalV2"]], [82n, 18n]),
+    WETH: encodeMultiPath([PATH_ENCODING["ALCX-WETH-Sushi"], PATH_ENCODING["ALCX-WETH-BalV2"]], [64n, 36n]),
   },
   BTRFLY: {
     WETH: encodeMultiPath([PATH_ENCODING["BTRFLY-WETH-UniV3"]], [100n]),
@@ -1375,7 +1376,10 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
     WETH: encodeMultiPath([PATH_ENCODING["CNC-WETH-Crv2C"]], [100n]),
   },
   CRV: {
-    WETH: encodeMultiPath([PATH_ENCODING["CRV-WETH-UniV3"], PATH_ENCODING["CRV-WETH-Crv3C"]], [0n, 100n]),
+    WETH: encodeMultiPath([PATH_ENCODING["CRV-WETH-UniV3"], PATH_ENCODING["CRV-WETH-Crv3C"]], [100n, 0n]),
+  },
+  DINERO: {
+    WETH: encodeMultiPath([PATH_ENCODING["DINERO-WETH-UniV3"]], [100n]),
   },
   FXN: {
     WETH: encodeMultiPath([PATH_ENCODING["FXN-WETH-Crv2C"]], [100n]),
@@ -1385,8 +1389,9 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
       [
         [PATH_ENCODING["FXS-FRAX-UniV3"], PATH_ENCODING["FRAX-USDC-CrvP"], PATH_ENCODING["USDC-WETH-UniV3"]],
         [PATH_ENCODING["FXS-FRAX-FraxSwap"], PATH_ENCODING["FRAX-USDC-CrvP"], PATH_ENCODING["USDC-WETH-UniV3"]],
+        [PATH_ENCODING["FXS-FRAX-FraxSwap"], PATH_ENCODING["FRAX-USDT-UniV3"], PATH_ENCODING["USDT-WETH-UniV3"]],
       ],
-      [14n, 86n]
+      [0n, 0n, 100n]
     ),
   },
   GHO: {
@@ -1395,7 +1400,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
         [PATH_ENCODING["GHO-USDC-BalV2"], PATH_ENCODING["USDC-WETH-UniV3"]],
         [PATH_ENCODING["GHO-USDC-UniV3"], PATH_ENCODING["USDC-WETH-UniV3"]],
       ],
-      [0n, 100n]
+      [100n, 0n]
     ),
   },
   INV: {
@@ -1419,7 +1424,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
   SPELL: {
     WETH: encodeMultiPath(
       [PATH_ENCODING["SPELL-WETH-Sushi"], PATH_ENCODING["SPELL-WETH-UniV3"], PATH_ENCODING["SPELL-WETH-Crv2C"]],
-      [94n, 2n, 4n]
+      [100n, 0n, 0n]
     ),
   },
   T: {
@@ -1441,7 +1446,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
         [PATH_ENCODING["WETH-CVX-Sushi"]],
         [PATH_ENCODING["WETH-CVX-Crv2C"]]
       ],
-      [400n, 24n, 576n]
+      [300n, 42n, 658n]
     ),
   },
   ZUN: {
@@ -1455,7 +1460,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
         [PATH_ENCODING["sdCRV-CRV-CrvP"], PATH_ENCODING["CRV-USDC-UniV3"], PATH_ENCODING["USDC-WETH-UniV3"], PATH_ENCODING["WETH-SDT-UniV2"]],
         [PATH_ENCODING["sdCRV-CRV-CrvP"], PATH_ENCODING["CRV-WETH-UniV3"], PATH_ENCODING["WETH-SDT-Crv2C"]],
       ],
-      [0n, 0n, 0n, 100n]
+      [100n, 0n, 0n, 0n]
     )
   },
   sdFXS: {
