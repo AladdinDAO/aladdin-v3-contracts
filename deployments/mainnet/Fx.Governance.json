@@ -44,7 +44,8 @@
   "LiquidityGauge": {
     "implementation": {
       "SharedLiquidityGauge": "0xF62F458D2F6dd2AD074E715655064d7632e136D6",
-      "ConvexCurveManager": "0xbeC45A9506d191F9705C77dccd291c2609d18e4c"
+      "ConvexCurveManager": "0xbeC45A9506d191F9705C77dccd291c2609d18e4c",
+      "LiquidityGauge": "0x9a18c4ea2c4d1AEafF925cb74e41222a2AA14562"
     },
     "ConvexDualFarm": {
       "ETH+FXN": {
@@ -125,6 +126,9 @@
         "gauge": "0x7a505e920d5d7E4b402D9Ee345fB7E8Cdc265262",
         "manager": "0x321B1Ee5D26386436b9aF3725eBaF4c52731B9be"
       }
+    },
+    "StakingGauge": {
+      "uniBTC": "0x1D20671A21112E85b03B00F94Fd760DE0Bef37Ba"
     }
   },
   "ReservePool": "0xb592E01dd77084b36430ffCB9c9D2F76fDE32631"

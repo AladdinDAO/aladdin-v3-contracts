@@ -366,6 +366,9 @@ export interface FxGovernanceDeployment {
       SharedLiquidityGauge: string;
       ConvexCurveManager: string;
     };
+    StakingGauge: {
+      [token: string]: string;
+    };
     ConvexDualFarm: {
       [token: string]: {
         gauge: string;
