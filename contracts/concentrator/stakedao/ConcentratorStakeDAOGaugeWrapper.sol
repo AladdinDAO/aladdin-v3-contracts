@@ -10,7 +10,6 @@ import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable-v4
 import { IConcentratorStakeDAOGaugeWrapper } from "../../interfaces/concentrator/IConcentratorStakeDAOGaugeWrapper.sol";
 import { IConcentratorStakeDAOLocker } from "../../interfaces/concentrator/IConcentratorStakeDAOLocker.sol";
 import { ICurveGauge } from "../../interfaces/ICurveGauge.sol";
-import { IMultiMerkleStash } from "../../interfaces/IMultiMerkleStash.sol";
 
 import { WordCodec } from "../../common/codec/WordCodec.sol";
 import { MultipleRewardAccumulator } from "../../common/rewards/accumulator/MultipleRewardAccumulator.sol";
@@ -188,38 +187,6 @@ abstract contract ConcentratorStakeDAOGaugeWrapper is
       unchecked {
         _notifyReward(_token, _assets - _performanceFee - _harvesterBounty - _boosterFee);
       }
-    }
-  }
-
-  /// @inheritdoc IConcentratorStakeDAOGaugeWrapper
-  function harvestBribes(IMultiMerkleStash.claimParam[] memory _claims) external override nonReentrant {
-    IConcentratorStakeDAOLocker(locker).claimBribeRewards(_claims, address(this));
-
-    address _treasury = treasury;
-    address _burner = converter;
-    uint256 _expenseRatio = getExpenseRatio();
-    uint256 _boosterRatio = getBoosterRatio();
-    for (uint256 i = 0; i < _claims.length; i++) {
-      address _token = _claims[i].token;
-      uint256 _assets = _claims[i].amount;
-      uint256 _performanceFee = (_assets * _expenseRatio) / RATE_PRECISION;
-      uint256 _boosterFee = (_assets * _boosterRatio) / RATE_PRECISION;
-
-      // For non-SDT rewards, it will be transfered to BribeBurner contract waiting for burn.
-      // For SDT rewards, it will be distributed intermediately.
-      if (_token == SDT) {
-        if (_performanceFee > 0) {
-          IERC20Upgradeable(_token).safeTransfer(_treasury, _performanceFee);
-        }
-        if (_boosterFee > 0) {
-          IERC20Upgradeable(_token).safeTransfer(delegation, _boosterFee);
-        }
-        _notifyReward(_token, _assets - _performanceFee - _boosterFee);
-      } else {
-        IERC20Upgradeable(_token).safeTransfer(_burner, _assets);
-      }
-
-      emit HarvestBribe(_token, _assets, _performanceFee, _boosterFee);
     }
   }
 

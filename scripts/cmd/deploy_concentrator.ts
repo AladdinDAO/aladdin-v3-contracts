@@ -2,6 +2,7 @@ import { network } from "hardhat";
 import { toBigInt } from "ethers";
 
 import { ensureDeployer } from "@/contracts/helpers";
+import * as ConcentratorCvxFXN from "@/contracts/ConcentratorCvxFXN";
 import * as ConcentratorCvxCrv from "@/contracts/ConcentratorCvxCRV";
 import * as ConcentratorCVX from "@/contracts/ConcentratorCVX";
 import * as ConcentratorFrxETH from "@/contracts/ConcentratorFrxETH";
@@ -38,10 +39,12 @@ async function main() {
     await ConcentratorFrxETH.initialize(deployer, frxETH, overrides);
   }
 
-  if (cmd === "sdCRV") {
-    showConverterRoute("sdCRV", "aCRV");
-    const sdCRV = await ConcentratorStakeDAO.deploy(deployer, overrides);
-    await ConcentratorStakeDAO.initialize(deployer, sdCRV, overrides);
+  if (cmd!.startsWith("StakeDAO")) {
+    if (cmd === "StakeDAO.sdCRV") {
+      showConverterRoute("sdCRV", "aCRV");
+    }
+    const stakeDAO = await ConcentratorStakeDAO.deploy(deployer, cmd!, overrides);
+    await ConcentratorStakeDAO.initialize(deployer, cmd!, stakeDAO, overrides);
   }
 
   if (cmd === "FxUSD") {
@@ -49,6 +52,18 @@ async function main() {
     showConverterRoute("weETH", "aCRV");
     const fxUSD = await ConcentratorFxUSD.deploy(deployer, overrides);
     await ConcentratorFxUSD.initialize(deployer, fxUSD, overrides);
+  }
+
+  if (cmd === "cvxFXN") {
+    showZapRoute("WETH", "cvxFXN");
+    showZapRoute("USDC", "cvxFXN");
+    showZapRoute("USDT", "cvxFXN");
+    showZapRoute("cvxFXN", "WETH");
+    showZapRoute("cvxFXN", "USDC");
+    showZapRoute("cvxFXN", "USDT");
+    showConverterRoute("aFXN", "aCRV");
+    const cvxFXN = await ConcentratorCvxFXN.deploy(deployer, overrides);
+    await ConcentratorCvxFXN.initialize(deployer, cvxFXN, overrides);
   }
 }
 

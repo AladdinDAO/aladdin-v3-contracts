@@ -8,7 +8,7 @@ export interface ConcentratorGovernanceDeployment {
   PlatformFeeSplitter: string;
   MultipleVestHelper: string;
   FeeDistributor: string;
-  Burner: {
+  Burners: {
     PlatformFeeBurner: string;
     ConvexFraxCompounderBurner: string;
     StakeDAOCompounderBurner: string;

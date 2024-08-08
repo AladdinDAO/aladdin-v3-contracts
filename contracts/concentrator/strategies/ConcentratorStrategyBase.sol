@@ -126,6 +126,11 @@ abstract contract ConcentratorStrategyBase is Initializable, Ownable2Step, IConc
     stash = _newStash;
   }
 
+  /// @notice Protect token from sweep.
+  function protectToken(address token) external onlyOwner {
+    isTokenProtected[token] = true;
+  }
+
   /**********************
    * Internal Functions *
    **********************/

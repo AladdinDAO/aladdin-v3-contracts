@@ -72,6 +72,7 @@ contract CvxFxnStakingStrategy is ConcentratorStrategyBaseV2 {
     isTokenProtected[FXN] = true;
     isTokenProtected[0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B] = true; // CVX
     isTokenProtected[0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0] = true; // wstETH
+    isTokenProtected[staker] = true;
   }
 
   /****************************
@@ -104,14 +105,10 @@ contract CvxFxnStakingStrategy is ConcentratorStrategyBaseV2 {
   }
 
   /// @inheritdoc IConcentratorStrategy
-  function harvest(address _converter, address _intermediate)
-    external
-    override
-    onlyOperator
-    returns (uint256 _harvested)
-  {
-    if (_intermediate != FXN) revert IntermediateNotFXN();
-
+  function harvest(
+    address _converter,
+    address /*_intermediate*/
+  ) external override onlyOperator returns (uint256 _harvested) {
     // 0. sweep balances
     address[] memory _rewards = rewards;
     _sweepToken(_rewards);

@@ -1,0 +1,7 @@
+{
+  "CvxFxnCompounder": {
+    "implementation": "0x5e4779744b95aF4310ABe6E0C5a69F9A91217aBF",
+    "proxy": "0x00Bac667a4cCf9089aB1Db978238C555C4349545"
+  },
+  "CvxFxnStakingStrategy": "0x2d8B895773B093055919e16d537e3A2295D5eF6c"
+}

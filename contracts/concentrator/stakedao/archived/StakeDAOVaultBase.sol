@@ -8,11 +8,11 @@ import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import "../../interfaces/concentrator/IConcentratorStakeDAOLocker.sol";
-import "../../interfaces/concentrator/IConcentratorStakeDAOVault.sol";
-import "../../interfaces/ICurveGauge.sol";
+import "../../../interfaces/concentrator/IConcentratorStakeDAOLocker.sol";
+import "../../../interfaces/concentrator/IConcentratorStakeDAOVault.sol";
+import "../../../interfaces/ICurveGauge.sol";
 
-import "../../common/fees/FeeCustomization.sol";
+import "../../../common/fees/FeeCustomization.sol";
 
 // solhint-disable not-rely-on-time
 

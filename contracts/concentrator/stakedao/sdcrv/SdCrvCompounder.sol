@@ -7,12 +7,12 @@ import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/Sa
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 
-import { IAladdinCompounder } from "../../interfaces/concentrator/IAladdinCompounder.sol";
-import { ISdCrvCompounder } from "../../interfaces/concentrator/ISdCrvCompounder.sol";
-import { IZap } from "../../interfaces/IZap.sol";
+import { IAladdinCompounder } from "../../../interfaces/concentrator/IAladdinCompounder.sol";
+import { ISdCrvCompounder } from "../../../interfaces/concentrator/ISdCrvCompounder.sol";
+import { IZap } from "../../../interfaces/IZap.sol";
 
-import { AladdinCompounder } from "../AladdinCompounder.sol";
-import { SdCRVLocker } from "./SdCRVLocker.sol";
+import { AladdinCompounder } from "../../AladdinCompounder.sol";
+import { SdCRVLocker } from "../archived/SdCRVLocker.sol";
 
 // solhint-disable contract-name-camelcase
 
