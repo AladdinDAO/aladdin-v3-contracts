@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "../YieldStrategyBase.sol";
 import "../../../common/fees/FeeCustomization.sol";
 import "../../../interfaces/concentrator/IConcentratorSdCrvVault.sol";
-import "../../../concentrator/stakedao/SdCRVLocker.sol";
+import "../../../concentrator/stakedao/archived/SdCRVLocker.sol";
 import "../../../interfaces/IZap.sol";
 
 contract StakeDAOCRVStrategyUpgradeable is OwnableUpgradeable, YieldStrategyBase, SdCRVLocker {

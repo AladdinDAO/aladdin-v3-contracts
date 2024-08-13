@@ -3,11 +3,11 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import { IConcentratorSdCrvVault } from "../../interfaces/concentrator/IConcentratorSdCrvVault.sol";
-import { ISdCrvCompounder } from "../../interfaces/concentrator/ISdCrvCompounder.sol";
-import "../../interfaces/IZap.sol";
+import { IConcentratorSdCrvVault } from "../../../interfaces/concentrator/IConcentratorSdCrvVault.sol";
+import { ISdCrvCompounder } from "../../../interfaces/concentrator/ISdCrvCompounder.sol";
+import "../../../interfaces/IZap.sol";
 
-import "../AladdinCompounder.sol";
+import "../../AladdinCompounder.sol";
 import "./SdCRVLocker.sol";
 
 // solhint-disable reason-string

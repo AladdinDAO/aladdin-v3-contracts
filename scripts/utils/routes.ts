@@ -435,6 +435,11 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       */
       encodePoolHintV2(ADDRESS["UniV2_USDC/WETH"], PoolType.UniswapV2, 2, 0, 1, Action.Swap),
     ],
+    cvxFXN: [
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_ETH/FXN_POOL"], PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_FXN/cvxFXN_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 1, Action.Swap),
+    ],
     cvxFXS: [
       encodePoolHintV2(ADDRESS.CURVE_FRAXUSDC_POOL, PoolType.CurveBasePool, 2, 1, 0, Action.Swap),
       encodePoolHintV2(ADDRESS.FXS_FRAX_UNIV2, PoolType.UniswapV2, 2, 1, 0, Action.Swap),
@@ -447,6 +452,11 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
       encodePoolHintV2(ADDRESS.WETH_USDT_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap)
       */
       encodePoolHintV2(ADDRESS["UniV2_WETH/USDT"], PoolType.UniswapV2, 2, 1, 0, Action.Swap),
+    ],
+    cvxFXN: [
+      encodePoolHintV2(ADDRESS.WETH_USDT_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_ETH/FXN_POOL"], PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_FXN/cvxFXN_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 1, Action.Swap),
     ],
   },
   USDN: {
@@ -527,6 +537,10 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
     Curve_CLEVCVX_TOKEN: [
       encodePoolHintV2(ADDRESS.CURVE_CVXETH_POOL, PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
       encodePoolHintV2(ADDRESS.CURVE_CLEVCVX_POOL, PoolType.CurveFactoryPlainPool, 2, 0, 0, Action.Add),
+    ],
+    cvxFXN: [
+      encodePoolHintV2(ADDRESS["CURVE_ETH/FXN_POOL"], PoolType.CurveCryptoPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_FXN/cvxFXN_POOL"], PoolType.CurveFactoryPlainPool, 2, 0, 1, Action.Swap),
     ],
     cvxFXS: [
       encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
@@ -800,6 +814,22 @@ export const ZAP_ROUTES: { [from: string]: { [to: string]: bigint[] } } = {
     // PRISMA ==(CurveV2)==> WETH
     WETH: [encodePoolHintV2(ADDRESS["CURVE_ETH/xETH_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap)],
   },
+  cvxFXN: {
+    WETH: [
+      encodePoolHintV2(ADDRESS["CURVE_FXN/cvxFXN_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_ETH/FXN_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+    ],
+    USDC: [
+      encodePoolHintV2(ADDRESS["CURVE_FXN/cvxFXN_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_ETH/FXN_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.USDC_WETH_UNIV3, PoolType.UniswapV3, 2, 1, 0, Action.Swap),
+    ],
+    USDT: [
+      encodePoolHintV2(ADDRESS["CURVE_FXN/cvxFXN_POOL"], PoolType.CurveFactoryPlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS["CURVE_ETH/FXN_POOL"], PoolType.CurveCryptoPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV2(ADDRESS.WETH_USDT_UNIV3, PoolType.UniswapV3, 2, 0, 1, Action.Swap),
+    ],
+  },
 };
 
 /* eslint-disable prettier/prettier */
@@ -949,6 +979,7 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
   WETH: {
     CVX: [encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
     FXN: [encodePoolHintV3(ADDRESS["CURVE_ETH/FXN_POOL"], PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap)],
+    PENDLE: [encodePoolHintV3(ADDRESS["UniV3_PENDLE/WETH_3000"], PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, { fee_num: 3000 })],
     WBTC: [encodePoolHintV3(ADDRESS.WBTC_WETH_UNIV3_500, PoolTypeV3.UniswapV3, 2, 1, 0, Action.Swap, { fee_num: 500 })],
     aCVX: [
       encodePoolHintV3(ADDRESS.CURVE_CVXETH_POOL, PoolTypeV3.CurveCryptoPool, 2, 0, 1, Action.Swap),
@@ -1010,6 +1041,17 @@ export const CONVERTER_ROUTRS: { [from: string]: { [to: string]: bigint[] } } = 
       encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
       encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
     ]
+  },
+  aFXN: {
+    aCRV: [
+      // aFXN => cvxFXN => FXN => WETH => CRV => cvxCRV => aCRV
+      encodePoolHintV3(TOKENS.aFXN.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
+      encodePoolHintV3(ADDRESS["CURVE_FXN/cvxFXN_POOL"], PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+      encodePoolHintV3(ADDRESS["CRV_2C_ETH/FXN_311_POOL"], PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap, {use_eth: false}),
+      encodePoolHintV3(ADDRESS["CURVE_TRICRYPTO_crvUSD/ETH/CRV_4_POOL"], PoolTypeV3.CurveCryptoPool, 3, 1, 2, Action.Swap),
+      encodePoolHintV3(ADDRESS["CURVE_CRV/cvxCRV_POOL"], PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
+      encodePoolHintV3(TOKENS.aCRV.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
+    ],
   },
   aFXS: {
     aCRV: [
@@ -1319,7 +1361,7 @@ export const PATH_ENCODING: { [name: string]:  bigint } = {
   "FRAX-USDC-CrvP": encodePoolHintV3(ADDRESS.CURVE_FRAXUSDC_POOL, PoolTypeV3.CurvePlainPool, 2, 0, 1, Action.Swap),
   "FRAX-USDT-UniV3": encodePoolHintV3(ADDRESS["UniV3_FRAX/USDT_500"], PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, {fee_num: 500}),
   "FRAX-WETH-Sushi": encodePoolHintV3(ADDRESS["Sushi_FRAX/WETH"], PoolTypeV3.UniswapV2, 2, 0, 1, Action.Swap, { fee_num: 997000 }),
-  "FXN-WETH-Crv2C": encodePoolHintV3(ADDRESS["CRV_CRYPTO_ETH/FXN_311_POOL"], PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap, {use_eth: false}),
+  "FXN-WETH-Crv2C": encodePoolHintV3(ADDRESS["CRV_2C_ETH/FXN_311_POOL"], PoolTypeV3.CurveCryptoPool, 2, 1, 0, Action.Swap, {use_eth: false}),
   "FXS-FRAX-FraxSwap": encodePoolHintV3(ADDRESS["FraxSwap_FXS/FRAX"], PoolTypeV3.UniswapV2, 2, 0, 1, Action.Swap, {fee_num: 997000, twamm: true}),
   "FXS-FRAX-UniV2": encodePoolHintV3(ADDRESS["UniV2_FXS/FRAX"], PoolTypeV3.UniswapV2, 2, 0, 1, Action.Swap, {fee_num: 997000, twamm: false}),
   "FXS-FRAX-UniV3": encodePoolHintV3(ADDRESS["UniV3_FXS/FRAX_10000"], PoolTypeV3.UniswapV3, 2, 0, 1, Action.Swap, {fee_num: 10000}),

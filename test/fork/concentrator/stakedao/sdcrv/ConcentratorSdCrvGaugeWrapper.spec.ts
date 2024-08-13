@@ -86,8 +86,16 @@ describe("ConcentratorSdCrvGaugeWrapper.spec", async () => {
       await admin.upgrade(locker.getAddress(), impl.getAddress());
     }
 
+    const StakeDAOBribeClaimer = await ethers.getContractFactory("StakeDAOBribeClaimer", deployer);
+    const claimer = await StakeDAOBribeClaimer.deploy();
+
     const ConcentratorSdCrvGaugeWrapper = await ethers.getContractFactory("ConcentratorSdCrvGaugeWrapper", deployer);
-    wrapper = await ConcentratorSdCrvGaugeWrapper.deploy(SDCRV_GAUGE, locker.getAddress(), delegation.getAddress());
+    wrapper = await ConcentratorSdCrvGaugeWrapper.deploy(
+      SDCRV_GAUGE,
+      locker.getAddress(),
+      delegation.getAddress(),
+      claimer.getAddress()
+    );
 
     const SdCRVBribeBurnerV2 = await ethers.getContractFactory("SdCRVBribeBurnerV2", deployer);
     burner = await SdCRVBribeBurnerV2.deploy(wrapper.getAddress());
@@ -102,7 +110,8 @@ describe("ConcentratorSdCrvGaugeWrapper.spec", async () => {
     for (const lock of locks) sum += lock.amount;
     expect(await sdCRV.balanceOf(DEPLOYMENT.SdCrvCompounder.proxy)).to.eq(sum + before);
     await locker.connect(owner).updateGaugeRewardReceiver(SDCRV_GAUGE, await wrapper.stash());
-    await locker.connect(owner).updateClaimer(wrapper.getAddress());
+    await locker.connect(owner).updateClaimer(claimer.getAddress());
+    await claimer.grantRole(await claimer.BRIBE_RECEIVER_ROLE(), wrapper.getAddress());
   });
 
   context("constructor", async () => {

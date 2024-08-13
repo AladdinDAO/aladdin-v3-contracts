@@ -6,8 +6,8 @@ import { AccessControl } from "@openzeppelin/contracts-v4/access/AccessControl.s
 import { IERC20 } from "@openzeppelin/contracts-v4/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts-v4/token/ERC20/utils/SafeERC20.sol";
 
-import { IMultipleRewardDistributor } from "../../common/rewards/distributor/IMultipleRewardDistributor.sol";
-import { IConcentratorSdCrvGaugeWrapper } from "../../interfaces/concentrator/IConcentratorSdCrvGaugeWrapper.sol";
+import { IMultipleRewardDistributor } from "../../../common/rewards/distributor/IMultipleRewardDistributor.sol";
+import { IConcentratorSdCrvGaugeWrapper } from "../../../interfaces/concentrator/IConcentratorSdCrvGaugeWrapper.sol";
 
 // solhint-disable const-name-snakecase
 
