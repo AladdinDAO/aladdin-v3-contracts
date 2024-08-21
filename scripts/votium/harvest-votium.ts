@@ -156,7 +156,7 @@ async function main(round: number, manualStr: string) {
     const tx = await locker.harvestVotiumLikeBribes(VOTIUM_MERKLE_STASH, claimParams, routes, minCVXOut, {
       gasLimit: (gasEstimation * 12n) / 10n,
       maxFeePerGas: (block!.baseFeePerGas! * 3n) / 2n,
-      maxPriorityFeePerGas: ethers.parseUnits("0.1", "gwei"),
+      maxPriorityFeePerGas: ethers.parseUnits("1.1", "gwei"),
     });
     console.log("Waiting for tx:", tx.hash);
     const receipt = await tx.wait();
