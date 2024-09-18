@@ -93,6 +93,7 @@ const REWARDS: { [round: number]: string[] } = {
   76: ["ALCX", "CNC", "CRV", "CVX", "DINERO", "FXN", "FXS", "GHO", "INV", "MET", "OGN", "PRISMA", "SPELL", "TXJP", "WETH", "ZUN"],
   77: ["CNC", "CRV", "CVX", "DINERO", "FXN", "FXS", "GHO", "INV", "MET", "OGN", "PRISMA", "TXJP", "WETH", "ZUN"],
   78: ["ALCX", "CNC", "CRV", "CVX", "DINERO", "FXN", "FXS", "GHO", "INV", "MET", "OGN", "PRISMA", "SPELL", "TXJP", "USDC", "WETH", "ZUN"],
+  79: ["ALCX", "CNC", "CRV", "CVX", "DINERO", "FXN", "FXS", "GHO", "INV", "MET", "OGN", "SPELL", "TXJP", "USDC", "ZUN"],
 };
 /* eslint-enable prettier/prettier */
 
