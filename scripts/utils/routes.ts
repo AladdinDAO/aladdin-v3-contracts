@@ -1414,7 +1414,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
   };
 } = {
   ALCX: {
-    WETH: encodeMultiPath([PATH_ENCODING["ALCX-WETH-Sushi"], PATH_ENCODING["ALCX-WETH-BalV2"]], [42n, 58n]),
+    WETH: encodeMultiPath([PATH_ENCODING["ALCX-WETH-Sushi"], PATH_ENCODING["ALCX-WETH-BalV2"]], [100n, 0n]),
   },
   BTRFLY: {
     WETH: encodeMultiPath([PATH_ENCODING["BTRFLY-WETH-UniV3"]], [100n]),
@@ -1457,7 +1457,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
   MET: {
     WETH: encodeMultiPath(
       [PATH_ENCODING["MET-WETH-UniV3"], [PATH_ENCODING["MET-USDC-UniV3"], PATH_ENCODING["USDC-WETH-UniV3"]]],
-      [100n, 0n]
+      [0n, 100n]
     ),
   },
   OGN: {
@@ -1475,7 +1475,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
   SPELL: {
     WETH: encodeMultiPath(
       [PATH_ENCODING["SPELL-WETH-Sushi"], PATH_ENCODING["SPELL-WETH-UniV3"], PATH_ENCODING["SPELL-WETH-Crv2C"]],
-      [90n, 6n, 4n]
+      [94n, 6n, 0n]
     ),
   },
   T: {
@@ -1497,7 +1497,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
         [PATH_ENCODING["WETH-CVX-Sushi"]],
         [PATH_ENCODING["WETH-CVX-Crv2C"]]
       ],
-      [100n, 36n, 864n]
+      [0n, 2n, 98n]
     ),
   },
   ZUN: {
@@ -1514,7 +1514,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
         // [PATH_ENCODING["sdCRV-CRV-CrvP"], PATH_ENCODING["CRV-WETH-Crv3C"], PATH_ENCODING["WETH-SDT-Crv2C"]],
         // [PATH_ENCODING["sdCRV-CRV-CrvP"], PATH_ENCODING["CRV-WETH-Crv3C"], PATH_ENCODING["WETH-SDT-Crv2C-NG"]],
       ],
-      [0n, 100n]
+      [100n, 0n]
     )
   },
   sdFXS: {
