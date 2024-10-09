@@ -148,7 +148,11 @@ async function main(round: string) {
 
   if (KEEPER === deployer.address) {
     if (!(await locker.claimed(claimParams[0].token, root))) {
-      const tx = await wrapper.harvestBribes(claimParams);
+      const block = await ethers.provider.getBlock("latest");
+      const tx = await wrapper.harvestBribes(claimParams, {
+        maxFeePerGas: (block!.baseFeePerGas! * 3n) / 2n,
+        maxPriorityFeePerGas: ethers.parseUnits("0.01", "gwei"),
+      });
       console.log("waiting for tx:", tx.hash);
       const receipt = await tx.wait();
       console.log("confirmed, gas used:", receipt!.gasUsed.toString());
