@@ -31,6 +31,16 @@ contract TokenConvertManagementFacet {
     }
   }
 
+  /// @notice Return the list of signers.
+  function getSigners() external view returns (address[] memory _signers) {
+    LibGatewayRouter.GatewayStorage storage gs = LibGatewayRouter.gatewayStorage();
+    uint256 _numSigners = gs.signers.length();
+    _signers = new address[](_numSigners);
+    for (uint256 i = 0; i < _numSigners; i++) {
+      _signers[i] = gs.signers.at(i);
+    }
+  }
+
   /// @notice Return the whitelist kind for the given target.
   function getWhitelistKind(address target) external view returns (LibGatewayRouter.WhitelistKind) {
     LibGatewayRouter.GatewayStorage storage gs = LibGatewayRouter.gatewayStorage();
@@ -57,5 +67,11 @@ contract TokenConvertManagementFacet {
   function updateWhitelist(address target, LibGatewayRouter.WhitelistKind kind) external {
     LibDiamond.enforceIsContractOwner();
     LibGatewayRouter.updateWhitelist(target, kind);
+  }
+
+  /// @notice Update the status of signer.
+  function updateSigner(address account, bool status) external {
+    LibDiamond.enforceIsContractOwner();
+    LibGatewayRouter.updateSigner(account, status);
   }
 }
