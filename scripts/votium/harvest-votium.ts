@@ -149,14 +149,14 @@ async function main(round: number, manualStr: string) {
     "Estimate Harvested CVX:",
     ethers.formatEther(cvxEstimation.toString())
   );
-  const minCVXOut = (cvxEstimation * 9990n) / 10000n;
+  const minCVXOut = (cvxEstimation * 9995n) / 10000n;
 
   if (KEEPER === deployer.address) {
     const block = await ethers.provider.getBlock("latest");
     const tx = await locker.harvestVotiumLikeBribes(VOTIUM_MERKLE_STASH, claimParams, routes, minCVXOut, {
       gasLimit: (gasEstimation * 12n) / 10n,
       maxFeePerGas: (block!.baseFeePerGas! * 3n) / 2n,
-      maxPriorityFeePerGas: ethers.parseUnits("1.1", "gwei"),
+      maxPriorityFeePerGas: ethers.parseUnits("0.01", "gwei"),
     });
     console.log("Waiting for tx:", tx.hash);
     const receipt = await tx.wait();
