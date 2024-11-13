@@ -103,6 +103,7 @@ abstract contract FxLSDOracleV2Base is FxSpotOracleBase, IFxPriceOracleV2 {
   function getPrice()
     external
     view
+    virtual
     override
     returns (
       bool isValid,
