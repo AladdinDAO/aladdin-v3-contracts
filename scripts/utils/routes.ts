@@ -1516,7 +1516,7 @@ export const MULTI_PATH_CONVERTER_ROUTES: {
         // [PATH_ENCODING["sdCRV-CRV-CrvP"], PATH_ENCODING["CRV-WETH-Crv3C"], PATH_ENCODING["WETH-SDT-Crv2C"]],
         // [PATH_ENCODING["sdCRV-CRV-CrvP"], PATH_ENCODING["CRV-WETH-Crv3C"], PATH_ENCODING["WETH-SDT-Crv2C-NG"]],
       ],
-      [100n, 0n]
+      [0n, 100n]
     )
   },
   sdFXS: {
