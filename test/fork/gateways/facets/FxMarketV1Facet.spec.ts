@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Interface, ZeroAddress, toBigInt } from "ethers";
+import { Interface, Wallet, ZeroAddress, toBigInt } from "ethers";
 import { ethers } from "hardhat";
 
 import { mockETHBalance, request_fork } from "@/test/utils";
@@ -14,6 +14,7 @@ import {
   GeneralTokenConverter,
 } from "@/types/index";
 import { TOKENS, Action, PoolTypeV3, encodePoolHintV3, ADDRESS, CONVERTER_ROUTRS } from "@/utils/index";
+import { getConvertInParams, getConvertOutParams } from "@/test/simulation/f(x)/helpers";
 
 const FORK_BLOCK_NUMBER = 19082800;
 
@@ -31,6 +32,7 @@ const XETH_HOLDRR = "0x488b99c4A94BB0027791E8e0eEB421187EC9a487";
 describe("FxMarketV1Facet.spec", async () => {
   let deployer: HardhatEthersSigner;
   let signer: HardhatEthersSigner;
+  let oracleSigner: Wallet;
 
   let diamond: Diamond;
   let manage: TokenConvertManagementFacet;
@@ -65,8 +67,16 @@ describe("FxMarketV1Facet.spec", async () => {
     await mockETHBalance(deployer.address, ethers.parseEther("100"));
     await mockETHBalance(signer.address, ethers.parseEther("100"));
 
+    oracleSigner = new Wallet("0x0000000000000000000000000000000000000000000000000000000000000001");
+
     const diamondCuts: IDiamond.FacetCutStruct[] = [];
-    for (const name of ["DiamondCutFacet", "DiamondLoupeFacet", "OwnershipFacet", "TokenConvertManagementFacet"]) {
+    for (const name of [
+      "DiamondCutFacet",
+      "DiamondLoupeFacet",
+      "OwnershipFacet",
+      "TokenConvertManagementFacet",
+      "EIP712Facet",
+    ]) {
       const Contract = await ethers.getContractFactory(name, deployer);
       const facet = await Contract.deploy();
       diamondCuts.push({
@@ -111,18 +121,21 @@ describe("FxMarketV1Facet.spec", async () => {
     await manage.approveTarget(inputConverter.getAddress(), inputConverter.getAddress());
     await manage.approveTarget(outputConverter.getAddress(), outputConverter.getAddress());
     await manage.approveTarget(TOKENS.stETH.address, ZeroAddress);
+    const eip712 = await ethers.getContractAt("EIP712Facet", await diamond.getAddress(), deployer);
+    await eip712.initializeEIP712("Gateway Router", "1.0.0");
+    await manage.updateSigner(oracleSigner.address, true);
   });
 
   context("fxMintFTokenV1", async () => {
     it("should succeed to mint from ETH", async () => {
       const amountIn = ethers.parseEther("10");
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: ZeroAddress,
         amount: amountIn,
         target: TOKENS.stETH.address,
         data: "0x",
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.fxMintFTokenV1.staticCall(params, 0n, { value: amountIn });
       console.log("fETH minted:", ethers.formatEther(expected));
       const token = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
@@ -138,7 +151,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, holder);
       const amountIn = ethers.parseEther("10");
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.WETH.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -148,8 +161,8 @@ describe("FxMarketV1Facet.spec", async () => {
           1048575n + (1n << 20n),
           [encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.connect(holder).fxMintFTokenV1.staticCall(params, 0n);
       console.log("fETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
@@ -165,7 +178,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.wstETH.address, holder);
       const amountIn = ethers.parseEther("10");
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.wstETH.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -175,8 +188,8 @@ describe("FxMarketV1Facet.spec", async () => {
           1048575n + (1n << 20n),
           [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove)],
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.connect(holder).fxMintFTokenV1.staticCall(params, 0n);
       console.log("fETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
@@ -192,7 +205,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.USDC.address, holder);
       const amountIn = ethers.parseUnits("10000", 6);
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.USDC.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -205,8 +218,8 @@ describe("FxMarketV1Facet.spec", async () => {
             encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
           ],
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.connect(holder).fxMintFTokenV1.staticCall(params, 0n);
       console.log("fETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
@@ -222,7 +235,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.USDT.address, holder);
       const amountIn = ethers.parseUnits("10000", 6);
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.USDT.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -232,8 +245,8 @@ describe("FxMarketV1Facet.spec", async () => {
           1048575n + (toBigInt(CONVERTER_ROUTRS.USDT.stETH.length) << 20n),
           CONVERTER_ROUTRS.USDT.stETH,
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.connect(holder).fxMintFTokenV1.staticCall(params, 0n);
       console.log("fETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
@@ -249,7 +262,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.FRAX.address, holder);
       const amountIn = ethers.parseUnits("10000", 18);
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.FRAX.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -259,8 +272,8 @@ describe("FxMarketV1Facet.spec", async () => {
           1048575n + (toBigInt(CONVERTER_ROUTRS.FRAX.stETH.length) << 20n),
           CONVERTER_ROUTRS.FRAX.stETH,
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.connect(holder).fxMintFTokenV1.staticCall(params, 0n);
       console.log("fETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
@@ -276,7 +289,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.crvUSD.address, holder);
       const amountIn = ethers.parseUnits("10000", 18);
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.crvUSD.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -286,8 +299,8 @@ describe("FxMarketV1Facet.spec", async () => {
           1048575n + (toBigInt(CONVERTER_ROUTRS.crvUSD.stETH.length) << 20n),
           CONVERTER_ROUTRS.crvUSD.stETH,
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.connect(holder).fxMintFTokenV1.staticCall(params, 0n);
       console.log("fETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.fETH.address, deployer);
@@ -301,13 +314,13 @@ describe("FxMarketV1Facet.spec", async () => {
   context("fxMintXTokenV1", async () => {
     it("should succeed to mint from ETH", async () => {
       const amountIn = ethers.parseEther("10");
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: ZeroAddress,
         amount: amountIn,
         target: TOKENS.stETH.address,
         data: "0x",
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const [expected, bonus] = await gateway.fxMintXTokenV1.staticCall(params, 0n, { value: amountIn });
       console.log("xETH minted:", ethers.formatEther(expected), "bonus stETH:", ethers.formatEther(bonus));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
@@ -323,7 +336,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, holder);
       const amountIn = ethers.parseEther("10");
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.WETH.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -333,8 +346,8 @@ describe("FxMarketV1Facet.spec", async () => {
           1048575n + (1n << 20n),
           [encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const [expected, bonus] = await gateway.connect(holder).fxMintXTokenV1.staticCall(params, 0n);
       console.log("xETH minted:", ethers.formatEther(expected), "bonus stETH:", ethers.formatEther(bonus));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
@@ -350,7 +363,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.wstETH.address, holder);
       const amountIn = ethers.parseEther("10");
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.wstETH.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -360,8 +373,8 @@ describe("FxMarketV1Facet.spec", async () => {
           1048575n + (1n << 20n),
           [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove)],
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const [expected, bonus] = await gateway.connect(holder).fxMintXTokenV1.staticCall(params, 0n);
       console.log("xETH minted:", ethers.formatEther(expected), "bonus stETH:", ethers.formatEther(bonus));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
@@ -377,7 +390,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.USDC.address, holder);
       const amountIn = ethers.parseUnits("10000", 6);
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.USDC.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -390,8 +403,8 @@ describe("FxMarketV1Facet.spec", async () => {
             encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
           ],
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const [expected, bonus] = await gateway.connect(holder).fxMintXTokenV1.staticCall(params, 0n);
       console.log("xETH minted:", ethers.formatEther(expected), "bonus stETH:", ethers.formatEther(bonus));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
@@ -417,13 +430,13 @@ describe("FxMarketV1Facet.spec", async () => {
 
     it("should succeed to mint from ETH", async () => {
       const amountIn = ethers.parseEther("10");
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: ZeroAddress,
         amount: amountIn,
         target: TOKENS.stETH.address,
         data: "0x",
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.fxAddBaseTokenV1.staticCall(params, 0n, { value: amountIn });
       console.log("xETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
@@ -439,7 +452,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, holder);
       const amountIn = ethers.parseEther("10");
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.WETH.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -449,8 +462,8 @@ describe("FxMarketV1Facet.spec", async () => {
           1048575n + (1n << 20n),
           [encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.connect(holder).fxAddBaseTokenV1.staticCall(params, 0n);
       console.log("xETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
@@ -466,7 +479,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.wstETH.address, holder);
       const amountIn = ethers.parseEther("10");
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.wstETH.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -476,8 +489,8 @@ describe("FxMarketV1Facet.spec", async () => {
           1048575n + (1n << 20n),
           [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove)],
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.connect(holder).fxAddBaseTokenV1.staticCall(params, 0n);
       console.log("xETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
@@ -493,7 +506,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const tokenIn = await ethers.getContractAt("MockERC20", TOKENS.USDC.address, holder);
       const amountIn = ethers.parseUnits("10000", 6);
       await tokenIn.approve(gateway.getAddress(), amountIn);
-      const params = {
+      const params = await getConvertInParams(oracleSigner, await diamond.getAddress(), {
         src: TOKENS.USDC.address,
         amount: amountIn,
         target: await inputConverter.getAddress(),
@@ -506,8 +519,8 @@ describe("FxMarketV1Facet.spec", async () => {
             encodePoolHintV3(TOKENS.stETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
           ],
         ]),
-        minOut: 0,
-      };
+        minOut: 0n,
+      });
       const expected = await gateway.connect(holder).fxAddBaseTokenV1.staticCall(params, 0n);
       console.log("xETH minted:", ethers.formatEther(expected));
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.xETH.address, deployer);
@@ -527,11 +540,11 @@ describe("FxMarketV1Facet.spec", async () => {
       const amountIn = ethers.parseEther("2000");
       await tokenIn.approve(gateway.getAddress(), amountIn);
 
-      const params = {
+      let params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
         converter: await outputConverter.getAddress(),
         minOut: 0n,
         routes: [encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap)],
-      };
+      });
       const [baseOut, dstOut, bounsOut] = await gateway.connect(holder).fxRedeemV1.staticCall(params, amountIn, 0n, 0n);
       console.log(
         "stETH redeemed:",
@@ -541,7 +554,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 100000n;
+      params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: dstOut - dstOut / 100000n,
+        routes: [encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap)],
+      });
       const balanceBefore = await tokenOut.balanceOf(holder.address);
       await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
@@ -556,11 +573,11 @@ describe("FxMarketV1Facet.spec", async () => {
       const amountIn = ethers.parseEther("2000");
       await tokenIn.approve(gateway.getAddress(), amountIn);
 
-      const params = {
+      let params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
         converter: await outputConverter.getAddress(),
         minOut: 0n,
         routes: [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
-      };
+      });
       const [baseOut, dstOut, bounsOut] = await gateway.connect(holder).fxRedeemV1.staticCall(params, amountIn, 0n, 0n);
       console.log(
         "stETH redeemed:",
@@ -570,7 +587,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 100000n;
+      params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: dstOut - dstOut / 100000n,
+        routes: [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
+      });
       const balanceBefore = await tokenOut.balanceOf(holder.address);
       await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
@@ -585,7 +606,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const amountIn = ethers.parseEther("2000");
       await tokenIn.approve(gateway.getAddress(), amountIn);
 
-      const params = {
+      let params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
         converter: await outputConverter.getAddress(),
         minOut: 0n,
         routes: [
@@ -594,7 +615,7 @@ describe("FxMarketV1Facet.spec", async () => {
             use_eth: false,
           }),
         ],
-      };
+      });
       const [baseOut, dstOut, bounsOut] = await gateway.connect(holder).fxRedeemV1.staticCall(params, amountIn, 0n, 0n);
       console.log(
         "stETH redeemed:",
@@ -604,7 +625,16 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 100000n;
+      params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: dstOut - dstOut / 100000n,
+        routes: [
+          encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+          encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {
+            use_eth: false,
+          }),
+        ],
+      });
       const balanceBefore = await tokenOut.balanceOf(holder.address);
       await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
@@ -619,11 +649,11 @@ describe("FxMarketV1Facet.spec", async () => {
       const amountIn = ethers.parseEther("2000");
       await tokenIn.approve(gateway.getAddress(), amountIn);
 
-      const params = {
+      let params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
         converter: await outputConverter.getAddress(),
         minOut: 0n,
         routes: CONVERTER_ROUTRS.stETH.USDT,
-      };
+      });
       const [baseOut, dstOut, bounsOut] = await gateway.connect(holder).fxRedeemV1.staticCall(params, amountIn, 0n, 0n);
       console.log(
         "stETH redeemed:",
@@ -633,7 +663,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 100000n;
+      params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: dstOut - dstOut / 100000n,
+        routes: CONVERTER_ROUTRS.stETH.USDT,
+      });
       const balanceBefore = await tokenOut.balanceOf(holder.address);
       await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
@@ -648,11 +682,11 @@ describe("FxMarketV1Facet.spec", async () => {
       const amountIn = ethers.parseEther("2000");
       await tokenIn.approve(gateway.getAddress(), amountIn);
 
-      const params = {
+      let params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
         converter: await outputConverter.getAddress(),
         minOut: 0n,
         routes: CONVERTER_ROUTRS.stETH.FRAX,
-      };
+      });
       const [baseOut, dstOut, bounsOut] = await gateway.connect(holder).fxRedeemV1.staticCall(params, amountIn, 0n, 0n);
       console.log(
         "stETH redeemed:",
@@ -662,7 +696,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 100000n;
+      params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: dstOut - dstOut / 100000n,
+        routes: CONVERTER_ROUTRS.stETH.FRAX,
+      });
       const balanceBefore = await tokenOut.balanceOf(holder.address);
       await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
@@ -677,11 +715,11 @@ describe("FxMarketV1Facet.spec", async () => {
       const amountIn = ethers.parseEther("2000");
       await tokenIn.approve(gateway.getAddress(), amountIn);
 
-      const params = {
+      let params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
         converter: await outputConverter.getAddress(),
         minOut: 0n,
         routes: CONVERTER_ROUTRS.stETH.crvUSD,
-      };
+      });
       const [baseOut, dstOut, bounsOut] = await gateway.connect(holder).fxRedeemV1.staticCall(params, amountIn, 0n, 0n);
       console.log(
         "stETH redeemed:",
@@ -691,7 +729,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 100000n;
+      params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: dstOut - dstOut / 100000n,
+        routes: CONVERTER_ROUTRS.stETH.crvUSD,
+      });
       const balanceBefore = await tokenOut.balanceOf(holder.address);
       await gateway.connect(holder).fxRedeemV1(params, amountIn, 0n, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
@@ -706,11 +748,11 @@ describe("FxMarketV1Facet.spec", async () => {
       const amountIn = ethers.parseEther("2000");
       await tokenIn.approve(gateway.getAddress(), amountIn);
 
-      const params = {
+      let params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
         converter: await outputConverter.getAddress(),
         minOut: 0n,
         routes: [encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap)],
-      };
+      });
       const [baseOut, dstOut, bounsOut] = await gateway.connect(holder).fxRedeemV1.staticCall(params, 0n, amountIn, 0n);
       console.log(
         "stETH redeemed:",
@@ -720,7 +762,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 100000n;
+      params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: dstOut - dstOut / 100000n,
+        routes: [encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap)],
+      });
       const balanceBefore = await tokenOut.balanceOf(holder.address);
       await gateway.connect(holder).fxRedeemV1(params, 0n, amountIn, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
@@ -735,11 +781,11 @@ describe("FxMarketV1Facet.spec", async () => {
       const amountIn = ethers.parseEther("2000");
       await tokenIn.approve(gateway.getAddress(), amountIn);
 
-      const params = {
+      let params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
         converter: await outputConverter.getAddress(),
         minOut: 0n,
         routes: [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
-      };
+      });
       const [baseOut, dstOut, bounsOut] = await gateway.connect(holder).fxRedeemV1.staticCall(params, 0n, amountIn, 0n);
       console.log(
         "stETH redeemed:",
@@ -749,7 +795,11 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 100000n;
+      params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: dstOut - dstOut / 100000n,
+        routes: [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
+      });
       const balanceBefore = await tokenOut.balanceOf(holder.address);
       await gateway.connect(holder).fxRedeemV1(params, 0n, amountIn, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
@@ -764,7 +814,7 @@ describe("FxMarketV1Facet.spec", async () => {
       const amountIn = ethers.parseEther("2000");
       await tokenIn.approve(gateway.getAddress(), amountIn);
 
-      const params = {
+      let params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
         converter: await outputConverter.getAddress(),
         minOut: 0n,
         routes: [
@@ -773,7 +823,7 @@ describe("FxMarketV1Facet.spec", async () => {
             use_eth: false,
           }),
         ],
-      };
+      });
       const [baseOut, dstOut, bounsOut] = await gateway.connect(holder).fxRedeemV1.staticCall(params, 0n, amountIn, 0n);
       console.log(
         "stETH redeemed:",
@@ -783,7 +833,16 @@ describe("FxMarketV1Facet.spec", async () => {
         "bonus stETH:",
         ethers.formatEther(bounsOut)
       );
-      params.minOut = dstOut - dstOut / 100000n;
+      params = await getConvertOutParams(oracleSigner, await diamond.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: dstOut - dstOut / 100000n,
+        routes: [
+          encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+          encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {
+            use_eth: false,
+          }),
+        ],
+      });
       const balanceBefore = await tokenOut.balanceOf(holder.address);
       await gateway.connect(holder).fxRedeemV1(params, 0n, amountIn, baseOut - baseOut / 100000n);
       const balanceAfter = await tokenOut.balanceOf(holder.address);
