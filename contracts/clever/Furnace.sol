@@ -266,7 +266,7 @@ contract Furnace is OwnableUpgradeable, IFurnace {
   /// @param _recipient - The address of account to receive harvest bounty.
   /// @param _minimumOut - The minimum amount of cvxCRV should get.
   /// @return the amount of CVX harvested.
-  function harvest(address _recipient, uint256 _minimumOut) external returns (uint256) {
+  function harvest(address _recipient, uint256 _minimumOut) external onlyWhitelisted returns (uint256) {
     // 1. harvest from CVXRewardPool
     IConvexCVXRewardPool(CVX_REWARD_POOL).getReward(false);
 
