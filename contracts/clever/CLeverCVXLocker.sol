@@ -15,6 +15,7 @@ import "../interfaces/IConvexCVXLocker.sol";
 import "../interfaces/IConvexCVXRewardPool.sol";
 import { IMultiMerkleDistributor } from "../interfaces/paladin/IMultiMerkleDistributor.sol";
 import { IMultiMerkleStash } from "../interfaces/IMultiMerkleStash.sol";
+import { IUniversalRewardsDistributor } from "../interfaces/IUniversalRewardsDistributor.sol";
 import "../interfaces/ISnapshotDelegateRegistry.sol";
 import "../interfaces/IZap.sol";
 import "../voting/ISignatureVerifier.sol";
@@ -95,7 +96,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   }
 
   /// @dev The address of governor
-  address public governor;
+  address private __deprecated_governor;
   /// @dev The address of clevCVX contract.
   address public clevCVX;
 
@@ -152,18 +153,16 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @notice The list of approved targets.
   mapping(address => bool) public approvedTargets;
 
-  modifier onlyGovernorOrOwner() {
-    require(msg.sender == governor || msg.sender == owner(), "only governor or owner");
-    _;
-  }
+  /// @dev The `amount` of `reward` token already claimed by this contract, in `UniversalRewardsDistributor` contract.
+  mapping(address => mapping(address => uint256)) private universalRewardsDistributorClaimed;
 
   modifier onlyKeeper() {
-    require(isKeeper[msg.sender], "only keeper");
+    require(isKeeper[msg.sender], "NotKeeper");
     _;
   }
 
   function initialize(
-    address _governor,
+    address,
     address _clevCVX,
     address _zap,
     address _furnace,
@@ -182,7 +181,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     // require(_platformFeePercentage <= MAX_PLATFORM_FEE, "fee too large");
     // require(_harvestBountyPercentage <= MAX_HARVEST_BOUNTY, "fee too large");
 
-    governor = _governor;
+    // governor = _governor;
     clevCVX = _clevCVX;
     zap = _zap;
     furnace = _furnace;
@@ -192,9 +191,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     reserveRate = 500_000_000;
   }
 
-  receive() external payable {
-    require(msg.sender == zap, "only zap can send ETH");
-  }
+  receive() external payable {}
 
   /********************************** View Functions **********************************/
 
@@ -329,7 +326,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev Deposit CVX and lock into CVXLockerV2
   /// @param _amount The amount of CVX to lock.
   function deposit(uint256 _amount) external override {
-    require(_amount > 0, "deposit zero");
+    _checkValueNoneZero(_amount);
     IERC20Upgradeable(CVX).safeTransferFrom(msg.sender, address(this), _amount);
 
     // 1. update reward info
@@ -358,7 +355,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   ///      Notice that all pending unlocked CVX will not share future rewards.
   /// @param _amount The amount of CVX to unlock.
   function unlock(uint256 _amount) external override {
-    require(_amount > 0, "unlock zero");
+    _checkValueNoneZero(_amount);
     // 1. update reward info
     _updateReward(msg.sender);
 
@@ -370,7 +367,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     {
       uint256 _totalLocked = _info.totalLocked;
       uint256 _totalDebt = _info.totalDebt;
-      require(_amount <= _totalLocked, "insufficient CVX to unlock");
+      require(_amount <= _totalLocked, "InsufficientToUnlock");
 
       _checkAccountHealth(_totalLocked, _totalDebt, _amount, 0);
       // if you choose unlock, all pending unlocked CVX will not share the reward.
@@ -445,11 +442,9 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   }
 
   /// @dev Repay clevCVX debt with CVX or clevCVX.
-  /// @param _cvxAmount The amount of CVX used to pay debt.
   /// @param _clevCVXAmount The amount of clevCVX used to pay debt.
-  function repay(uint256 _cvxAmount, uint256 _clevCVXAmount) external override {
-    require(_cvxAmount == 0, "no repay with CVX");
-    require(_clevCVXAmount > 0, "repay zero");
+  function repay(uint256, uint256 _clevCVXAmount) external override {
+    _checkValueNoneZero(_clevCVXAmount);
 
     // 1. update reward info
     _updateReward(msg.sender);
@@ -475,7 +470,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     _info.totalDebt = uint128(_totalDebt);
     totalDebtGlobal = _totalDebtGlobal;
 
-    emit Repay(msg.sender, _cvxAmount, _clevCVXAmount);
+    emit Repay(msg.sender, 0, _clevCVXAmount);
   }
 
   /// @dev Borrow clevCVX from this contract.
@@ -483,7 +478,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @param _amount The amount of clevCVX to borrow.
   /// @param _depositToFurnace Whether to deposit borrowed clevCVX to furnace.
   function borrow(uint256 _amount, bool _depositToFurnace) external override {
-    require(_amount > 0, "borrow zero");
+    _checkValueNoneZero(_amount);
 
     // 1. update reward info
     _updateReward(msg.sender);
@@ -519,7 +514,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev Someone donate CVX to all CVX locker in this contract.
   /// @param _amount The amount of CVX to donate.
   function donate(uint256 _amount) external override {
-    require(_amount > 0, "donate zero");
+    _checkValueNoneZero(_amount);
     IERC20Upgradeable(CVX).safeTransferFrom(msg.sender, address(this), _amount);
 
     _distribute(_amount);
@@ -554,7 +549,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
       _amount = IZap(_zap).zap{ value: _amount }(address(0), _amount, CVX, 0);
     }
     // @note now `_amount` store the amount of CVX
-    require(_amount >= _minimumOut, "insufficient output");
+    require(_amount >= _minimumOut, "InsufficientOutput");
 
     // 3. distribute incentive to platform and _recipient
     uint256 _platformFee = platformFeePercentage;
@@ -668,6 +663,45 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     return _convertAndDistributeBribes(_rewardTokens, _amounts, _convertParams, _minimumOut);
   }
 
+  /// @notice Harvest pending reward from Paladin, then swap it to CVX.
+  /// @param _claimParams The parameters used by Paladin's MultiMerkleDistributor contract.
+  /// @param _convertParams The routes used to swap token to ETH and CVX.
+  /// @param _minimumOut - The minimum amount of CVX should get.
+  /// @return The amount of CVX harvested.
+  function harvestUniversalRewardsDistributorBribes(
+    address distributor,
+    IUniversalRewardsDistributor.ClaimParams[] memory _claimParams,
+    ConvertParam[] calldata _convertParams,
+    uint256 _minimumOut
+  ) external onlyKeeper returns (uint256) {
+    // the last routes is ETH to CVX
+    uint256 length = _claimParams.length;
+
+    address[] memory _rewardTokens = new address[](length);
+    uint256[] memory _amounts = new uint256[](length);
+    IUniversalRewardsDistributor.ClaimParams memory _claimParam;
+    for (uint256 i = 0; i < length; i++) {
+      _claimParam = _claimParams[i];
+      uint256 claimable = _claimParam.claimable;
+      if (claimable > IUniversalRewardsDistributor(distributor).claimed(address(this), _claimParam.reward)) {
+        IUniversalRewardsDistributor(distributor).claim(
+          address(this),
+          _claimParam.reward,
+          claimable,
+          _claimParam.proof
+        );
+      }
+      uint256 claimedInStorage = universalRewardsDistributorClaimed[distributor][_claimParam.reward];
+      if (claimedInStorage < claimable) {
+        universalRewardsDistributorClaimed[distributor][_claimParam.reward] = claimable;
+      }
+      _amounts[i] = claimable - claimedInStorage;
+      _rewardTokens[i] = _claimParam.reward;
+    }
+
+    return _convertAndDistributeBribes(_rewardTokens, _amounts, _convertParams, _minimumOut);
+  }
+
   /// @dev Process unlocked CVX in CVXLockerV2.
   ///
   /// This function should be called every week if
@@ -717,7 +751,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     address _registry,
     bytes32 _id,
     address _delegate
-  ) external onlyGovernorOrOwner {
+  ) external onlyOwner {
     ISnapshotDelegateRegistry(_registry).setDelegate(_id, _delegate);
   }
 
@@ -727,91 +761,74 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     address _committer,
     address _surrogate,
     address _contractAddr
-  ) external onlyGovernorOrOwner {
+  ) external onlyOwner {
     ICommitUserSurrogate(_committer).commit(_surrogate, _contractAddr);
-  }
-
-  /// @dev Update the address of governor.
-  /// @param _governor The address to be updated
-  function updateGovernor(address _governor) external onlyGovernorOrOwner {
-    require(_governor != address(0), "zero address");
-    governor = _governor;
-
-    emit UpdateGovernor(_governor);
   }
 
   /// @dev Update stake percentage for CVX in this contract.
   /// @param _percentage The stake percentage to be updated, multiplied by 1e9.
-  function updateStakePercentage(uint256 _percentage) external onlyGovernorOrOwner {
+  /// @param _threshold The stake threshold to be updated.
+  function updateStakePercentageAndThreshold(uint256 _percentage, uint256 _threshold) external onlyOwner {
     require(_percentage <= FEE_PRECISION, "percentage too large");
     stakePercentage = _percentage;
-
-    emit UpdateStakePercentage(_percentage);
-  }
-
-  /// @dev Update stake threshold for CVX.
-  /// @param _threshold The stake threshold to be updated.
-  function updateStakeThreshold(uint256 _threshold) external onlyGovernorOrOwner {
     stakeThreshold = _threshold;
 
+    emit UpdateStakePercentage(_percentage);
     emit UpdateStakeThreshold(_threshold);
   }
 
   /// @dev Update manual swap reward token lists.
   /// @param _tokens The addresses of token list.
   /// @param _status The status to be updated.
-  function updateManualSwapRewardToken(address[] memory _tokens, bool _status) external onlyGovernorOrOwner {
+  function updateManualSwapRewardToken(address[] memory _tokens, bool _status) external onlyOwner {
     for (uint256 i = 0; i < _tokens.length; i++) {
-      require(_tokens[i] != CVX, "invalid token");
+      require(_tokens[i] != CVX, "InvalidToken");
       manualSwapRewardToken[_tokens[i]] = _status;
     }
   }
 
-  /// @dev Update the repay fee percentage.
-  /// @param _feePercentage - The fee percentage to update.
-  function updateRepayFeePercentage(uint256 _feePercentage) external onlyOwner {
-    require(_feePercentage <= MAX_REPAY_FEE, "fee too large");
-    repayFeePercentage = _feePercentage;
+  /// @dev Update the fee percentage.
+  /// @param _repayFeePercentage - The repay fee percentage to update.
+  /// @param _platformFeePercentage - The platform fee percentage to update.
+  /// @param _harvestBountyPercentage - The harvest bounty fee percentage to update.
+  function updateFeePercentage(
+    uint256 _repayFeePercentage,
+    uint256 _platformFeePercentage,
+    uint256 _harvestBountyPercentage
+  ) external onlyOwner {
+    _checkValueUpperBound(_repayFeePercentage, MAX_REPAY_FEE);
+    _checkValueUpperBound(_platformFeePercentage, MAX_PLATFORM_FEE);
+    _checkValueUpperBound(_harvestBountyPercentage, MAX_HARVEST_BOUNTY);
 
-    emit UpdateRepayFeePercentage(_feePercentage);
-  }
+    repayFeePercentage = _repayFeePercentage;
+    platformFeePercentage = _platformFeePercentage;
+    harvestBountyPercentage = _harvestBountyPercentage;
 
-  /// @dev Update the platform fee percentage.
-  /// @param _feePercentage - The fee percentage to update.
-  function updatePlatformFeePercentage(uint256 _feePercentage) external onlyOwner {
-    require(_feePercentage <= MAX_PLATFORM_FEE, "fee too large");
-    platformFeePercentage = _feePercentage;
-
-    emit UpdatePlatformFeePercentage(_feePercentage);
-  }
-
-  /// @dev Update the harvest bounty percentage.
-  /// @param _percentage - The fee percentage to update.
-  function updateHarvestBountyPercentage(uint256 _percentage) external onlyOwner {
-    require(_percentage <= MAX_HARVEST_BOUNTY, "fee too large");
-    harvestBountyPercentage = _percentage;
-
-    emit UpdateHarvestBountyPercentage(_percentage);
+    emit UpdateRepayFeePercentage(_repayFeePercentage);
+    emit UpdatePlatformFeePercentage(_platformFeePercentage);
+    emit UpdateHarvestBountyPercentage(_harvestBountyPercentage);
   }
 
   /// @dev Update the recipient
   function updatePlatform(address _platform) external onlyOwner {
-    require(_platform != address(0), "zero address");
+    // remove this check to reduce code size
+    // require(_platform != address(0), "zero address");
     platform = _platform;
 
     emit UpdatePlatform(_platform);
   }
 
   /// @dev Update the zap contract
-  function updateZap(address _zap) external onlyGovernorOrOwner {
-    require(_zap != address(0), "zero address");
+  function updateZap(address _zap) external onlyOwner {
+    // remove this check to reduce code size
+    // require(_zap != address(0), "zero address");
     zap = _zap;
 
     emit UpdateZap(_zap);
   }
 
   function updateReserveRate(uint256 _reserveRate) external onlyOwner {
-    require(_reserveRate <= FEE_PRECISION, "invalid reserve rate");
+    _checkValueUpperBound(_reserveRate, FEE_PRECISION);
     reserveRate = _reserveRate;
   }
 
@@ -827,21 +844,17 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   }
 
   /// @dev Update keepers.
-  /// @param _accounts The address list of keepers to update.
-  /// @param _status The status of updated keepers.
-  function updateKeepers(address[] memory _accounts, bool _status) external onlyGovernorOrOwner {
-    for (uint256 i = 0; i < _accounts.length; i++) {
-      isKeeper[_accounts[i]] = _status;
-    }
+  /// @param account The address of keeper to update.
+  /// @param _status The status of updated keeper.
+  function updateKeeper(address account, bool _status) external onlyOwner {
+    isKeeper[account] = _status;
   }
 
   /// @dev Update approved targets.
-  /// @param _accounts The address list of keepers to update.
-  /// @param _status The status of updated keepers.
-  function updateApprovedTargets(address[] memory _accounts, bool _status) external onlyGovernorOrOwner {
-    for (uint256 i = 0; i < _accounts.length; i++) {
-      approvedTargets[_accounts[i]] = _status;
-    }
+  /// @param account The address of target to update.
+  /// @param _status The status of updated target.
+  function updateApprovedTargets(address account, bool _status) external onlyOwner {
+    approvedTargets[account] = _status;
   }
 
   /// @notice Update the address of SignatureVerifier contract.
@@ -858,6 +871,14 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   }
 
   /********************************** Internal Functions **********************************/
+
+  function _checkValueUpperBound(uint256 value, uint256 bound) internal pure {
+    require(value <= bound, "ValueOutOfBound");
+  }
+
+  function _checkValueNoneZero(uint256 value) internal pure {
+    require(value != 0, "ZeroValue");
+  }
 
   /// @dev Internal function called by `deposit`, `unlock`, `withdrawUnlocked`, `repay`, `borrow` and `claim`.
   /// @param _account The address of account to update reward info.
