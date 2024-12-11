@@ -3,6 +3,7 @@ import { DEPLOYED_CONTRACTS } from "./deploys";
 export const TOKENS: { [symbol: string]: { address: string; decimals: number } } = {
   "3CRV": { decimals: 18, address: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490" },
   AAVE: { decimals: 18, address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9" },
+  AIOZ: { decimals: 18, address: "0x626E8036dEB333b408Be468F951bdB42433cBF18" },
   ALCX: { decimals: 18, address: "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF" },
   ALD: { decimals: 18, address: "0xb26c4b3ca601136daf98593feaeff9e0ca702a8d" },
   ANGLE: { decimals: 18, address: "0x31429d1856aD1377A8A0079410B297e1a9e214c2" },
