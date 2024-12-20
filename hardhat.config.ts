@@ -22,30 +22,40 @@ const accounts = process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KE
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
+const SolcV076 = {
+  version: "0.7.6",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200,
+    },
+    evmVersion: "istanbul",
+  },
+};
+
+const SolcV0820 = {
+  version: "0.8.20",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200,
+    },
+    evmVersion: "shanghai",
+  },
+};
+
 const config: HardhatUserConfig = {
   solidity: {
-    compilers: [
-      {
-        version: "0.7.6",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-          evmVersion: "istanbul",
-        },
-      },
-      {
-        version: "0.8.20",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-          evmVersion: "shanghai",
-        },
-      },
-    ],
+    compilers: [SolcV076, SolcV0820],
+    overrides: {
+      "contracts/f(x)/rate-provider/wBETHRateProvider.sol": SolcV076,
+      "contracts/harvester/concentrator/FxUSDCompounderHarvestFacet.sol": SolcV076,
+      "contracts/harvester/libraries/LibConcentratorHarvester.sol": SolcV076,
+      "contracts/interfaces/ICurveVoteEscrow.sol": SolcV076,
+      "contracts/interfaces/IWBETH.sol": SolcV076,
+      "contracts/interfaces/concentrator/IConcentratorSdCrvVault.sol": SolcV076,
+      "contracts/interfaces/concentrator/IConcentratorStakeDAOVault.sol": SolcV076,
+    },
   },
   vyper: {
     compilers: [{ version: "0.3.1" }, { version: "0.2.7" }],

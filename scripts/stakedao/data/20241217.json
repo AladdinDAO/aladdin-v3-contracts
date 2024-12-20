@@ -1,0 +1,18 @@
+[
+  {
+    "token": "0xD1b5651E55D4CeeD36251c61c50C889B36F6abB5",
+    "index": 201,
+    "amount": "0x09b059e3c7a568e0b100",
+    "merkleProof": [
+      "0x8cf9ad1b8e980695e67de31e2560e723fe5f91b7a742a1d32437c7d96e5cd184",
+      "0xc78707dc2ed7b82a4c9b9fdfad6dc3b1ed2bba04f86ad5b8336cff2c9be1148a",
+      "0x17ec1038fd0b369ad9cacf224cbdcf94001caab338c6a36f615c611f1135ed8b",
+      "0x3bd29bda686fc1ad5e5371edad39b95931f397252666215f342271b205eda4f7",
+      "0x6fd30896a45e91088fc93523efebd63cb7e3ccd130cbfb2b87994f30820c2169",
+      "0x54f43fd32aced861a132014ee739e8700c09caceb53b6091b59056e63b99b055",
+      "0xa8740ffebcce207cf1f98bbe944b3385b6721a4fb4d0892b1bae4d73ebbceddb",
+      "0x05ca48caec2ff7edb50a69b7b827ae8b7461a2dba920a8e4d4ac8decfbe2c09f",
+      "0x0a320ccee1001e56178b8660c4369da0425e9ba96aaeb995477bdfe5e9342881"
+    ]
+  }
+]
