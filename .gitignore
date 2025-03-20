@@ -12,5 +12,6 @@ artifacts
 .store
 
 deployments/fork*
+deployments/tenderly*
 
 logs/
