@@ -88,6 +88,10 @@ const config: HardhatUserConfig = {
       url: `https://rpc.phalcon.blocksec.com/${process.env.PHALCON_RPC_ID || ""}`,
       accounts,
     },
+    tenderly: {
+      url: `https://virtual.mainnet.rpc.tenderly.co/${process.env.TENDERLY_RPC_ID || ""}`,
+      accounts,
+    },
     fork_mainnet_10540: {
       url: process.env.MAINNET_FORK_10540_URL || "",
       accounts,

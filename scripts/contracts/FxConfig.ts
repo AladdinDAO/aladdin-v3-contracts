@@ -189,6 +189,26 @@ export const SaleConfig: {
       Variation: ethers.parseEther("1"),
     },
   },
+  TokenSaleBase1: {
+    cap: ethers.parseEther("10000000"),
+    time: { WhitelistStartTime: 1738764000n, PublicStartTime: 1738764000n, SaleDuration: 604800n },
+    tokens: [TOKENS.fxUSD.address],
+    price: {
+      InitialPrice: ethers.parseEther("0.2"),
+      UpRatio: 0n,
+      Variation: ethers.parseEther("1"),
+    },
+  },
+  TokenSaleBase2: {
+    cap: ethers.parseEther("10000000"),
+    time: { WhitelistStartTime: 1738764000n, PublicStartTime: 1738764000n, SaleDuration: 604800n },
+    tokens: [TOKENS.fxUSD.address],
+    price: {
+      InitialPrice: ethers.parseEther("0.1"),
+      UpRatio: 0n,
+      Variation: ethers.parseEther("1"),
+    },
+  },
 };
 
 export const MarketConfig: {
@@ -453,4 +473,9 @@ export interface FxUSDDeployment {
       cvxUSD: string;
     };
   };
+}
+
+export interface FxBaseDeployment {
+  TokenSale1: string;
+  TokenSale2: string;
 }

@@ -4,6 +4,7 @@ import { ethers, toBigInt } from "ethers";
 import { showConverterRoute } from "@/utils/routes";
 
 import { ensureDeployer } from "@/contracts/helpers";
+import * as FxBase from "@/contracts/FxBase";
 import * as FxGovernance from "@/contracts/FxGovernance";
 import * as FxOracle from "@/contracts/FxOracle";
 import * as FxStETH from "@/contracts/FxStETH";
@@ -41,7 +42,10 @@ async function main() {
   */
 
   const cmd = process.env.CMD;
-  if (cmd === "gov") {
+  if (cmd === "base") {
+    const base = await FxBase.deploy(deployer, overrides);
+    await FxBase.initialize(deployer, base, overrides);
+  } else if (cmd === "gov") {
     const governance = await FxGovernance.deploy(deployer, overrides);
     await FxGovernance.initialize(deployer, governance, overrides);
   } else if (cmd === "oracle") {

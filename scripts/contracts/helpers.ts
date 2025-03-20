@@ -148,6 +148,7 @@ export const ExpectedDeployers: { [network: string]: string } = {
   fork_mainnet_10548: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
   fork_mainnet_10547: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
   fork_phalcon: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
+  tenderly: "0xa1d0027Ca4C0CB79f9403d06A29470abC7b0a468",
 };
 
 export async function ensureDeployer(network: string): Promise<HardhatEthersSigner> {
