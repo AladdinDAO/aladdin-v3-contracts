@@ -14,10 +14,10 @@ const OWNER_ALADDIN = "0xc40549aa1D05C30af23a1C4a5af6bA11FCAFe23F";
 const OWNER_CONCENTRATOR = "0xA0FB1b11ccA5871fb0225B64308e249B97804E99";
 
 const SdPendleGauge = "0x50DC9aE51f78C593d4138263da7088A973b8184E";
-const SdPendleHolder = "0x2a88487328E89Fe6C3b71706069715F301F4BEB4";
+const SdPendleHolder = "0x44eE3BC492449497221a82031880a345a8f790a0";
 const Locker = "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09";
 
-const FORK_HEIGHT = 20317250;
+const FORK_HEIGHT = 22116250;
 
 describe("SdPendleGaugeStrategy.spec", async () => {
   let deployer: HardhatEthersSigner;
@@ -239,7 +239,8 @@ describe("SdPendleGaugeStrategy.spec", async () => {
     expect(await strategy.rewards(0)).to.eq(TOKENS.SDT.address);
     expect(await strategy.rewards(1)).to.eq(TOKENS.WETH.address);
     expect(await strategy.rewards(2)).to.eq(TOKENS.PENDLE.address);
-    await expect(strategy.rewards(3)).to.reverted;
+    expect(await strategy.rewards(3)).to.eq(TOKENS.sdPENDLE.address);
+    await expect(strategy.rewards(4)).to.reverted;
   });
 
   it("should succeed when deposit", async () => {
