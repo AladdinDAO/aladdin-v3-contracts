@@ -15,12 +15,12 @@ const OWNER_CONCENTRATOR = "0xA0FB1b11ccA5871fb0225B64308e249B97804E99";
 const MERKLE_OWNER = "0x2f18e001B44DCc1a1968553A2F32ab8d45B12195";
 
 const SdPendleGauge = "0x50DC9aE51f78C593d4138263da7088A973b8184E";
-const PendleHolder = "0xF977814e90dA44bFA03b6295A0616a897441aceC";
-const SdPendleHolder = "0x2a88487328E89Fe6C3b71706069715F301F4BEB4";
-const SdPendleGaugeHolder = "0x1FEC70880238fC55DB11dda3c110699700421041";
+const PendleHolder = "0x131b2070814623CeE8DE6054240c9158c007c0a5";
+const SdPendleHolder = "0x44eE3BC492449497221a82031880a345a8f790a0";
+const SdPendleGaugeHolder = "0xb20179E162Ec6403d0884C904D54b6A5AF0d43FC";
 const Locker = "0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09";
 
-const FORK_HEIGHT = 20317250;
+const FORK_HEIGHT = 22116250;
 
 describe("SdPendleCompounder.spec", async () => {
   let deployer: HardhatEthersSigner;
@@ -139,15 +139,15 @@ describe("SdPendleCompounder.spec", async () => {
     beforeEach(async () => {
       const pool = await ethers.getContractAt(
         "ICurvePlainPool",
-        "0x1062fd8ed633c1f080754c19317cb3912810b5e5",
+        "0x26f3f26F46cBeE59d1F8860865e13Aa39e36A8c0",
         holderSdPendle
       );
       const sdPENDLE = await ethers.getContractAt("MockERC20", TOKENS.sdPENDLE.address, holderSdPendle);
       const pendleBalance = await pool["balances(uint256)"](0);
       const sdPendleBalance = await pool["balances(uint256)"](1);
       await sdPENDLE.approve(pool.getAddress(), MaxUint256);
-      if (sdPendleBalance < pendleBalance) {
-        await pool.exchange(1, 0, (pendleBalance - sdPendleBalance) * 2n, 0);
+      if (sdPendleBalance < (pendleBalance * 11n) / 10n) {
+        await pool.exchange(1, 0, ((pendleBalance * 11n) / 10n - sdPendleBalance) * 2n, 0);
       }
       expect(await pool.get_dy(0, 1, ethers.parseEther("1"))).to.gt(ethers.parseEther("1"));
       expect(await pool.get_dy(0, 1, ethers.parseEther("1000000"))).to.lt(ethers.parseEther("1000000"));

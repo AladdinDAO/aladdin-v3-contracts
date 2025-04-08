@@ -28,7 +28,7 @@ library SdPendleHelper {
   address internal constant CURVE_POOL = 0x26f3f26F46cBeE59d1F8860865e13Aa39e36A8c0;
 
   /// @dev The address of StakeDAO's PENDLE => sdPENDLE depositor Contract.
-  address internal constant DEPOSITOR = 0xf7F64f63ec693C6a3A79fCe4b222Bca2595cAcEf;
+  address internal constant DEPOSITOR = 0x7F5c485D24fB1832A14f122C8722ef15C158Acb5;
 
   /// @notice The address of `StakeDAOLockerProxy` contract.
   address internal constant LOCKER = 0x1c0D72a330F2768dAF718DEf8A19BAb019EEAd09;

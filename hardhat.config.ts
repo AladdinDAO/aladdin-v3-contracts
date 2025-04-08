@@ -118,6 +118,7 @@ const config: HardhatUserConfig = {
       mainnet: process.env.ETHERSCAN_API_KEY || "",
       hermez: process.env.ETHERSCAN_API_KEY || "",
       phalcon: process.env.PHALCON_FORK_ACCESS_KEY || "",
+      tenderly: process.env.TENDERLY_ACCESS_TOKEN || "",
     },
     customChains: [
       {
@@ -134,6 +135,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: `https://api.phalcon.xyz/api/${process.env.PHALCON_RPC_ID || ""}`,
           browserURL: `https://scan.phalcon.xyz/${process.env.PHALCON_FORK_ID || ""}`,
+        },
+      },
+      {
+        network: "tenderly",
+        chainId: parseInt(process.env.TENDERLY_CHAIN_ID || "1"),
+        urls: {
+          apiURL: `https://virtual.mainnet.rpc.tenderly.co/${process.env.TENDERLY_RPC_ID || ""}/verify/etherscan`,
+          browserURL: `https://dashboard.tenderly.co/${process.env.TENDERLY_USERNAME}/${process.env.TENDERLY_PROJECT}/testnet/${process.env.TENDERLY_TESTNET_ID}/contract/virtual/`,
         },
       },
     ],

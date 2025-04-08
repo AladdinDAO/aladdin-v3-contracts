@@ -22,7 +22,15 @@
   },
   "SdCRVBribeBurner": "0x9D6Dc3dbC7Cc5e1d7241601473FD63d2bD1573f9",
   "ConcentratorSdCrvGaugeWrapper": {
-    "proxy": "0x09B0E3A114135F528F762DB8363b4f5eae3F3bF1"
+    "proxy": "0x09B0E3A114135F528F762DB8363b4f5eae3F3bF1",
+    "implementation": "0x85b84d588C7A67EBab2aa0352B8475Dc9310b805"
   },
-  "SdCRVBribeBurnerV2": "0x680f26dbc8Fa2B463607ebb49A68A69c33476665"
+  "SdCRVBribeBurnerV2": "0x680f26dbc8Fa2B463607ebb49A68A69c33476665",
+  "StakeDAOBribeClaimer": "0xEb7874754362386CA438E70447A60A626bCaaD3c",
+  "SdPendleCompounder": {
+    "implementation": "0xdf67b4C791a8Dd5372f32B362C1D207A0521Fa24",
+    "proxy": "0x606462126E4Bd5c4D153Fe09967e4C46C9c7FeCf"
+  },
+  "SdPendleGaugeStrategy": "0x94992Da38bE9aDADD359c2959588FdDFa2dFE5Cd",
+  "SdPendleBribeBurner": "0x8bde1d771423B8d2FE0B046b934FB9a7F956aDe2"
 }
