@@ -128,11 +128,20 @@
       },
       "fxUSD+USDN": {
         "gauge": "0xa295829c082C4d21fE37dbC8C96bFa0ef6dbaa92"
+      },
+      "reUSD+fxUSD": {
+        "gauge": "0x8d9186Fa822624bad50a5cB2545048CB26b4E65E",
+        "manager": "0xF5a33E6f182C51C45c78A3Cd3dC584C55a418429"
+      },
+      "fxSAVE+scrvUSD": {
+        "gauge": "0x6FcFe767c479ef1f2d8c7A4b27e2aBaDD355910F",
+        "manager": "0x46b38fd8283c844f93a00efA2CF05AB9DDAA9fc6"
       }
     },
     "StakingGauge": {
       "uniBTC": "0x1D20671A21112E85b03B00F94Fd760DE0Bef37Ba"
     }
   },
-  "ReservePool": "0xb592E01dd77084b36430ffCB9c9D2F76fDE32631"
+  "ReservePool": "0xb592E01dd77084b36430ffCB9c9D2F76fDE32631",
+  "FeeDistributorAdmin": "0xd8aE026d0ABf2379ba0fc79A7bf190268DFA81C6"
 }
