@@ -47,6 +47,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
   await deployment.contractDeploy("VotingEscrowProxy", "VotingEscrowProxy", "VotingEscrowProxy", [
     deployment.get("veFXN"),
   ]);
+  await deployment.contractDeploy("FeeDistributorAdmin", "FeeDistributorAdmin", "FeeDistributorAdmin", []);
 
   // GaugeController
   await deployment.minimalProxyDeploy("GaugeController", "GaugeController", implementationDeployment.GaugeController);
@@ -107,6 +108,8 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     "USD0+fxUSD",
     "fxUSD+rUSD+btcUSD",
     "fxUSD+USDN",
+    "reUSD+fxUSD",
+    "fxSAVE+scrvUSD",
   ]) {
     await deployment.proxyDeploy(
       "LiquidityGauge.ConvexDualFarm." + name + ".gauge",
@@ -531,6 +534,8 @@ export async function initialize(
     "USD0+fxUSD",
     "fxUSD+rUSD+btcUSD",
     "fxUSD+USDN",
+    "reUSD+fxUSD",
+    "fxSAVE+scrvUSD",
   ]) {
     const gauge = await ethers.getContractAt(
       "SharedLiquidityGauge",
