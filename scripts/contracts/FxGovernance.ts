@@ -86,31 +86,7 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     );
   }
 
-  for (const name of [
-    "ETH+FXN",
-    "FXN+cvxFXN",
-    "FXN+sdFXN",
-    "crvUSD+fxUSD",
-    "PYUSD+fxUSD",
-    "DOLA+fxUSD",
-    "GRAI+fxUSD",
-    "FRAX+fxUSD",
-    "GHO+fxUSD",
-    "mkUSD+fxUSD",
-    "ULTRA+fxUSD",
-    "fxUSD+rUSD",
-    "alUSD+fxUSD",
-    "eUSD+fxUSD",
-    "rgUSD+fxUSD",
-    "MIM+fxUSD",
-    "zunUSD+fxUSD",
-    "USDC+fxUSD",
-    "USD0+fxUSD",
-    "fxUSD+rUSD+btcUSD",
-    "fxUSD+USDN",
-    "reUSD+fxUSD",
-    "fxSAVE+scrvUSD",
-  ]) {
+  for (const name of ["msUSD+fxUSD"]) {
     await deployment.proxyDeploy(
       "LiquidityGauge.ConvexDualFarm." + name + ".gauge",
       `SharedLiquidityGauge of ${name}`,
@@ -512,31 +488,7 @@ export async function initialize(
     }
   }
   // Setup LiquidityGauge
-  for (const name of [
-    "ETH+FXN",
-    "FXN+cvxFXN",
-    "FXN+sdFXN",
-    "crvUSD+fxUSD",
-    "PYUSD+fxUSD",
-    "DOLA+fxUSD",
-    "GRAI+fxUSD",
-    "FRAX+fxUSD",
-    "GHO+fxUSD",
-    "mkUSD+fxUSD",
-    "ULTRA+fxUSD",
-    "fxUSD+rUSD",
-    "alUSD+fxUSD",
-    "eUSD+fxUSD",
-    "rgUSD+fxUSD",
-    "MIM+fxUSD",
-    "zunUSD+fxUSD",
-    "USDC+fxUSD",
-    "USD0+fxUSD",
-    "fxUSD+rUSD+btcUSD",
-    "fxUSD+USDN",
-    "reUSD+fxUSD",
-    "fxSAVE+scrvUSD",
-  ]) {
+  for (const name of ["msUSD+fxUSD"]) {
     const gauge = await ethers.getContractAt(
       "SharedLiquidityGauge",
       deployment.LiquidityGauge.ConvexDualFarm[name].gauge,

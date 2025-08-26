@@ -136,6 +136,9 @@
       "fxSAVE+scrvUSD": {
         "gauge": "0x6FcFe767c479ef1f2d8c7A4b27e2aBaDD355910F",
         "manager": "0x46b38fd8283c844f93a00efA2CF05AB9DDAA9fc6"
+      },
+      "msUSD+fxUSD": {
+        "gauge": "0x2122a2bee97545595550b85379AC7676Fd21a5B4"
       }
     },
     "StakingGauge": {
