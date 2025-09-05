@@ -139,6 +139,9 @@
       },
       "msUSD+fxUSD": {
         "gauge": "0x2122a2bee97545595550b85379AC7676Fd21a5B4"
+      },
+      "fxUSD+USDC+USDaf+BOLD": {
+        "gauge": "0xE534E5e86382d64133ecd6b7f717C69BEC8B40CA"
       }
     },
     "StakingGauge": {
