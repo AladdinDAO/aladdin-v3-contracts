@@ -142,6 +142,12 @@
       },
       "fxUSD+USDC+USDaf+BOLD": {
         "gauge": "0xE534E5e86382d64133ecd6b7f717C69BEC8B40CA"
+      },
+      "DOLA+fxSAVE": {
+        "gauge": "0x7d4674b837429c44914961cb9F21dD6dEFd0eee0"
+      },
+      "fxUSD": {
+        "gauge": "0xABc8cBbA768DA396626FAD97D0e61104aC1e7068"
       }
     },
     "StakingGauge": {
