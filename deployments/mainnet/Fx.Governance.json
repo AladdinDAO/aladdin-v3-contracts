@@ -148,6 +148,12 @@
       },
       "fxUSD": {
         "gauge": "0xABc8cBbA768DA396626FAD97D0e61104aC1e7068"
+      },
+      "ynUSDx+fxUSD": {
+        "gauge": "0xeD9ED685F553B0827a58a918E64eC02E6FD55799"
+      },
+      "ynRWAx+fxUSD": {
+        "gauge": "0x0BbfD53Ec934e5d4d3d55dD860642aDD395De979"
       }
     },
     "StakingGauge": {

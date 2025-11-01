@@ -114,12 +114,7 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: {
-      mainnet: process.env.ETHERSCAN_API_KEY || "",
-      hermez: process.env.ETHERSCAN_API_KEY || "",
-      phalcon: process.env.PHALCON_FORK_ACCESS_KEY || "",
-      tenderly: process.env.TENDERLY_ACCESS_TOKEN || "",
-    },
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
     customChains: [
       {
         network: "hermez",
