@@ -65,7 +65,6 @@ export const SpotPriceEncodings: { [pair: string]: string } = {
   ]),
   "stETH/WETH": encodeSpotPriceSources([
     [SpotPricePool["stETH/wstETH-LSD"], SpotPricePool["wstETH/WETH-UniV3-0.01%"]],
-    [SpotPricePool["stETH/WETH-BalV2-S"]],
     [SpotPricePool["stETH/WETH-CrvPlain-303"]],
     [SpotPricePool["stETH/WETH-CrvBase"]],
   ]),
