@@ -142,6 +142,21 @@
       },
       "fxUSD+USDC+USDaf+BOLD": {
         "gauge": "0xE534E5e86382d64133ecd6b7f717C69BEC8B40CA"
+      },
+      "DOLA+fxSAVE": {
+        "gauge": "0x7d4674b837429c44914961cb9F21dD6dEFd0eee0"
+      },
+      "fxUSD": {
+        "gauge": "0xABc8cBbA768DA396626FAD97D0e61104aC1e7068"
+      },
+      "ynUSDx+fxUSD": {
+        "gauge": "0xeD9ED685F553B0827a58a918E64eC02E6FD55799"
+      },
+      "ynRWAx+fxUSD": {
+        "gauge": "0x0BbfD53Ec934e5d4d3d55dD860642aDD395De979"
+      },
+      "fxUSD+frxUSD": {
+        "gauge": "0xA3c0f7360b922136cc8B89063BE1e8daF70427bD"
       }
     },
     "StakingGauge": {

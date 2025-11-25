@@ -8,6 +8,8 @@ import { contractDeploy } from "./helpers";
 
 export interface MiscDeployment {
   MultiMerkleStash: string;
+  MultiMerkleStashConcentrator: string;
+  MultiMerkleStashCLever: string;
 }
 
 export async function deploy(deployer: HardhatEthersSigner, overrides?: Overrides): Promise<MiscDeployment> {
@@ -18,6 +20,18 @@ export async function deploy(deployer: HardhatEthersSigner, overrides?: Override
     deployment.set("MultiMerkleStash", address);
   } else {
     console.log("Found MultiMerkleStash at:", deployment.get("MultiMerkleStash"));
+  }
+  if (!deployment.get("MultiMerkleStashConcentrator")) {
+    const address = await contractDeploy(deployer, "MultiMerkleStashConcentrator", "MultiMerkleStash", [], overrides);
+    deployment.set("MultiMerkleStashConcentrator", address);
+  } else {
+    console.log("Found MultiMerkleStashConcentrator at:", deployment.get("MultiMerkleStashConcentrator"));
+  }
+  if (!deployment.get("MultiMerkleStashCLever")) {
+    const address = await contractDeploy(deployer, "MultiMerkleStashCLever", "MultiMerkleStash", [], overrides);
+    deployment.set("MultiMerkleStashCLever", address);
+  } else {
+    console.log("Found MultiMerkleStashCLever at:", deployment.get("MultiMerkleStashCLever"));
   }
   return deployment.toObject() as MiscDeployment;
 }

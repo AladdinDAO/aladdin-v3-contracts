@@ -181,6 +181,36 @@ export const DeployedGauges: {
     harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
     managerRatio: ethers.parseUnits("0.01", 9), // 1%
   },
+  "DOLA+fxSAVE": {
+    token: TOKENS["CURVE_S_NG_DOLA/fxSAVE_569"].address,
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  fxUSD: {
+    token: TOKENS.fxUSD.address,
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "ynUSDx+fxUSD": {
+    token: TOKENS["CURVE_S_NG_ynUSDx/fxUSD_591"].address,
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "ynRWAx+fxUSD": {
+    token: TOKENS["CURVE_S_NG_ynRWAx/fxUSD_592"].address,
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
+  "fxUSD+frxUSD": {
+    token: TOKENS["CURVE_S_NG_fxUSD/frxUSD_610"].address,
+    immutable: false,
+    harvesterRatio: ethers.parseUnits("0.01", 9), // 1%
+    managerRatio: ethers.parseUnits("0.01", 9), // 1%
+  },
 };
 
 export const GaugeTypeLists: Array<{ name: string; weight: bigint }> = [

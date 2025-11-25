@@ -4,7 +4,7 @@ import { ethers, network } from "hardhat";
 import { ensureDeployer } from "@/contracts/helpers";
 import * as Misc from "@/contracts/Misc";
 
-const maxFeePerGas = ethers.parseUnits("32", "gwei");
+const maxFeePerGas = ethers.parseUnits("5", "gwei");
 const maxPriorityFeePerGas = ethers.parseUnits("0.01", "gwei");
 
 async function main() {
