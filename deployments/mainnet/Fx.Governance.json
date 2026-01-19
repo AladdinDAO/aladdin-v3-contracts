@@ -157,6 +157,12 @@
       },
       "fxUSD+frxUSD": {
         "gauge": "0xA3c0f7360b922136cc8B89063BE1e8daF70427bD"
+      },
+      "USDnr+fxUSD": {
+        "gauge": "0x695C6F5ed9CEB6709E00C08e1326710F3169B922"
+      },
+      "WETH+fxUSD": {
+        "gauge": "0x288810cdbdFEd9EA3Be3cA4E421Ab795FD0669f3"
       }
     },
     "StakingGauge": {

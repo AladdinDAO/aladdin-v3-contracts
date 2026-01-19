@@ -213,6 +213,7 @@ TOKENS["CURVE_S_NG_fxUSD/USDC/USDaf/BOLD_546"] = { decimals: 18, address: "0x8B8
 TOKENS["CURVE_S_NG_DOLA/fxSAVE_569"] = { decimals: 18, address: "0x2b854e225d7282854819327D0CA5b8D8AA8CAaED" };
 TOKENS["CURVE_S_NG_ynUSDx/fxUSD_591"] = { decimals: 18, address: "0x77145b34807D04fd35D85796CBC81fe65365704A" };
 TOKENS["CURVE_S_NG_ynRWAx/fxUSD_592"] = { decimals: 18, address: "0xBDf86bD28cB3a8Af5D46cCD2f56131Be6718B1d8" };
+TOKENS["CURVE_S_NG_USDnr/fxUSD_594"] = { decimals: 18, address: "0x3204d754a3003cEc155e2D8F44b3b48eD60b7Cc6" };
 TOKENS["CURVE_S_NG_fxUSD/frxUSD_610"] = { decimals: 18, address: "0x851907CAC684797eee43669798D78004e269Cb5E" };
 // Curve Crypto LP (including factory pools)
 TOKENS["CURVE_CRYPTO_crvUSD/fETH_299"] = { decimals: 18, address: "0x19033d99A7b7010157b81e5eE5A8E63A583fB735" };
@@ -221,6 +222,7 @@ TOKENS["CURVE_CRYPTO_ETH/xETH_302"] = { decimals: 18, address: "0x16eAd9a10b1A77
 TOKENS["CURVE_CRYPTO_ETH/FXN_311"] = { decimals: 18, address: "0xE06A65e09Ae18096B99770A809BA175FA05960e2" };
 // Curve TwoCrypto LP (including factory pools)
 TOKENS["CRV_2C_WETH/ZUN_22"] = { decimals: 18, address: "0x9dbcfc09e651c040ee68d6dbeb8a09f8dd0caa77" };
+TOKENS["CRV_2C_WETH/fxUSD_307"] = { decimals: 18, address: "0xb2ee8f9622C5A480928836c0575df7d150f72d98" };
 // Curve TriCrypto LP (including factory pools)
 TOKENS["CURVE_TRICRYPTO_USDT/WBTC/ETH"] = { decimals: 18, address: "0xc4AD29ba4B3c580e6D59105FFf484999997675Ff" };
 TOKENS["CURVE_TRICRYPTO_USDC/WBTC/WETH_0"] = { decimals: 18, address: "0x7F86Bf177Dd4F3494b841a37e810A34dD56c829B" };
