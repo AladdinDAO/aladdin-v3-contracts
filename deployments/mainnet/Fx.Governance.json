@@ -163,6 +163,9 @@
       },
       "WETH+fxUSD": {
         "gauge": "0x288810cdbdFEd9EA3Be3cA4E421Ab795FD0669f3"
+      },
+      "OUSD+fxUSD": {
+        "gauge": "0xcF904d377604bCCcB328e51204CA30203F635259"
       }
     },
     "StakingGauge": {
