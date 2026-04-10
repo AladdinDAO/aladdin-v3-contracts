@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ZeroAddress, toBigInt } from "ethers";
+import { AbiCoder, BytesLike, Signer, ZeroAddress, getBytes, toBigInt } from "ethers";
 import { ethers } from "hardhat";
 
 import { mockETHBalance } from "@/test/utils";
@@ -13,7 +13,96 @@ import {
 } from "@/types/index";
 import { TOKENS } from "@/utils/index";
 
+import { LibGatewayRouter } from "@/types/contracts/gateways/facets/FxMarketV1Facet";
+
+export async function getConvertInParams(
+  signer: Signer,
+  gateway: string,
+  params: {
+    src: string;
+    amount: bigint;
+    target: string;
+    data: BytesLike;
+    minOut: bigint;
+  }
+): Promise<LibGatewayRouter.ConvertInParamsStruct> {
+  const now = (await ethers.provider.getBlock("latest"))!.timestamp;
+  const deadline = toBigInt(now) + 60n * 30n;
+  const signature = await signer.signTypedData(
+    {
+      name: "Gateway Router",
+      version: "1.0.0",
+      chainId: (await ethers.provider.getNetwork()).chainId,
+      verifyingContract: gateway,
+    },
+    {
+      ConvertIn: [
+        { name: "src", type: "address" },
+        { name: "amount", type: "uint256" },
+        { name: "target", type: "address" },
+        { name: "data", type: "bytes" },
+        { name: "minOut", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+      ],
+    },
+    {
+      src: params.src,
+      amount: params.amount,
+      target: params.target,
+      data: getBytes(params.data),
+      minOut: params.minOut,
+      deadline,
+    }
+  );
+  return {
+    ...params,
+    deadline,
+    signature,
+  };
+}
+
+export async function getConvertOutParams(
+  signer: Signer,
+  gateway: string,
+  params: {
+    converter: string;
+    routes: Array<bigint>;
+    minOut: bigint;
+  }
+): Promise<LibGatewayRouter.ConvertOutParamsStruct> {
+  const now = (await ethers.provider.getBlock("latest"))!.timestamp;
+  const deadline = toBigInt(now) + 60n * 30n;
+  const signature = await signer.signTypedData(
+    {
+      name: "Gateway Router",
+      version: "1.0.0",
+      chainId: (await ethers.provider.getNetwork()).chainId,
+      verifyingContract: gateway,
+    },
+    {
+      ConvertOut: [
+        { name: "converter", type: "address" },
+        { name: "routes", type: "bytes" },
+        { name: "minOut", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+      ],
+    },
+    {
+      converter: params.converter,
+      routes: AbiCoder.defaultAbiCoder().encode(["uint256[]"], [params.routes]),
+      minOut: params.minOut,
+      deadline,
+    }
+  );
+  return {
+    ...params,
+    deadline,
+    signature,
+  };
+}
+
 export async function simulateMintFTokenV2(
+  paramsSigner: Signer,
   gateway: FxUSDFacet,
   converter: MultiPathConverter,
   market: MarketV2,
@@ -40,15 +129,15 @@ export async function simulateMintFTokenV2(
       1048575n + (toBigInt(routes.length) << 20n),
       routes,
     ]),
-    minOut: 0,
+    minOut: 0n,
   };
-
+  const convertInParams = await getConvertInParams(paramsSigner, await gateway.getAddress(), params);
   const minted = await gateway
     .connect(signer)
-    .fxMintFTokenV2.staticCall(params, market.getAddress(), 0n, { value: symbol === "ETH" ? amountIn : 0n });
+    .fxMintFTokenV2.staticCall(convertInParams, market.getAddress(), 0n, { value: symbol === "ETH" ? amountIn : 0n });
   console.log(`mint ${await fToken.symbol()} from ${symbol}:`, ethers.formatEther(minted));
   const before = await fToken.balanceOf(signer.address);
-  await gateway.connect(signer).fxMintFTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n, {
+  await gateway.connect(signer).fxMintFTokenV2(convertInParams, market.getAddress(), (minted * 9999n) / 10000n, {
     value: symbol === "ETH" ? amountIn : 0n,
   });
   const after = await fToken.balanceOf(signer.address);
@@ -56,6 +145,7 @@ export async function simulateMintFTokenV2(
 }
 
 export async function simulateMintXTokenV2(
+  paramsSigner: Signer,
   gateway: FxUSDFacet,
   converter: MultiPathConverter,
   market: MarketV2,
@@ -82,15 +172,16 @@ export async function simulateMintXTokenV2(
       1048575n + (toBigInt(routes.length) << 20n),
       routes,
     ]),
-    minOut: 0,
+    minOut: 0n,
   };
+  const convertInParams = await getConvertInParams(paramsSigner, await gateway.getAddress(), params);
 
   const [minted] = await gateway
     .connect(signer)
-    .fxMintXTokenV2.staticCall(params, market.getAddress(), 0n, { value: symbol === "ETH" ? amountIn : 0n });
+    .fxMintXTokenV2.staticCall(convertInParams, market.getAddress(), 0n, { value: symbol === "ETH" ? amountIn : 0n });
   console.log(`mint ${await xToken.symbol()} from ${symbol}:`, ethers.formatEther(minted));
   const before = await xToken.balanceOf(signer.address);
-  await gateway.connect(signer).fxMintXTokenV2(params, market.getAddress(), (minted * 9999n) / 10000n, {
+  await gateway.connect(signer).fxMintXTokenV2(convertInParams, market.getAddress(), (minted * 9999n) / 10000n, {
     value: symbol === "ETH" ? amountIn : 0n,
   });
   const after = await xToken.balanceOf(signer.address);
@@ -98,6 +189,7 @@ export async function simulateMintXTokenV2(
 }
 
 export async function simulateRedeemFTokenV2(
+  paramsSigner: Signer,
   gateway: FxUSDFacet,
   converter: GeneralTokenConverter,
   market: MarketV2,
@@ -117,10 +209,11 @@ export async function simulateRedeemFTokenV2(
     minOut: 0n,
     routes,
   };
+  let convertOutParams = await getConvertOutParams(paramsSigner, await gateway.getAddress(), params);
 
   const [base, dst] = await gateway
     .connect(signer)
-    .fxRedeemFTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
+    .fxRedeemFTokenV2.staticCall(convertOutParams, market.getAddress(), amountIn, 0n);
   const fTokenSymbol = await fToken.symbol();
   const baseSymbol = await baseToken.symbol();
   console.log(`redeem ${fTokenSymbol} as ${baseSymbol}:`, ethers.formatUnits(base, await baseToken.decimals()));
@@ -129,11 +222,12 @@ export async function simulateRedeemFTokenV2(
     ethers.formatUnits(dst, symbol === "ETH" ? 18 : await token.decimals())
   );
   params.minOut = (dst * 9999n) / 10000n;
+  convertOutParams = await getConvertOutParams(paramsSigner, await gateway.getAddress(), params);
   const before =
     symbol === "ETH" ? await ethers.provider.getBalance(signer.address) : await token.balanceOf(signer.address);
   const tx = await gateway
     .connect(signer)
-    .fxRedeemFTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
+    .fxRedeemFTokenV2(convertOutParams, market.getAddress(), amountIn, (base * 9999n) / 10000n);
   const receipt = await tx.wait();
   const after =
     symbol === "ETH" ? await ethers.provider.getBalance(signer.address) : await token.balanceOf(signer.address);
@@ -145,6 +239,7 @@ export async function simulateRedeemFTokenV2(
 }
 
 export async function simulateRedeemXTokenV2(
+  paramsSigner: Signer,
   gateway: FxUSDFacet,
   converter: GeneralTokenConverter,
   market: MarketV2,
@@ -164,10 +259,11 @@ export async function simulateRedeemXTokenV2(
     minOut: 0n,
     routes,
   };
+  let convertOutParams = await getConvertOutParams(paramsSigner, await gateway.getAddress(), params);
 
   const [base, dst] = await gateway
     .connect(signer)
-    .fxRedeemXTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
+    .fxRedeemXTokenV2.staticCall(convertOutParams, market.getAddress(), amountIn, 0n);
   const fTokenSymbol = await xToken.symbol();
   const baseSymbol = await baseToken.symbol();
   console.log(`redeem ${fTokenSymbol} as ${baseSymbol}:`, ethers.formatUnits(base, await baseToken.decimals()));
@@ -176,11 +272,12 @@ export async function simulateRedeemXTokenV2(
     ethers.formatUnits(dst, symbol === "ETH" ? 18 : await token.decimals())
   );
   params.minOut = (dst * 9999n) / 10000n;
+  convertOutParams = await getConvertOutParams(paramsSigner, await gateway.getAddress(), params);
   const before =
     symbol === "ETH" ? await ethers.provider.getBalance(signer.address) : await token.balanceOf(signer.address);
   const tx = await gateway
     .connect(signer)
-    .fxRedeemXTokenV2(params, market.getAddress(), amountIn, (base * 9999n) / 10000n);
+    .fxRedeemXTokenV2(convertOutParams, market.getAddress(), amountIn, (base * 9999n) / 10000n);
   const receipt = await tx.wait();
   const after =
     symbol === "ETH" ? await ethers.provider.getBalance(signer.address) : await token.balanceOf(signer.address);
