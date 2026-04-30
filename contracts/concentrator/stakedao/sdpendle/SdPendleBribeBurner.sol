@@ -42,8 +42,8 @@ contract SdPendleBribeBurner is AccessControl {
   /// @dev The address of Stake DAO: SDT Token.
   address private constant SDT = 0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F;
 
-  /// @dev The address of `VeSDTDelegation` contract.
-  address private constant delegator = 0x6037Bb1BBa598bf88D816cAD90A28cC00fE3ff64;
+  /// @dev The address of `VlSDTDelegation` contract.
+  address private immutable delegator;
 
   /// @notice The address of `SdPendleCompounder` contract.
   address public immutable compounder;
@@ -66,8 +66,9 @@ contract SdPendleBribeBurner is AccessControl {
   /***************
    * Constructor *
    ***************/
-  constructor(address _compounder) {
+  constructor(address _compounder, address _delegator) {
     compounder = _compounder;
+    delegator = _delegator;
 
     // approval
     IERC20(sdPENDLE).safeApprove(_compounder, type(uint256).max);
