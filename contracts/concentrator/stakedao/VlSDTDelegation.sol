@@ -145,6 +145,7 @@ contract VlSDTDelegation is OwnableUpgradeable {
     if (_amount == uint256(-1)) {
       _amount = IStakeDAOVlBoost(vlBoost).delegableBalance(msg.sender);
     }
+    _endtime = (_endtime / WEEK) * WEEK;
 
     IStakeDAOVlBoost(vlBoost).boost(msg.sender, _amount, _endtime, stakeDAOProxy);
 
