@@ -40,6 +40,9 @@ contract SdPendleGaugeStrategy is ConcentratorStrategyBaseV2 {
   /// @dev The address of WETH token.
   address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
+  /// @dev The address of USDT token.
+  address private constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+
   /// @dev The address of sPENDLE token.
   address private constant sPENDLE = 0x999999999991E178D52Cd95AFd4b00d066664144;
 
@@ -48,10 +51,13 @@ contract SdPendleGaugeStrategy is ConcentratorStrategyBaseV2 {
    ***************/
 
   constructor(address _operator) initializer {
-    address[] memory cachedRewards = new address[](3);
+    address[] memory cachedRewards = new address[](6);
     cachedRewards[0] = SDT; // SDT
     cachedRewards[1] = WETH; // WETH
     cachedRewards[2] = SdPendleHelper.PENDLE; // PENDLE
+    cachedRewards[3] = SdPendleHelper.sdPENDLE; // sdPENDLE
+    cachedRewards[4] = USDT; // USDT
+    cachedRewards[5] = sPENDLE; // sPENDLE
 
     __ConcentratorStrategyBase_init(_operator, cachedRewards);
 
@@ -64,6 +70,8 @@ contract SdPendleGaugeStrategy is ConcentratorStrategyBaseV2 {
     isTokenProtected[WETH] = true;
     isTokenProtected[SdPendleHelper.PENDLE] = true;
     isTokenProtected[SdPendleHelper.sdPENDLE] = true;
+    isTokenProtected[USDT] = true;
+    isTokenProtected[sPENDLE] = true;
 
     stash = address(new StakeDAOGaugeWrapperStash(address(this)));
   }
