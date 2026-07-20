@@ -77,6 +77,42 @@ npx hardhat test test/fork/concentrator/stakedao/StakeDaoVlSDTMigrationE2E.spec.
 
 **现象**:`depositWithCRV` 内部有一条自动比价逻辑,会在"锁仓铸造"和"Curve 池兑换"两条路线之间自动选收益更高的一条。其中"锁仓铸造"这条路调用的是和上面 sdVeCRV 问题**同一个已失效的 Depositor 地址**,现在因为 Curve 池里 sdCRV 相对 CRV 有 68% 的价格溢价,代码每次都自动选了"Curve 池兑换"这条安全的路,从未真正走到会失败的分支上,所以用户现在存 CRV 完全正常。
 
+**代码**([`ConcentratorSdCrvGaugeWrapper.sol`](https://github.com/AladdinDAO/aladdin-v3-contracts/blob/feat/test-stakedao-gz/contracts/concentrator/stakedao/sdcrv/ConcentratorSdCrvGaugeWrapper.sol),`depositWithCRV`,L152-159):
+
+```solidity
+// swap CRV to sdCRV
+uint256 _lockReturn = _amount + IStakeDAOCRVDepositor(DEPOSITOR).incentiveToken();   // 锁仓这条路能拿多少 sdCRV
+uint256 _swapReturn = ICurveFactoryPlainPool(CURVE_POOL).get_dy(0, 1, _amount);       // Curve 池兑换能拿多少 sdCRV
+if (_lockReturn >= _swapReturn) {
+  IERC20Upgradeable(CRV).safeApprove(DEPOSITOR, 0);
+  IERC20Upgradeable(CRV).safeApprove(DEPOSITOR, _amount);
+  IStakeDAOCRVDepositor(DEPOSITOR).deposit(_amount, true, false, locker);   // 锁仓分支,调用的是同一个已失效的 Depositor
+  _amountOut = _lockReturn;
+} else {
+  IERC20Upgradeable(CRV).safeApprove(CURVE_POOL, 0);
+  IERC20Upgradeable(CRV).safeApprove(CURVE_POOL, _amount);
+  _amountOut = ICurveFactoryPlainPool(CURVE_POOL).exchange(0, 1, _amount, 0, locker);  // 兑换分支,走 Curve 池,不碰 Depositor
+}
+```
+
+`DEPOSITOR`(L46:`address private constant DEPOSITOR = 0x88C88Aa6a9cedc2aff9b4cA6820292F39cc64026;`)就是问题二里那个被 StakeDAO 收回铸造权限的旧合约。这段代码每次存 CRV 都现场比价:锁仓固定拿 `_lockReturn`(≈1:1,外加一点激励),兑换拿 `_swapReturn`(取决于 Curve 池实时汇率),哪边给的 sdCRV 多就走哪边。
+
+**为什么现在安全(实测数字)**:链上查过 Curve 那个 CRV/sdCRV 池的实时报价,1 个 CRV 现在能换到约 1.685 个 sdCRV(sdCRV 相对折价 68%)。也就是 `_lockReturn(≈1.0) >= _swapReturn(≈1.685)` 不成立,`if` 恒为 false,代码每次都自动走兑换分支,那条调用 `DEPOSITOR` 的锁仓分支从 StakeDAO 换权限那天起就没有被真正执行过一次。
+
+**一旦触发会怎样**:如果哪天 `_lockReturn >= _swapReturn` 成立(比如折价消失、价格回到平价甚至溢价),代码会自动切到 `IStakeDAOCRVDepositor(DEPOSITOR).deposit(_amount, true, false, locker)` 这行——它内部最终会调 `sdCRV.mint(...)`,而 `sdCRV.mint` 要求 `msg.sender == operator`,`operator` 现在已经是新 Depositor,于是 revert `!authorized`,和问题二是**完全同一个失败点**,只是这里多了一层"先比价、大部分时候绕开"的保护壳。
+
+对比一下问题二的 `depositWithSdVeCRV`(L171-188):
+
+```solidity
+function depositWithSdVeCRV(uint256 _amount, address _receiver) external override nonReentrant {
+  ...
+  IStakeDAOCRVDepositor(DEPOSITOR).lockSdveCrvToSdCrv(_amount);   // 无条件调用,没有 else 分支
+  ...
+}
+```
+
+它没有比价、没有备胎路线,一上来就无条件调 `DEPOSITOR`,所以是 100% 必挂、现在就是坏的;`depositWithCRV` 因为多了那段比价逻辑,现在被市场价格"保护"着,是条件触发、暂时没坏。
+
 **判断**:现在不紧急,不阻塞这次上线,但需要留意。触发条件是市场价格,不受任何人控制——一旦这个溢价消失、价格回归平价,代码会自动切换到那条已经坏掉的路径,用户存 CRV 会毫无征兆地全部开始失败。修复方案和 sdVeCRV 问题共享(重写调用代码接入新 Depositor),不需要单独处理,但建议在监控里加一条:跟踪 Curve 池的 CRV/sdCRV 兑换价格,接近平价时提前预警。
 
 ### 3.3 Safe 多签上线注意事项
