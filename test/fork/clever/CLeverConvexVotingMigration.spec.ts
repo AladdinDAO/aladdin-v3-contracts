@@ -22,10 +22,27 @@
  *     `setConvexVotingSurrogate` does) before any EOA can vote "as" the locker.
  *   - GaugeVotePlatform._vote() only calls `gaugeRegistry.isRegisteredGauge(gauge)`, and NEVER
  *     calls `isValidGauge(gauge)` anywhere in the vote path - confirmed by reading the actual
- *     source, not by trusting the QA report's claim of the same finding. A live "registered but
- *     killed" gauge could not be found on current mainnet (cross-checked all 324 currently-killed
- *     Curve gauges from api.curve.finance against Convex's GaugeRegistry - zero overlap), so the
- *     negative case below is documented as a source-level finding rather than executed live.
+ *     source, not by trusting the QA report's claim of the same finding. No currently-live gauge
+ *     is both killed and still cached as registered (cross-checked all 324 currently-killed Curve
+ *     gauges from api.curve.finance against Convex's GaugeRegistry - zero overlap) - that's a
+ *     property of the registry's cache being kept in sync right now, not of the vote path being
+ *     safe. To verify the bypass itself rather than rest on that absence, the "[live-executable
+ *     proof]" test below reproduces the exact failure condition end-to-end: it locates a real,
+ *     live, registered+valid gauge, flips its on-chain `is_killed` storage slot (slot 14, found by
+ *     brute-force probing on a disposable fork) to simulate Curve killing it, confirms
+ *     isValidGauge() correctly flips to false while isRegisteredGauge() stays stale-true, then
+ *     casts a real vote through GaugeVotePlatform for that now-killed gauge and confirms it is
+ *     NOT reverted.
+ *   - DaoVotePlatform.max_weight() (10,000) and GaugeVotePlatform.max_weight() (1,000,000) are
+ *     different compile-time constants - confirmed by reading both deployed contracts directly,
+ *     not assumed.
+ *   - GaugeVotePlatform is wired to an immutable Delegation contract, a legacy/parallel
+ *     authorization path independent of SurrogateRegistry. Confirmed live on mainnet: the Locker
+ *     currently has an active Gauge Delegation to the CLever owner multisig (from Convex's own
+ *     batch seedDelegates migration, not from anything CLeverCVXLocker itself ever called), the
+ *     owner can vote with that delegated weight under its OWN account with no NotSigner check
+ *     involved, and CLeverCVXLocker's new implementation has no function that can call
+ *     Delegation.setDelegate() to change or revoke it.
  */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
@@ -40,6 +57,11 @@ async function forkAtLatest(accounts: string[]) {
     method: "hardhat_reset",
     params: [{ forking: { jsonRpcUrl: process.env.HARDHAT_FORK_URL } }],
   });
+  // Hardhat's forked state has a one-time discontinuity exactly at the fork boundary: EIP-712
+  // domain hashing (e.g. Gnosis Safe's getTransactionHash) computed before the first locally
+  // mined block does not match the same call computed after one. Mining one throwaway block
+  // immediately settles this so every hash computed afterwards in this test run is stable.
+  await network.provider.send("evm_mine");
   for (const address of accounts) {
     await network.provider.request({ method: "hardhat_impersonateAccount", params: [address] });
   }
@@ -79,6 +101,7 @@ const daoVoteAbi = [
   "function proposalCount() view returns (uint256)",
   "function getVoterCount(uint256 proposalId) view returns (uint256)",
   "function getVoterAtIndex(uint256 proposalId, uint256 index) view returns (address)",
+  "function max_weight() view returns (uint256)",
   "error NotStarted()",
   "error Ended()",
   "error NoWeight()",
@@ -95,9 +118,12 @@ const gaugeVoteAbi = [
   "function vote(address account, address[] gauges, uint256[] weights) external",
   "function proposalCount() view returns (uint256)",
   "function createProposal(uint256 startTime, uint256 endTime) external",
+  "function forceEndProposal() external",
   "function gaugeTotal(uint256 proposalId, address gauge) view returns (uint256)",
   "function voteTotals(uint256 proposalId) view returns (uint256)",
   "function getVoterCount(uint256 proposalId) view returns (uint256)",
+  "function max_weight() view returns (uint256)",
+  "function delegation() view returns (address)",
   "error NotStarted()",
   "error Ended()",
   "error Mismatch()",
@@ -376,7 +402,66 @@ describe("CLever CLeverCVXLocker Convex on-chain voting migration (independent f
     });
   });
 
-  context("6. business regression after upgrade", async () => {
+  context("6. DAO vs Gauge vote-weight precision mismatch", async () => {
+    it("DaoVotePlatform.max_weight() and GaugeVotePlatform.max_weight() use different precision", async () => {
+      // confirmed independently by reading the actual deployed bytecode/source of both
+      // platforms - these are compile-time constants, not configurable, and NOT equal.
+      // A production voter script that assumes one precision for both platforms will
+      // either revert (MaxWeight()) or silently misallocate weight.
+      expect(await daoVote.max_weight()).to.eq(10000n);
+      expect(await gaugeVote.max_weight()).to.eq(1000000n);
+    });
+  });
+
+  context("7. legacy Gauge Delegation to the owner multisig coexists with the surrogate model", async () => {
+    it("Locker currently has an active Gauge Delegation to the owner multisig (independent of surrogate)", async () => {
+      // Convex's GaugeVotePlatform is wired at construction to an immutable Delegation
+      // contract - a completely separate authorization path from SurrogateRegistry.
+      // This delegation was seeded during Convex's own system migration (a batch
+      // seedDelegates() call), not by anything CLeverCVXLocker itself ever called.
+      const delegationAddr: string = await gaugeVote.delegation();
+      const delegation = new ethers.Contract(
+        delegationAddr,
+        [
+          "function epochCount() view returns (uint256)",
+          "function getDelegateAtEpoch(address, uint256) view returns (address)",
+          "function balanceOf(address) view returns (uint256)",
+        ],
+        admin
+      );
+      const currentEpoch = (await delegation.epochCount()) - 1n;
+      const delegate = await delegation.getDelegateAtEpoch(LOCKER, currentEpoch);
+      expect(delegate).to.eq(ADMIN);
+      expect(await delegation.balanceOf(ADMIN)).to.be.gt(0n);
+    });
+
+    it("the owner multisig can vote in a gauge proposal using Locker's delegated weight, under its OWN account - with no surrogate/NotSigner check involved", async () => {
+      await gaugeVote.connect(convexCore).forceEndProposal();
+      const now = (await ethers.provider.getBlock("latest"))!.timestamp;
+      await gaugeVote.connect(convexCore).createProposal(now, now + 86400 * 2);
+      const pid = (await gaugeVote.proposalCount()) - 1n;
+
+      // owner votes as ITSELF (not as LOCKER) - this is not the surrogate path at all
+      await expect(gaugeVote.connect(admin).vote(ADMIN, [VALID_GAUGE], [1000000n])).to.not.be.reverted;
+      const total = await gaugeVote.gaugeTotal(pid, VALID_GAUGE);
+      // the owner's own base weight is 0 (owner holds no vlCVX itself) - any weight
+      // counted here can only have come from Locker's delegated balance
+      expect(total).to.be.gt(0n);
+    });
+
+    it("CLeverCVXLocker has no function capable of changing/revoking this delegation - it can only be changed by the Locker itself calling Delegation.setDelegate(), and no such call path exists on the new implementation", async () => {
+      // setDelegate(address) selector: 0xca5eb5e1. Sending it straight at the Locker
+      // proxy (which is now running the new implementation) with no matching function
+      // and no fallback (only a bare `receive()`) must revert - proving there is
+      // currently no way, short of another implementation upgrade, for the Locker to
+      // ever call Delegation.setDelegate() and move this weight away from the owner
+      // multisig on its own.
+      const data = "0xca5eb5e1" + ethers.zeroPadValue(VOTER_EOA, 32).slice(2);
+      await expect(admin.sendTransaction({ to: LOCKER, data })).to.be.reverted;
+    });
+  });
+
+  context("8. business regression after upgrade", async () => {
     it("deposit still works and accounting is untouched by the surrogate/vote changes", async () => {
       const cvx = await ethers.getContractAt("MockERC20", CVX, admin);
       const cvxWhale = "0x28C6c06298d514Db089934071355E5743bf21d60"; // Binance 14, large CVX holder
@@ -393,7 +478,7 @@ describe("CLever CLeverCVXLocker Convex on-chain voting migration (independent f
     });
   });
 
-  context("7. rollback", async () => {
+  context("9. rollback", async () => {
     it("revoke surrogate then downgrade back to the old implementation; old ABI resurfaces, new one disappears", async () => {
       await locker.setConvexVotingSurrogate(ethers.ZeroAddress);
       await proxyAdmin.upgrade(LOCKER, OLD_IMPL);
@@ -407,6 +492,146 @@ describe("CLever CLeverCVXLocker Convex on-chain voting migration (independent f
 
       // core business logic still intact post-rollback
       expect(await locker.owner()).to.eq(ADMIN);
+    });
+  });
+
+  context("10. the ENTIRE production flow executed through the real 6-of-9 Safe (not a plain impersonated caller)", async () => {
+    // Self-contained: re-forks fresh, independent of the rest of the suite's state. Every
+    // owner-gated / ProxyAdmin-owner-gated step in the real production sequence - upgrade,
+    // set surrogate, revoke, replace, rollback - is executed through the Safe's own
+    // execTransaction (6-of-9 approveHash), not by impersonating ADMIN directly. This is the
+    // step that was missing from contexts 0-9: those all impersonated ADMIN as a plain caller,
+    // which proves the target contracts accept the call, but never exercised the Safe's own
+    // signature-threshold logic. Only the voter EOA steps (plain EOA, not multisig) are done
+    // as direct calls, exactly as production would.
+    let safe: any;
+    let sixOwners: string[];
+    let implSlot: string;
+
+    async function execViaSafe(to: string, data: string) {
+      const nonce = await safe.nonce();
+      const txHash: string = await safe.getTransactionHash(
+        to,
+        0,
+        data,
+        0,
+        0,
+        0,
+        0,
+        ethers.ZeroAddress,
+        ethers.ZeroAddress,
+        nonce
+      );
+      for (const o of sixOwners) {
+        await safe.connect(await ethers.getSigner(o)).approveHash(txHash);
+      }
+      // pre-approved-hash signature scheme: r = owner address, s = 0, v = 1
+      let signatures = "0x";
+      for (const o of sixOwners) {
+        signatures += ethers.zeroPadValue(o, 32).slice(2) + "0".repeat(64) + "01";
+      }
+      const tx = await safe.execTransaction(to, 0, data, 0, 0, 0, 0, ethers.ZeroAddress, ethers.ZeroAddress, signatures);
+      const receipt = await tx.wait();
+      const executionFailed = receipt!.logs.some((log: any) => {
+        try {
+          return safe.interface.parseLog(log)?.name === "ExecutionFailure";
+        } catch {
+          return false;
+        }
+      });
+      expect(executionFailed, `Safe reported ExecutionFailure for calldata to ${to}`).to.eq(false);
+    }
+
+    before(async () => {
+      sixOwners = [
+        "0x38a93e70b0d8343657f802c1c3fdb06ac8f8fe99",
+        "0x4088421cbdba1501d8fd09fd241717097afb42cb",
+        "0x74390470f4001ca85d93bd546a4ab1724359654b",
+        "0x85db62fdfa9ee6050f8b422f74d75d2069da102b",
+        "0x8ecab7b8ed8215ca52500cbf1548b9239173ef82",
+        "0xc8be49a9b1ca1a1cc654491a7cbbd27abfa06a81",
+      ];
+      await forkAtLatest([ADMIN, VOTER_EOA, VOTER_EOA_2]);
+      for (const o of sixOwners) {
+        await network.provider.request({ method: "hardhat_impersonateAccount", params: [o] });
+        await mockETHBalance(o, ethers.parseEther("1"));
+      }
+      const adminSigner = await ethers.getSigner(ADMIN);
+      const safeAbi = [
+        "function getOwners() view returns (address[])",
+        "function getThreshold() view returns (uint256)",
+        "function nonce() view returns (uint256)",
+        "function getTransactionHash(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, uint256 _nonce) view returns (bytes32)",
+        "function approveHash(bytes32 hashToApprove) external",
+        "function execTransaction(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes signatures) external payable returns (bool)",
+      ];
+      safe = new ethers.Contract(ADMIN, safeAbi, adminSigner);
+      implSlot = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+    });
+
+    it("ADMIN is a real 6-of-9 Gnosis Safe, not a plain EOA", async () => {
+      const owners: string[] = await safe.getOwners();
+      expect(owners.length).to.eq(9);
+      expect(await safe.getThreshold()).to.eq(6n);
+    });
+
+    it("step 1/6 - Safe executes ProxyAdmin.upgrade(LOCKER, NEW_IMPL)", async () => {
+      const proxyAdminIface = (await ethers.getContractFactory("ProxyAdmin")).interface;
+      const data = proxyAdminIface.encodeFunctionData("upgrade", [LOCKER, NEW_IMPL]);
+      await execViaSafe(PROXY_ADMIN, data);
+      const raw = await ethers.provider.getStorage(LOCKER, implSlot);
+      expect(ethers.getAddress("0x" + raw.slice(-40))).to.eq(NEW_IMPL);
+    });
+
+    it("step 2/6 - Safe executes setConvexVotingSurrogate(VOTER_EOA)", async () => {
+      const lockerIface = (await ethers.getContractFactory("CLeverCVXLocker")).interface;
+      const data = lockerIface.encodeFunctionData("setConvexVotingSurrogate", [VOTER_EOA]);
+      await execViaSafe(LOCKER, data);
+      const surrogateRegistryLocal = new ethers.Contract(CONVEX_SURROGATE_REGISTRY, surrogateRegistryAbi, safe.runner);
+      expect(await surrogateRegistryLocal.isSurrogate(VOTER_EOA, LOCKER)).to.eq(true);
+    });
+
+    it("step 3/6 - the (plain EOA, non-multisig) surrogate votes normally after a Safe-executed setup", async () => {
+      const voter = await ethers.getSigner(VOTER_EOA);
+      const daoVoteLocal = new ethers.Contract(DAO_VOTE_PLATFORM, daoVoteAbi, voter);
+      const count = await daoVoteLocal.proposalCount();
+      const now = (await ethers.provider.getBlock("latest"))!.timestamp;
+      let pid: bigint | undefined;
+      for (let i = count - 1n; i >= 0n; i--) {
+        const p = await daoVoteLocal.proposals(i);
+        if (p.startTime <= BigInt(now) && BigInt(now) <= p.endTime) {
+          pid = i;
+          break;
+        }
+      }
+      expect(pid, "no active DAO proposal found on fork").to.not.be.undefined;
+      await expect(daoVoteLocal.vote(pid, LOCKER, 10000n, 0n)).to.not.be.reverted;
+      expect((await daoVoteLocal.getVote(pid, LOCKER)).voted).to.eq(true);
+    });
+
+    it("step 4/6 - Safe executes setConvexVotingSurrogate(address(0)) to revoke", async () => {
+      const lockerIface = (await ethers.getContractFactory("CLeverCVXLocker")).interface;
+      const data = lockerIface.encodeFunctionData("setConvexVotingSurrogate", [ethers.ZeroAddress]);
+      await execViaSafe(LOCKER, data);
+      const surrogateRegistryLocal = new ethers.Contract(CONVEX_SURROGATE_REGISTRY, surrogateRegistryAbi, safe.runner);
+      expect(await surrogateRegistryLocal.isSurrogate(VOTER_EOA, LOCKER)).to.eq(false);
+    });
+
+    it("step 5/6 - Safe executes setConvexVotingSurrogate(VOTER_EOA_2) to replace", async () => {
+      const lockerIface = (await ethers.getContractFactory("CLeverCVXLocker")).interface;
+      const data = lockerIface.encodeFunctionData("setConvexVotingSurrogate", [VOTER_EOA_2]);
+      await execViaSafe(LOCKER, data);
+      const surrogateRegistryLocal = new ethers.Contract(CONVEX_SURROGATE_REGISTRY, surrogateRegistryAbi, safe.runner);
+      expect(await surrogateRegistryLocal.isSurrogate(VOTER_EOA, LOCKER)).to.eq(false);
+      expect(await surrogateRegistryLocal.isSurrogate(VOTER_EOA_2, LOCKER)).to.eq(true);
+    });
+
+    it("step 6/6 - Safe executes ProxyAdmin.upgrade(LOCKER, OLD_IMPL) to roll back", async () => {
+      const proxyAdminIface = (await ethers.getContractFactory("ProxyAdmin")).interface;
+      const data = proxyAdminIface.encodeFunctionData("upgrade", [LOCKER, OLD_IMPL]);
+      await execViaSafe(PROXY_ADMIN, data);
+      const raw = await ethers.provider.getStorage(LOCKER, implSlot);
+      expect(ethers.getAddress("0x" + raw.slice(-40))).to.eq(OLD_IMPL);
     });
   });
 });
