@@ -61,6 +61,7 @@ const CVX = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
 
 // a real, registered + valid Curve gauge (confirmed live: isRegisteredGauge=true, isValidGauge=true)
 const VALID_GAUGE = "0x512bC2AeE29F8E641f903B339D40947595A5bFe8";
+const GAUGE_REGISTRY = "0x96b24E0534B0cA31D8523D4be4904747Fd579D95"; // CurveGaugeRegistry
 
 // test-only EOAs (never used on real mainnet - fork-only impersonation)
 const VOTER_EOA = "0x1111111111111111111111111111111111111111";
@@ -296,6 +297,52 @@ describe("CLever CLeverCVXLocker Convex on-chain voting migration (independent f
       await expect(
         gaugeVote.connect(voter).vote(LOCKER, [fakeGauge], [1000000n])
       ).to.be.revertedWithCustomError(gaugeVote, "NotGauge");
+    });
+
+    it("[live-executable proof] a gauge killed AFTER being cached as 'registered' still passes the vote path unblocked, because _vote() only checks isRegisteredGauge and never isValidGauge", async () => {
+      const gaugeRegistry = new ethers.Contract(
+        GAUGE_REGISTRY,
+        [
+          "function isRegisteredGauge(address) view returns (bool)",
+          "function isValidGauge(address) view returns (bool)",
+        ],
+        admin
+      );
+      const isKilledAbi = ["function is_killed() view returns (bool)"];
+      const gaugeContract = new ethers.Contract(VALID_GAUGE, isKilledAbi, admin);
+
+      // sanity: currently alive and registered
+      expect(await gaugeContract.is_killed()).to.eq(false);
+      expect(await gaugeRegistry.isRegisteredGauge(VALID_GAUGE)).to.eq(true);
+      expect(await gaugeRegistry.isValidGauge(VALID_GAUGE)).to.eq(true);
+
+      // simulate Curve killing the gauge (slot 14 = `is_killed` on this LiquidityGauge, found by
+      // brute-force probing on a disposable fork; this mutates the GAUGE's own storage, not the
+      // registry's - CurveGaugeRegistry.isValidGauge() genuinely re-reads live is_killed() each
+      // call, so this is a faithful simulation of "Curve kills the gauge after Convex cached it".
+      await network.provider.send("hardhat_setStorageAt", [
+        VALID_GAUGE,
+        "0x000000000000000000000000000000000000000000000000000000000000000e", // slot 14
+        "0x0000000000000000000000000000000000000000000000000000000000000001",
+      ]);
+
+      expect(await gaugeContract.is_killed()).to.eq(true);
+      // CurveGaugeRegistry.isValidGauge queries live Curve state -> correctly flips to false
+      expect(await gaugeRegistry.isValidGauge(VALID_GAUGE)).to.eq(false);
+      // but isRegisteredGauge is a stale cache that nobody re-synced -> still true
+      expect(await gaugeRegistry.isRegisteredGauge(VALID_GAUGE)).to.eq(true);
+
+      // GaugeVotePlatform._vote() only checks isRegisteredGauge -> vote for a now-killed gauge
+      // sails through with NO revert. This is the exact bug the QA report flagged, reproduced
+      // live and end-to-end rather than taken on faith.
+      await expect(gaugeVote.connect(voter).vote(LOCKER, [VALID_GAUGE], [1000000n])).to.not.be.reverted;
+
+      // restore state for any subsequent test in this file
+      await network.provider.send("hardhat_setStorageAt", [
+        VALID_GAUGE,
+        "0x000000000000000000000000000000000000000000000000000000000000000e",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+      ]);
     });
 
     it("re-voting fully replaces the prior allocation, it does not accumulate", async () => {
