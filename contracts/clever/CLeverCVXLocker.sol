@@ -19,6 +19,7 @@ import { IUniversalRewardsDistributor } from "../interfaces/IUniversalRewardsDis
 import "../interfaces/ISnapshotDelegateRegistry.sol";
 import "../interfaces/IZap.sol";
 import "../voting/ISignatureVerifier.sol";
+import "../interfaces/convex/IConvexSurrogateRegistry.sol";
 
 // solhint-disable not-rely-on-time, max-states-count, reason-string
 
@@ -36,6 +37,7 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   event UpdateZap(address indexed _zap);
   event UpdateGovernor(address indexed _governor);
   event UpdatePauseTimestamp(uint256 _startTimestamp, uint256 _finishTimestamp);
+  event UpdateConvexVotingSurrogate(address indexed surrogate);
 
   // The precision used to calculate accumulated rewards.
   uint256 private constant PRECISION = 1e18;
@@ -58,6 +60,8 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   address private constant CVX_LOCKER = 0x72a19342e8F1838460eBFCCEf09F6585e32db86E;
   /// @dev The address of WETH token.
   address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+  // The address of Convex Surrogate Registry
+  address internal constant CONVEX_SURROGATE_REGISTRY = 0x8E4828a8C69A837F95Caa0D5e18fa09Ded12F73f;
 
   struct EpochUnlockInfo {
     // The number of CVX should unlocked at the start of epoch `unlockEpoch`.
@@ -743,27 +747,39 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
 
   /********************************** Restricted Functions **********************************/
 
+  /// @notice Set an address authorized to vote on behalf of this locker
+  ///         in the Convex on-chain voting system.
+  /// @param _surrogate The address authorized to submit votes.
+  ///                   Use address(0) to revoke the current surrogate.
+  function setConvexVotingSurrogate(address _surrogate) external onlyOwner {
+    IConvexSurrogateRegistry(CONVEX_SURROGATE_REGISTRY).setSurrogate(
+      _surrogate
+    );
+
+    emit UpdateConvexVotingSurrogate(_surrogate);
+  }
+
   /// @dev delegate vlCVX voting power.
   /// @param _registry The address of Snapshot Delegate Registry.
   /// @param _id The id for which the delegate should be set.
   /// @param _delegate The address of the delegate.
-  function delegate(
-    address _registry,
-    bytes32 _id,
-    address _delegate
-  ) external onlyOwner {
-    ISnapshotDelegateRegistry(_registry).setDelegate(_id, _delegate);
-  }
+//  function delegate(
+//    address _registry,
+//    bytes32 _id,
+//    address _delegate
+//  ) external onlyOwner {
+//    ISnapshotDelegateRegistry(_registry).setDelegate(_id, _delegate);
+//  }
 
   /// @notice delegate vlCVX voting power to L2. The current address of `_committer`
   /// is `0x861cBbFCFDbd42AD69b3f626F23C3E36388FF01E`.
-  function commitUserSurrogate(
-    address _committer,
-    address _surrogate,
-    address _contractAddr
-  ) external onlyOwner {
-    ICommitUserSurrogate(_committer).commit(_surrogate, _contractAddr);
-  }
+//  function commitUserSurrogate(
+//    address _committer,
+//    address _surrogate,
+//    address _contractAddr
+//  ) external onlyOwner {
+//    ICommitUserSurrogate(_committer).commit(_surrogate, _contractAddr);
+//  }
 
   /// @dev Update stake percentage for CVX in this contract.
   /// @param _percentage The stake percentage to be updated, multiplied by 1e9.
