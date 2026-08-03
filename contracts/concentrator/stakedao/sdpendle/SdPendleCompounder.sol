@@ -90,6 +90,15 @@ contract SdPendleCompounder is ConcentratorCompounderBase, ISdPendleCompounder {
     _updateBribeBurner(_bribeBurner);
   }
 
+  function migrateStrategyV2(address _newStrategy) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (_newStrategy == address(0)) revert StrategyIsZero();
+
+    address _oldStrategy = strategy;
+    strategy = _newStrategy;
+
+    emit Migrate(_oldStrategy, _newStrategy);
+  }
+
   /*************************
    * Public View Functions *
    *************************/

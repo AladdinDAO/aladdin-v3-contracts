@@ -10,6 +10,7 @@ import { ITokenConverter } from "../../../helpers/converter/ITokenConverter.sol"
 import { IConcentratorStakeDAOLocker } from "../../../interfaces/concentrator/IConcentratorStakeDAOLocker.sol";
 import { IConcentratorStrategy } from "../../../interfaces/concentrator/IConcentratorStrategy.sol";
 import { ICurveGauge } from "../../../interfaces/ICurveGauge.sol";
+import { IStakedPendle } from "../../../interfaces/pendle/IStakedPendle.sol";
 
 import { StakeDAOGaugeWrapperStash } from "../../stash/StakeDAOGaugeWrapperStash.sol";
 import { ConcentratorStrategyBaseV2 } from "../../strategies/ConcentratorStrategyBaseV2.sol";
@@ -39,15 +40,24 @@ contract SdPendleGaugeStrategy is ConcentratorStrategyBaseV2 {
   /// @dev The address of WETH token.
   address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
+  /// @dev The address of USDT token.
+  address private constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+
+  /// @dev The address of sPENDLE token.
+  address private constant sPENDLE = 0x999999999991E178D52Cd95AFd4b00d066664144;
+
   /***************
    * Constructor *
    ***************/
 
   constructor(address _operator) initializer {
-    address[] memory cachedRewards = new address[](3);
+    address[] memory cachedRewards = new address[](6);
     cachedRewards[0] = SDT; // SDT
     cachedRewards[1] = WETH; // WETH
     cachedRewards[2] = SdPendleHelper.PENDLE; // PENDLE
+    cachedRewards[3] = SdPendleHelper.sdPENDLE; // sdPENDLE
+    cachedRewards[4] = USDT; // USDT
+    cachedRewards[5] = sPENDLE; // sPENDLE
 
     __ConcentratorStrategyBase_init(_operator, cachedRewards);
 
@@ -60,6 +70,8 @@ contract SdPendleGaugeStrategy is ConcentratorStrategyBaseV2 {
     isTokenProtected[WETH] = true;
     isTokenProtected[SdPendleHelper.PENDLE] = true;
     isTokenProtected[SdPendleHelper.sdPENDLE] = true;
+    isTokenProtected[USDT] = true;
+    isTokenProtected[sPENDLE] = true;
 
     stash = address(new StakeDAOGaugeWrapperStash(address(this)));
   }
@@ -116,9 +128,28 @@ contract SdPendleGaugeStrategy is ConcentratorStrategyBaseV2 {
     IConcentratorStakeDAOLocker(SdPendleHelper.LOCKER).claimRewards(SdPendleHelper.SD_PENDLE_GAUGE, new address[](0));
     uint256[] memory _amounts = StakeDAOGaugeWrapperStash(stash).withdrawTokens(cachedRewards);
 
+    // handle sPENDLE
+    uint256 _amountPENDLE;
+    {
+      // finalize cooldown if possible
+      uint256 cooldownDuration = IStakedPendle(sPENDLE).cooldownDuration();
+      (uint256 cooldownStart, uint256 amount) = IStakedPendle(sPENDLE).userCooldown(address(this));
+      if (amount > 0 && block.timestamp >= cooldownStart + cooldownDuration) {
+        IStakedPendle(sPENDLE).finalizeCooldown();
+        _amountPENDLE += amount;
+      }
+      // initiate cooldown if not
+      (cooldownStart, amount) = IStakedPendle(sPENDLE).userCooldown(address(this));
+      if (amount == 0) {
+        uint256 _amountSPENDLE = IERC20(sPENDLE).balanceOf(address(this));
+        if (_amountSPENDLE > 0) {
+          IStakedPendle(sPENDLE).cooldown(_amountSPENDLE);
+        }
+      }
+    }
+
     address _registry = ITokenConverter(_converter).registry();
     // 2. convert all rewards (except PENDLE and sdPENDLE) to WETH
-    uint256 _amountPENDLE;
     uint256 _amountWETH;
     for (uint256 i = 0; i < cachedRewards.length; i++) {
       address _rewardToken = cachedRewards[i];
@@ -127,6 +158,8 @@ contract SdPendleGaugeStrategy is ConcentratorStrategyBaseV2 {
         _amountPENDLE += _amount;
       } else if (_rewardToken == SdPendleHelper.sdPENDLE) {
         _harvested += _amount;
+      } else if (_rewardToken == sPENDLE) {
+        // do nothing
       } else if (_rewardToken == WETH) {
         _amountWETH += _amount;
       } else if (_amount > 0) {
