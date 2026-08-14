@@ -293,6 +293,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   /// @inheritdoc IFxTreasuryV2
   function mintFToken(uint256 _baseIn, address _recipient)
     external
+    virtual
     override
     onlyRole(FX_MARKET_ROLE)
     returns (uint256 _fTokenOut)
@@ -312,6 +313,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   /// @inheritdoc IFxTreasuryV2
   function mintXToken(uint256 _baseIn, address _recipient)
     external
+    virtual
     override
     onlyRole(FX_MARKET_ROLE)
     returns (uint256 _xTokenOut)
@@ -333,7 +335,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
     uint256 _fTokenIn,
     uint256 _xTokenIn,
     address _owner
-  ) external override onlyRole(FX_MARKET_ROLE) returns (uint256 _baseOut) {
+  ) external virtual override onlyRole(FX_MARKET_ROLE) returns (uint256 _baseOut) {
     FxStableMath.SwapState memory _state;
 
     if (_fTokenIn > 0) {
@@ -365,7 +367,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
-  function settle() external override onlyRole(SETTLE_WHITELIST_ROLE) {
+  function settle() external virtual override onlyRole(SETTLE_WHITELIST_ROLE) {
     if (totalBaseToken == 0) return;
 
     uint256 _oldPrice = referenceBaseTokenPrice;
@@ -380,7 +382,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
-  function transferToStrategy(uint256 _amount) external override onlyStrategy {
+  function transferToStrategy(uint256 _amount) external virtual override onlyStrategy {
     IERC20Upgradeable(baseToken).safeTransfer(strategy, _amount);
     strategyUnderlying += _amount;
   }
@@ -413,25 +415,25 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
   /// @notice Change address of strategy contract.
   /// @param _strategy The new address of strategy contract.
-  function updateStrategy(address _strategy) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function updateStrategy(address _strategy) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     _updateStrategy(_strategy);
   }
 
   /// @notice Change address of price oracle contract.
   /// @param _priceOracle The new address of price oracle contract.
-  function updatePriceOracle(address _priceOracle) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function updatePriceOracle(address _priceOracle) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     _updatePriceOracle(_priceOracle);
   }
 
   /// @notice Update the base token cap.
   /// @param _baseTokenCap The new base token cap.
-  function updateBaseTokenCap(uint256 _baseTokenCap) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function updateBaseTokenCap(uint256 _baseTokenCap) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     _updateBaseTokenCap(_baseTokenCap);
   }
 
   /// @notice Update the EMA sample interval.
   /// @param _sampleInterval The new EMA sample interval.
-  function updateEMASampleInterval(uint24 _sampleInterval) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function updateEMASampleInterval(uint24 _sampleInterval) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
     _updateEMALeverageRatio(_state);
 
@@ -446,7 +448,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
 
   /// @notice Change address of RebalancePoolSplitter contract.
   /// @param _splitter The new address of RebalancePoolSplitter contract.
-  function updateRebalancePoolSplitter(address _splitter) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function updateRebalancePoolSplitter(address _splitter) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     _updateRebalancePoolSplitter(_splitter);
   }
 

@@ -1,0 +1,26 @@
+[profile.default]
+src = "contracts"
+test = "test/foundry"
+out = "out-foundry"
+cache_path = "cache-foundry"
+libs = ["node_modules", "lib"]
+skip = ["contracts/**/*.vy"]
+auto_detect_solc = true
+optimizer = true
+optimizer_runs = 200
+bytecode_hash = "ipfs"
+ffi = false
+
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+  "@openzeppelin/contracts-upgradeable-v4/=node_modules/@openzeppelin/contracts-upgradeable-v4/",
+  "@openzeppelin/contracts-v4/=node_modules/@openzeppelin/contracts-v4/",
+  "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
+  "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+  "@uniswap/v3-core/=node_modules/@uniswap/v3-core/",
+  "@uniswap/v3-periphery/=node_modules/@uniswap/v3-periphery/",
+  "hardhat/=node_modules/hardhat/",
+]
+
+[rpc_endpoints]
+mainnet = "${MAINNET_RPC_URL}"
