@@ -17,6 +17,14 @@ interface IConcentratorSdCrvGaugeWrapper is IConcentratorStakeDAOGaugeWrapper {
    * Public Mutated Functions *
    ****************************/
 
+  /// @notice Harvest StakeDAO gauge bribes thru URD.
+  ///
+  /// @dev No harvest bounty when others call this function.
+  ///
+  /// @param _claimable The claimable parameters passing to UniversalRewardsDistributor contract.
+  /// @param _proof The proof parameters passing to UniversalRewardsDistributor contract.
+  function harvestBribesURD(uint256 _claimable, bytes32[] calldata _proof) external;
+
   /// @notice Deposit some CRV to the contract.
   ///
   /// @param amount The amount of staking token to deposit.

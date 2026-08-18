@@ -13,6 +13,7 @@ import { ISdCRVLocker } from "../../../interfaces/concentrator/ISdCRVLocker.sol"
 import { IStakeDAOCRVDepositor } from "../../../interfaces/stakedao/IStakeDAOCRVDepositor.sol";
 import { IMultiMerkleStash } from "../../../interfaces/IMultiMerkleStash.sol";
 import { ICurveFactoryPlainPool } from "../../../interfaces/ICurveFactoryPlainPool.sol";
+import { IUniversalRewardsDistributor } from "../../../interfaces/stakedao/IUniversalRewardsDistributor.sol";
 
 import { LinearMultipleRewardDistributor } from "../../../common/rewards/distributor/LinearMultipleRewardDistributor.sol";
 import { ConcentratorStakeDAOGaugeWrapper } from "../ConcentratorStakeDAOGaugeWrapper.sol";
@@ -48,6 +49,9 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
   /// @dev The address of Curve CRV/sdCRV factory plain pool.
   address private constant CURVE_POOL = 0xCA0253A98D16e9C1e3614caFDA19318EE69772D0;
 
+  /// @dev The address of StakeDAO SDCRV URD contract.
+  address private constant SDCRV_URD = 0x32dA29D7F3aD8cF157C6427CecFD3f0665042A37;
+
   /// @dev The address of `StakeDAOBribeClaimer` contract.
   address public immutable bribeClaimer;
 
@@ -82,16 +86,16 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
     }
 
     // sync state from old vault
-    address legacyVault = 0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6;
-    address asdCRV = 0x43E54C2E7b3e294De3A155785F52AB49d87B9922;
-    balanceOf[asdCRV] = IERC20Upgradeable(legacyVault).balanceOf(asdCRV);
-    totalSupply = IERC20Upgradeable(legacyVault).totalSupply();
-    ISdCRVLocker.LockedBalance[] memory _locks = ISdCRVLocker(legacyVault).getUserLocks(asdCRV);
-    uint256 _totalLocked;
-    for (uint256 i = 0; i < _locks.length; i++) {
-      _totalLocked += _locks[i].amount;
-    }
-    IConcentratorStakeDAOLocker(locker).withdraw(gauge, stakingToken, _totalLocked, asdCRV);
+    // address legacyVault = 0x2b3e72f568F96d7209E20C8B8f4F2A363ee1E3F6;
+    // address asdCRV = 0x43E54C2E7b3e294De3A155785F52AB49d87B9922;
+    // balanceOf[asdCRV] = IERC20Upgradeable(legacyVault).balanceOf(asdCRV);
+    // totalSupply = IERC20Upgradeable(legacyVault).totalSupply();
+    // ISdCRVLocker.LockedBalance[] memory _locks = ISdCRVLocker(legacyVault).getUserLocks(asdCRV);
+    // uint256 _totalLocked;
+    // for (uint256 i = 0; i < _locks.length; i++) {
+    //   _totalLocked += _locks[i].amount;
+    // }
+    // IConcentratorStakeDAOLocker(locker).withdraw(gauge, stakingToken, _totalLocked, asdCRV);
 
     // grant role
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -133,6 +137,23 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
 
       emit HarvestBribe(_token, _assets, _performanceFee, _boosterFee);
     }
+  }
+
+  /// @inheritdoc IConcentratorSdCrvGaugeWrapper
+  function harvestBribesURD(uint256 _claimable, bytes32[] calldata _proof) external override nonReentrant {
+    IUniversalRewardsDistributor urd = IUniversalRewardsDistributor(SDCRV_URD);
+    require(urd.recipients(locker) == address(this), "invalid URD recipient");
+
+    uint256 balanceBefore = IERC20Upgradeable(sdCRV).balanceOf(address(this));
+
+    uint256 returnedAmount = urd.claim(locker, sdCRV, _claimable, _proof);
+
+    uint256 claimedAmount = IERC20Upgradeable(sdCRV).balanceOf(address(this)) - balanceBefore;
+    require(claimedAmount == returnedAmount, "unexpected claimed amount");
+
+    IERC20Upgradeable(sdCRV).safeTransfer(converter, claimedAmount);
+
+    emit HarvestBribe(sdCRV, claimedAmount, 0, 0);
   }
 
   /// @inheritdoc IConcentratorSdCrvGaugeWrapper
