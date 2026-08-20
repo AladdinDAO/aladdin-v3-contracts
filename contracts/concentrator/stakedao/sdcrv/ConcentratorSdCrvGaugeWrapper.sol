@@ -55,6 +55,13 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
   /// @dev The address of `StakeDAOBribeClaimer` contract.
   address public immutable bribeClaimer;
 
+  /*************
+   * Variables *
+   *************/
+
+  /// @notice The total claimed SDCRV amount from URD.
+  uint256 public totalClaimedSDCRVFromURD;
+
   /***************
    * Constructor *
    ***************/
@@ -144,12 +151,19 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
     IUniversalRewardsDistributor urd = IUniversalRewardsDistributor(SDCRV_URD);
     require(urd.recipients(locker) == address(this), "invalid URD recipient");
 
-    uint256 balanceBefore = IERC20Upgradeable(sdCRV).balanceOf(address(this));
+    uint256 totalClaimed = urd.claimed(locker, sdCRV);
+    if (_claimable > totalClaimed) {
+      urd.claim(locker, sdCRV, _claimable, _proof);
+    } else if (_claimable == totalClaimed) {
+      // urd.claim is permission-less, it can be called by anyone.
+      // Don't need to verify proof here.
+    } else {
+      revert("expired or invalid claim proof");
+    }
 
-    uint256 returnedAmount = urd.claim(locker, sdCRV, _claimable, _proof);
-
-    uint256 claimedAmount = IERC20Upgradeable(sdCRV).balanceOf(address(this)) - balanceBefore;
-    require(claimedAmount == returnedAmount, "unexpected claimed amount");
+    // Also consider the amount transferred by others called urd.claim
+    uint256 claimedAmount = _claimable - totalClaimedSDCRVFromURD;
+    totalClaimedSDCRVFromURD = _claimable;
 
     IERC20Upgradeable(sdCRV).safeTransfer(converter, claimedAmount);
 
