@@ -60,7 +60,7 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
    *************/
 
   /// @notice The total claimed SDCRV amount from URD.
-  uint256 public totalClaimedSDCRVFromURD;
+  uint256 public totalProcessedSDCRVFromURD;
 
   /***************
    * Constructor *
@@ -162,8 +162,10 @@ contract ConcentratorSdCrvGaugeWrapper is ConcentratorStakeDAOGaugeWrapper, ICon
     }
 
     // Also consider the amount transferred by others called urd.claim
-    uint256 claimedAmount = _claimable - totalClaimedSDCRVFromURD;
-    totalClaimedSDCRVFromURD = _claimable;
+    uint256 claimedAmount = _claimable - totalProcessedSDCRVFromURD;
+    if (claimedAmount == 0) return;
+
+    totalProcessedSDCRVFromURD = _claimable;
 
     IERC20Upgradeable(sdCRV).safeTransfer(converter, claimedAmount);
 
