@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Interface, ZeroAddress, id } from "ethers";
+import { Interface, Wallet, ZeroAddress, id } from "ethers";
 import { ethers } from "hardhat";
 
 import { mockETHBalance, request_fork } from "@/test/utils";
@@ -40,6 +40,7 @@ const TokenHolder: { [symbol: string]: { holder: string; amount: bigint } } = {
 describe("MarketV2.pxETH.spec", async () => {
   let deployer: HardhatEthersSigner;
   let signer: HardhatEthersSigner;
+  let oracleSigner: Wallet;
 
   let diamond: Diamond;
   let manage: TokenConvertManagementFacet;
@@ -73,13 +74,20 @@ describe("MarketV2.pxETH.spec", async () => {
     const admin = await ethers.getSigner(ADMIN);
     const manager = await ethers.getSigner(MANAGER);
     deployer = await ethers.getSigner(ZeroAddress);
+    oracleSigner = new Wallet("0x0000000000000000000000000000000000000000000000000000000000000001");
     await mockETHBalance(deployer.address, ethers.parseEther("100"));
     await mockETHBalance(admin.address, ethers.parseEther("100"));
     await mockETHBalance(manager.address, ethers.parseEther("100"));
 
     // deploy diamond
     const diamondCuts: IDiamond.FacetCutStruct[] = [];
-    for (const name of ["DiamondCutFacet", "DiamondLoupeFacet", "OwnershipFacet", "TokenConvertManagementFacet"]) {
+    for (const name of [
+      "DiamondCutFacet",
+      "DiamondLoupeFacet",
+      "OwnershipFacet",
+      "TokenConvertManagementFacet",
+      "EIP712Facet",
+    ]) {
       const Contract = await ethers.getContractFactory(name, deployer);
       const facet = await Contract.deploy();
       diamondCuts.push({
@@ -130,6 +138,9 @@ describe("MarketV2.pxETH.spec", async () => {
     await converterRegistry.register(14, await wethConverter.getAddress());
     await manage.approveTarget(inputConverter.getAddress(), inputConverter.getAddress());
     await manage.approveTarget(outputConverter.getAddress(), outputConverter.getAddress());
+    await manage.updateSigner(oracleSigner.getAddress(), true);
+    const eip712 = await ethers.getContractAt("EIP712Facet", await diamond.getAddress(), deployer);
+    await eip712.initializeEIP712("Gateway Router", "1.0.0");
 
     // deploy market
     const ERC4626RateProvider = await ethers.getContractFactory("ERC4626RateProvider", deployer);
@@ -227,6 +238,7 @@ describe("MarketV2.pxETH.spec", async () => {
     for (const symbol of ["pxETH", "WETH", "USDC", "USDT", "ETH"]) {
       it(`should succeed when mint from ${symbol}`, async () => {
         await simulateMintFTokenV2(
+          oracleSigner,
           gateway,
           inputConverter,
           market,
@@ -259,6 +271,7 @@ describe("MarketV2.pxETH.spec", async () => {
     for (const symbol of ["pxETH", "WETH", "USDC", "USDT", "ETH"]) {
       it(`should succeed when mint from ${symbol}`, async () => {
         await simulateMintXTokenV2(
+          oracleSigner,
           gateway,
           inputConverter,
           market,
@@ -288,6 +301,7 @@ describe("MarketV2.pxETH.spec", async () => {
     for (const symbol of ["pxETH", "stETH", "WETH", "USDC", "USDT", "ETH"]) {
       it(`should succeed when redeem as ${symbol}`, async () => {
         await simulateRedeemFTokenV2(
+          oracleSigner,
           gateway,
           outputConverter,
           market,
@@ -317,6 +331,7 @@ describe("MarketV2.pxETH.spec", async () => {
     for (const symbol of ["pxETH", "stETH", "WETH", "USDC", "USDT", "ETH"]) {
       it(`should succeed when redeem as ${symbol}`, async () => {
         await simulateRedeemXTokenV2(
+          oracleSigner,
           gateway,
           outputConverter,
           market,

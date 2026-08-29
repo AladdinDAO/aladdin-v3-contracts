@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Interface, MaxUint256, ZeroAddress, id, toBigInt } from "ethers";
+import { BytesLike, Interface, MaxUint256, Wallet, ZeroAddress, id, toBigInt } from "ethers";
 import { ethers } from "hardhat";
 
 import { mockETHBalance, request_fork } from "@/test/utils";
@@ -28,8 +28,8 @@ import {
   IFxPriceOracle,
   FxInitialFund,
 } from "@/types/index";
-import { LibGatewayRouter } from "@/types/contracts/gateways/facets/FxUSDFacet";
 import { TOKENS, Action, PoolTypeV3, encodePoolHintV3, ADDRESS, CONVERTER_ROUTRS } from "@/utils/index";
+import { getConvertInParams, getConvertOutParams } from "@/test/simulation/f(x)/helpers";
 
 const FORK_BLOCK_NUMBER = 19082800;
 
@@ -66,6 +66,7 @@ describe("FxUSDFacet.spec", async () => {
   let deployer: HardhatEthersSigner;
   let admin: HardhatEthersSigner;
   let signer: HardhatEthersSigner;
+  let oracleSigner: Wallet;
 
   let diamond: Diamond;
   let manage: TokenConvertManagementFacet;
@@ -235,6 +236,7 @@ describe("FxUSDFacet.spec", async () => {
     admin = await ethers.getSigner(ADMIN);
     deployer = await ethers.getSigner(DEPLOYER);
     signer = await ethers.getSigner(OPERATOR);
+    oracleSigner = new Wallet("0x0000000000000000000000000000000000000000000000000000000000000001");
     await mockETHBalance(admin.address, ethers.parseEther("100"));
     await mockETHBalance(deployer.address, ethers.parseEther("100"));
     await mockETHBalance(signer.address, ethers.parseEther("100"));
@@ -244,7 +246,13 @@ describe("FxUSDFacet.spec", async () => {
     await fxUSD.initialize("f(x) USD", "fxUSD");
 
     const diamondCuts: IDiamond.FacetCutStruct[] = [];
-    for (const name of ["DiamondCutFacet", "DiamondLoupeFacet", "OwnershipFacet", "TokenConvertManagementFacet"]) {
+    for (const name of [
+      "DiamondCutFacet",
+      "DiamondLoupeFacet",
+      "OwnershipFacet",
+      "TokenConvertManagementFacet",
+      "EIP712Facet",
+    ]) {
       const Contract = await ethers.getContractFactory(name, deployer);
       const facet = await Contract.deploy();
       diamondCuts.push({
@@ -296,6 +304,9 @@ describe("FxUSDFacet.spec", async () => {
     await manage.updateWhitelist(sfrxETHMarket.pool.getAddress(), 4);
     await manage.updateWhitelist(wstETHMarket.pool.getAddress(), 4);
     await manage.updateWhitelist(fxUSD.getAddress(), 5);
+    const eip712 = await ethers.getContractAt("EIP712Facet", await diamond.getAddress(), deployer);
+    await eip712.initializeEIP712("Gateway Router", "1.0.0");
+    await manage.updateSigner(oracleSigner.address, true);
   });
 
   const checkFxMintFTokenV2 = async (
@@ -303,20 +314,21 @@ describe("FxUSDFacet.spec", async () => {
     holder: HardhatEthersSigner,
     amountIn: bigint,
     tokenOut: MockERC20,
-    params: LibGatewayRouter.ConvertInParamsStruct,
+    params: { src: string; amount: bigint; target: string; data: BytesLike; minOut: bigint },
     tokenIn?: MockERC20
   ) => {
     if (tokenIn) {
       await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
     }
-    const expected = await gateway.connect(holder).fxMintFTokenV2.staticCall(params, market.getAddress(), 0n, {
+    const convertInParams = await getConvertInParams(oracleSigner, await gateway.getAddress(), params);
+    const expected = await gateway.connect(holder).fxMintFTokenV2.staticCall(convertInParams, market.getAddress(), 0n, {
       value: tokenIn ? 0n : amountIn,
     });
     console.log("fETH minted:", ethers.formatEther(expected));
     const balanceBefore = await tokenOut.balanceOf(holder.address);
-    await gateway
-      .connect(holder)
-      .fxMintFTokenV2(params, market.getAddress(), expected - expected / 100000n, { value: tokenIn ? 0n : amountIn });
+    await gateway.connect(holder).fxMintFTokenV2(convertInParams, market.getAddress(), expected - expected / 100000n, {
+      value: tokenIn ? 0n : amountIn,
+    });
     const balanceAfter = await tokenOut.balanceOf(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
   };
@@ -326,20 +338,23 @@ describe("FxUSDFacet.spec", async () => {
     holder: HardhatEthersSigner,
     amountIn: bigint,
     tokenOut: MockERC20,
-    params: LibGatewayRouter.ConvertInParamsStruct,
+    params: { src: string; amount: bigint; target: string; data: BytesLike; minOut: bigint },
     tokenIn?: MockERC20
   ) => {
     if (tokenIn) {
       await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
     }
-    const [expected, bonus] = await gateway.connect(holder).fxMintXTokenV2.staticCall(params, market.getAddress(), 0n, {
-      value: tokenIn ? 0n : amountIn,
-    });
+    const convertInParams = await getConvertInParams(oracleSigner, await gateway.getAddress(), params);
+    const [expected, bonus] = await gateway
+      .connect(holder)
+      .fxMintXTokenV2.staticCall(convertInParams, market.getAddress(), 0n, {
+        value: tokenIn ? 0n : amountIn,
+      });
     console.log("xETH minted:", ethers.formatEther(expected), "bonus:", ethers.formatEther(bonus));
     const balanceBefore = await tokenOut.balanceOf(holder.address);
-    await gateway
-      .connect(holder)
-      .fxMintXTokenV2(params, market.getAddress(), expected - expected / 100000n, { value: tokenIn ? 0n : amountIn });
+    await gateway.connect(holder).fxMintXTokenV2(convertInParams, market.getAddress(), expected - expected / 100000n, {
+      value: tokenIn ? 0n : amountIn,
+    });
     const balanceAfter = await tokenOut.balanceOf(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
   };
@@ -350,12 +365,17 @@ describe("FxUSDFacet.spec", async () => {
     tokenIn: MockERC20,
     amountIn: bigint,
     tokenOut: MockERC20,
-    params: LibGatewayRouter.ConvertOutParamsStruct
+    params: {
+      converter: string;
+      routes: Array<bigint>;
+      minOut: bigint;
+    }
   ) => {
+    let convertOutParams = await getConvertOutParams(oracleSigner, await gateway.getAddress(), params);
     await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
     const [baseOut, dstOut, bounsOut] = await gateway
       .connect(holder)
-      .fxRedeemFTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
+      .fxRedeemFTokenV2.staticCall(convertOutParams, market.getAddress(), amountIn, 0n);
     console.log(
       "redeemed:",
       ethers.formatEther(baseOut),
@@ -365,8 +385,11 @@ describe("FxUSDFacet.spec", async () => {
       ethers.formatEther(bounsOut)
     );
     params.minOut = dstOut - dstOut / 100000n;
+    convertOutParams = await getConvertOutParams(oracleSigner, await gateway.getAddress(), params);
     const balanceBefore = await tokenOut.balanceOf(holder.address);
-    await gateway.connect(holder).fxRedeemFTokenV2(params, market.getAddress(), amountIn, baseOut - baseOut / 100000n);
+    await gateway
+      .connect(holder)
+      .fxRedeemFTokenV2(convertOutParams, market.getAddress(), amountIn, baseOut - baseOut / 100000n);
     const balanceAfter = await tokenOut.balanceOf(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
   };
@@ -377,12 +400,17 @@ describe("FxUSDFacet.spec", async () => {
     tokenIn: MockERC20,
     amountIn: bigint,
     tokenOut: MockERC20,
-    params: LibGatewayRouter.ConvertOutParamsStruct
+    params: {
+      converter: string;
+      routes: Array<bigint>;
+      minOut: bigint;
+    }
   ) => {
+    let convertOutParams = await getConvertOutParams(oracleSigner, await gateway.getAddress(), params);
     await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
     const [baseOut, dstOut] = await gateway
       .connect(holder)
-      .fxRedeemXTokenV2.staticCall(params, market.getAddress(), amountIn, 0n);
+      .fxRedeemXTokenV2.staticCall(convertOutParams, market.getAddress(), amountIn, 0n);
     console.log(
       "redeemed:",
       ethers.formatEther(baseOut),
@@ -390,8 +418,11 @@ describe("FxUSDFacet.spec", async () => {
       ethers.formatUnits(dstOut, await tokenOut.decimals())
     );
     params.minOut = dstOut - dstOut / 100000n;
+    convertOutParams = await getConvertOutParams(oracleSigner, await gateway.getAddress(), params);
     const balanceBefore = await tokenOut.balanceOf(holder.address);
-    await gateway.connect(holder).fxRedeemXTokenV2(params, market.getAddress(), amountIn, baseOut - baseOut / 100000n);
+    await gateway
+      .connect(holder)
+      .fxRedeemXTokenV2(convertOutParams, market.getAddress(), amountIn, baseOut - baseOut / 100000n);
     const balanceAfter = await tokenOut.balanceOf(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
   };
@@ -400,22 +431,23 @@ describe("FxUSDFacet.spec", async () => {
     baseToken: MockERC20,
     holder: HardhatEthersSigner,
     amountIn: bigint,
-    params: LibGatewayRouter.ConvertInParamsStruct,
+    params: { src: string; amount: bigint; target: string; data: BytesLike; minOut: bigint },
     tokenIn?: MockERC20
   ) => {
     if (tokenIn) {
       await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
     }
+    const convertInParams = await getConvertInParams(oracleSigner, await gateway.getAddress(), params);
     const expected = await gateway
       .connect(holder)
-      .fxMintFxUSD.staticCall(params, fxUSD.getAddress(), baseToken.getAddress(), 0n, {
+      .fxMintFxUSD.staticCall(convertInParams, fxUSD.getAddress(), baseToken.getAddress(), 0n, {
         value: tokenIn ? 0n : amountIn,
       });
     console.log("fxUSD minted:", ethers.formatEther(expected));
     const balanceBefore = await fxUSD.balanceOf(holder.address);
     await gateway
       .connect(holder)
-      .fxMintFxUSD(params, fxUSD.getAddress(), baseToken.getAddress(), expected - expected / 100000n, {
+      .fxMintFxUSD(convertInParams, fxUSD.getAddress(), baseToken.getAddress(), expected - expected / 100000n, {
         value: tokenIn ? 0n : amountIn,
       });
     const balanceAfter = await fxUSD.balanceOf(holder.address);
@@ -426,22 +458,23 @@ describe("FxUSDFacet.spec", async () => {
     pool: ShareableRebalancePool,
     holder: HardhatEthersSigner,
     amountIn: bigint,
-    params: LibGatewayRouter.ConvertInParamsStruct,
+    params: { src: string; amount: bigint; target: string; data: BytesLike; minOut: bigint },
     tokenIn?: MockERC20
   ) => {
     if (tokenIn) {
       await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
     }
+    const convertInParams = await getConvertInParams(oracleSigner, await gateway.getAddress(), params);
     const expected = await gateway
       .connect(holder)
-      .fxMintFxUSDAndEarn.staticCall(params, fxUSD.getAddress(), pool.getAddress(), 0n, {
+      .fxMintFxUSDAndEarn.staticCall(convertInParams, fxUSD.getAddress(), pool.getAddress(), 0n, {
         value: tokenIn ? 0n : amountIn,
       });
     console.log("fxUSD minted:", ethers.formatEther(expected));
     const balanceBefore = await pool.balanceOf(holder.address);
     await gateway
       .connect(holder)
-      .fxMintFxUSDAndEarn(params, fxUSD.getAddress(), pool.getAddress(), expected - expected / 100000n, {
+      .fxMintFxUSDAndEarn(convertInParams, fxUSD.getAddress(), pool.getAddress(), expected - expected / 100000n, {
         value: tokenIn ? 0n : amountIn,
       });
     const balanceAfter = await pool.balanceOf(holder.address);
@@ -453,15 +486,21 @@ describe("FxUSDFacet.spec", async () => {
     holder: HardhatEthersSigner,
     amountIn: bigint,
     tokenOut: MockERC20,
-    params: LibGatewayRouter.ConvertOutParamsStruct
+    params: {
+      converter: string;
+      routes: Array<bigint>;
+      minOut: bigint;
+    }
   ) => {
+    let convertOutParams = await getConvertOutParams(oracleSigner, await gateway.getAddress(), params);
     const dstOut = await gateway
       .connect(holder)
-      .fxRebalancePoolWithdrawAs.staticCall(params, pool.getAddress(), amountIn);
+      .fxRebalancePoolWithdrawAs.staticCall(convertOutParams, pool.getAddress(), amountIn);
     console.log("withdrawn:", ethers.formatUnits(dstOut, await tokenOut.decimals()));
     params.minOut = dstOut - dstOut / 100000n;
+    convertOutParams = await getConvertOutParams(oracleSigner, await gateway.getAddress(), params);
     const balanceBefore = await tokenOut.balanceOf(holder.address);
-    await gateway.connect(holder).fxRebalancePoolWithdrawAs(params, pool.getAddress(), amountIn);
+    await gateway.connect(holder).fxRebalancePoolWithdrawAs(convertOutParams, pool.getAddress(), amountIn);
     const balanceAfter = await tokenOut.balanceOf(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
   };
@@ -471,12 +510,17 @@ describe("FxUSDFacet.spec", async () => {
     holder: HardhatEthersSigner,
     amountIn: bigint,
     tokenOut: MockERC20,
-    params: LibGatewayRouter.ConvertOutParamsStruct
+    params: {
+      converter: string;
+      routes: Array<bigint>;
+      minOut: bigint;
+    }
   ) => {
+    let convertOutParams = await getConvertOutParams(oracleSigner, await gateway.getAddress(), params);
     await fxUSD.connect(holder).approve(gateway.getAddress(), amountIn);
     const [baseOut, dstOut, bonusOut] = await gateway
       .connect(holder)
-      .fxRedeemFxUSD.staticCall(params, fxUSD.getAddress(), baseToken.getAddress(), amountIn, 0n);
+      .fxRedeemFxUSD.staticCall(convertOutParams, fxUSD.getAddress(), baseToken.getAddress(), amountIn, 0n);
     console.log(
       "redeemed:",
       ethers.formatEther(baseOut),
@@ -486,10 +530,17 @@ describe("FxUSDFacet.spec", async () => {
       ethers.formatEther(bonusOut)
     );
     params.minOut = dstOut - dstOut / 100000n;
+    convertOutParams = await getConvertOutParams(oracleSigner, await gateway.getAddress(), params);
     const balanceBefore = await tokenOut.balanceOf(holder.address);
     await gateway
       .connect(holder)
-      .fxRedeemFxUSD(params, fxUSD.getAddress(), baseToken.getAddress(), amountIn, baseOut - baseOut / 100000n);
+      .fxRedeemFxUSD(
+        convertOutParams,
+        fxUSD.getAddress(),
+        baseToken.getAddress(),
+        amountIn,
+        baseOut - baseOut / 100000n
+      );
     const balanceAfter = await tokenOut.balanceOf(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(dstOut, dstOut / 100000n);
   };
@@ -503,7 +554,7 @@ describe("FxUSDFacet.spec", async () => {
           amount: amountIn,
           target: TOKENS.wstETH.address,
           data: "0x",
-          minOut: 0,
+          minOut: 0n,
         });
       });
 
@@ -530,7 +581,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -556,7 +607,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -586,7 +637,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -612,7 +663,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (toBigInt(CONVERTER_ROUTRS.USDT.wstETH.length) << 20n),
               CONVERTER_ROUTRS.USDT.wstETH,
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -638,7 +689,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (toBigInt(CONVERTER_ROUTRS.FRAX.wstETH.length) << 20n),
               CONVERTER_ROUTRS.FRAX.wstETH,
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -664,7 +715,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (toBigInt(CONVERTER_ROUTRS.crvUSD.wstETH.length) << 20n),
               CONVERTER_ROUTRS.crvUSD.wstETH,
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -679,7 +730,7 @@ describe("FxUSDFacet.spec", async () => {
           amount: amountIn,
           target: TOKENS.wstETH.address,
           data: "0x",
-          minOut: 0,
+          minOut: 0n,
         });
       });
 
@@ -706,7 +757,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -732,7 +783,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -762,7 +813,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -917,7 +968,7 @@ describe("FxUSDFacet.spec", async () => {
           amount: amountIn,
           target: TOKENS.wstETH.address,
           data: "0x",
-          minOut: 0,
+          minOut: 0n,
         });
       });
 
@@ -943,7 +994,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -968,7 +1019,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -997,7 +1048,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1045,7 +1096,7 @@ describe("FxUSDFacet.spec", async () => {
           amount: amountIn,
           target: TOKENS.wstETH.address,
           data: "0x",
-          minOut: 0,
+          minOut: 0n,
         });
       });
 
@@ -1071,7 +1122,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1096,7 +1147,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1125,7 +1176,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1270,7 +1321,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1296,7 +1347,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1333,7 +1384,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1359,7 +1410,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (toBigInt(CONVERTER_ROUTRS.USDT.sfrxETH.length) << 20n),
               CONVERTER_ROUTRS.USDT.sfrxETH,
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1385,7 +1436,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (toBigInt(CONVERTER_ROUTRS.FRAX.sfrxETH.length) << 20n),
               CONVERTER_ROUTRS.FRAX.sfrxETH,
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1411,7 +1462,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (toBigInt(CONVERTER_ROUTRS.crvUSD.sfrxETH.length) << 20n),
               CONVERTER_ROUTRS.crvUSD.sfrxETH,
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1449,7 +1500,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1475,7 +1526,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1512,7 +1563,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1750,7 +1801,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1775,7 +1826,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1811,7 +1862,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1848,7 +1899,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1873,7 +1924,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -1909,7 +1960,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -2063,40 +2114,41 @@ describe("FxUSDFacet.spec", async () => {
       const amountIn = ethers.parseEther("300");
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.WETH.address, signer);
       await fxUSD.connect(deployer).approve(gateway.getAddress(), amountIn);
-      const params = [
-        {
-          converter: await outputConverter.getAddress(),
-          minOut: 0n,
-          routes: [
-            encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove),
-            encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
-          ],
-        },
-        {
-          converter: await outputConverter.getAddress(),
-          minOut: 0n,
-          routes: [
-            encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
-            encodePoolHintV3(
-              ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
-              PoolTypeV3.CurvePlainPool,
-              2,
-              1,
-              0,
-              Action.Swap
-            ),
-          ],
-        },
-      ];
+      const params0 = await getConvertOutParams(oracleSigner, await gateway.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: 0n,
+        routes: [
+          encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove),
+          encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+        ],
+      });
+      const params1 = await getConvertOutParams(oracleSigner, await gateway.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: 0n,
+        routes: [
+          encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
+          encodePoolHintV3(
+            ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+            PoolTypeV3.CurvePlainPool,
+            2,
+            1,
+            0,
+            Action.Swap
+          ),
+        ],
+      });
+      const params = [params0, params1];
       const [baseOuts, bonusOuts, dstOut] = await gateway
         .connect(deployer)
-        .fxAutoRedeemFxUSD.staticCall(params, fxUSD.getAddress(), amountIn, [0n, 0n]);
+        .fxAutoRedeemFxUSD.staticCall(params, fxUSD.getAddress(), amountIn, [0n, 0n], 0n);
       console.log("wstETH:", ethers.formatEther(baseOuts[0]));
       console.log("sfrxETH:", ethers.formatEther(baseOuts[1]));
       expect(bonusOuts[0]).to.eq(0n);
       expect(bonusOuts[1]).to.eq(0n);
       expect(await fxUSD.balanceOf(deployer.address)).to.eq(amountIn);
-      await gateway.connect(deployer).fxAutoRedeemFxUSD(params, fxUSD.getAddress(), amountIn, [0n, 0n]);
+      await gateway
+        .connect(deployer)
+        .fxAutoRedeemFxUSD(params, fxUSD.getAddress(), amountIn, [0n, 0n], dstOut - dstOut / 100000n);
       expect(await fxUSD.balanceOf(deployer.address)).to.eq(0n);
       expect(await tokenOut.balanceOf(deployer.address)).to.closeTo(dstOut, dstOut / 100000n);
     });
@@ -2105,46 +2157,47 @@ describe("FxUSDFacet.spec", async () => {
       const amountIn = ethers.parseEther("300");
       const tokenOut = await ethers.getContractAt("MockERC20", TOKENS.USDC.address, signer);
       await fxUSD.connect(deployer).approve(gateway.getAddress(), amountIn);
-      const params = [
-        {
-          converter: await outputConverter.getAddress(),
-          minOut: 0n,
-          routes: [
-            encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove),
-            encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
-            encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {
-              use_eth: false,
-            }),
-          ],
-        },
-        {
-          converter: await outputConverter.getAddress(),
-          minOut: 0n,
-          routes: [
-            encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
-            encodePoolHintV3(
-              ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
-              PoolTypeV3.CurvePlainPool,
-              2,
-              1,
-              0,
-              Action.Swap
-            ),
-            encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {
-              use_eth: false,
-            }),
-          ],
-        },
-      ];
+      const params0 = await getConvertOutParams(oracleSigner, await gateway.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: 0n,
+        routes: [
+          encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Remove),
+          encodePoolHintV3(ADDRESS.CURVE_stETH_POOL, PoolTypeV3.CurvePlainPool, 2, 1, 0, Action.Swap),
+          encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {
+            use_eth: false,
+          }),
+        ],
+      });
+      const params1 = await getConvertOutParams(oracleSigner, await gateway.getAddress(), {
+        converter: await outputConverter.getAddress(),
+        minOut: 0n,
+        routes: [
+          encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Remove),
+          encodePoolHintV3(
+            ADDRESS["CURVE_CRVUSD_WETH/frxETH_15_POOL"],
+            PoolTypeV3.CurvePlainPool,
+            2,
+            1,
+            0,
+            Action.Swap
+          ),
+          encodePoolHintV3(ADDRESS["CURVE_USDC/WBTC/ETH_POOL"], PoolTypeV3.CurveCryptoPool, 3, 2, 0, Action.Swap, {
+            use_eth: false,
+          }),
+        ],
+      });
+      const params = [params0, params1];
       const [baseOuts, bonusOuts, dstOut] = await gateway
         .connect(deployer)
-        .fxAutoRedeemFxUSD.staticCall(params, fxUSD.getAddress(), amountIn, [0n, 0n]);
+        .fxAutoRedeemFxUSD.staticCall(params, fxUSD.getAddress(), amountIn, [0n, 0n], 0n);
       console.log("wstETH:", ethers.formatEther(baseOuts[0]));
       console.log("sfrxETH:", ethers.formatEther(baseOuts[1]));
       expect(bonusOuts[0]).to.eq(0n);
       expect(bonusOuts[1]).to.eq(0n);
       expect(await fxUSD.balanceOf(deployer.address)).to.eq(amountIn);
-      await gateway.connect(deployer).fxAutoRedeemFxUSD(params, fxUSD.getAddress(), amountIn, [0n, 0n]);
+      await gateway
+        .connect(deployer)
+        .fxAutoRedeemFxUSD(params, fxUSD.getAddress(), amountIn, [0n, 0n], dstOut - dstOut / 100000n);
       expect(await fxUSD.balanceOf(deployer.address)).to.eq(0n);
       expect(await tokenOut.balanceOf(deployer.address)).to.closeTo(dstOut, dstOut / 100000n);
     });
@@ -2227,19 +2280,23 @@ describe("FxUSDFacet.spec", async () => {
     holder: HardhatEthersSigner,
     amountIn: bigint,
     tokenOut: MockERC20,
-    params: LibGatewayRouter.ConvertInParamsStruct,
+    params: { src: string; amount: bigint; target: string; data: BytesLike; minOut: bigint },
     tokenIn?: MockERC20
   ) => {
+    let convertInParams = await getConvertInParams(oracleSigner, await gateway.getAddress(), params);
     if (tokenIn) {
       await tokenIn.connect(holder).approve(gateway.getAddress(), amountIn);
     }
-    const expected = await gateway.connect(holder).fxInitialFundDeposit.staticCall(params, fund.getAddress(), {
+    const expected = await gateway.connect(holder).fxInitialFundDeposit.staticCall(convertInParams, fund.getAddress(), {
       value: tokenIn ? 0n : amountIn,
     });
     console.log("base swapped:", ethers.formatEther(expected));
     params.minOut = expected - expected / 100000n;
+    convertInParams = await getConvertInParams(oracleSigner, await gateway.getAddress(), params);
     const balanceBefore = await fund.shares(holder.address);
-    await gateway.connect(holder).fxInitialFundDeposit(params, fund.getAddress(), { value: tokenIn ? 0n : amountIn });
+    await gateway
+      .connect(holder)
+      .fxInitialFundDeposit(convertInParams, fund.getAddress(), { value: tokenIn ? 0n : amountIn });
     const balanceAfter = await fund.shares(holder.address);
     expect(balanceAfter - balanceBefore).to.closeTo(expected, expected / 100000n);
   };
@@ -2261,7 +2318,7 @@ describe("FxUSDFacet.spec", async () => {
           amount: amountIn,
           target: TOKENS.wstETH.address,
           data: "0x",
-          minOut: 0,
+          minOut: 0n,
         });
       });
 
@@ -2288,7 +2345,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -2314,7 +2371,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -2344,7 +2401,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.wstETH.address, PoolTypeV3.Lido, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -2388,7 +2445,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -2414,7 +2471,7 @@ describe("FxUSDFacet.spec", async () => {
               1048575n + (1n << 20n),
               [encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add)],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
@@ -2451,7 +2508,7 @@ describe("FxUSDFacet.spec", async () => {
                 encodePoolHintV3(TOKENS.sfrxETH.address, PoolTypeV3.ERC4626, 2, 0, 0, Action.Add),
               ],
             ]),
-            minOut: 0,
+            minOut: 0n,
           },
           tokenIn
         );
