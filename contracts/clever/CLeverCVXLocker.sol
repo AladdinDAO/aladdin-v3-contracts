@@ -63,6 +63,12 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   // The address of Convex Surrogate Registry
   address internal constant CONVEX_SURROGATE_REGISTRY = 0x8E4828a8C69A837F95Caa0D5e18fa09Ded12F73f;
 
+  uint256 private constant DRIFT_MOD_12 = 76667262837450359231536;
+  uint256 private constant DRIFT_MOD_13 = 32351447410870579373820;
+  uint256 private constant DRIFT_MOD_15 = 561911228961951745608;
+  uint256 private constant DRIFT_MOD_16 = 237756223183328739207623;
+  uint256 private constant DRIFT_MOD_13_ADMIN = 3173000000000000000000;
+
   struct EpochUnlockInfo {
     // The number of CVX should unlocked at the start of epoch `unlockEpoch`.
     uint192 pendingUnlock;
@@ -165,35 +171,35 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     _;
   }
 
-  function initialize(
-    address,
-    address _clevCVX,
-    address _zap,
-    address _furnace,
-    address _platform,
-    uint256 _platformFeePercentage,
-    uint256 _harvestBountyPercentage
-  ) external initializer {
-    OwnableUpgradeable.__Ownable_init();
+  // comment out to reduce code size
+  // function initialize(
+  //   address,
+  //   address _clevCVX,
+  //   address _zap,
+  //   address _furnace,
+  //   address _platform,
+  //   uint256 _platformFeePercentage,
+  //   uint256 _harvestBountyPercentage
+  // ) external initializer {
+  //   OwnableUpgradeable.__Ownable_init();
 
-    // comment out to reduce code size
-    // require(_governor != address(0), "zero governor address");
-    // require(_clevCVX != address(0), "zero clevCVX address");
-    // require(_zap != address(0), "zero zap address");
-    // require(_furnace != address(0), "zero furnace address");
-    // require(_platform != address(0), "zero platform address");
-    // require(_platformFeePercentage <= MAX_PLATFORM_FEE, "fee too large");
-    // require(_harvestBountyPercentage <= MAX_HARVEST_BOUNTY, "fee too large");
+  //   // require(_governor != address(0), "zero governor address");
+  //   // require(_clevCVX != address(0), "zero clevCVX address");
+  //   // require(_zap != address(0), "zero zap address");
+  //   // require(_furnace != address(0), "zero furnace address");
+  //   // require(_platform != address(0), "zero platform address");
+  //   // require(_platformFeePercentage <= MAX_PLATFORM_FEE, "fee too large");
+  //   // require(_harvestBountyPercentage <= MAX_HARVEST_BOUNTY, "fee too large");
 
-    // governor = _governor;
-    clevCVX = _clevCVX;
-    zap = _zap;
-    furnace = _furnace;
-    platform = _platform;
-    platformFeePercentage = _platformFeePercentage;
-    harvestBountyPercentage = _harvestBountyPercentage;
-    reserveRate = 500_000_000;
-  }
+  //   // governor = _governor;
+  //   // clevCVX = _clevCVX;
+  //   // zap = _zap;
+  //   // furnace = _furnace;
+  //   // platform = _platform;
+  //   // platformFeePercentage = _platformFeePercentage;
+  //   // harvestBountyPercentage = _harvestBountyPercentage;
+  //   // reserveRate = 500_000_000;
+  // }
 
   receive() external payable {}
 
@@ -716,16 +722,19 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
     // `totalUnlockedGlobal` keep track the amount of CVX unlocked from CVXLockerV2
     // all other CVX in this contract can be considered unlocked from CVXLockerV2 by someone else.
 
+    uint256 currentEpoch = block.timestamp / REWARDS_DURATION;
+    _fixLockDrift(currentEpoch);
+
     // 1. find extra CVX from donation or kicked out from CVXLockerV2
     uint256 _extraCVX = totalCVXInPool().sub(totalUnlockedGlobal);
 
     // 2. unlock CVX
     uint256 _unlocked = IERC20Upgradeable(CVX).balanceOf(address(this));
     IConvexCVXLocker(CVX_LOCKER).processExpiredLocks(false);
-    _unlocked = IERC20Upgradeable(CVX).balanceOf(address(this)).sub(_unlocked).add(_extraCVX);
+    uint256 _currentBalance = IERC20Upgradeable(CVX).balanceOf(address(this));
+    _unlocked = _currentBalance.sub(_unlocked).add(_extraCVX);
 
     // 3. remove user unlocked CVX
-    uint256 currentEpoch = block.timestamp / REWARDS_DURATION;
     uint256 _pending = pendingUnlocked[currentEpoch];
     if (_pending > 0) {
       // check if the unlocked CVX is enough, normally this should always be true.
@@ -739,9 +748,67 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
 
     // 4. relock
     if (_unlocked > 0) {
+      if (_currentBalance < _unlocked) {
+        IConvexCVXRewardPool(CVX_REWARD_POOL).withdraw(_unlocked - _currentBalance, false);
+      }
       IERC20Upgradeable(CVX).safeApprove(CVX_LOCKER, 0);
       IERC20Upgradeable(CVX).safeApprove(CVX_LOCKER, _unlocked);
       IConvexCVXLocker(CVX_LOCKER).lock(address(this), _unlocked, 0);
+    }
+  }
+
+  /// @dev Patch for lock drift
+  ///
+  /// 1. It can't be called multiple times a week since processExpiredLocks will revert.
+  /// 2. 
+  function _fixLockDrift(uint256 currentEpoch) internal {
+    // pendingUnlocked[2817] = 209189203791910235264
+    // pendingUnlocked[2818] = 1562240117453267819353
+    // pendingUnlocked[2752] = 0
+    // pendingUnlocked[2838] = 4469427261945621070254
+    // pendingUnlocked[2957] = 141926991451881642610311
+    if (currentEpoch == 2958) {
+      // 0
+      // skipped pendingUnlocked = pendingUnlocked[2817] + pendingUnlocked[2818] + pendingUnlocked[2838] + pendingUnlocked[2957]
+      // netBorrow = (DRIFT_MOD_12 - pendingUnlocked[2817]) + (DRIFT_MOD_13 - pendingUnlocked[2818] - DRIFT_MOD_13_ADMIN)
+      uint256 sum = pendingUnlocked[2838].add(pendingUnlocked[2957]).add(DRIFT_MOD_12).add(DRIFT_MOD_13);
+      pendingUnlocked[2958] = pendingUnlocked[2958].add(sum);
+
+      uint256 netBorrowPlusAdminDrift = DRIFT_MOD_12.sub(pendingUnlocked[2817]).add(DRIFT_MOD_13.sub(pendingUnlocked[2818]));
+      totalPendingUnlockGlobal = totalPendingUnlockGlobal.add(netBorrowPlusAdminDrift); // remove side effect
+
+      IERC20Upgradeable(CVX).safeTransfer(owner(), DRIFT_MOD_13_ADMIN);
+      totalUnlockedGlobal = totalUnlockedGlobal.sub(DRIFT_MOD_13_ADMIN); // remove side effect
+    } else if (currentEpoch == 2970) {
+      // 12
+      // netBorrow = DRIFT_MOD_13 - pendingUnlocked[2818] - DRIFT_MOD_13_ADMIN
+      totalUnlockedGlobal = totalUnlockedGlobal.sub(DRIFT_MOD_12.sub(pendingUnlocked[2817]));
+    } else if (currentEpoch == 2971) {
+      // 13
+      // netBorrow = 0
+      totalUnlockedGlobal = totalUnlockedGlobal.sub(DRIFT_MOD_13.sub(pendingUnlocked[2818]).sub(DRIFT_MOD_13_ADMIN));
+    } else if (currentEpoch == 2972) {
+      // 14
+      // netBorrow = DRIFT_MOD_12 + DRIFT_MOD_13
+      uint256 sum = DRIFT_MOD_12.add(DRIFT_MOD_13);
+      pendingUnlocked[2972] = pendingUnlocked[2972].add(sum);
+      totalPendingUnlockGlobal = totalPendingUnlockGlobal.add(sum); // remove side effect
+    } else if (currentEpoch == 2973) {
+      // 15
+      // netBorrow = DRIFT_MOD_12 + DRIFT_MOD_13 - DRIFT_MOD_15
+      totalUnlockedGlobal = totalUnlockedGlobal.sub(DRIFT_MOD_15); // pendingUnlocked[2752] = 0
+    } else if (currentEpoch == 2974) {
+      // 16
+      // netBorrow = DRIFT_MOD_12 + DRIFT_MOD_13 - (DRIFT_MOD_16 - pendingUnlocked[2838] - pendingUnlocked[2957])
+      uint256 sum = DRIFT_MOD_16.sub(pendingUnlocked[2838]).sub(pendingUnlocked[2957]).sub(DRIFT_MOD_15);
+      totalUnlockedGlobal = totalUnlockedGlobal.sub(sum);
+    } else if (currentEpoch == 2975) {
+      // 0
+      // netBorrow = 0
+      uint256 sum = DRIFT_MOD_12.add(DRIFT_MOD_13).sub(
+        DRIFT_MOD_16.sub(pendingUnlocked[2838]).sub(pendingUnlocked[2957])
+      );
+      totalUnlockedGlobal = totalUnlockedGlobal.sub(sum);
     }
   }
 
