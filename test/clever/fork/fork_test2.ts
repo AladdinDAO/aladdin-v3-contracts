@@ -41,7 +41,12 @@ async function requestFork(accounts: string[]) {
 }
 
 async function processAt(clever: CLeverCVXLocker, epoch: number) {
-  await network.provider.send("evm_setNextBlockTimestamp", [epoch * REWARDS_DURATION + 1]);
+  const latest = await ethers.provider.getBlock("latest");
+  const timestamp = Math.max(epoch * REWARDS_DURATION + 1, Number(latest!.timestamp) + 1);
+  if (Math.floor(timestamp / REWARDS_DURATION) !== epoch) {
+    throw new Error(`cannot process epoch ${epoch} from timestamp ${latest!.timestamp}`);
+  }
+  await network.provider.send("evm_setNextBlockTimestamp", [timestamp]);
   await network.provider.send("evm_mine");
   await (await clever.processUnlockableCVX()).wait();
 }
@@ -73,6 +78,7 @@ describe("fork_test2", async () => {
     const cvx = new ethers.Contract(CVX, ERC20_ABI, keeper);
     const rewardPool = new ethers.Contract(CVX_REWARD_POOL, ERC20_ABI, keeper);
 
+    await processAt(clever, 2957);
     await processAt(clever, 2958);
 
     const storageValue = await ethers.provider.getStorage(CLEVER_LOCKER, TOTAL_UNLOCKED_GLOBAL_SLOT);

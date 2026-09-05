@@ -760,18 +760,22 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
   /// @dev Patch for lock drift
   ///
   /// 1. It can't be called multiple times a week since processExpiredLocks will revert.
-  /// 2. 
   function _fixLockDrift(uint256 currentEpoch) internal {
     // pendingUnlocked[2817] = 209189203791910235264
     // pendingUnlocked[2818] = 1562240117453267819353
     // pendingUnlocked[2752] = 0
     // pendingUnlocked[2838] = 4469427261945621070254
     // pendingUnlocked[2957] = 141926991451881642610311
-    if (currentEpoch == 2958) {
+    if (currentEpoch == 2957) {
+      // 16
+      // merge pendingUnlocked[2957] into pendingUnlocked[2838]
+      pendingUnlocked[2838] = pendingUnlocked[2838].add(pendingUnlocked[2957]);
+      pendingUnlocked[2957] = 0;
+    } else if (currentEpoch == 2958) {
       // 0
-      // skipped pendingUnlocked = pendingUnlocked[2817] + pendingUnlocked[2818] + pendingUnlocked[2838] + pendingUnlocked[2957]
-      // netBorrow = (DRIFT_MOD_12 - pendingUnlocked[2817]) + (DRIFT_MOD_13 - pendingUnlocked[2818] - DRIFT_MOD_13_ADMIN)
-      uint256 sum = pendingUnlocked[2838].add(pendingUnlocked[2957]).add(DRIFT_MOD_12).add(DRIFT_MOD_13);
+      // skipped pendingUnlocked = pendingUnlocked[2817] + pendingUnlocked[2818] + pendingUnlocked[2838] + original pendingUnlocked[2957]
+      // netBorrowAfter = (DRIFT_MOD_12 - pendingUnlocked[2817]) + (DRIFT_MOD_13 - pendingUnlocked[2818] - DRIFT_MOD_13_ADMIN)
+      uint256 sum = pendingUnlocked[2838].add(DRIFT_MOD_12).add(DRIFT_MOD_13);
       pendingUnlocked[2958] = pendingUnlocked[2958].add(sum);
 
       uint256 netBorrowPlusAdminDrift = DRIFT_MOD_12.sub(pendingUnlocked[2817]).add(DRIFT_MOD_13.sub(pendingUnlocked[2818]));
@@ -781,32 +785,32 @@ contract CLeverCVXLocker is OwnableUpgradeable, ICLeverCVXLocker {
       totalUnlockedGlobal = totalUnlockedGlobal.sub(DRIFT_MOD_13_ADMIN); // remove side effect
     } else if (currentEpoch == 2970) {
       // 12
-      // netBorrow = DRIFT_MOD_13 - pendingUnlocked[2818] - DRIFT_MOD_13_ADMIN
+      // netBorrowAfter = DRIFT_MOD_13 - pendingUnlocked[2818] - DRIFT_MOD_13_ADMIN
       totalUnlockedGlobal = totalUnlockedGlobal.sub(DRIFT_MOD_12.sub(pendingUnlocked[2817]));
     } else if (currentEpoch == 2971) {
       // 13
-      // netBorrow = 0
+      // netBorrowAfter = 0
       totalUnlockedGlobal = totalUnlockedGlobal.sub(DRIFT_MOD_13.sub(pendingUnlocked[2818]).sub(DRIFT_MOD_13_ADMIN));
     } else if (currentEpoch == 2972) {
       // 14
-      // netBorrow = DRIFT_MOD_12 + DRIFT_MOD_13
+      // netBorrowAfter = DRIFT_MOD_12 + DRIFT_MOD_13
       uint256 sum = DRIFT_MOD_12.add(DRIFT_MOD_13);
       pendingUnlocked[2972] = pendingUnlocked[2972].add(sum);
       totalPendingUnlockGlobal = totalPendingUnlockGlobal.add(sum); // remove side effect
     } else if (currentEpoch == 2973) {
       // 15
-      // netBorrow = DRIFT_MOD_12 + DRIFT_MOD_13 - DRIFT_MOD_15
+      // netBorrowAfter = DRIFT_MOD_12 + DRIFT_MOD_13 - DRIFT_MOD_15
       totalUnlockedGlobal = totalUnlockedGlobal.sub(DRIFT_MOD_15); // pendingUnlocked[2752] = 0
     } else if (currentEpoch == 2974) {
       // 16
-      // netBorrow = DRIFT_MOD_12 + DRIFT_MOD_13 - (DRIFT_MOD_16 - pendingUnlocked[2838] - pendingUnlocked[2957])
-      uint256 sum = DRIFT_MOD_16.sub(pendingUnlocked[2838]).sub(pendingUnlocked[2957]).sub(DRIFT_MOD_15);
+      // netBorrowAfter = DRIFT_MOD_12 + DRIFT_MOD_13 - (DRIFT_MOD_16 - pendingUnlocked[2838])
+      uint256 sum = DRIFT_MOD_16.sub(pendingUnlocked[2838]).sub(DRIFT_MOD_15);
       totalUnlockedGlobal = totalUnlockedGlobal.sub(sum);
     } else if (currentEpoch == 2975) {
       // 0
-      // netBorrow = 0
+      // netBorrowAfter = 0
       uint256 sum = DRIFT_MOD_12.add(DRIFT_MOD_13).sub(
-        DRIFT_MOD_16.sub(pendingUnlocked[2838]).sub(pendingUnlocked[2957])
+        DRIFT_MOD_16.sub(pendingUnlocked[2838])
       );
       totalUnlockedGlobal = totalUnlockedGlobal.sub(sum);
     }
