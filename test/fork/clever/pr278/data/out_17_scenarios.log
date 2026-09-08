@@ -1,0 +1,44 @@
+fork 区块 25932658;implementation 0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534
+该地址字节码 keccak 0xc84c87dcb24aa0afcda4ae018391c163f1f2e6e291c7c33f657250a75df50d52
+
+=== A:升级前的实现在 epoch 2957 调用 ===
+  回滚 -> VM Exception while processing transaction: reverted with reason string 'insufficient unlocked CVX'
+
+=== F:同一 epoch 内第二次调用 ===
+  第 1 次: {"ok":true,"gas":"236665"}
+  第 2 次:回滚 -> VM Exception while processing transaction: reverted with reason string 'no exp locks'
+
+=== B:跳过 epoch 2957,从 2958 起逐周执行 ===
+  epoch 2974 回滚 -> VM Exception while processing transaction: reverted with reason string 'SafeMath: subtraction overflow'
+    当时 totalUnlockedGlobal      = 213099.15779970146753924
+    pendingUnlocked[2838](未合并) = 4469.427261945621070254
+    该分支要扣的数额              = 232724.884692421166391761
+
+=== H:2957–2975 全做,只跳过 hardcode 周 2972 ===
+    epoch 2972:故意不调用
+  19 次调用零回滚,但终局账目错:
+    totalUnlockedGlobal = 137550.629983903184684447
+    用户可提额聚合       = 246569.350232224123289803
+    缺口                 = 109018.720248320938605356
+    内部 − 物理          = -109018.710248320938605356
+
+=== E:2957 后单笔普通提款清零直接余额,再执行 2958 ===
+  2957 调用后直接余额 = 15410.555678854473047879
+  0xf60240e419bb0a3e9d8527e5b045f86dcdd6ce44 提走 15451.174919 -> 直接余额 = 0.0
+  epoch 2958: 回滚 -> VM Exception while processing transaction: reverted with reason string 'ERC20: transfer amount exceeds balance'
+
+=== F1:直接余额被清零且整个 epoch 2958 无人补款,之后逐周执行 ===
+  epoch 2958: 回滚 -> VM Exception while processing transaction: reverted with reason string 'ERC20: transfer amount exceeds balance'
+  epoch 2971 回滚 -> VM Exception while processing transaction: reverted with reason string 'SafeMath: subtraction overflow'
+
+=== F2:admin 在批次内固定补 3,173,跑到 2975 ===
+  epoch 2958 成功 gas=321237;admin CVX 净变化 = 0.0
+  2959–2975 全部成功
+  终局 内部 − 物理 = -3173.0   (干净路径为 0)
+  终局 17 槽差额非零项: residue 0: -3173.0
+
+=== F3:抢跑者先清零直接余额,批次内仍固定补 3,173 ===
+  抢跑后直接余额 = 0.0
+  epoch 2958 成功(固定 3,173 抵抗住抢跑)
+
+全部场景执行完毕
