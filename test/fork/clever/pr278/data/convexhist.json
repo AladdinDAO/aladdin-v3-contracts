@@ -1,0 +1,1658 @@
+[
+ {
+  "kind": "W",
+  "epoch": 2746,
+  "block": 15361774,
+  "amount": "44305894717507283771940",
+  "relocked": false,
+  "tx": "0xd85b10e775a09542836b33b9fb3e5c0ce3531a9b7d2b544cff60197f685a4f26"
+ },
+ {
+  "kind": "W",
+  "epoch": 2747,
+  "block": 15405943,
+  "amount": "9616133472472797731191",
+  "relocked": false,
+  "tx": "0x0ad8b3268a04a983c275c4170d96bb15f759eac86e2a2185150f37b64d2f75ba"
+ },
+ {
+  "kind": "W",
+  "epoch": 2748,
+  "block": 15449661,
+  "amount": "10583001147592788076115",
+  "relocked": false,
+  "tx": "0x65611262268fea165da793d4177d643f41fe4d7b70950a2d9d7c3e771639b2de"
+ },
+ {
+  "kind": "W",
+  "epoch": 2749,
+  "block": 15493335,
+  "amount": "5961545000398595128154",
+  "relocked": false,
+  "tx": "0x23c545a9f2b7ec3a6cbdcf59402b972067a238bf8744306e8f1ada53dd83588e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2750,
+  "block": 15535820,
+  "amount": "929387392405732485553",
+  "relocked": false,
+  "tx": "0x5ca0873d78b76a07bb85832e585e26bc21af65b55201e4c0a77f78b80bb690b8"
+ },
+ {
+  "kind": "W",
+  "epoch": 2751,
+  "block": 15585221,
+  "amount": "6137793065478402929665",
+  "relocked": false,
+  "tx": "0xc1b883de98e6d264aec21e9229d40871c8a380ffa83d33f4a663361048918593"
+ },
+ {
+  "kind": "W",
+  "epoch": 2753,
+  "block": 15685395,
+  "amount": "8392467948909018746529",
+  "relocked": false,
+  "tx": "0xb1e7718a06a3706e86fc666ae673bbee1fcf7dc3f8754dc8f75dc3f4ab683850"
+ },
+ {
+  "kind": "W",
+  "epoch": 2754,
+  "block": 15735521,
+  "amount": "3161281546218824796920",
+  "relocked": false,
+  "tx": "0xf06839918c79f26404bbe1863c81acac0b846a7de1e1bea941e88c2bd1709d8f"
+ },
+ {
+  "kind": "W",
+  "epoch": 2755,
+  "block": 15785640,
+  "amount": "6207549282979638238972",
+  "relocked": false,
+  "tx": "0xa635c08762b84b530d1a3d7a3636698d08047a873517d433a8a64ae7b7be24d4"
+ },
+ {
+  "kind": "W",
+  "epoch": 2756,
+  "block": 15835737,
+  "amount": "503894351940481364983966",
+  "relocked": false,
+  "tx": "0xf6c1ed72627f95f8a7612d5872a1b7ef36d929332c2272c202faec0656e87902"
+ },
+ {
+  "kind": "W",
+  "epoch": 2757,
+  "block": 15885823,
+  "amount": "121569552525954787264787",
+  "relocked": false,
+  "tx": "0xecb8993430825d0adb6e497267cc2160a80023ba5bcd07c7f85b4ef623c5a8f8"
+ },
+ {
+  "kind": "W",
+  "epoch": 2758,
+  "block": 15935950,
+  "amount": "9419275390652153224396",
+  "relocked": false,
+  "tx": "0x239e98809c5cc6bda32208233ab5e085a47bc005c07ba903540fbfbef605596a"
+ },
+ {
+  "kind": "W",
+  "epoch": 2759,
+  "block": 15986069,
+  "amount": "10427311059542623548284",
+  "relocked": false,
+  "tx": "0x86005fb967985660d6fa672d517f523c52d2ffb7ba448f9c5343c7351aca9030"
+ },
+ {
+  "kind": "W",
+  "epoch": 2760,
+  "block": 16036165,
+  "amount": "7575207103863360346309",
+  "relocked": false,
+  "tx": "0x53fdf41ca8d6efc400b194f9afd2f9dd912b32337728d38dd16e268928e6c976"
+ },
+ {
+  "kind": "W",
+  "epoch": 2761,
+  "block": 16086283,
+  "amount": "7092665186489363236309",
+  "relocked": false,
+  "tx": "0x1965ae7f1ef421ea6095bead56aff1cf778f5264770cf82b51bd86c3d716aad4"
+ },
+ {
+  "kind": "W",
+  "epoch": 2762,
+  "block": 16136320,
+  "amount": "5786930604447052455522",
+  "relocked": false,
+  "tx": "0x4fcba066d9185dbb1b7a39a16ffcfae524b07e253ba48aca4d5754c5af1a8ab0"
+ },
+ {
+  "kind": "W",
+  "epoch": 2763,
+  "block": 16186427,
+  "amount": "60628405330280254397257",
+  "relocked": false,
+  "tx": "0x34a6c408e2d0eee91196eb2e689b4a17ae1227acac77eafbc855c1008a351f4c"
+ },
+ {
+  "kind": "W",
+  "epoch": 2764,
+  "block": 16236564,
+  "amount": "11378520436574891113312",
+  "relocked": false,
+  "tx": "0xf4c417c737b8f2be5f42102dc0a735ac2c64052ced85ba9578388a62e2683b03"
+ },
+ {
+  "kind": "W",
+  "epoch": 2765,
+  "block": 16286747,
+  "amount": "18200938919559067089265",
+  "relocked": false,
+  "tx": "0x93bb1e5b2fcc21ea6a1a501989e99f3e47250747d8d9fe79b35efba5eb69fb69"
+ },
+ {
+  "kind": "W",
+  "epoch": 2766,
+  "block": 16336919,
+  "amount": "13504013848083369686527",
+  "relocked": false,
+  "tx": "0x7728696d970f0189b6732e95d68a059fb79559f1d878625ca4c822efa95ff35e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2767,
+  "block": 16387049,
+  "amount": "16413812629328950829044",
+  "relocked": false,
+  "tx": "0xbd7e13647eec70ec755cde3d0d50515b515b1064abef592eb5b2dcefb537e885"
+ },
+ {
+  "kind": "W",
+  "epoch": 2768,
+  "block": 16437180,
+  "amount": "10992207627469415473406",
+  "relocked": false,
+  "tx": "0x09b1beb6104836594e61792b63dc493a63a29c68f6534e7e9e9febfa3ce8d123"
+ },
+ {
+  "kind": "W",
+  "epoch": 2769,
+  "block": 16487320,
+  "amount": "71597536361824174707280",
+  "relocked": false,
+  "tx": "0x8eae8aba482f99e889d62a4d19c7532ea945c7d92227076b2e32ace30ac23135"
+ },
+ {
+  "kind": "W",
+  "epoch": 2770,
+  "block": 16537457,
+  "amount": "16803538749217575881232",
+  "relocked": false,
+  "tx": "0x364cfb71d95c8adee6c082b6c1c75a2e4e10afd44b24f1a142ba758c2b5386dc"
+ },
+ {
+  "kind": "W",
+  "epoch": 2771,
+  "block": 16587527,
+  "amount": "37320848869726221972652",
+  "relocked": false,
+  "tx": "0x551dd1c863c50703375a4c88a8156ff7087d70b628f280cb752b351c79294405"
+ },
+ {
+  "kind": "W",
+  "epoch": 2772,
+  "block": 16637625,
+  "amount": "150861261372087926283763",
+  "relocked": false,
+  "tx": "0xe14c1c860d2f718cd4625e719595825c107bb9fa63c48ffddb6df2e15d7ff19a"
+ },
+ {
+  "kind": "W",
+  "epoch": 2773,
+  "block": 16687445,
+  "amount": "640238818995765753403577",
+  "relocked": false,
+  "tx": "0x7c5a9e3d768bdee2fa5762d05f6426663edfe3129ff058053d24e3dfcbd6223f"
+ },
+ {
+  "kind": "W",
+  "epoch": 2774,
+  "block": 16737240,
+  "amount": "134133516100657234051334",
+  "relocked": false,
+  "tx": "0x733c82df1b8d715f067b56a14519815acb1e4de06ec55ac456cfcb383c2bba05"
+ },
+ {
+  "kind": "W",
+  "epoch": 2775,
+  "block": 16786999,
+  "amount": "36415716400533774699819",
+  "relocked": false,
+  "tx": "0xc812b86ccebe451fa42868622cc7c9a473f855a936d5420a5e405ec9d5d9cdc0"
+ },
+ {
+  "kind": "W",
+  "epoch": 2776,
+  "block": 16836761,
+  "amount": "17785725067491306735448",
+  "relocked": false,
+  "tx": "0xf75fac29bd86d5eb89fb21045838a785675c646ef9709accd031ad563f362824"
+ },
+ {
+  "kind": "W",
+  "epoch": 2777,
+  "block": 16886599,
+  "amount": "12220531097927115789311",
+  "relocked": false,
+  "tx": "0x29e4de6bcc17695d5a490879f73ae4c6715017a7a0a151b14a6afad7420388d9"
+ },
+ {
+  "kind": "W",
+  "epoch": 2778,
+  "block": 16936410,
+  "amount": "7610778207644622236220",
+  "relocked": false,
+  "tx": "0x915f651c34221c93077e3017527d8c3bbedecda99de370953bdf96e4099602c4"
+ },
+ {
+  "kind": "W",
+  "epoch": 2779,
+  "block": 16986005,
+  "amount": "4827145063133548019240",
+  "relocked": false,
+  "tx": "0x21e8ab62cf3934b72de57ef14e014eec560c3bd157cb3775740e826045feeae6"
+ },
+ {
+  "kind": "W",
+  "epoch": 2780,
+  "block": 17035302,
+  "amount": "75763295730055195535703",
+  "relocked": false,
+  "tx": "0x15a09491e3210c4d073096d9d7aa16ea8f48c94da502387731510d650d7c5d3c"
+ },
+ {
+  "kind": "W",
+  "epoch": 2781,
+  "block": 17084098,
+  "amount": "32503918768366599069357",
+  "relocked": false,
+  "tx": "0x7480c74af6469465e6c472e47d757237f8a5a5837e739717c43f34abbb187591"
+ },
+ {
+  "kind": "W",
+  "epoch": 2782,
+  "block": 17133871,
+  "amount": "33121571952079703257763",
+  "relocked": false,
+  "tx": "0x424e2648d4f0ba259594089a9be3cbb3d2c276cc18ce5bf425b4da526ccfff52"
+ },
+ {
+  "kind": "W",
+  "epoch": 2783,
+  "block": 17183656,
+  "amount": "22213094060751004647093",
+  "relocked": false,
+  "tx": "0x8dbc5df65884dc19c5d8d2ee5d309ba665c5041419a177ee70e02eaa82052646"
+ },
+ {
+  "kind": "W",
+  "epoch": 2784,
+  "block": 17233463,
+  "amount": "99152764763781328743893",
+  "relocked": false,
+  "tx": "0x8503e5edde566da85ab9166bf1317bebebd8909816610a29ae18caae8a3643c3"
+ },
+ {
+  "kind": "W",
+  "epoch": 2785,
+  "block": 17282795,
+  "amount": "43388514476532983568974",
+  "relocked": false,
+  "tx": "0xa6de48bb38b2f8a48262efc514d84c02b9c17b2f38d1f342a7f1fb1e52fb77f5"
+ },
+ {
+  "kind": "W",
+  "epoch": 2786,
+  "block": 17332512,
+  "amount": "329676612099228820033236",
+  "relocked": false,
+  "tx": "0x82bff32e7403afd4c0c45a1ab437b088962f44c62f10e1d77a26bfef350a2280"
+ },
+ {
+  "kind": "W",
+  "epoch": 2787,
+  "block": 17382316,
+  "amount": "183988018010176885490696",
+  "relocked": false,
+  "tx": "0x2f38e2d3cbb58263cdd8197bb6d61273d2b5be683d1ba5f1fbb1cebb5f1be476"
+ },
+ {
+  "kind": "W",
+  "epoch": 2788,
+  "block": 17431954,
+  "amount": "208786259247222769331530",
+  "relocked": false,
+  "tx": "0xcd2631064805e1e04df499f9ad272ad0b1a4e4b9832e8179799914b8fe1ad396"
+ },
+ {
+  "kind": "W",
+  "epoch": 2789,
+  "block": 17481659,
+  "amount": "186691143698160469671436",
+  "relocked": false,
+  "tx": "0x9627b2eda219466fcf98758b4480e3ae634b793485eb564ec2f752f5a5eaefab"
+ },
+ {
+  "kind": "W",
+  "epoch": 2790,
+  "block": 17531513,
+  "amount": "726368099104792554356474",
+  "relocked": false,
+  "tx": "0xa1869c3aadd9c3c6815db2fc9f3dd523f44c7aff71fb7c3c592635f3e4e29351"
+ },
+ {
+  "kind": "W",
+  "epoch": 2791,
+  "block": 17581303,
+  "amount": "184167930582344931806107",
+  "relocked": false,
+  "tx": "0x9c981dd07f9c8d6bb81d5d403d7e75f90b46047a0b05df8fa313ece984dc2692"
+ },
+ {
+  "kind": "W",
+  "epoch": 2792,
+  "block": 17631155,
+  "amount": "145850750070584194030680",
+  "relocked": false,
+  "tx": "0xd0075343d0e0b292f04095e8a2dcbaa61f7c8bfc14a0e4ca118c25868ceedbdc"
+ },
+ {
+  "kind": "W",
+  "epoch": 2793,
+  "block": 17680957,
+  "amount": "25384564425205655015655",
+  "relocked": false,
+  "tx": "0x039d12d845bd36aa7201c29b2f3670424264581dca71fdcd631a987b102c5e2d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2794,
+  "block": 17730717,
+  "amount": "17281536777479268946676",
+  "relocked": false,
+  "tx": "0xf59520a424ccf562cb366ed5018d290817860b88085aa79bd33fb60c2562b2e8"
+ },
+ {
+  "kind": "W",
+  "epoch": 2795,
+  "block": 17780754,
+  "amount": "27120179476028508281871",
+  "relocked": false,
+  "tx": "0x3283f28ba92d28714b957570a942794f0fdbe4a371fcce92d8a5f674fd05cd53"
+ },
+ {
+  "kind": "W",
+  "epoch": 2796,
+  "block": 17830805,
+  "amount": "46211564171163541745156",
+  "relocked": false,
+  "tx": "0xe27174bbdcb04eaea5dc48e3860a533e20e01d8f4985ef58c98a801943d4a2e3"
+ },
+ {
+  "kind": "W",
+  "epoch": 2797,
+  "block": 17880827,
+  "amount": "87219390001379980782107",
+  "relocked": false,
+  "tx": "0xcf0f002123914ebec0da1bd1c47309903b2d78b777faf5fe20dfbb2a49b00930"
+ },
+ {
+  "kind": "W",
+  "epoch": 2798,
+  "block": 17930878,
+  "amount": "40873230726825706870105",
+  "relocked": false,
+  "tx": "0xea1ee2aab7a23d7adc29bf0ed5ec5b1b50edfd3689bcb00b8ef9dc5e9b78158a"
+ },
+ {
+  "kind": "W",
+  "epoch": 2799,
+  "block": 17980900,
+  "amount": "51843897151624467518083",
+  "relocked": false,
+  "tx": "0xd541fa55c382d4dab81bcaee30be0d89ee42fcff69b401606b4b5ea7b1355c13"
+ },
+ {
+  "kind": "W",
+  "epoch": 2800,
+  "block": 18030891,
+  "amount": "78590444726594736155857",
+  "relocked": false,
+  "tx": "0x3c286c87e3eb501c8471273fad91376c822fc495a64aa64799f39775016a2266"
+ },
+ {
+  "kind": "W",
+  "epoch": 2801,
+  "block": 18080885,
+  "amount": "98066852207391283811302",
+  "relocked": false,
+  "tx": "0xc106ef8c919d5e6c4a0736fc00cfbec71823dd9528c5c7f88519ed096b997ffe"
+ },
+ {
+  "kind": "W",
+  "epoch": 2802,
+  "block": 18130859,
+  "amount": "75731058401593444825217",
+  "relocked": false,
+  "tx": "0x97606ea95528ccb70c5af9ce3e982e7c61edc8ea0fd0542d7fdc446dd5fc0a01"
+ },
+ {
+  "kind": "W",
+  "epoch": 2803,
+  "block": 18180592,
+  "amount": "310282549914202199623042",
+  "relocked": false,
+  "tx": "0xf22ff744bdc98fbda750f6b9217f0fdf828583ab645f739747f883426ff6613d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2804,
+  "block": 18230581,
+  "amount": "232027015276876315409880",
+  "relocked": false,
+  "tx": "0xdcc3cc92d3a619bc135727db8e05514ddb9aa4eb3ec272a6974b70f1d6d7adad"
+ },
+ {
+  "kind": "W",
+  "epoch": 2805,
+  "block": 18280644,
+  "amount": "251776753112589417329709",
+  "relocked": false,
+  "tx": "0xe224ef481e046fba185aff569ca2b3a6f42c3b03bc6b7908ef907d1043325a5b"
+ },
+ {
+  "kind": "W",
+  "epoch": 2806,
+  "block": 18330682,
+  "amount": "173774472088283108694474",
+  "relocked": false,
+  "tx": "0xb7a01f69b6a8d51affd4e07cf1896a1d548e8ce72d1a2f7205225d81fac1e7ef"
+ },
+ {
+  "kind": "W",
+  "epoch": 2807,
+  "block": 18380734,
+  "amount": "732087615599911831875551",
+  "relocked": false,
+  "tx": "0x5db9fcc83d87c446cffdaf232572aab24903c1ab72b6b0ddef1d369139cf5543"
+ },
+ {
+  "kind": "W",
+  "epoch": 2808,
+  "block": 18430729,
+  "amount": "194634651406812997716948",
+  "relocked": false,
+  "tx": "0x406469120bbe90fa512fdaa22778b82cad0f9e4472765356abf72bacd2178898"
+ },
+ {
+  "kind": "W",
+  "epoch": 2809,
+  "block": 18480755,
+  "amount": "147150452634809421838875",
+  "relocked": false,
+  "tx": "0x10abca2470e12c1412865608c0030fd2df8370dbd2569b8e554d3b99716612f1"
+ },
+ {
+  "kind": "W",
+  "epoch": 2810,
+  "block": 18530725,
+  "amount": "55110067549564007998769",
+  "relocked": false,
+  "tx": "0x74f0a0ce3c437d7cf0e94fe8b021f216727c345fa06974512ff88f971235d3a7"
+ },
+ {
+  "kind": "W",
+  "epoch": 2811,
+  "block": 18580777,
+  "amount": "28936712656673638105202",
+  "relocked": false,
+  "tx": "0x7d63cdaf21df665e3b1ac105b24f989379d3858cd2edd69a15a8de7c551d73a5"
+ },
+ {
+  "kind": "W",
+  "epoch": 2812,
+  "block": 18630766,
+  "amount": "25225036897104013947780",
+  "relocked": false,
+  "tx": "0x600c902fc7858a151adf52c1ac35b4c3654e19e3743d5ad2e90d6d15fe9c84aa"
+ },
+ {
+  "kind": "W",
+  "epoch": 2813,
+  "block": 18680758,
+  "amount": "70911096214401310916142",
+  "relocked": false,
+  "tx": "0x17eeb27f25a48a26b6a79a428752f44f2bbf7fa3e915978f18a382f6edeaa0e3"
+ },
+ {
+  "kind": "W",
+  "epoch": 2814,
+  "block": 18730751,
+  "amount": "88210990328842639907523",
+  "relocked": false,
+  "tx": "0xaa3fcf32182d1ac9bd1eb73136f230fae8982bc1e7287f7413f5a9de96cc11d8"
+ },
+ {
+  "kind": "W",
+  "epoch": 2815,
+  "block": 18780728,
+  "amount": "57171668045527946895953",
+  "relocked": false,
+  "tx": "0xb86fe01e89067952a27a77f4e823ca939a76ab72f8e98ec197db691418359c74"
+ },
+ {
+  "kind": "W",
+  "epoch": 2816,
+  "block": 18830582,
+  "amount": "55006679650890301226218",
+  "relocked": false,
+  "tx": "0x1593bc7b4322ac950d963664bd3af3c55eb79c45f9d6a56ef2b35232f74cffa7"
+ },
+ {
+  "kind": "W",
+  "epoch": 2819,
+  "block": 18980028,
+  "amount": "184602579892792732654744",
+  "relocked": false,
+  "tx": "0xbce72a7f34837e7c9eb37b880b13ba48a25919560448c3986e678e8f3937f300"
+ },
+ {
+  "kind": "W",
+  "epoch": 2820,
+  "block": 19045224,
+  "amount": "318260742990736588511314",
+  "relocked": false,
+  "tx": "0xe563b562c0d55f9fb8ecfc3dcca83fd98b10e850d02532ab39b2b4d37d1f5690"
+ },
+ {
+  "kind": "W",
+  "epoch": 2821,
+  "block": 19079977,
+  "amount": "224944969960467385035810",
+  "relocked": false,
+  "tx": "0x1175b22504a76d5de90af4a34fe72b2ebee133a2e4cca48e6fdaf092a99cab77"
+ },
+ {
+  "kind": "W",
+  "epoch": 2822,
+  "block": 19130053,
+  "amount": "241494012883020476623066",
+  "relocked": false,
+  "tx": "0x5715cc4db86ecbc06e202c8d53c1ea04d5b2744f505975e90f7510ba342c5a4e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2823,
+  "block": 19179805,
+  "amount": "271570610255246062928379",
+  "relocked": false,
+  "tx": "0xbd281e6356361ad8768124aa35dbd6023e6e5122c5d01c3d9d88f2a5fdcac404"
+ },
+ {
+  "kind": "W",
+  "epoch": 2824,
+  "block": 19229863,
+  "amount": "729162863803337037363050",
+  "relocked": false,
+  "tx": "0x1d71502ea7586e985609531339e398e1e21b36a40e4866b33d4265a98cb050d2"
+ },
+ {
+  "kind": "W",
+  "epoch": 2825,
+  "block": 19279509,
+  "amount": "184648778378426744759351",
+  "relocked": false,
+  "tx": "0x452646ca2389c9d0bd8b8048c0707d208286c75357bd16f14844dfcd619fd26b"
+ },
+ {
+  "kind": "W",
+  "epoch": 2826,
+  "block": 19329517,
+  "amount": "164366230664343319026496",
+  "relocked": false,
+  "tx": "0xc370233efa34686a02446df0a7b6072666332df68203bf64b59569006b2b36e8"
+ },
+ {
+  "kind": "W",
+  "epoch": 2827,
+  "block": 19379624,
+  "amount": "65448171641892985493148",
+  "relocked": false,
+  "tx": "0xd01b3338c3f207c49fd384e7aef1ea808128a37ca234d183ec514c4208e7908a"
+ },
+ {
+  "kind": "W",
+  "epoch": 2828,
+  "block": 19429605,
+  "amount": "31585663475269824631343",
+  "relocked": false,
+  "tx": "0xdd3f1d4152fb8f68c608a8520b6b13851e8cd1cfdfcd4ccb8c3bb39947a1c626"
+ },
+ {
+  "kind": "W",
+  "epoch": 2829,
+  "block": 19479396,
+  "amount": "51811456180351574000466",
+  "relocked": false,
+  "tx": "0xb17db306c41d23d6df19ea3a5f7c2aad3e0ae0e30b3fac4f8a37e8408d28c967"
+ },
+ {
+  "kind": "W",
+  "epoch": 2830,
+  "block": 19528974,
+  "amount": "79691503611204850593833",
+  "relocked": false,
+  "tx": "0xe438429ee5cde006f9b4a76aa8529a4514e4f503b47508305048e9adf9944ac1"
+ },
+ {
+  "kind": "W",
+  "epoch": 2831,
+  "block": 19578733,
+  "amount": "99873872656149697083609",
+  "relocked": false,
+  "tx": "0xfb739d4c4dca9f32a802ddd72e9ea0fcd102c18702500e5121551e71d809a4fd"
+ },
+ {
+  "kind": "W",
+  "epoch": 2832,
+  "block": 19628720,
+  "amount": "56485200074811564337091",
+  "relocked": false,
+  "tx": "0x1020966364c9bfa60dc8dbecafbc3d5f1594d35eac943ec506c0658e583ada06"
+ },
+ {
+  "kind": "W",
+  "epoch": 2833,
+  "block": 19678826,
+  "amount": "60235639576009815068098",
+  "relocked": false,
+  "tx": "0x06d69911ddb929b97ed0684898f0c8307be2726f500086079a081eadbe212255"
+ },
+ {
+  "kind": "W",
+  "epoch": 2834,
+  "block": 19728715,
+  "amount": "19305691113906599980577",
+  "relocked": false,
+  "tx": "0x91db720524817a2a89d51c721a2e335630577b7d2a482cd77dc5e1bd52f3488e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2835,
+  "block": 19778788,
+  "amount": "49948262082817923668489",
+  "relocked": false,
+  "tx": "0x44b075dc44abfce81868060e56eabeb90ec99bd30858e3583ceb461f62e48137"
+ },
+ {
+  "kind": "W",
+  "epoch": 2836,
+  "block": 19828822,
+  "amount": "219868391016794199929282",
+  "relocked": false,
+  "tx": "0x715d75ed9cc16ffc9a0793596a9ad74d98819a83fe4a6f3df5695a43aeec8366"
+ },
+ {
+  "kind": "W",
+  "epoch": 2837,
+  "block": 19878870,
+  "amount": "351134354308270545660634",
+  "relocked": false,
+  "tx": "0x52dc20d525b9396138adc0c26787fafdf0fcadab7670adafc7d8af57b66034d7"
+ },
+ {
+  "kind": "W",
+  "epoch": 2839,
+  "block": 19978997,
+  "amount": "510439234365524213234603",
+  "relocked": false,
+  "tx": "0x43cfb590ace408958b128f16421842c73c105fa493c291e0a4e3fa231a0aff59"
+ },
+ {
+  "kind": "W",
+  "epoch": 2840,
+  "block": 20029121,
+  "amount": "273609517605090162025669",
+  "relocked": false,
+  "tx": "0xd55e268ce5cf4e9b7c8b9a5aa13d65550987e42b51796ca27f84825ea01abee0"
+ },
+ {
+  "kind": "W",
+  "epoch": 2841,
+  "block": 20079257,
+  "amount": "733661498704976451892892",
+  "relocked": false,
+  "tx": "0xca0e5ecaa8b7cbbaf92b018c96aab51b4ad8cedd3ca1bd7dab85acb32bcbf6dc"
+ },
+ {
+  "kind": "W",
+  "epoch": 2842,
+  "block": 20129276,
+  "amount": "183084565665786058820036",
+  "relocked": false,
+  "tx": "0x0fde809f9cc7460d3c978dfe6d2783591323c037d58d36dad284a4dfa3339dfc"
+ },
+ {
+  "kind": "W",
+  "epoch": 2843,
+  "block": 20179352,
+  "amount": "161016631836636520305041",
+  "relocked": false,
+  "tx": "0x4b27d688aa26807765dbf9383e7183dd5b6969b7650a4e6e279186458ed9ebf7"
+ },
+ {
+  "kind": "W",
+  "epoch": 2844,
+  "block": 20230277,
+  "amount": "125918580347079787201897",
+  "relocked": false,
+  "tx": "0x1c889dc2448c750125502f84a4782a4823a638344b610eb1ee9bdaaa535f860c"
+ },
+ {
+  "kind": "W",
+  "epoch": 2845,
+  "block": 20279602,
+  "amount": "56577885913890379905335",
+  "relocked": false,
+  "tx": "0xcbd66a03f97e6006a19e0c3ad6ddf99cd1d66c54c978783b7549012989bb3aa6"
+ },
+ {
+  "kind": "W",
+  "epoch": 2846,
+  "block": 20329742,
+  "amount": "48523723272721641722985",
+  "relocked": false,
+  "tx": "0xcd841cf6ec547e0254264c392c75c51cbd59f77cdac4fd3d598022f7ebbb1e40"
+ },
+ {
+  "kind": "W",
+  "epoch": 2847,
+  "block": 20379889,
+  "amount": "77471098009426560308353",
+  "relocked": false,
+  "tx": "0xb9f6f3fb1ef943b47cf40bd376bb628134b13dd7b53460ca27f3ee70c3970a8a"
+ },
+ {
+  "kind": "W",
+  "epoch": 2848,
+  "block": 20430023,
+  "amount": "117831348418318871756789",
+  "relocked": false,
+  "tx": "0x431e6fc7b4b2d5683da9d2dc9ccc324ec40257437df99cb22c30977a9047ac7f"
+ },
+ {
+  "kind": "W",
+  "epoch": 2849,
+  "block": 20480192,
+  "amount": "59158594081273100706264",
+  "relocked": false,
+  "tx": "0x69ce9937041b984bd1cf786d7463c213c0c362b47db4592fba2e4432d1772469"
+ },
+ {
+  "kind": "W",
+  "epoch": 2850,
+  "block": 20530381,
+  "amount": "64380721386981332222449",
+  "relocked": false,
+  "tx": "0x8a8f3153f0467737d94895255dfaf3afd6abd5135ed27276f27c265bbdb980ba"
+ },
+ {
+  "kind": "W",
+  "epoch": 2851,
+  "block": 20580479,
+  "amount": "20912134269486352576982",
+  "relocked": false,
+  "tx": "0x8dbc0bbfc4785ee83dc6fd597039e10ff075ab6d2d0341ecfcfdc9f908669ed7"
+ },
+ {
+  "kind": "W",
+  "epoch": 2852,
+  "block": 20630577,
+  "amount": "46843794597499969531176",
+  "relocked": false,
+  "tx": "0x837d8f2e2b8526f56938f8623e1dfc8898f21c538d18b001b99f6a2ff5b0d951"
+ },
+ {
+  "kind": "W",
+  "epoch": 2853,
+  "block": 20680731,
+  "amount": "535986649642598237598357",
+  "relocked": false,
+  "tx": "0x47a374d1e138d019f143abd08abbbc64e7641ae96dfdaf364ca1e7fe8a73d91b"
+ },
+ {
+  "kind": "W",
+  "epoch": 2854,
+  "block": 20730862,
+  "amount": "645873464232976660651466",
+  "relocked": false,
+  "tx": "0x8c0ea3c4232a44c37eca8549a0ba2e113fc2a852e06544fe89e7f2c78ae0b5a5"
+ },
+ {
+  "kind": "W",
+  "epoch": 2855,
+  "block": 20780967,
+  "amount": "232611356837491975093780",
+  "relocked": false,
+  "tx": "0xf1e00647d29a69cbae9d01352448ff57f7e8a96a850ef3bef23a81f2956501a0"
+ },
+ {
+  "kind": "W",
+  "epoch": 2856,
+  "block": 20831111,
+  "amount": "521290803119282600610501",
+  "relocked": false,
+  "tx": "0xd445b67bc16751c87b93ee46486e5968e59d3aab30a2a4bb144f32d02ec856a3"
+ },
+ {
+  "kind": "W",
+  "epoch": 2857,
+  "block": 20881319,
+  "amount": "557956923471252370888041",
+  "relocked": false,
+  "tx": "0x32f01e26fb259c7bcb4ca6a8245f3f6b5f43839cf8a00f722b89c8e64bbf5a12"
+ },
+ {
+  "kind": "W",
+  "epoch": 2858,
+  "block": 20931532,
+  "amount": "761174636913034254809548",
+  "relocked": false,
+  "tx": "0x56805cb2e06ab6949e140f0a154b58e227cc93df24a5d28bfdb9be130c9612dd"
+ },
+ {
+  "kind": "W",
+  "epoch": 2859,
+  "block": 20981611,
+  "amount": "475065677023658292246887",
+  "relocked": false,
+  "tx": "0x0f39e3c973682b47854815818c23f28bd4c996feb8598bd8688015eb998eb81e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2860,
+  "block": 21031784,
+  "amount": "192234671643688811334596",
+  "relocked": false,
+  "tx": "0xa08681c347278fe340fe6cd242de3544c57c369c76831bde7c6718e2c102f260"
+ },
+ {
+  "kind": "W",
+  "epoch": 2861,
+  "block": 21081950,
+  "amount": "201876642198868952705481",
+  "relocked": false,
+  "tx": "0x1865e2c9c78183315ef6f25a8a6376f4e26659d48c344db56e105cbafec8a125"
+ },
+ {
+  "kind": "W",
+  "epoch": 2862,
+  "block": 21132101,
+  "amount": "244968303005189643185541",
+  "relocked": false,
+  "tx": "0x053ecaefd7b4d6b047d87a0450cb2dc73d5c98a8a7fbf70344acc659cad31cbd"
+ },
+ {
+  "kind": "W",
+  "epoch": 2863,
+  "block": 21182263,
+  "amount": "63405736545235702030652",
+  "relocked": false,
+  "tx": "0x05fef35a6ff19131d0af55bfc21fb2f1b7eadc867a4d7c351b47d3c79d6764b9"
+ },
+ {
+  "kind": "W",
+  "epoch": 2864,
+  "block": 21232438,
+  "amount": "75204652312911247337706",
+  "relocked": false,
+  "tx": "0x997317c9330a6f2adb014b9ce81dcd46045958dada6d10376867c8c9d86a4af1"
+ },
+ {
+  "kind": "W",
+  "epoch": 2865,
+  "block": 21282573,
+  "amount": "147162711599076607195685",
+  "relocked": false,
+  "tx": "0xd8df499b796020a97a9ad3424449763ea9e0b0bde998e2746f118bb4c99c6cac"
+ },
+ {
+  "kind": "W",
+  "epoch": 2866,
+  "block": 21332647,
+  "amount": "53216264395024327292725",
+  "relocked": false,
+  "tx": "0x568f8d8978d15fac85f023582d95f36f58e36fb3d727b622e681a85278d755c0"
+ },
+ {
+  "kind": "W",
+  "epoch": 2867,
+  "block": 21382754,
+  "amount": "59297460843382379428215",
+  "relocked": false,
+  "tx": "0xa104455baea2b93f3ce699cb753a5f8915945cf644b772c6cb8722ca038829c0"
+ },
+ {
+  "kind": "W",
+  "epoch": 2868,
+  "block": 21432903,
+  "amount": "19189036728740301851226",
+  "relocked": false,
+  "tx": "0x39e099bf9c06137263bf96aa627231de3664e8c5746d9947a00323ad08342a97"
+ },
+ {
+  "kind": "W",
+  "epoch": 2869,
+  "block": 21482975,
+  "amount": "24054688164123856753567",
+  "relocked": false,
+  "tx": "0xbfa43a6a1e3d47aec7a06c789510680e61280f276c905859397b2c5b5f01cfc1"
+ },
+ {
+  "kind": "W",
+  "epoch": 2870,
+  "block": 21533111,
+  "amount": "324361993669243238389699",
+  "relocked": false,
+  "tx": "0xb9bda43fbd32a49eaac04f31d855be5fae394b6029178a37ebfbad435f359e1c"
+ },
+ {
+  "kind": "W",
+  "epoch": 2871,
+  "block": 21583253,
+  "amount": "769497326831098905037923",
+  "relocked": false,
+  "tx": "0xcd8b9039f42a2126b75d5eaecd03c1a2f3dc2b02a05e5b6e9bc4bc56272d0316"
+ },
+ {
+  "kind": "W",
+  "epoch": 2872,
+  "block": 21633375,
+  "amount": "285328832266496421771703",
+  "relocked": false,
+  "tx": "0xa831c0699603274b0af0ff9f6eb793242910c235eafb5ddb52c52d88ef8da18b"
+ },
+ {
+  "kind": "W",
+  "epoch": 2873,
+  "block": 21683528,
+  "amount": "509679426571731253279177",
+  "relocked": false,
+  "tx": "0x2054ec9e3760003bf6a47326556ba53a7bef57e0abbcf6bf827caf92a4802b00"
+ },
+ {
+  "kind": "W",
+  "epoch": 2874,
+  "block": 21733682,
+  "amount": "373479036694027594361009",
+  "relocked": false,
+  "tx": "0xe71214c25f72f4543209e032467d01eb271f50e663fa49c4adb1135678d96ba3"
+ },
+ {
+  "kind": "W",
+  "epoch": 2875,
+  "block": 21783790,
+  "amount": "741899901658031380354241",
+  "relocked": false,
+  "tx": "0xcb09bf659957f9633ca9ecc75c8276fe9b95cc56103099d5e9b56c717af1641d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2876,
+  "block": 21833896,
+  "amount": "480828611092284663727588",
+  "relocked": false,
+  "tx": "0x73e686315f485236fe9850578d5c4efd41d44fc8073aa7732742a7d1644e4a77"
+ },
+ {
+  "kind": "W",
+  "epoch": 2877,
+  "block": 21883905,
+  "amount": "214376006382128344031302",
+  "relocked": false,
+  "tx": "0xfb25d23d08b005fd52f1735cbf2cb82472fc8fec678422d1785d612f573bae3e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2878,
+  "block": 21933998,
+  "amount": "87171203519677402595671",
+  "relocked": false,
+  "tx": "0x0f421d96b04f427a350854ff8651a2f9efc8c1762743fa939f09129b3b04e843"
+ },
+ {
+  "kind": "W",
+  "epoch": 2879,
+  "block": 21984196,
+  "amount": "358097177535315954473323",
+  "relocked": false,
+  "tx": "0xdce24644fc4686d4ecb94e05ec997c7928f8950e858484c3a4404cea436d81ee"
+ },
+ {
+  "kind": "W",
+  "epoch": 2880,
+  "block": 22034278,
+  "amount": "112112815928462830550415",
+  "relocked": false,
+  "tx": "0x62308c6cf940e77b111e94d3ec2ffff21ad56214bfdec6761b92cdd19ac5b0c8"
+ },
+ {
+  "kind": "W",
+  "epoch": 2881,
+  "block": 22084409,
+  "amount": "87392259194787486767946",
+  "relocked": false,
+  "tx": "0x42cb1c5dd4ee0efebca81be8205428e5d4cbc90249898f7163bfac6a15b26e8d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2882,
+  "block": 22134577,
+  "amount": "106390791303562130680615",
+  "relocked": false,
+  "tx": "0xdce0651732b621c3c730fb93998ff8c102488ce6f9c2366493afacd8db100ec3"
+ },
+ {
+  "kind": "W",
+  "epoch": 2883,
+  "block": 22184720,
+  "amount": "62170756358258014961480",
+  "relocked": false,
+  "tx": "0x9bc844da652cfd365febd4f35ddffb9aa07e9bc099556af431c544c796b89950"
+ },
+ {
+  "kind": "W",
+  "epoch": 2884,
+  "block": 22234843,
+  "amount": "53208855992850209823254",
+  "relocked": false,
+  "tx": "0x2fc9e617e64f5a3a45f2615152c348e244d82866e8ba8a0dcd16e38776e77188"
+ },
+ {
+  "kind": "W",
+  "epoch": 2885,
+  "block": 22285051,
+  "amount": "12805930450343033275773",
+  "relocked": false,
+  "tx": "0x1bda2f1b8a0a37615cd0db6f8c254ac30c202e7d8940db0ca2883f9f8082dfc0"
+ },
+ {
+  "kind": "W",
+  "epoch": 2886,
+  "block": 22335218,
+  "amount": "18477979481114201998538",
+  "relocked": false,
+  "tx": "0x24754bc2d8975d43d518bbe71cd8f47e898e8e391e1ad0c081be902b3d47e433"
+ },
+ {
+  "kind": "W",
+  "epoch": 2887,
+  "block": 22385346,
+  "amount": "207182228170091206658865",
+  "relocked": false,
+  "tx": "0xd04e21118190b1e8617dd4ee4a49f0384d407a46c3714129ddeec2b94eac0d37"
+ },
+ {
+  "kind": "W",
+  "epoch": 2888,
+  "block": 22435180,
+  "amount": "500580775145679740681673",
+  "relocked": false,
+  "tx": "0xf580459138cf50f2a5d051df0624c738c3f01b9b8a9a8f5b7fac0526c98ef6ef"
+ },
+ {
+  "kind": "W",
+  "epoch": 2889,
+  "block": 22484872,
+  "amount": "256860856277424998916939",
+  "relocked": false,
+  "tx": "0x9d537e7e760d8f7bdde290104d951d0f3935718e6a5df3eb28fae6a291376061"
+ },
+ {
+  "kind": "W",
+  "epoch": 2890,
+  "block": 22534750,
+  "amount": "463992111154509700436661",
+  "relocked": false,
+  "tx": "0x6412dc74689c8c5f2fffa93a376f74a176a4e25bcf5229bbaba3e68528a15007"
+ },
+ {
+  "kind": "W",
+  "epoch": 2891,
+  "block": 22584745,
+  "amount": "387013141287502803016149",
+  "relocked": false,
+  "tx": "0x12a548e3cfa706715fb710f4b3083d670cf4ea4f7bf443b40cef63b7e2be828a"
+ },
+ {
+  "kind": "W",
+  "epoch": 2892,
+  "block": 22634756,
+  "amount": "738803620441203677376248",
+  "relocked": false,
+  "tx": "0xf1d6689061cd526648963a647efa59f6a3860f4ab90f359c9d64dadf740de2e8"
+ },
+ {
+  "kind": "W",
+  "epoch": 2893,
+  "block": 22684808,
+  "amount": "622379090462876840987831",
+  "relocked": false,
+  "tx": "0x00f23a5c314b3fed6068cbfbc79cc23d51d38e0bf95e9cb80fe51b7d23f4a9cc"
+ },
+ {
+  "kind": "W",
+  "epoch": 2894,
+  "block": 22734875,
+  "amount": "312725135261269161185199",
+  "relocked": false,
+  "tx": "0xd3f9f1e211aeb6c73f13f89b406cf13bcea4495b81f2437f1a1a339fcbfd61be"
+ },
+ {
+  "kind": "W",
+  "epoch": 2895,
+  "block": 22784945,
+  "amount": "145914383077279540720197",
+  "relocked": false,
+  "tx": "0x48c746675a6f7a4990fa0824c5604f4e058145f544b86a1a53c7154a5612b8d1"
+ },
+ {
+  "kind": "W",
+  "epoch": 2896,
+  "block": 22835030,
+  "amount": "341232711708688872315753",
+  "relocked": false,
+  "tx": "0xd16248b3bd6c891b83399978bc4c213340cabb44af566699894d82bf52a0e04f"
+ },
+ {
+  "kind": "W",
+  "epoch": 2897,
+  "block": 22885112,
+  "amount": "141824230539612979903273",
+  "relocked": false,
+  "tx": "0xc7a8b3a52d86a4d8dc339a3049a9670bc79efadd7b0cb27ab21ea31ed0fc8eb5"
+ },
+ {
+  "kind": "W",
+  "epoch": 2898,
+  "block": 22935245,
+  "amount": "79259377409321412409267",
+  "relocked": false,
+  "tx": "0xc4a2ea6717ea8ba3c5d15a429b9adb0f3228e26209ffc37a9c111df14f8fecf2"
+ },
+ {
+  "kind": "W",
+  "epoch": 2899,
+  "block": 22985355,
+  "amount": "163553729131040887304879",
+  "relocked": false,
+  "tx": "0xd8b2bc2fc7114e705e6a081ff93b84e8c112c2083a65efcb0f255e57349c4e35"
+ },
+ {
+  "kind": "W",
+  "epoch": 2900,
+  "block": 23035423,
+  "amount": "217894080658246220929682",
+  "relocked": false,
+  "tx": "0x3aa52d2bce6a421c342c7f1bb64192f11b3298bd32f4f9a6eeb174142fd61cd9"
+ },
+ {
+  "kind": "W",
+  "epoch": 2901,
+  "block": 23085516,
+  "amount": "151657547029302965133029",
+  "relocked": false,
+  "tx": "0x441ba4f4cdb0458a629d050d64a74c0369c157eab9eddcf4f63378110bfe0e9d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2902,
+  "block": 23135621,
+  "amount": "50394617985399699577222",
+  "relocked": false,
+  "tx": "0xaac34f17998fd8678690e1c159b57b222c84a1f0e44d223255153efd789b8f2d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2903,
+  "block": 23185788,
+  "amount": "19596883818465724341619",
+  "relocked": false,
+  "tx": "0x2a992be916c345382531128702e7fe9e77125a807ed10ef77015a2e41c81f9f7"
+ },
+ {
+  "kind": "W",
+  "epoch": 2904,
+  "block": 23235947,
+  "amount": "206520412180208324636716",
+  "relocked": false,
+  "tx": "0xe0a00b9265f38ba71ed52b010e54f1877dd1ba2782d617d0bec859ee323b9736"
+ },
+ {
+  "kind": "W",
+  "epoch": 2905,
+  "block": 23286091,
+  "amount": "468542160377814133012993",
+  "relocked": false,
+  "tx": "0x661112f04d9a0bbe93157799c24925942767580bf42d64a4d2de162342a4ae7e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2906,
+  "block": 23336156,
+  "amount": "113711747748554857989854",
+  "relocked": false,
+  "tx": "0xa97ed5bac07d922644711e1d4b91f4d6d17dad7a9de2b0092c6785aa9e9f5c32"
+ },
+ {
+  "kind": "W",
+  "epoch": 2907,
+  "block": 23386296,
+  "amount": "494955561448869315924023",
+  "relocked": false,
+  "tx": "0xbd090fcac99fb84aa5420aedd8a5bab5ffd14da52afbf4e2b093796f0411f440"
+ },
+ {
+  "kind": "W",
+  "epoch": 2908,
+  "block": 23436390,
+  "amount": "178897184676942668017047",
+  "relocked": false,
+  "tx": "0x534d2ac23bfd0b29bc673b68bf029fda2f08aaa302eee0b645aa2dcf00cccc28"
+ },
+ {
+  "kind": "W",
+  "epoch": 2909,
+  "block": 23486549,
+  "amount": "731794827642114282492555",
+  "relocked": false,
+  "tx": "0x906ab5e407de0e83200837049cd11ded73e752ac6defce39c9e976265febc5a3"
+ },
+ {
+  "kind": "W",
+  "epoch": 2910,
+  "block": 23536513,
+  "amount": "242932914774641639336397",
+  "relocked": false,
+  "tx": "0x69b895125c6c358ef0c558fad285c4620e3b232ba9385ebefc191e18d6f8357b"
+ },
+ {
+  "kind": "W",
+  "epoch": 2911,
+  "block": 23586586,
+  "amount": "171107701748788713161961",
+  "relocked": false,
+  "tx": "0x4492547633cf49e9f8f04fb9a80133ff36336e1cdbe1ddd35c6ce5b6b1cd37f7"
+ },
+ {
+  "kind": "W",
+  "epoch": 2912,
+  "block": 23636544,
+  "amount": "156860544268214151503555",
+  "relocked": false,
+  "tx": "0x2a84ec7eb45681993edc1cecef1a334bac426cb32c16f19a8ca1850fc9518cba"
+ },
+ {
+  "kind": "W",
+  "epoch": 2913,
+  "block": 23686568,
+  "amount": "57831044106023347499087",
+  "relocked": false,
+  "tx": "0x8ac2eb4e4094930954bb1b6a9496c4844d754bd38aa06a125fee744a7b5aa2d3"
+ },
+ {
+  "kind": "W",
+  "epoch": 2914,
+  "block": 23736578,
+  "amount": "398495615860886323143569",
+  "relocked": false,
+  "tx": "0xe95ca887198a404255ea495cf3c0029c433ad6663ffdd2337d9913c5fd4e8755"
+ },
+ {
+  "kind": "W",
+  "epoch": 2915,
+  "block": 23786631,
+  "amount": "110851162555287833089200",
+  "relocked": false,
+  "tx": "0x376f140674e5718c873269a106c49774c17c02faea68c58f029c64737f4222a3"
+ },
+ {
+  "kind": "W",
+  "epoch": 2916,
+  "block": 23836595,
+  "amount": "387699195093529189544802",
+  "relocked": false,
+  "tx": "0x6d9b20b1554cf574bcca23f4bbdaab5a3b55582fa48fc22ab6a05a07a60512a8"
+ },
+ {
+  "kind": "W",
+  "epoch": 2917,
+  "block": 23886395,
+  "amount": "105859666824353078886454",
+  "relocked": false,
+  "tx": "0xc37f991d16118b83f8ad78aa1a797f21912d776bcf47b61469bca1ade4d65613"
+ },
+ {
+  "kind": "W",
+  "epoch": 2918,
+  "block": 23936366,
+  "amount": "69741349031931945897926",
+  "relocked": false,
+  "tx": "0x61b92ecb296c53ade4fc798ae6451b1733ef3396effc04d3c3bcea8442a09edc"
+ },
+ {
+  "kind": "W",
+  "epoch": 2919,
+  "block": 23985785,
+  "amount": "67139303992353160114243",
+  "relocked": false,
+  "tx": "0xb3939bde116c5dc666ff30d3a9b1e2c36f75ab9a539b371d95fe352dc9efac83"
+ },
+ {
+  "kind": "W",
+  "epoch": 2920,
+  "block": 24035897,
+  "amount": "22014233579901651112287",
+  "relocked": false,
+  "tx": "0xf8a4aebc0c33dc514a78b00ebeafe8934a8f614171cea622ac622441c6887d38"
+ },
+ {
+  "kind": "W",
+  "epoch": 2921,
+  "block": 24085974,
+  "amount": "242127664111315843751367",
+  "relocked": false,
+  "tx": "0x2c92dde18e4c3f410da25b807d47fd314e7e2b3f96b833448bb109c6e7e3fc3e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2922,
+  "block": 24136110,
+  "amount": "313453094163958377913239",
+  "relocked": false,
+  "tx": "0x49238fc913042597904733bcac489583f221d510febe024c9941f5cdad743b70"
+ },
+ {
+  "kind": "W",
+  "epoch": 2923,
+  "block": 24186292,
+  "amount": "30073558632178672392731",
+  "relocked": false,
+  "tx": "0xc77d6f0cf41c7d06cc907a63a509adbe93c312a94dd1df9408a934c86fb1dfcb"
+ },
+ {
+  "kind": "W",
+  "epoch": 2924,
+  "block": 24236439,
+  "amount": "469907019837317988385766",
+  "relocked": false,
+  "tx": "0x4d65e8405b68c81ec5d36d7794341e0f7077a72327969b81a70a98eaf96839cc"
+ },
+ {
+  "kind": "W",
+  "epoch": 2925,
+  "block": 24286659,
+  "amount": "158503251904151037455694",
+  "relocked": false,
+  "tx": "0x737353367486abac72e49bb33e3f366cf0cd765bb49656898f6a4dcd9b48785f"
+ },
+ {
+  "kind": "W",
+  "epoch": 2926,
+  "block": 24336837,
+  "amount": "739370592127899096112186",
+  "relocked": false,
+  "tx": "0x5ec4329e8a4857e4f5e04ae89b348c111d9ded182571a53fba917f93eac5b569"
+ },
+ {
+  "kind": "W",
+  "epoch": 2927,
+  "block": 24386964,
+  "amount": "223871232273159604505066",
+  "relocked": false,
+  "tx": "0xe5178fcc2eec87e04ade9ed98cae34662c2f449834ef4490b42022aef6c325c1"
+ },
+ {
+  "kind": "W",
+  "epoch": 2928,
+  "block": 24437022,
+  "amount": "173009177932096271128931",
+  "relocked": false,
+  "tx": "0xd387a1b15964fb3b9b8aacaaaabdd66278b238345ce6234697f185d24a961f0b"
+ },
+ {
+  "kind": "W",
+  "epoch": 2929,
+  "block": 24487217,
+  "amount": "140469403309009103157960",
+  "relocked": false,
+  "tx": "0x5449297d62fd951015d33e13a335021aa99d6332c6e7b5d9a4f4db858ce4b10e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2930,
+  "block": 24537415,
+  "amount": "259782349645556508574145",
+  "relocked": false,
+  "tx": "0x9b79ba4a3c8ec923e72a88340128faaf1c6d5451822f85e3d1f4652cd863e765"
+ },
+ {
+  "kind": "W",
+  "epoch": 2931,
+  "block": 24587588,
+  "amount": "305169753944819543026583",
+  "relocked": false,
+  "tx": "0x9a96346908989565eb85c7acfe5016c8d28e948d3ad930f1f9267c4cda15979d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2932,
+  "block": 24637711,
+  "amount": "112955007968209504770478",
+  "relocked": false,
+  "tx": "0xc8c5929b61a1ccb4e0c7d4eb80b4631fd1f4acee5841a7cbcfcc753513adc4e2"
+ },
+ {
+  "kind": "W",
+  "epoch": 2933,
+  "block": 24687858,
+  "amount": "367911324094086683503441",
+  "relocked": false,
+  "tx": "0xf518ac60cd333d2a07564e9b5f112717805edb813f95467df4ab3cb96580f03e"
+ },
+ {
+  "kind": "W",
+  "epoch": 2934,
+  "block": 24738131,
+  "amount": "74941307685764372660473",
+  "relocked": false,
+  "tx": "0x43325b1340961025dab6467cea06c9dfc079bd94b000e3b60ff0495a54e0a53d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2935,
+  "block": 24788244,
+  "amount": "59868319880133389273814",
+  "relocked": false,
+  "tx": "0x54143cb617c5925fbe18c826f4029b076ecd961d882a8cba9ec70992ecb3348d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2936,
+  "block": 24838485,
+  "amount": "51567539624367296572942",
+  "relocked": false,
+  "tx": "0x0e2d77f6013eeebab464619fbc0c89ba73946bbbc1518a2d8e6c6cf982ef8bb0"
+ },
+ {
+  "kind": "W",
+  "epoch": 2937,
+  "block": 24888713,
+  "amount": "22366666860398759445552",
+  "relocked": false,
+  "tx": "0x17d150fd34e0993d13b3233205407bd90111962915d9cff0a2010249909e8f33"
+ },
+ {
+  "kind": "W",
+  "epoch": 2938,
+  "block": 24947360,
+  "amount": "199019664663032059156256",
+  "relocked": false,
+  "tx": "0x08499e53a4fe92c80760faee49c4eccd8ece9c2ddb01c63e12230b2448521223"
+ },
+ {
+  "kind": "W",
+  "epoch": 2939,
+  "block": 24989242,
+  "amount": "305089295513012704524831",
+  "relocked": false,
+  "tx": "0xb71a24ee1b4ce8d14b8220262b57b4a405dd169380f6053e358821da09ff7a21"
+ },
+ {
+  "kind": "W",
+  "epoch": 2940,
+  "block": 25039485,
+  "amount": "153474940684236656451186",
+  "relocked": false,
+  "tx": "0xe9c3316d88ae07c41e87951bfbaf7b8eb36e82652a70313a508d1c1c86e42a27"
+ },
+ {
+  "kind": "W",
+  "epoch": 2941,
+  "block": 25090343,
+  "amount": "465491950982314738168528",
+  "relocked": false,
+  "tx": "0x390f37ffc9609adb0b2be7a403b6416717c41e27a408889665417bdea879012b"
+ },
+ {
+  "kind": "W",
+  "epoch": 2942,
+  "block": 25139944,
+  "amount": "158529240458833444913550",
+  "relocked": false,
+  "tx": "0xd7ccf40fe47ce6d3f81f8bd7aab1811b72187f020a1214d807891ed16f4f6a95"
+ },
+ {
+  "kind": "W",
+  "epoch": 2943,
+  "block": 25190164,
+  "amount": "735833875943567775377571",
+  "relocked": false,
+  "tx": "0x6f3da889967098f6a526d3548cf29ac838afe171b1c4c8f2916bf99fcac1a623"
+ },
+ {
+  "kind": "W",
+  "epoch": 2944,
+  "block": 25240354,
+  "amount": "221019618670125900872211",
+  "relocked": false,
+  "tx": "0xa6ba62309ca15ce04be6d45391d53b36bd8930813ec1ff22ef3b6397cb6db4c8"
+ },
+ {
+  "kind": "W",
+  "epoch": 2945,
+  "block": 25290543,
+  "amount": "175717621265659958919087",
+  "relocked": false,
+  "tx": "0x06b14a25382920ed27eefc4f9060ccb9f5c9d90466ccb634e3d957391db3b59d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2946,
+  "block": 25340769,
+  "amount": "111561014288777265644057",
+  "relocked": false,
+  "tx": "0x44fb3b4ca9e64b9f35d6de7d11608c046a0a585a6bf62ca408fa2691ca76d8d1"
+ },
+ {
+  "kind": "W",
+  "epoch": 2947,
+  "block": 25390961,
+  "amount": "270702898840760443051034",
+  "relocked": false,
+  "tx": "0x459b65b1e16067cee9504a633f9f93d3d19d6f75ea714a1d32046dee08fc415b"
+ },
+ {
+  "kind": "W",
+  "epoch": 2948,
+  "block": 25441156,
+  "amount": "392410716814006886098807",
+  "relocked": false,
+  "tx": "0x7050dbf5aedcf8130d9870a1734d56ac8aaaf0e9a221cea3c6ca069674b3d5dc"
+ },
+ {
+  "kind": "W",
+  "epoch": 2949,
+  "block": 25491348,
+  "amount": "61205204648109848406204",
+  "relocked": false,
+  "tx": "0xfc0d048425d6b2fbdd161a53b78176a8fd097fac4c2635f74dfe1caba615b636"
+ },
+ {
+  "kind": "W",
+  "epoch": 2950,
+  "block": 25541551,
+  "amount": "357426438317431317519709",
+  "relocked": false,
+  "tx": "0xaa8197e4018156e407ac8169fb417fade3ffd32e9b7685fc628eb123948d947d"
+ },
+ {
+  "kind": "W",
+  "epoch": 2951,
+  "block": 25591759,
+  "amount": "125239272469155228482469",
+  "relocked": false,
+  "tx": "0x74081aab3e3433052edb145729aef58a63b3523d961d139d1eee6275cd2b12c5"
+ },
+ {
+  "kind": "W",
+  "epoch": 2952,
+  "block": 25641989,
+  "amount": "62189291679010198207508",
+  "relocked": false,
+  "tx": "0xac9df2d1b510c60267249ba1b40c9aea0715095e0b8e18a95af663a3feaa5240"
+ },
+ {
+  "kind": "W",
+  "epoch": 2953,
+  "block": 25692224,
+  "amount": "16269921071230065221931",
+  "relocked": false,
+  "tx": "0xbccb00560a909c74e94fab32657da925d089edc51c013cc1fd6ca80ff03f0863"
+ },
+ {
+  "kind": "W",
+  "epoch": 2954,
+  "block": 25774267,
+  "amount": "5358722883404238509958",
+  "relocked": false,
+  "tx": "0x5e955a43054f5d19718d5719407467dbdfbd7a3f1ede4dff35a3103d3ad53b86"
+ },
+ {
+  "kind": "W",
+  "epoch": 2955,
+  "block": 25792655,
+  "amount": "193521111617753170823541",
+  "relocked": false,
+  "tx": "0xcef2de2234c52e53bc73e3856bf047c2c19a3dde081996980f0e0bf9ba4876d0"
+ },
+ {
+  "kind": "W",
+  "epoch": 2956,
+  "block": 25843180,
+  "amount": "296115184094282407715670",
+  "relocked": false,
+  "tx": "0xdd205a06d6644064fe001254983acdc1434af2a9c051bd8264ba8b96c0f51655"
+ }
+]
