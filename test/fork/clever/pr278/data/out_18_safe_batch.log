@@ -1,0 +1,47 @@
+fork 区块 25932658
+MultiSendCallOnly 0x40A2aCCbd92BCA938b02010E17A5b8929b49130D 字节码长度 410 字节
+
+=== T1:升级前后存储布局回归(升级后立即读,不调用任何函数)===
+  比对 31 项(公开 getter + 原始 slot + 一个用户结构)
+  全部一致 —— 存储布局无变化
+
+=== T2:真实 6-of-9 Safe 原子批次(upgrade + processUnlockableCVX)===
+  执行前:epoch 2974 tranche=341.340240726504422476  unlockable=112087.541533595236886262  → 执行后应为 112428.881774321741308738
+  Safe nonce=287  门槛=6/9  safeTxHash=0x6fa1f57d6835fedcb0961a442b39f1166afca172a9738086a59b328b59108306
+  签名人(前 6 个 owner,按地址排序):
+    0x38a93e70b0D8343657f802C1c3Fdb06aC8F8fe99
+    0x85DB62FdFA9Ee6050f8b422F74D75D2069dA102B
+    0x8EcAB7B8ed8215cA52500cbf1548B9239173ef82
+    0xcdF067F306E7a511Ef701588AFCdcff292B19282
+    0xe3522d85d37F55735e9327CD7a5cDe3abaf28E03
+    0xeF0Ca09fbf9a5f61E657Fb208b46b8685c1d4766
+  execTransaction 成功,gasUsed=308178
+  执行后 proxy implementation = 0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534  OK
+  pendingUnlocked[2957] = 0.0   (期望 0)
+  pendingUnlocked[2838] = 146396.418713827263680565   (期望 146396.418713827263680565)
+  Convex unlockable     = 0.0   (期望 0)
+  residue 16 新 tranche(epoch 2974)= 112428.881774321741308738   OK(= 执行前 tranche + unlockable)
+
+=== T3:批次内任一步失败时的原子性(故意放两次 processUnlockableCVX)===
+  execTransaction 回滚 -> VM Exception while processing transaction: reverted with reason string 'GS013'
+  代理 implementation = 0xDFC1F72D5604020463318ff256433eca02B355d2  仍是旧实现 —— 升级已随整批回滚
+
+=== T4:2957 与 2958 之间的无权限函数干扰(出资来自无关大户,不动 Locker 余额)===
+  2957 调用后直接余额 = 15410.555678854473047879
+  donate(100) 成功 -> 直接余额 = 15410.555678854473047879
+  harvest 回滚 -> VM Exception while processing transaction: reverted with reason string 'Furnace: distribute zero CVX'
+  干扰后直接余额 = 15410.555678854473047879   >= 3,173,2958 应可过
+  epoch 2958 成功
+
+=== T5:plan B 兜底批次走真实 Safe 流程(直接余额被真实提款清零后)===
+  真实用户提款后直接余额 = 0.0
+  Safe 当前 CVX 余额     = 2020.968392124635998893   (plan B 需要 3,173)
+  用 Safe 当前余额执行 plan B:回滚 -> VM Exception while processing transaction: reverted with reason string 'GS013'
+  给 Safe 补 1152.031607875364001107 CVX 后余额 = 3173.0
+  plan B 执行成功,gasUsed=400123  safeTxHash=0x317dc5efcf49710fe818bbbcbea66b8180618bba5a2d550fec2d6821cc5fb62b
+  pendingUnlocked[2958] = 0.0   (期望 0)
+  locker owner()         = 0xFC08757c505eA28709dF66E54870fB6dE09f0C5E  == Safe 本身
+  Safe CVX 余额          = 3173.0 → 3173.0   净变化 0.0
+  内部账本 − Convex 物理额 = 100901.280927075760550739
+
+全部完成

@@ -1,7 +1,7 @@
 # CLever CVX Locker PR #278 已部署实现复验
 
 > 作者:Gilbert
-> 状态:v1.0(2026-09-08)
+> 状态:v1.1(2026-09-08,新增真实 6-of-9 批次执行、存储布局回归、链上前置条件与 plan B 余额缺口)
 > 复验对象:主网 implementation [`0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534`](https://etherscan.io/address/0xbfb3a7a5fbb9207dea82fe06db4075b8caeda534)
 > 对应源码:[PR #278](https://github.com/AladdinDAO/aladdin-v3-contracts/pull/278) @ [`680b0c9`](https://github.com/AladdinDAO/aladdin-v3-contracts/commit/680b0c9b453a6c1232901d75cd49c3dc0592df6d)
 > 主网 Locker 代理:[`0x96C68D861aDa016Ed98c30C810879F9df7c64154`](https://etherscan.io/address/0x96C68D861aDa016Ed98c30C810879F9df7c64154)
@@ -16,7 +16,9 @@
 
 距 epoch 2958 开始(`2026-09-10 08:00` 北京时间)还有约 **35 小时**。执行方是 6-of-9 的 Safe,签名收集时间需要计入。
 
-上线动作是单笔原子 Safe batch:`ProxyAdmin.upgrade(Locker, 0xBfb3A7A5…)` + `processUnlockableCVX()`,必须在 epoch 2957 之内上链。epoch 2958 那一周需要有人盯,并备好 `3,173 CVX` 作为兜底(第 9 节)。
+上线动作是单笔原子 Safe batch:`ProxyAdmin.upgrade(Locker, 0xBfb3A7A5…)` + `processUnlockableCVX()`,必须在 epoch 2957 之内上链。该批次已按真实 6-of-9 `execTransaction` 流程执行验证通过(第 4 节),gas `308,178`。
+
+**一项需要先处理的准备工作**:epoch 2958 的兜底批次要求 Safe 在执行时刻持有 `3,173 CVX`,而 Safe 当前只有 `2,020.968392124635998893 CVX`,差 `1,152.031607875364001107`。按现有余额执行兜底批次会以 `GS013` 回滚(实测)。补足后该批次执行成功,且因 `owner()` 就是 Safe 本身,这 `3,173` 在同一笔交易内原路返回,Safe 净变化为 `0`(第 9 节)。
 
 ## 1. 部署信息与字节码核对
 
@@ -79,15 +81,77 @@ CVX 余额                            = 0
 
 唯一变化是一笔 `67.143393194642331263 CVX` 的新 deposit。迁移逻辑读取的每一个值都未变动。该 deposit 发生在 epoch 2957,按 `deposit()` 的行为([L351-L356](https://github.com/AladdinDAO/aladdin-v3-contracts/blob/680b0c9b453a6c1232901d75cd49c3dc0592df6d/contracts/clever/CLeverCVXLocker.sol#L351-L356))它同时增加 residue 16 的内部需求与同一 Convex tranche 的物理量——第 6 节的逐槽对账实测确认了这一点。
 
-## 4. 升级路径
+### 3.1 链上前置条件
 
-fork 到区块 `25932658`,以 Safe 身份经 ProxyAdmin 升级:
+```
+Convex CVXLockerV2
+  isShutdown             = false          (lock() 可用;若为 true 则 relock 会失败)
+  rewardsDuration        = 604800
+  kickRewardEpochDelay   = 4 epoch
+  已到期那笔的到期 epoch   = 2957
+  → 最早可被第三方 kick 的 epoch = 2961
+
+代理与多签
+  ProxyAdmin.getProxyAdmin(Locker)          = 0x1F57286F7a8083fb363d87Bc8b1DCcD685dc87EE
+  ProxyAdmin.getProxyImplementation(Locker) = 0xDFC1F72D5604020463318ff256433eca02B355d2
+  ProxyAdmin.owner                          = 0xFC08757c505eA28709dF66E54870fB6dE09f0C5E
+  Locker owner()                            = 0xFC08757c505eA28709dF66E54870fB6dE09f0C5E  (同一个 Safe)
+  Safe v1.3.0,门槛 6/9,nonce 287
+  Safe CVX 余额                              = 2,020.968392124635998893   (兜底需 3,173,详见第 9 节)
+
+基准区块以来 Convex 侧事件
+  Withdrawn  = 0 笔        KickReward = 0 笔
+```
+
+`kickRewardEpochDelay = 4` 意味着当周到期的 `112,087.541533595236886262 CVX` 在 epoch 2961 之前不可能被第三方 kick 走,因此 epoch 2957 与 2958 两个窗口不存在 kick 风险。
+
+## 4. 升级路径与真实上线批次
+
+fork 到区块 `25932658`。
+
+**基础升级**:
 
 ```
 升级前 proxy implementation   0xDFC1F72D5604020463318ff256433eca02B355d2
 升级后 proxy implementation   0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534
 isKeeper(bot) = true    isKeeper(Safe) = true    owner = 0xFC08757c...0C5E
 ```
+
+**存储布局回归**——升级后立即读取、不调用任何函数,比对 31 项(16 个公开 getter、6 个 `pendingUnlocked` 槽位、8 个原始 storage slot、一个用户结构):
+
+```
+全部一致 —— 存储布局无变化
+```
+
+这与 diff 的形态相符:新版本只增加了 `constant`(不占存储)并注释掉一个函数,没有新增或改动状态变量。
+
+**真实 6-of-9 原子批次**——`Safe.execTransaction` → delegatecall `MultiSendCallOnly v1.3.0`(`0x40A2aCCbd92BCA938b02010E17A5b8929b49130D`)→ `[ProxyAdmin.upgrade, Locker.processUnlockableCVX]`,由前 6 个 owner 逐个 `approveHash` 后执行:
+
+```
+Safe nonce = 287,门槛 6/9
+execTransaction 成功,gasUsed = 308,178
+
+执行后 proxy implementation = 0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534
+pendingUnlocked[2957]       = 0
+pendingUnlocked[2838]       = 146,396.418713827263680565
+Convex unlockable           = 0
+epoch 2974 的 tranche        = 执行前 tranche(341.340240726504422476)
+                              + 执行前 unlockable(112,087.541533595236886262)
+                              = 112,428.881774321741308738
+```
+
+`processUnlockableCVX()` 在批次里由 Safe 发起,`isKeeper(Safe) = true` 成立。
+
+**批次原子性**——把批次故意改成 `[upgrade, process, process]`(第二次 `process` 必然以 `no exp locks` 失败):
+
+```
+execTransaction 回滚 GS013
+代理 implementation 仍为 0xDFC1F72D5604020463318ff256433eca02B355d2 —— 升级随整批回滚
+```
+
+因此批次不会停在「已升级但未执行 2957 前置」的中间状态。
+
+**safeTxHash 需要交叉校验**:准备批次时,合约 `getTransactionHash()` 的读数应与按 EIP-712 独立复算的值(`domainSeparator` + `SafeTx` structHash)比对一致后再拿去签名。本次验证中曾出现单次读数与真值不一致的情况,双算即可发现。
 
 ## 5. 逐周执行
 
@@ -168,6 +232,19 @@ epoch 2970  从 reward pool 取出 34,026.015422000580637045 CVX
 epoch 2971  从 reward pool 取出 25,640.814884436910832039 CVX
 ```
 
+### 7.1 两次调用之间的无权限函数干扰
+
+epoch 2957 与 2958 之间隔着整整一周,期间任何人都能调用 `donate()` 与 `harvest()`。实测(出资来自一个与本协议无关的 CVX 大户,不动 Locker 自身余额):
+
+```
+2957 调用后直接余额        = 15,410.555678854473047879
+donate(100) 成功后         = 15,410.555678854473047879   (未变)
+harvest 回滚 'Furnace: distribute zero CVX'(未移动任何资金)
+epoch 2958                = 成功
+```
+
+`donate()` 收到的 CVX 会在同一笔交易里全额转给 Furnace,而 `_distribute` 的 80% 质押目标当前恰好等于已质押量([L1138](https://github.com/AladdinDAO/aladdin-v3-contracts/blob/680b0c9b453a6c1232901d75cd49c3dc0592df6d/contracts/clever/CLeverCVXLocker.sol#L1138)),因此不会再往 reward pool 转移直接余额。**能把直接余额清零的只有用户提款**——这把 epoch 2958 的风险面收窄到了单一来源。
+
 ## 8. 负面场景复现
 
 这些场景测的是「不按要求执行会怎样」,用来量化各条前置条件的代价。
@@ -192,6 +269,8 @@ epoch 2971  从 reward pool 取出 25,640.814884436910832039 CVX
 1. `ProxyAdmin.upgrade(0x96C68D86…4154, 0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534)`
 2. `CLeverCVXLocker.processUnlockableCVX()`
 
+签名前核对 `safeTxHash`:合约 `Safe.getTransactionHash(...)` 的读数,与按 EIP-712 独立复算的值比对一致(见第 4 节)。
+
 执行前按当天最新区块重跑一次逐周模拟(读实时 pre-state),再核对:
 
 ```
@@ -206,9 +285,34 @@ pendingUnlocked[2752]            == 0
 Convex unlockable                == 112,087.541533595236886262
 ```
 
-执行后立即核对:`pendingUnlocked[2957] == 0`、`pendingUnlocked[2838] == 146,396.418713827263680565`、Convex `unlockable == 0`、新 tranche 的 `unlockTime / 604800 == 2974`。这一步不修复用户提款,`0xB828…Fd2a` 要等 epoch 2958 之后。
+执行后立即核对:
 
-**epoch 2958 之前**:手上备好 `3,173 CVX`,并预先准备一个「转 `3,173` 给 Locker + `processUnlockableCVX()`」的 Safe batch 作为 plan B。这一周必须有人盯——漏掉整周会在 epoch 2971 崩。
+```
+pendingUnlocked[2957]          == 0
+pendingUnlocked[2838]          == 146,396.418713827263680565
+Convex unlockable              == 0
+epoch 2974 的 tranche 增量       == 执行前的 Convex unlockable
+```
+
+最后一项要按「执行前 tranche + 执行前 unlockable」这个关系核,不要写死金额——epoch 2957 内的任何新 deposit 都会同额抬高这个 tranche(本次复验时它已从 `112,361.738381127098977475` 变成 `112,428.881774321741308738`,差值正是那笔 `67.14` 新存款)。
+
+这一步不修复用户提款,`0xB828…Fd2a` 要等 epoch 2958 之后。
+
+**epoch 2958 之前**——两件事:
+
+其一,**给 Safe 补 CVX**。兜底批次要求 Safe 在执行时刻持有 `3,173 CVX`:
+
+```
+Safe 当前 CVX 余额   = 2,020.968392124635998893
+兜底所需             = 3,173
+缺口                 = 1,152.031607875364001107
+```
+
+按当前余额执行兜底批次会以 `GS013` 回滚(实测)。补足后执行成功(实测 gasUsed `400,123`);且 `owner()` 就是 Safe 本身,这 `3,173` 在同一笔交易内原路返回,**Safe 净变化为 `0`**——它只需要在执行时刻账上有这笔钱。
+
+其二,**准备好 plan B 批次**:`[CVX.transfer(Locker, 3173), Locker.processUnlockableCVX()]`,与主批次同样走 6-of-9。转账金额固定为 `3,173`,这样执行前若发生一笔提款也不影响(第 8 节)。
+
+这一周必须有人盯——漏掉整周会在 epoch 2971 崩。能把直接余额清零的只有用户提款,`donate()` / `harvest()` 做不到(第 7.1 节)。
 
 **epoch 2958**:先读直接余额,尽早执行(不足 `3,173` 时走 plan B);执行后核对 `pendingUnlocked[2958] == 0`、`totalCVXInPool == totalUnlockedGlobal`、`netBorrow == 104,074.280927075760550739`、`0xB828…Fd2a` 的 `withdrawUnlocked()` 模拟成功。
 
@@ -233,6 +337,9 @@ node test/fork/clever/pr278/15-reconcile-latest.mjs
 # 提款压力 / 全部负面场景
 FORK_BLOCK=<同上> npx hardhat run test/fork/clever/pr278/16-withdrawals-deployed.ts
 FORK_BLOCK=<同上> npx hardhat run test/fork/clever/pr278/17-scenarios-deployed.ts
+
+# 存储布局回归 / 真实 6-of-9 原子批次 / 批次原子性 / 无权限干扰 / plan B
+FORK_BLOCK=<同上> npx hardhat run test/fork/clever/pr278/18-safe-batch-deployed.ts
 ```
 
-[`13`](../test/fork/clever/pr278/13-verify-deployed-impl.ts)–[`17`](../test/fork/clever/pr278/17-scenarios-deployed.ts) 这五个脚本以「升级到部署地址 + 手写 ABI」的方式工作,不引用仓库里的合约源码,因此在任何分支上运行都测的是链上那份字节码。本次运行的原始输出存于 [`data/out_16_withdrawals.log`](../test/fork/clever/pr278/data/out_16_withdrawals.log) 与 [`data/out_17_scenarios.log`](../test/fork/clever/pr278/data/out_17_scenarios.log)。
+[`13`](../test/fork/clever/pr278/13-verify-deployed-impl.ts)–[`17`](../test/fork/clever/pr278/17-scenarios-deployed.ts) 这五个脚本以「升级到部署地址 + 手写 ABI」的方式工作,不引用仓库里的合约源码,因此在任何分支上运行都测的是链上那份字节码。本次运行的原始输出存于 [`data/out_16_withdrawals.log`](../test/fork/clever/pr278/data/out_16_withdrawals.log) 、[`data/out_17_scenarios.log`](../test/fork/clever/pr278/data/out_17_scenarios.log) 与 [`data/out_18_safe_batch.log`](../test/fork/clever/pr278/data/out_18_safe_batch.log)。
