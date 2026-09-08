@@ -1,0 +1,21 @@
+fork 区块 25932658
+
+=== A:把 Safe 的 CVX 全部转走,再执行 epoch 2957 主路径 ===
+  Safe CVX 余额清为 0.0(原 2020.968392124635998893)
+  epoch 2957: 成功 gas=236665
+  → 2957 批次不需要 Safe 持有任何 CVX
+
+=== B:Safe 零 CVX,Locker 保持原有余额,执行 2957 + 2958 ===
+  epoch 2957: 成功 gas=236665
+  Locker 直接余额 = 15410.555678854473047879   Safe = 0.0
+  epoch 2958: 成功 gas=338337
+  owner() 收到 CVX = 3173.0
+  → 主路径 2958 只依赖 Locker 自身余额,Safe 可以是 0
+
+=== C:阈值 —— Locker 直接余额恰好 3,173 与差 1 wei ===
+  [恰好 3,173] 提款后直接余额 = 0.0
+             补到 3173.0
+             epoch 2958: 成功 gas=338337
+  [3,173 差 1 wei] 提款后直接余额 = 0.0
+             补到 3172.999999999999999999
+             epoch 2958: 回滚 -> VM Exception while processing transaction: reverted with reason string 'ERC20: transfer am
