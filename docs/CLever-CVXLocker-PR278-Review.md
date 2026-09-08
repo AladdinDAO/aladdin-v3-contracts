@@ -1,7 +1,7 @@
 # CLever CVX Locker PR #278 复核
 
 > 作者:Gilbert
-> 状态:v1.4(2026-09-08,新增第 13 节:对主网已部署 implementation 的复验)
+> 状态:v1.3(2026-09-08,测试覆盖边界、负面场景结论、交付物问题分列为第 7、8、9 节)
 > 复核对象:[PR #278](https://github.com/AladdinDAO/aladdin-v3-contracts/pull/278) @ [`680b0c9`](https://github.com/AladdinDAO/aladdin-v3-contracts/commit/680b0c9b453a6c1232901d75cd49c3dc0592df6d)(base = `main` @ `814b87c`)
 > 主网 Locker:[`0x96C68D861aDa016Ed98c30C810879F9df7c64154`](https://etherscan.io/address/0x96C68D861aDa016Ed98c30C810879F9df7c64154)
 > 基准区块:`25924517`(timestamp `1788772499`,epoch 2957)
@@ -12,8 +12,6 @@
 ## 结论:可以按现有 commit 上线,没有发现代码缺陷
 
 从当前主网区块起做逐周模拟,epoch 2957→2975 的 19 次 `processUnlockableCVX()` 全部成功,最终 484 个用户的账本、三个 global 变量、Convex 17 个物理 tranche 三者逐项对平,差额全部为 `0`;125 笔真实提款(合计 `246,569.350232224123289803 CVX`)零失败。5 个 hardcode 常量与 Convex 历史上真实到期的 tranche 金额逐位一致,漏执行的 epoch 恰好只有代码处理的那 4 个。
-
-已部署到主网的 implementation [`0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534`](https://etherscan.io/address/0xbfb3a7a5fbb9207dea82fe06db4075b8caeda534) 的字节码与本报告审计的 `680b0c9` 编译产物逐字节相同,全部结论已在该地址上重跑确认(第 13 节)。
 
 **代码层面没有发现会造成资金损失、越权或账务不可恢复的缺陷。** 交付物层面有 2 项需要明确接受,都不阻塞上线(第 9 节):`initialize()` 注释掉导致新部署路径失效、迁移全程无事件。
 
@@ -376,118 +374,6 @@ implementation deployed keccak == 0xc84c87dcb24aa0afcda4ae018391c163f1f2e6e291c7
 
 **epoch 2975 之后**:确认 `netBorrow == 0`、三项 global 与用户聚合逐项相等、17 个 residue 差额全为 `0`,再升级到去掉一次性 hardcode 的长期版本。
 
-## 13. 已部署 implementation 的复验
-
-上线用的 implementation 已部署到主网。本节的全部数据都取自该地址,不再使用本地编译产物。
-
-### 13.1 身份与字节码
-
-```
-address        0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534
-部署交易        0x31cbe9452d9b0025bdbe2d5e0ef98dd78f6f09787fae40b789b1841f73a825a0
-部署区块        25931637   2026-09-08T09:04:47Z
-部署者          0x83fC663840aaebCc97031d9fE2FEaF9b707Cb4BE   (EOA)
-gasUsed        5,348,223
-
-deployed bytecode size    = 24,511 bytes
-deployed bytecode keccak  = 0xc84c87dcb24aa0afcda4ae018391c163f1f2e6e291c7c33f657250a75df50d52
-第 1 节记录的期望 keccak    = 0xc84c87dcb24aa0afcda4ae018391c163f1f2e6e291c7c33f657250a75df50d52
-```
-
-逐字节相同。Etherscan 已验证为 Exact Match,合约名 `CLeverCVXLocker`,`v0.7.6+commit.7338295f`,optimizer 200 runs——与第 1 节记录的编译设置一致。5 个 `DRIFT_MOD_*` 常量的立即数都能在字节码中定位到。
-
-字节码同一意味着第 5–8、10 节的 EVM 层结论对这份部署原样成立;下面重跑的意义在于覆盖**基准区块之后的链上状态变化**,以及验证升级路径本身。
-
-### 13.2 implementation 自身的状态
-
-```
-owner()                = 0x0000000000000000000000000000000000000000
-isKeeper(Safe / bot)   = false / false
-clevCVX / furnace      = 0x0000000000000000000000000000000000000000
-CVX 余额               = 0
-源码中 selfdestruct / delegatecall = 不存在
-```
-
-`initialize()` 被注释掉(9.1)在这里是安全的一面:没有人能初始化这个 implementation 去占据 `owner`,因此其上所有 `onlyOwner` / `onlyKeeper` 函数都无人可调。合约内没有 `selfdestruct`,不存在把 implementation 销毁、连带打死代理的路径;唯一的任意 `.call` 点由 `approvedTargets` 白名单管控,而该白名单在 implementation 自身的存储里是空的。
-
-### 13.3 复验用的链上基准
-
-区块 `25932658`,仍处于 epoch 2957。与第 1 节基准区块 `25924517` 相比,只有一项变化:
-
-```
-totalLockedGlobal   3,131,764.415383843553497959   (+67.143393194642331263,一笔新 deposit)
-其余全部未变:totalPendingUnlockGlobal、totalUnlockedGlobal、totalCVXInPool、
-            直接余额、reward pool 余额、Convex unlockable、
-            pendingUnlocked[2817] / [2818] / [2838] / [2957] / [2752]
-```
-
-hardcode 依赖的量一个都没动。新增的 deposit 落在 epoch 2957(residue 16),按第 10 节的性质它同时增加 residue 16 的内部需求和同一 tranche 的物理量——下面的逐槽对账实测确认了这一点。
-
-### 13.4 升级路径
-
-fork 到区块 `25932658`,以 Safe 身份通过 ProxyAdmin 升级:
-
-```
-升级前 proxy implementation  0xDFC1F72D5604020463318ff256433eca02B355d2
-升级后 proxy implementation  0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534
-isKeeper(bot) = true    isKeeper(Safe) = true    owner = 0xFC08757c...0C5E
-```
-
-### 13.5 逐周执行与全量对账
-
-epoch 2957→2975 共 19 次 `processUnlockableCVX()` 全部成功,gas 与 `netBorrow` 轨迹与第 5 节逐位相同(2957 `236,665`,2958 `321,237`)。按区块 `25932658` 重新读取全部 484 个用户后:
-
-```
-升级前   用户 locked = global locked,差 = 0            (已含那笔新 deposit)
-         17 槽差额非零项与第 4 节表格完全相同(0 / 12 / 13 / 14 / 15 / 16 六项)
-
-epoch 2958 后  netBorrow = 104,074.280927075760550739
-               global pending − 用户未来 pending = 0
-
-epoch 2975 终局  netBorrow = 0
-                 totalCVXInPool − 用户可提额 = 0
-                 内部账本 − Convex 物理额 = 0
-                 17 槽差额非零项 = 无
-
-owner 在 epoch 2958 收到 = 3,173.000000000000000000
-奖励补偿基数 = 1,511,641.993464825826706737 CVX-weeks
-```
-
-### 13.6 提款压力
-
-2958 起每周处理完立刻让当周全部有可提额的账户提款:
-
-```
-125 笔提款成功,0 笔失败,合计 246,569.350232224123289803 CVX
-受影响账户 0xB828…Fd2a 在 epoch 2958 一次提出 158,982.352179694127953141 CVX
-epoch 2958 当周 102 笔、225,220.626429344806974573 CVX
-reward pool 取款分支触发于 epoch 2970(34,026.015422000580637045)与 2971(25,640.814884436910832039)
-终局 totalUnlockedGlobal = 0,totalCVXInPool = 0,内部 − 物理 = 0
-```
-
-epoch 2970/2971 两周的直接余额为 `0`,全靠 [L751-L753](https://github.com/AladdinDAO/aladdin-v3-contracts/blob/680b0c9b453a6c1232901d75cd49c3dc0592df6d/contracts/clever/CLeverCVXLocker.sol#L751-L753) 从 reward pool 补齐才能 relock——第 6 节的结论在部署字节码上确认。
-
-### 13.7 第 8 节全部负面场景的复现
-
-| 场景 | 结果 | 关键数字 |
-|---|---|---|
-| 升级前的实现在 epoch 2957 调用 | 回滚 `insufficient unlocked CVX` | keeper bot 烧不掉这个窗口 |
-| 同一 epoch 内第二次调用 | 回滚 `no exp locks` | 第 1 次 gas `236,665` |
-| 跳过 epoch 2957 | **epoch 2974 回滚** `SafeMath: subtraction overflow` | 当时 `totalUnlockedGlobal` = `213,099.157799701467539240`;该分支要扣 `232,724.884692421166391761` |
-| 只跳过 hardcode 周 2972 | **19 次调用零回滚**,终局账目错 | `totalUnlockedGlobal` 比用户可提额少 `109,018.720248320938605356` |
-| 2957 后单笔提款清零直接余额 | epoch 2958 回滚 `ERC20: transfer amount exceeds balance` | `0xf60240…ce44` 提走 `15,451.174919`,直接余额 `15,410.555678854473047879` → `0` |
-| 上述情形整周无人补款 | **epoch 2971 回滚** `SafeMath: subtraction overflow` | 代价晚 13 周显形 |
-| 批次内固定补 `3,173` | 2958–2975 全部成功 | admin CVX 净变化 `0`;终局内部−物理 `-3,173`,仅 residue 0 不平 |
-| 抢跑清零后仍固定补 `3,173` | epoch 2958 成功 | 固定值抗抢跑成立 |
-
-八项结果与第 8 节逐位一致。
-
-### 13.8 本节所用脚本
-
-[`13-verify-deployed-impl.ts`](../test/fork/clever/pr278/13-verify-deployed-impl.ts)(升级 + 逐周)、[`14-refresh-snapshot.mjs`](../test/fork/clever/pr278/14-refresh-snapshot.mjs)(按当前区块刷新用户快照)、[`15-reconcile-latest.mjs`](../test/fork/clever/pr278/15-reconcile-latest.mjs)(全量对账)、[`16-withdrawals-deployed.ts`](../test/fork/clever/pr278/16-withdrawals-deployed.ts)(提款压力)、[`17-scenarios-deployed.ts`](../test/fork/clever/pr278/17-scenarios-deployed.ts)(全部负面场景)。
-
-这五个脚本都以「升级到部署地址 + 手写 ABI」的方式工作,不引用仓库里的合约源码,因此在任何分支上运行都测的是链上那份字节码。`07`–`12` 则是用 `getContractFactory` 本地编译部署的,必须在 `fix/clever-lock-drift` 分支上运行才有意义。
-
 ## 附:复现命令
 
 ```bash
@@ -514,13 +400,6 @@ npx hardhat run test/fork/clever/pr278/12-admin-transfer-severity.ts
 
 # 全用户 + 逐槽对账
 node test/fork/clever/pr278/10-reconciliation.mjs
-
-# 对主网已部署 implementation 的复验(第 13 节,不依赖仓库合约源码)
-node  test/fork/clever/pr278/14-refresh-snapshot.mjs
-FORK_BLOCK=<刷新得到的区块> npx hardhat run test/fork/clever/pr278/13-verify-deployed-impl.ts
-node  test/fork/clever/pr278/15-reconcile-latest.mjs
-FORK_BLOCK=<同上> npx hardhat run test/fork/clever/pr278/16-withdrawals-deployed.ts
-FORK_BLOCK=<同上> npx hardhat run test/fork/clever/pr278/17-scenarios-deployed.ts
 ```
 
 各场景对应关系:[`07`](../test/fork/clever/pr278/07-negative.ts) 的 `A` = 升级前的实现在 epoch 2957 调用、`F` = 同 epoch 二次调用、`B` = 跳过 2957;[`08`](../test/fork/clever/pr278/08-liveness.ts) 的 `E` = 单笔提款清零直接余额后的 epoch 2958;[`09`](../test/fork/clever/pr278/09-withdrawal-pressure.ts) 的 `D1` = 逐周全额提款压力、`E2` = 外部补款后跑到 2975;[`11`](../test/fork/clever/pr278/11-missed-epochs.ts) = 跳过 2957 与跳过 2972 两条漏周路径;[`12`](../test/fork/clever/pr278/12-admin-transfer-severity.ts) 的 `F1` = 漏掉整个 epoch 2958、`F2` = admin 固定补款的终局账目、`F3` = 抢跑下固定补款是否仍能通过。
