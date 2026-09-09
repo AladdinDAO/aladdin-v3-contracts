@@ -9,6 +9,10 @@ scripts/@types
 cache
 artifacts
 
+# Foundry files
+cache-foundry
+out-foundry
+
 .store
 
 deployments/fork*
