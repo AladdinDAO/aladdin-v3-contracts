@@ -1,5 +1,5 @@
 {
- "block": 25932658,
+ "block": 25939803,
  "positions": {
   "0x0056d1fd2ca3c0f3a7b6ed6cdd1f1f104b4bf9a9": {
    "locked": "0",
@@ -3325,17 +3325,13 @@
    "pendingUnlocks": []
   },
   "0x7741ad34617fd254e21ac4cdef78382f8dcf56b9": {
-   "locked": "2312613556934532711745",
-   "futurePending": "0",
+   "locked": "263800456934532711745",
+   "futurePending": "2048813100000000000000",
    "claimable": "0",
-   "debt": "1149651974707493336839",
+   "debt": "131900228467266355872",
    "epochLocked": [
     {
-     "amount": "2048813077317612995107",
-     "unlockEpoch": 2958
-    },
-    {
-     "amount": "263800451546596278265",
+     "amount": "263800428864209273372",
      "unlockEpoch": 2960
     },
     {
@@ -3343,7 +3339,16 @@
      "unlockEpoch": 2964
     }
    ],
-   "pendingUnlocks": []
+   "pendingUnlocks": [
+    {
+     "amount": "2048813077317612995107",
+     "unlockEpoch": 2958
+    },
+    {
+     "amount": "22682387004893",
+     "unlockEpoch": 2960
+    }
+   ]
   },
   "0x7804c5f4fd50f7c12845e2951e24858b8c270e35": {
    "locked": "0",

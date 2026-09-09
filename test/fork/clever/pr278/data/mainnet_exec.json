@@ -1,0 +1,31 @@
+{
+ "tx": "0x76f130e6d92a30ed5c0335c0ea7d6760e8e3139ef393565b77cd11ce3b1034ff",
+ "block": 25939803,
+ "timestamp": 1788956771,
+ "epoch": 2957,
+ "gasUsed": "319581",
+ "safeTxHash": "0x1eac9425aaca0894c377fd8297a3257e0734ba90e8e6c9fea286fb5074925a05",
+ "nonce": "287",
+ "signers": [
+  "0x18411aB626c9b3B3Dd5b7356574D8ff396436744",
+  "0x38a93e70b0D8343657f802C1c3Fdb06aC8F8fe99",
+  "0x74390470F4001Ca85D93bD546A4Ab1724359654B",
+  "0x85DB62FdFA9Ee6050f8b422F74D75D2069dA102B",
+  "0xC8Be49a9b1ca1A1cc654491a7cBbD27aBfA06A81",
+  "0xe3522d85d37F55735e9327CD7a5cDe3abaf28E03"
+ ],
+ "ops": [
+  {
+   "op": 0,
+   "to": "0x1F57286F7a8083fb363d87Bc8b1DCcD685dc87EE",
+   "value": "0",
+   "data": "0x99a88ec400000000000000000000000096c68d861ada016ed98c30c810879f9df7c64154000000000000000000000000bfb3a7a5fbb9207dea82fe06db4075b8caeda534"
+  },
+  {
+   "op": 0,
+   "to": "0x96C68D861aDa016Ed98c30C810879F9df7c64154",
+   "value": "0",
+   "data": "0xc5cae252"
+  }
+ ]
+}

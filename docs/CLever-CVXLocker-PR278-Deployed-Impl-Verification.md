@@ -1,7 +1,7 @@
 # CLever CVX Locker PR #278 已部署实现复验
 
 > 作者:Gilbert
-> 状态:v1.2(2026-09-08,新增真实 6-of-9 批次执行、存储布局回归、链上前置条件,并厘清 3,173 CVX 的位置与阈值)
+> 状态:v1.3(2026-09-09,新增第 10 节:主网执行的全链路核对)
 > 复验对象:主网 implementation [`0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534`](https://etherscan.io/address/0xbfb3a7a5fbb9207dea82fe06db4075b8caeda534)
 > 对应源码:[PR #278](https://github.com/AladdinDAO/aladdin-v3-contracts/pull/278) @ [`680b0c9`](https://github.com/AladdinDAO/aladdin-v3-contracts/commit/680b0c9b453a6c1232901d75cd49c3dc0592df6d)
 > 主网 Locker 代理:[`0x96C68D861aDa016Ed98c30C810879F9df7c64154`](https://etherscan.io/address/0x96C68D861aDa016Ed98c30C810879F9df7c64154)
@@ -10,13 +10,13 @@
 
 ---
 
-## 结论:部署的字节码与审计对象逐字节相同,全部验证项在该地址上通过
+## 结论:主网 epoch 2957 批次已执行,全链路核对通过
+
+上线批次已于 `2026-09-09T12:26:11Z`(epoch 2957 窗口内)在主网执行成功:[`0x76f130e6…1034ff`](https://etherscan.io/tx/0x76f130e6d92a30ed5c0335c0ea7d6760e8e3139ef393565b77cd11ce3b1034ff),区块 `25939803`,gasUsed `319,581`。批次内容逐字节解码、6 个签名人、执行前后 40 项状态读数、9 条事件、以及全用户与 17 槽对账,**48 项核对全部通过**,与验证阶段的预测逐位一致(第 10 节)。主网这一笔的 `safeTxHash` 与验证阶段在 fork 上执行的那一笔相同。
 
 `0xBfb3A7A5…` 的 deployed bytecode 与 `680b0c9` 的编译产物 keccak 相同、长度相同,Etherscan 验证为 Exact Match 且编译设置一致。在该地址上重跑了升级路径、19 周逐周执行、484 个用户与 17 个 Convex tranche 的全量对账、125 笔提款、以及 8 个负面场景,结果与代码审计阶段逐位一致。
 
-距 epoch 2958 开始(`2026-09-10 08:00` 北京时间)还有约 **35 小时**。执行方是 6-of-9 的 Safe,签名收集时间需要计入。
-
-上线动作是单笔原子 Safe batch:`ProxyAdmin.upgrade(Locker, 0xBfb3A7A5…)` + `processUnlockableCVX()`,必须在 epoch 2957 之内上链。该批次已按真实 6-of-9 `execTransaction` 流程执行验证通过(第 4 节),gas `308,178`。
+**下一个动作是 epoch 2958 的 `processUnlockableCVX()`**,窗口在 `2026-09-10 08:00` 北京时间开启,距今约 **11 小时**。按执行后的真实状态重算,该周处理后应得 `netBorrow = 104,074.280927075760550739`,与原预期逐位相同;受影响账户 `0xB828…Fd2a` 届时可一次提出 `158,982.352179694127953141 CVX`(第 10.7 节)。
 
 `3,173 CVX` 这项要求落在 **Locker 的直接余额**上,与 Safe 的余额无关:实测把 Safe 的 CVX 清为 `0` 后,epoch 2957 与 2958 两步仍然全部成功。Locker 当前持有 `15,410.555678854473047879`,**主路径不需要任何人补钱**。
 
@@ -264,6 +264,8 @@ epoch 2958                = 成功
 
 ## 9. 上线前核对清单
 
+> epoch 2957 这一步已于 `2026-09-09T12:26:11Z` 在主网执行完成,核对结果见第 10 节。以下保留原清单,`2958` 起的部分仍待执行。
+
 **epoch 2957(截止 `2026-09-10 08:00` 北京时间)**——单笔原子 Safe batch:
 
 1. `ProxyAdmin.upgrade(0x96C68D86…4154, 0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534)`
@@ -334,6 +336,148 @@ Safe 当前 CVX 余额   = 2,020.968392124635998893
 
 **epoch 2975 之后**:确认 `netBorrow == 0`、三项 global 与用户聚合逐项相等、17 个 residue 差额全为 `0`,再升级到去掉一次性 hardcode 的长期版本。
 
+## 10. 主网执行的全链路核对
+
+### 10.1 交易与执行窗口
+
+```
+tx            0x76f130e6d92a30ed5c0335c0ea7d6760e8e3139ef393565b77cd11ce3b1034ff
+区块           25939803   区块哈希 0x6efcc5061d0269878c7aaa181f2a1aae45c67872ad48621064a31c5887c8eb1f
+时间           1788956771   2026-09-09T12:26:11Z
+epoch          2957        (窗口要求:必须落在 2957)
+from           0x38a93e70b0D8343657f802C1c3Fdb06aC8F8fe99   (多签 owner 之一)
+to             0xFC08757c505eA28709dF66E54870fB6dE09f0C5E   (CLever 多签)
+selector       0x6a761202  execTransaction
+status         1  成功
+gasUsed        319,581     手续费 0.000110950560519804 ETH
+```
+
+执行后区块仍在规范链上,已有 59 个以上确认。
+
+### 10.2 批次内容逐字节解码
+
+```
+外层 to                  = 0x40A2aCCbd92BCA938b02010E17A5b8929b49130D  MultiSendCallOnly v1.3.0
+operation                = 1  delegatecall
+value / safeTxGas / baseGas / gasPrice = 0 / 0 / 0 / 0
+gasToken / refundReceiver = 零地址 / 零地址
+
+内层恰好 2 步,均为 CALL、value 0:
+  [1] ProxyAdmin 0x1F57286F…87EE
+      upgrade(0x96C68D861aDa016Ed98c30C810879F9df7c64154,
+              0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534)
+  [2] Locker 0x96C68D86…4154
+      processUnlockableCVX()   selector 0xc5cae252
+```
+
+`safeTxHash = 0x1eac9425aaca0894c377fd8297a3257e0734ba90e8e6c9fea286fb5074925a05`,与本地按 EIP-712 独立复算的值一致,也与验证阶段在 fork 上以 nonce `287` 执行的那一笔相同——上链的批次与验证过的批次在内容上逐字节相同。
+
+### 10.3 签名
+
+执行时 Safe nonce `287`,门槛 `6/9`,签名 `390` 字节 = 6 个,全部为 ECDSA,签名人全部属于当前 owner 集合:
+
+```
+0x18411aB626c9b3B3Dd5b7356574D8ff396436744
+0x38a93e70b0D8343657f802C1c3Fdb06aC8F8fe99
+0x74390470F4001Ca85D93bD546A4Ab1724359654B
+0x85DB62FdFA9Ee6050f8b422F74D75D2069dA102B
+0xC8Be49a9b1ca1A1cc654491a7cBbD27aBfA06A81
+0xe3522d85d37F55735e9327CD7a5cDe3abaf28E03
+```
+
+### 10.4 执行前后的状态
+
+以执行区块 `25939803` 与其前一区块 `25939802` 对比。
+
+```
+proxy implementation      0xDFC1F72D5604020463318ff256433eca02B355d2
+                        → 0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534
+新 implementation 字节码 keccak 仍为 0xc84c87dc…50d52
+
+epoch 2957 分支的三项效果:
+  pendingUnlocked[2957]   141,926.991451881642610311 → 0
+  pendingUnlocked[2838]     4,469.427261945621070254 → 146,396.418713827263680565
+                                                       (= 旧值 + 原 [2957],与预测一致)
+  Convex unlockable       112,087.541533595236886262 → 0
+  epoch 2974 的 tranche          341.340240726504422476 → 112,428.881774321741308738
+                                 增量 112,087.541533595236886262 = 执行前 unlockable
+  2974 % 17 = 16,重锁落在 residue 16
+  Convex 物理总额 3,304,453.987221795311548371 未变(取出即重锁)
+```
+
+不该动的 13 项全部未变:`totalLockedGlobal`、`totalPendingUnlockGlobal`、`totalUnlockedGlobal`、`totalCVXInPool`、`totalDebtGlobal`、`accRewardPerShare`、Locker 直接余额、reward pool 余额、Safe CVX 余额、`pendingUnlocked[2817]` / `[2818]` / `[2752]` / `[2958]`。
+
+### 10.5 事件
+
+```
+[0] Locker.Upgraded(0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534)
+[1] CVXLockerV2.Withdrawn(Locker, 112,087.541533595236886262, relocked=false)
+[2] CVX.Transfer(CVXLockerV2 → Locker, 112,087.541533595236886262)
+[3] CVX.Approval(Locker → CVXLockerV2, 0)
+[4] CVX.Approval(Locker → CVXLockerV2, 112,087.541533595236886262)
+[5] CVX.Transfer(Locker → CVXLockerV2, 112,087.541533595236886262)
+[6] CVX.Approval(Locker → CVXLockerV2, 0)
+[7] CVXLockerV2.Staked(Locker, epoch起点 1788998400, 112,087.541533595236886262, ...)
+[8] Safe.ExecutionSuccess(0x1eac9425…5a05, payment 0)
+```
+
+取出额与重锁额相等,`Staked` 的 epoch 起点 `1788998400` 对应 epoch 2958 起锁、2974 到期。执行后至今 Locker 侧无任何事件,Convex 侧 `Withdrawn` / `KickReward` 均为 0 笔。
+
+### 10.6 执行后的账目形态
+
+按执行区块重新读取全部 484 个用户:
+
+```
+用户 locked 聚合 = totalLockedGlobal = 3,129,715.602283843553497959    差 0
+
+global pending − 用户未来 pending    = 148,167.848035072441735182
+用户可提额 − global unlocked         = 148,167.848035072441735182
+pendingUnlocked[2817]+[2818]+[2838] = 148,167.848035072441735182      三者吻合
+
+17 槽差额非零项:
+  residue  0   -237,756.223183328739207623
+  residue 12    +76,458.073633658448996272
+  residue 13    +27,616.207293417311554467
+  residue 14   -109,018.710248320938605356
+  residue 15       +561.911228961951745608
+  residue 16    +90,797.893240539523781450
+  其余 11 槽为 0
+
+内部账本 − Convex 物理额 = -3,173.000000000000000000
+```
+
+这是 epoch 2958 之前应有的形态:已到期未处理的用户债权集中在那三个槽位,按设计要到 epoch 2958 的调用才转入 global unlocked;`-3,173` 是 admin 垫付额形成的物理盈余,同样在 2958 结清。六项 residue 漂移额与执行前逐位相同——residue 16 两侧都因期间的新存款各增 `67.143393194642331263`,差额不变。
+
+### 10.7 epoch 2958 的预期读数(按执行后真实状态重算)
+
+验证阶段之后有用户新发起 unlock,`pendingUnlocked[2958]` 已从 `0` 变为 `2,048.813077317612995107`(该笔 unlock 共 `2,048.8131`,其余 `0.000022682387004893` 溢到后续槽位)。以执行区块为基准 fork 后逐周执行:
+
+```
+epoch 2958 执行后
+  pendingUnlocked[2958]     = 0
+  totalUnlockedGlobal       = 331,343.720433738180520419
+  totalCVXInPool            = 331,343.720433738180520419   == totalUnlockedGlobal
+  totalPendingUnlockGlobal  = 21,348.723825561703320123    == 用户未来 pending,差 0
+  netBorrow                 = 104,074.280927075760550739
+  owner 收到 CVX             = 3,173.000000000000000000
+  Locker 直接余额            = 269,701.497718320288328907
+  受影响账户 0xB828…Fd2a 可一次提出 158,982.352179694127953141
+  gas ≈ 319,237
+```
+
+2958–2975 的逐周 `netBorrow` 轨迹与第 5 节表格**逐位相同**,终局 `netBorrow = 0`、内部与物理差额 `0`、17 槽全部对平。
+
+`netBorrow` 对普通存取款不敏感:新增的 unlock 同额进入 global unlocked 与用户可提额两侧,相减后不变。因此逐周核对应以 `netBorrow` 和两个恒等式(`totalCVXInPool == totalUnlockedGlobal`、`global pending == 用户未来 pending`)为准,`totalUnlockedGlobal` 等绝对读数会随用户活动变化。
+
+### 10.8 兜底余额现状
+
+```
+Locker 直接余额   15,410.555678854473047879   门槛 3,173,余量 12,237.555678854473047879
+Safe CVX 余额      2,194.515305096139675971   兜底批次需 3,173,缺 978.484694903860324029
+```
+
+主路径不受影响(第 9 节)。兜底批次按当前 Safe 余额仍无法执行。
+
 ## 附:复现命令
 
 ```bash
@@ -357,6 +501,13 @@ FORK_BLOCK=<同上> npx hardhat run test/fork/clever/pr278/18-safe-batch-deploye
 
 # 3,173 CVX 的位置与阈值
 FORK_BLOCK=<同上> npx hardhat run test/fork/clever/pr278/19-cvx-requirement.ts
+
+# 主网执行的全链路核对(第 10 节)
+node test/fork/clever/pr278/20-verify-mainnet-execution.mjs      # 交易、批次、签名
+node test/fork/clever/pr278/21-verify-mainnet-state.mjs          # 执行前后状态与事件
+BLOCK=25939803 node test/fork/clever/pr278/14-refresh-snapshot.mjs
+node test/fork/clever/pr278/22-forward-from-mainnet.mjs           # 执行后账目形态
+NO_WITHDRAW=1 FORK_BLOCK=25939803 npx hardhat run test/fork/clever/pr278/23-next-window-expectations.ts
 ```
 
 [`13`](../test/fork/clever/pr278/13-verify-deployed-impl.ts)–[`17`](../test/fork/clever/pr278/17-scenarios-deployed.ts) 这五个脚本以「升级到部署地址 + 手写 ABI」的方式工作,不引用仓库里的合约源码,因此在任何分支上运行都测的是链上那份字节码。本次运行的原始输出存于 [`data/out_16_withdrawals.log`](../test/fork/clever/pr278/data/out_16_withdrawals.log) 、[`data/out_17_scenarios.log`](../test/fork/clever/pr278/data/out_17_scenarios.log) 、[`data/out_18_safe_batch.log`](../test/fork/clever/pr278/data/out_18_safe_batch.log) 与 [`data/out_19_cvx_requirement.log`](../test/fork/clever/pr278/data/out_19_cvx_requirement.log)。
