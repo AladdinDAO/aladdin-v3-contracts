@@ -12,6 +12,10 @@ interface IFxUSD {
   /// @param mintCap The mint capacity of the market.
   event AddMarket(address indexed baseToken, uint256 mintCap);
 
+  /// @notice Emitted when a market is removed.
+  /// @param baseToken The address of base token of the market.
+  event RemoveMarket(address indexed baseToken);
+
   /// @notice Emitted when the mint capacity is updated.
   /// @param baseToken The address of base token of the market.
   /// @param oldCap The value of previous mint capacity.
@@ -66,6 +70,9 @@ interface IFxUSD {
 
   /// @dev Thrown when the amount of fToken is not enough for redeem.
   error ErrorInsufficientLiquidity();
+
+  /// @dev Thrown when trying to remove a market with managed fToken.
+  error ErrorMarketHasManagedFToken();
 
   /// @dev Thrown when current is under collateral.
   error ErrorUnderCollateral();
@@ -194,4 +201,8 @@ interface IFxUSD {
       uint256[] memory amountOuts,
       uint256[] memory bonusOuts
     );
+
+  /// @notice Remove a supported market.
+  /// @param baseToken The address of base token of the market.
+  function removeMarket(address baseToken) external;
 }

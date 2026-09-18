@@ -80,7 +80,7 @@ contract WrappedTokenTreasuryV2 is TreasuryV2 {
 
   /// @notice Change address of price oracle contract.
   /// @param _rateProvider The new address of price oracle contract.
-  function updateRateProvider(address _rateProvider) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function updateRateProvider(address _rateProvider) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     _updateRateProvider(_rateProvider);
   }
 
