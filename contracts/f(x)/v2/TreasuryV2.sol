@@ -189,7 +189,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   }
 
   /// @inheritdoc IFxTreasuryV2
-  function isUnderCollateral() public view returns (bool) {
+  function isUnderCollateral() public view virtual returns (bool) {
     FxStableMath.SwapState memory _state = _loadSwapState(Action.None);
     return _state.xNav == 0;
   }
@@ -227,6 +227,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   function maxRedeemableFToken(uint256 _newCollateralRatio)
     external
     view
+    virtual
     override
     returns (uint256 _maxBaseOut, uint256 _maxFTokenRedeemable)
   {
@@ -241,6 +242,7 @@ abstract contract TreasuryV2 is AccessControlUpgradeable, IFxTreasuryV2 {
   function maxRedeemableXToken(uint256 _newCollateralRatio)
     external
     view
+    virtual
     override
     returns (uint256 _maxBaseOut, uint256 _maxXTokenRedeemable)
   {

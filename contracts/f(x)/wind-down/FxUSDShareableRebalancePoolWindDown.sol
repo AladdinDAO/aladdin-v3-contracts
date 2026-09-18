@@ -113,13 +113,9 @@ contract FxUSDShareableRebalancePoolWindDown is ShareableRebalancePool {
     if (_liquidated == 0) revert ErrorWindDownZeroAsset();
     if (_liquidated != _expectedAssetBalance) revert ErrorWindDownUnexpectedAssetBalance();
 
-    address _market = market;
-    IERC20Upgradeable(_asset).safeApprove(_market, 0);
-    IERC20Upgradeable(_asset).safeApprove(_market, _liquidated);
-
     IFxTreasuryV2 _treasuryV2 = IFxTreasuryV2(_treasury);
     if (_asset != _treasuryV2.fToken()) revert ErrorWindDownInvalidAsset();
-    (_baseOut, ) = IFxMarketV2(_market).redeemFToken(_liquidated, address(this), _minBaseOut);
+    (_baseOut, ) = IFxMarketV2(market).redeemFToken(_liquidated, address(this), _minBaseOut);
 
     if (IERC20Upgradeable(_asset).balanceOf(address(this)) != 0) revert ErrorWindDownUnexpectedAssetBalance();
 

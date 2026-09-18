@@ -52,6 +52,8 @@ contract EzETHWindDownForkTest is Test {
 
   uint256 internal constant TEST_FTOKEN_AMOUNT = 1 ether;
   uint256 internal constant TEST_XTOKEN_AMOUNT = 1 ether;
+  uint256 internal constant SNAPSHOT_FTOKEN_NAV = 1 ether;
+  uint256 internal constant SNAPSHOT_XTOKEN_NAV = 346669734551971069;
 
   function setUp() public {
     string memory rpcUrl = vm.envOr("MAINNET_RPC_URL", DEFAULT_MAINNET_RPC_URL);
@@ -439,8 +441,8 @@ contract EzETHWindDownForkTest is Test {
     uint256 baseBalance = IERC20Upgradeable(EZETH).balanceOf(EZ_TREASURY);
     uint256 fSupply = IERC20Upgradeable(FEZETH).totalSupply();
     uint256 xSupply = IERC20Upgradeable(XEZETH).totalSupply();
-    uint256 fWeight = (fSupply * IFxFractionalTokenV2(FEZETH).nav()) / 1 ether;
-    uint256 xWeight = (xSupply * IFxLeveragedTokenV2(XEZETH).nav()) / 1 ether;
+    uint256 fWeight = (fSupply * SNAPSHOT_FTOKEN_NAV) / 1 ether;
+    uint256 xWeight = (xSupply * SNAPSHOT_XTOKEN_NAV) / 1 ether;
 
     vm.prank(FX_MULTISIG);
     WrappedTokenTreasuryV2WindDown(EZ_TREASURY).initializeWindDown(baseBalance, fSupply, xSupply, fWeight, xWeight);

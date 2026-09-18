@@ -134,6 +134,31 @@ contract WrappedTokenTreasuryV2WindDown is WrappedTokenTreasuryV2 {
     }
   }
 
+  /// @inheritdoc IFxTreasuryV2
+  function maxRedeemableFToken(uint256)
+    external
+    pure
+    override
+    returns (uint256 _maxBaseOut, uint256 _maxFTokenRedeemable)
+  {
+    return (0, 0);
+  }
+
+  /// @inheritdoc IFxTreasuryV2
+  function maxRedeemableXToken(uint256)
+    external
+    pure
+    override
+    returns (uint256 _maxBaseOut, uint256 _maxXTokenRedeemable)
+  {
+    return (0, 0);
+  }
+
+  /// @inheritdoc IFxTreasuryV2
+  function isUnderCollateral() public pure override returns (bool) {
+    return false;
+  }
+
   /****************************
    * Public Mutated Functions *
    ****************************/
