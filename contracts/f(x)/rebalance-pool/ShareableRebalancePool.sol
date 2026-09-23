@@ -247,7 +247,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
    ****************************/
 
   /// @inheritdoc IFxBoostableRebalancePool
-  function deposit(uint256 _amount, address _receiver) external override {
+  function deposit(uint256 _amount, address _receiver) external virtual override {
     if (hasRole(VE_SHARING_ROLE, _receiver)) revert ErrorVoteOwnerCannotStake();
 
     address _sender = _msgSender();
@@ -301,7 +301,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
     address _owner,
     uint256 _amount,
     address _receiver
-  ) external override onlyRole(WITHDRAW_FROM_ROLE) {
+  ) external virtual override onlyRole(WITHDRAW_FROM_ROLE) {
     _withdraw(_owner, _amount, _receiver);
   }
 
@@ -357,7 +357,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   }
 
   /// @inheritdoc IFxShareableRebalancePool
-  function toggleVoteSharing(address _staker) external override onlyRole(VE_SHARING_ROLE) {
+  function toggleVoteSharing(address _staker) external virtual override onlyRole(VE_SHARING_ROLE) {
     address _owner = _msgSender();
     if (_staker == _owner) {
       revert ErrorSelfSharingIsNotAllowed();
@@ -382,7 +382,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   }
 
   /// @inheritdoc IFxShareableRebalancePool
-  function acceptSharedVote(address _newOwner) external override {
+  function acceptSharedVote(address _newOwner) external virtual override {
     address _staker = _msgSender();
     if (!isStakerAllowed[_newOwner][_staker]) {
       revert ErrorVoteShareNotAllowed();
@@ -410,7 +410,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
   }
 
   /// @inheritdoc IFxShareableRebalancePool
-  function rejectSharedVote() external override {
+  function rejectSharedVote() external virtual override {
     address _staker = _msgSender();
     address _owner = getStakerVoteOwner[_staker];
     if (_owner == address(0)) revert ErrorNoAcceptedSharedVote();
@@ -424,7 +424,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
 
   /// @notice Update the address of reward wrapper.
   /// @param _newWrapper The new address of reward wrapper.
-  function updateWrapper(address _newWrapper) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function updateWrapper(address _newWrapper) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     if (IFxTokenWrapper(_newWrapper).src() != baseToken) {
       revert ErrorWrapperSrcMismatch();
     }
@@ -441,7 +441,7 @@ contract ShareableRebalancePool is MultipleRewardCompoundingAccumulator, IFxShar
 
   /// @notice Update the collateral ratio line for liquidation.
   /// @param _newRatio The new liquidatable collateral ratio.
-  function updateLiquidatableCollateralRatio(uint256 _newRatio) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function updateLiquidatableCollateralRatio(uint256 _newRatio) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     uint256 _oldRatio = liquidatableCollateralRatio;
     liquidatableCollateralRatio = _newRatio;
 

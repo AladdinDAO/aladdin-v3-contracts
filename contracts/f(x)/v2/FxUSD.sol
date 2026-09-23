@@ -376,6 +376,23 @@ contract FxUSD is AccessControlUpgradeable, ERC20PermitUpgradeable, IFxUSD {
     emit AddMarket(_baseToken, _mintCap);
   }
 
+  /// @notice Remove a market from fxUSD.
+  /// @param _baseToken The address of base token of the market.
+  function removeMarket(address _baseToken) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (!supportedTokens.contains(_baseToken)) revert ErrorUnsupportedMarket();
+
+    FxMarketStruct memory _marketInfo = markets[_baseToken];
+    if (_marketInfo.managed != 0) revert ErrorMarketHasManagedFToken();
+
+    supportedTokens.remove(_baseToken);
+    uint256 _fTokenDust = IERC20Upgradeable(_marketInfo.fToken).balanceOf(address(this));
+    if (_fTokenDust != 0) IERC20Upgradeable(_marketInfo.fToken).safeTransfer(_msgSender(), _fTokenDust);
+    IERC20Upgradeable(_baseToken).safeApprove(_marketInfo.market, 0);
+    delete markets[_baseToken];
+
+    emit RemoveMarket(_baseToken);
+  }
+
   /// @notice Add new supported rebalance pools to fxUSD.
   /// @param _pools The list of rebalance pools.
   function addRebalancePools(address[] memory _pools) external onlyRole(DEFAULT_ADMIN_ROLE) {
