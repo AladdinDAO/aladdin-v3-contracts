@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "chainId": "1",
+  "createdAt": 1790294861986,
+  "meta": {
+    "name": "ezETH wind-down 1/3 schedule",
+    "description": "Timelock.scheduleBatch with 4 ProxyAdmin.upgrade payloads, delay 259200",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF"
+  },
+  "transactions": [
+    {
+      "to": "0x68863fb8855b04509a835082478D6E3D0bE4E61a",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "targets",
+            "type": "address[]"
+          },
+          {
+            "name": "values",
+            "type": "uint256[]"
+          },
+          {
+            "name": "payloads",
+            "type": "bytes[]"
+          },
+          {
+            "name": "predecessor",
+            "type": "bytes32"
+          },
+          {
+            "name": "salt",
+            "type": "bytes32"
+          },
+          {
+            "name": "delay",
+            "type": "uint256"
+          }
+        ],
+        "name": "scheduleBatch",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "targets": "[\"0x9B54B7703551D9d0ced177A78367560a8B2eDDA4\",\"0x9B54B7703551D9d0ced177A78367560a8B2eDDA4\",\"0x9B54B7703551D9d0ced177A78367560a8B2eDDA4\",\"0x9B54B7703551D9d0ced177A78367560a8B2eDDA4\"]",
+        "values": "[\"0\",\"0\",\"0\",\"0\"]",
+        "payloads": "[\"0x99a88ec400000000000000000000000065d72aa8da931f047169112fcf34f52dbaae7d1800000000000000000000000013d8dc5b2b45e6ff2182fbd874ceb5e27b822fbd\",\"0x99a88ec400000000000000000000000038965311507d4e54973f81475a149c09376e241e000000000000000000000000c2f4eb02f1ee9b19f44b5bfdc3225917279396bc\",\"0x99a88ec4000000000000000000000000f58c499417e36714e99803cb135f507a95ae7169000000000000000000000000ff0aea082d2f59f73416cf868caef4be898f5bb5\",\"0x99a88ec4000000000000000000000000ba947cba270d30967369bf1f73884be2533d7bdb000000000000000000000000ff0aea082d2f59f73416cf868caef4be898f5bb5\"]",
+        "predecessor": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "salt": "0x7a1de5f0c2b4498d6e3a0f7c5d2b8e14a9c6037b5e8d1f2a4c7b093e6d5a8f21",
+        "delay": "259200"
+      }
+    }
+  ]
+}

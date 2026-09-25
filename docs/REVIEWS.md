@@ -14,11 +14,14 @@
 | 2026-08-03 | sPENDLE / vlSDT 上线日的两笔真实多签提案 | v1.0 | [sPENDLE-vlSDT-Launch-Day-Multisig-Verification.md](sPENDLE-vlSDT-Launch-Day-Multisig-Verification.md) | [`StakeDaoLaunchDayVerification.spec.ts`](../test/fork/concentrator/stakedao/StakeDaoLaunchDayVerification.spec.ts)(12 用例) |
 | 2026-09-08 | CLever CVX Locker lock drift 修复([PR #278](https://github.com/AladdinDAO/aladdin-v3-contracts/pull/278) @ `680b0c9`)代码审计 | v1.3 | [CLever-CVXLocker-PR278-Review.md](CLever-CVXLocker-PR278-Review.md) | [`test/fork/clever/pr278/`](../test/fork/clever/pr278/) `01`–`12` |
 | 2026-09-08 | 主网已部署 implementation `0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534` 复验 + epoch 2957 上线批次的全链路核对 | v1.3 | [CLever-CVXLocker-PR278-Deployed-Impl-Verification.md](CLever-CVXLocker-PR278-Deployed-Impl-Verification.md) | [`test/fork/clever/pr278/`](../test/fork/clever/pr278/) `13`–`23` |
+| 2026-09-25 | f(x) ezETH 市场清盘([PR #275](https://github.com/AladdinDAO/aladdin-v3-contracts/pull/275) @ `2c0b9e5`)主网已部署 implementation 复验 + Safe 执行批次 | v1.0 | [Fx-ezETH-WindDown-Review.md](Fx-ezETH-WindDown-Review.md) | [`test/fork/ezwd/`](../test/fork/ezwd/)、[`test/foundry/fx/EzETHWindDownRealDepositors.t.sol`](../test/foundry/fx/EzETHWindDownRealDepositors.t.sol)、[`docs/safe/`](safe/) |
 
 ## 运行说明
 
 前三轮复核的对象已经合入 `main`,脚本在本分支可以直接运行。
 
 PR #278 尚未合入。其中 `13`–`19` 直接升级到主网已部署的 implementation `0xBfb3A7A5FbB9207dEA82fe06dB4075B8CAEDa534` 并使用手写 ABI,不引用仓库合约源码,在本分支即可运行;`06`–`12` 用 `getContractFactory` 本地编译部署,必须切到 `fix/clever-lock-drift`(commit `680b0c9`)才有意义;纯读链的 `01`–`05`、`10`、`14`、`15`、`20`–`22` 不依赖分支;`20`–`23` 是对主网已执行交易的核对。各脚本的具体命令见该报告的「附:复现命令」。
+
+ezETH 清盘那一轮:`test/fork/ezwd/` 下的脚本通过手写 ABI 与主网已部署 implementation 交互,不引用仓库合约源码,在本分支即可运行;`test/foundry/fx/EzETHWindDownRealDepositors.t.sol` 继承 `feat/ezeth-winddown` 分支上的 `EzETHWindDownFork.t.sol`,须在该分支运行;`docs/safe/` 下三份 Safe Transaction Builder JSON 可直接导入。
 
 各报告正文里的脚本链接指向当初做复核的分支(`feat/test-stakedao-gz`、`feat/test-clever-vlcvx-gz`、`feat/test-stakedao-launch-gz`),那些分支仍在,链接有效。

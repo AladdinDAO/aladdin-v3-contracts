@@ -1,0 +1,42 @@
+Compiling 1 files with Solc 0.8.20
+Solc 0.8.20 finished in 3.84s
+Compiler run successful!
+
+Ran 4 tests for test/foundry/fx/EzETHWindDownRealDepositors.t.sol:EzETHWindDownRealDepositorsTest
+[PASS] testFork_1_RepoSetupAvoidsTheFullWipeBranch() (gas: 4979577)
+Logs:
+  production: ezPool totalSupply : 715.048379107106908888
+  production: ezPool fezETH bal  : 715.048379107106908888
+  after repo setup: totalSupply : 717.048379107106908888
+  after repo setup: fezETH bal  : 713.048379107106908888
+  epoch before windDown: 0
+  epoch after  windDown: 0
+
+[FAIL: ALL real ezPool depositors can claim: 1 != 6] testFork_2_RealDepositorsCannotClaim() (block: 26050422) (gas: 2928222)
+Logs:
+  epoch before windDown: 0
+  epoch after  windDown: 1
+  claim OK    : 0x4A036ab673722468a8e1fCC0F74A2dD5914FD1c1
+  claim REVERT: 0x4c75A7349B20745DAf37E6C348b85E8a03F72F9A
+  claim REVERT: 0x0Fa286332b2d1bBB0c7637CD63BA742a050b5AAd
+  claim REVERT: 0x7DCe6D8752A0e2fCF3cE92e9CeAdf9857F920ACc
+  claim REVERT: 0xCbE9e9E80b5301956c12FbB40742b144f98d4e63
+  claim REVERT: 0x492550DDcc5349940A879cAf4d3CFFfaa1Ab0F64
+  ezPool real depositors able to claim: 1
+  ezETH stranded in ezPool: 0.214375210035782726
+
+[PASS] testFork_3_WithCheckpointsAllCanClaim() (gas: 17218029)
+[PASS] testFork_EzETHWindDownTreasuryAndPools() (gas: 12747067)
+Suite result: FAILED. 3 passed; 1 failed; 0 skipped; finished in 137.83s (238.40s CPU time)
+
+Ran 1 test suite in 137.85s (137.83s CPU time): 3 tests passed, 1 failed, 0 skipped (4 total tests)
+
+Failing tests:
+Encountered 1 failing test in test/foundry/fx/EzETHWindDownRealDepositors.t.sol:EzETHWindDownRealDepositorsTest
+[FAIL: ALL real ezPool depositors can claim: 1 != 6] testFork_2_RealDepositorsCannotClaim() (block: 26050422) (gas: 2928222)
+
+Encountered a total of 1 failing tests, 3 tests succeeded
+
+Tip: Run `forge test --rerun` to retry only the 1 failed test
+Tip: Run `forge test --debug --match-test <TEST_NAME>` to inspect one failing test in the debugger
+EXIT 1

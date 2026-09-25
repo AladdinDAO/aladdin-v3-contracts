@@ -1,0 +1,472 @@
+{
+  "version": "1.0",
+  "chainId": "1",
+  "createdAt": 1790294861986,
+  "meta": {
+    "name": "ezETH wind-down 3/3 operations",
+    "description": "Fees to zero, initializeWindDown, rUSD migration, market/pool removal, checkpoints + windDown",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF"
+  },
+  "transactions": [
+    {
+      "to": "0x69518D1D70AD537C41401303BDf96032338E40dE",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_defaultFeeRatio",
+            "type": "uint256"
+          },
+          {
+            "name": "_extraFeeRatio",
+            "type": "int256"
+          },
+          {
+            "name": "_isFToken",
+            "type": "bool"
+          }
+        ],
+        "name": "updateRedeemFeeRatio",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_defaultFeeRatio": "0",
+        "_extraFeeRatio": "0",
+        "_isFToken": "true"
+      }
+    },
+    {
+      "to": "0x69518D1D70AD537C41401303BDf96032338E40dE",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_defaultFeeRatio",
+            "type": "uint256"
+          },
+          {
+            "name": "_extraFeeRatio",
+            "type": "int256"
+          },
+          {
+            "name": "_isFToken",
+            "type": "bool"
+          }
+        ],
+        "name": "updateRedeemFeeRatio",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_defaultFeeRatio": "0",
+        "_extraFeeRatio": "0",
+        "_isFToken": "false"
+      }
+    },
+    {
+      "to": "0x38965311507D4E54973F81475a149c09376e241e",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_expectedBaseBalance",
+            "type": "uint256"
+          },
+          {
+            "name": "_expectedFSupply",
+            "type": "uint256"
+          },
+          {
+            "name": "_expectedXSupply",
+            "type": "uint256"
+          },
+          {
+            "name": "_fWeight",
+            "type": "uint256"
+          },
+          {
+            "name": "_xWeight",
+            "type": "uint256"
+          }
+        ],
+        "name": "initializeWindDown",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_expectedBaseBalance": "19980850948820418991",
+        "_expectedFSupply": "7760089386975109717094",
+        "_expectedXSupply": "97670663336056174849810",
+        "_fWeight": "7760089386975109717094",
+        "_xWeight": "50669591946813638029475"
+      }
+    },
+    {
+      "to": "0x781BA968d5cc0b40EB592D5c8a9a3A4000063885",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_baseTokenCap",
+            "type": "uint256"
+          }
+        ],
+        "name": "updateBaseTokenCap",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_baseTokenCap": "192892147840252629582"
+      }
+    },
+    {
+      "to": "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "spender": "0x65D72AA8DA931F047169112fcf34f52DbaAE7D18",
+        "amount": "1033419732857877241"
+      }
+    },
+    {
+      "to": "0x65D72AA8DA931F047169112fcf34f52DbaAE7D18",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_baseToken",
+            "type": "address"
+          },
+          {
+            "name": "_amountIn",
+            "type": "uint256"
+          },
+          {
+            "name": "_receiver",
+            "type": "address"
+          },
+          {
+            "name": "_minOut",
+            "type": "uint256"
+          }
+        ],
+        "name": "mint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_baseToken": "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
+        "_amountIn": "1033419732857877241",
+        "_receiver": "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+        "_minOut": "2925010571359938194510"
+      }
+    },
+    {
+      "to": "0x69518D1D70AD537C41401303BDf96032338E40dE",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_newStatus",
+            "type": "bool"
+          }
+        ],
+        "name": "updateRedeemStatus",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_newStatus": "false"
+      }
+    },
+    {
+      "to": "0x65D72AA8DA931F047169112fcf34f52DbaAE7D18",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_baseToken",
+            "type": "address"
+          },
+          {
+            "name": "_amountIn",
+            "type": "uint256"
+          },
+          {
+            "name": "_receiver",
+            "type": "address"
+          },
+          {
+            "name": "_minOut",
+            "type": "uint256"
+          }
+        ],
+        "name": "redeem",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_baseToken": "0xbf5495Efe5DB9ce00f80364C8B423567e58d2110",
+        "_amountIn": "3923239058389579493598",
+        "_receiver": "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
+        "_minOut": "1341606749734942411"
+      }
+    },
+    {
+      "to": "0x65D72AA8DA931F047169112fcf34f52DbaAE7D18",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "baseToken",
+            "type": "address"
+          }
+        ],
+        "name": "removeMarket",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "baseToken": "0xbf5495Efe5DB9ce00f80364C8B423567e58d2110"
+      }
+    },
+    {
+      "to": "0x65D72AA8DA931F047169112fcf34f52DbaAE7D18",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_pools",
+            "type": "address[]"
+          }
+        ],
+        "name": "removeRebalancePools",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_pools": "[\"0xf58c499417e36714e99803Cb135f507a95ae7169\",\"0xBa947cba270D30967369Bf1f73884Be2533d7bDB\"]"
+      }
+    },
+    {
+      "to": "0xf58c499417e36714e99803Cb135f507a95ae7169",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0x4A036ab673722468a8e1fCC0F74A2dD5914FD1c1"
+      }
+    },
+    {
+      "to": "0xf58c499417e36714e99803Cb135f507a95ae7169",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0x4c75A7349B20745DAf37E6C348b85E8a03F72F9A"
+      }
+    },
+    {
+      "to": "0xf58c499417e36714e99803Cb135f507a95ae7169",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0x0Fa286332b2d1bBB0c7637CD63BA742a050b5AAd"
+      }
+    },
+    {
+      "to": "0xf58c499417e36714e99803Cb135f507a95ae7169",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0x7DCe6D8752A0e2fCF3cE92e9CeAdf9857F920ACc"
+      }
+    },
+    {
+      "to": "0xf58c499417e36714e99803Cb135f507a95ae7169",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0xCbE9e9E80b5301956c12FbB40742b144f98d4e63"
+      }
+    },
+    {
+      "to": "0xf58c499417e36714e99803Cb135f507a95ae7169",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0x492550DDcc5349940A879cAf4d3CFFfaa1Ab0F64"
+      }
+    },
+    {
+      "to": "0xf58c499417e36714e99803Cb135f507a95ae7169",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_expectedAssetBalance",
+            "type": "uint256"
+          },
+          {
+            "name": "_minBaseOut",
+            "type": "uint256"
+          }
+        ],
+        "name": "windDown",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_expectedAssetBalance": "715048379107106908888",
+        "_minBaseOut": "244520845535960275"
+      }
+    },
+    {
+      "to": "0xBa947cba270D30967369Bf1f73884Be2533d7bDB",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0xC68A2AE2b932C472Fd4Ad4367FF6e093E4E3Da8f"
+      }
+    },
+    {
+      "to": "0xBa947cba270D30967369Bf1f73884Be2533d7bDB",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0x3b0c2E02b0F3a4f507bA8F39aB3Ea93BF4863a90"
+      }
+    },
+    {
+      "to": "0xBa947cba270D30967369Bf1f73884Be2533d7bDB",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0x9af69159D25e213a35A2b6E7274023Da2D2bdaC6"
+      }
+    },
+    {
+      "to": "0xBa947cba270D30967369Bf1f73884Be2533d7bDB",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_account",
+            "type": "address"
+          }
+        ],
+        "name": "checkpoint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_account": "0x1090988Cf5569cc811756220AC3160aA028988AA"
+      }
+    },
+    {
+      "to": "0xBa947cba270D30967369Bf1f73884Be2533d7bDB",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_expectedAssetBalance",
+            "type": "uint256"
+          },
+          {
+            "name": "_minBaseOut",
+            "type": "uint256"
+          }
+        ],
+        "name": "windDown",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_expectedAssetBalance": "3121801949478423314608",
+        "_minBaseOut": "1067544063571580889"
+      }
+    }
+  ]
+}
