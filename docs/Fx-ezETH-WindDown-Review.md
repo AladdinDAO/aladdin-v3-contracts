@@ -52,6 +52,18 @@ xezETH 的 `99.993%`(对应约 `17.33` ezETH)在 [`0xC01Ac934…1483A2`](https:/
 | rUSD | 全局偿付不变量 `totalSupply == sum(managed)` 前后成立 |
 | 模糊与不变量 | 300 次随机赎回:固定比例、顺序无关、上限约束全部成立 |
 
+## 0. 需要知道的背景
+
+**rUSD 目前完全不可用。** ezETH 预言机失效后,`FxUSD.isUnderCollateral()` 遍历所有市场时被 ezETH 这条腿打断,导致 rUSD 的 `mint` / `redeem` / `autoRedeem` / `wrap` / `earn` 全部回滚——包括健康的 weETH 市场。实测升级 ezETH Treasury 后,在 `initializeWindDown` 之前 rUSD 就已恢复。
+
+**两个 Rebalance Pool 的存款人 100% 是 Convex f(x) 个人金库**(pid 23 / 24),共 10 个互不相同的当事方。升级后 Convex 的撤资路径会回滚,用户只能改走领奖拿 ezETH,需提前告知 Convex。
+
+**两个 Pool 存的都是 fezETH。** 池名指的是清算收益被转换成什么,不是存入的 token——xezETH 池里一个 xezETH 都没存。详见第 2 节。
+
+**权重决定了约 `1.6` ezETH 的归属。** fezETH 侧按 `rUSD 50.56% / xezPool 40.22% / ezPool 9.21%` 分配;xezETH 侧 `99.993%` 归单一地址。
+
+**批次里任意一项前置条件漏掉都会导致整批回滚**(第 6 节)——这是合约的设计行为,不会损失资金,重新生成批次即可。
+
 ## 1. 部署产物核对
 
 ```plain text
