@@ -14,7 +14,13 @@
 
 **有一个真实缺陷,必须在上线批次里规避(第 3 节)。** 两个 Pool 执行 `windDown()` 后,每池只有第一个被 checkpoint 的账户能领取,其余以 `panic 0x12` 除零回滚,公开 view `claimable()` 同样回滚。实测滞留 `0.491089056498529122` ezETH + `0.116218067037616642` FXN。资金不会灭失,可由 `Pool.adminClaim()` 全额回收后线下退款。
 
-**规避办法:在每个 `windDown()` 之前,对该池的全部存款人各调用一次 `checkpoint(address)`。** 该函数无权限,可与 `windDown` 放进同一笔 MultiSend。补齐后的完整三笔 Safe 批次参数与 JSON 见第 7 节,已用真实 6/9 多签流程在主网分叉上跑通,**31 项断言全部通过,10 个存款人全部足额领取**。
+**规避办法:在每个 `windDown()` 之前,对该池的全部存款人各调用一次 `checkpoint(address)`。** 该函数无权限,可与 `windDown` 放进同一笔 MultiSend。
+
+另有两处需要补进批次(第 3.6 节):**批次末尾把 weETH Treasury 的 `baseTokenCap` 改回原值**,以及**存款人名单必须在第二轮签名执行之后才枚举**。
+
+补齐后的操作批次为 **23 步**,完整参数与 JSON 见第 7 节。三笔批次已用真实 6/9 多签流程在主网分叉上逐笔执行,**63 项断言全部通过**:10 个 ezETH 侧存款人全部足额领取,weETH 侧 13 组配置逐项未变,rUSD 全局偿付不变量前后成立。
+
+**上线需要 3 轮多签签名,收尾再 1 轮,共 4 轮 24 个签名(第 7.6 节)。**
 
 **分配权重是唯一不被合约校验的参数,须由治理在 `initializeWindDown` 之前书面确认取值与快照区块(第 4 节)。** ezETH 预言机已于 `2026-08-19T09:41:11Z`(区块 `25788322`)失效,`fezETH.nav()` / `xezETH.nav()` 已无法读取,权重只能外部给定;不同口径之间相差约 `1.6` ezETH。
 
@@ -224,6 +230,44 @@ xezPool  0xC68A2AE2b932C472Fd4Ad4367FF6e093E4E3Da8f   0x3b0c2E02b0F3a4f507bA8F39
 
 这两个池本次不清盘,不受影响。但同一份代码、同一个共享 owner,将来任何池被 100% 清空会重演,且金额量级更大。建议在下次改动该文件时为 `_computeBoostRatio` 补 `_ownerBalance == 0` 保护。
 
+### 3.6 另外两处必须补进批次的调整
+
+**(a) weETH Treasury 的 `baseTokenCap` 要在批次末尾改回原值。**
+
+主网当前 `baseTokenCap = 0`、`totalBaseToken = 191.522599884261633881`,即 weETH 市场的 mint 本来就被上限完全关闭。批次中为完成 rUSD 迁移必须临时抬高该上限,若不改回去,执行后会给一个原本关闭的市场留下一段 mint 额度。
+
+实测在同一批次末尾追加一笔 `updateBaseTokenCap(<原值>)`:
+
+```plain text
+批次内 updateBaseTokenCap(0)        成功,192.892297187551765038 -> 0
+cap 归 0 后 weETH mint 被挡住        ErrorExceedTotalCap (0x2cbf45d6)
+cap 归 0 不影响 rUSD.redeem(weETH)   正常
+cap 归 0 不影响 weETH pool claim      正常
+```
+
+这样执行期间的上限余量可以放宽以避免边界回滚,事后也无需另行恢复。
+
+**(b) 两池存款人名单必须在第二轮签名执行之后才枚举。**
+
+第二轮签名升级 Pool 之后 `deposit` 才被禁用,名单自此冻结(实测 `deposit` 以 `ErrorWindDownNotAllowed` 回滚)。若在此之前生成名单,中间新增的存款人会被漏掉,而漏掉的那一个恰好会命中第 3.1 节的问题。
+
+正确顺序:第二轮签名 -> 冻结 -> 读 `B/F/X` 的同时枚举两池存款人 -> 生成第三轮的 JSON。
+
+### 3.7 设计阶段提出但未落入批次的两条
+
+**(a) 结算两个 Pool 的待分配 reward。** 补入的 10 笔 `checkpoint` 同时完成了这件事——实测 checkpoint 全部 6 人后,合计可领 `0.009135140665058338` ezETH,池内持有 `0.015357008863210147`。
+
+**(b) rUSD 的 ezETH `mintCap` 设为 0。** 实测无需补:升级后 ezETH 侧四个新增敞口入口全部已被挡住。
+
+```plain text
+rUSD.mint(ezETH, ...)         REVERT  0x2b9eb9dc
+rUSD.wrap(ezETH, ...)         REVERT  0xe82c4a58
+rUSD.earn(ezPool, ...)        REVERT  0x677a62ce
+rUSD.mintAndEarn(ezPool, ...) REVERT  0x2b9eb9dc
+```
+
+Market 的 pause 与 Treasury 的 `mintFToken` revert 构成双重保险。
+
 ## 4. 分配权重
 
 `initializeWindDown` 精确校验 `expectedBaseBalance` / `expectedFSupply` / `expectedXSupply`(三项传错值均实测回滚),但 **`fWeight` / `xWeight` 不对任何链上量校验**([L236-L280](https://github.com/AladdinDAO/aladdin-v3-contracts/blob/2c0b9e589063524cf127b1e95f3d6e04cd3b9e38/contracts/f%28x%29/wind-down/WrappedTokenTreasuryV2WindDown.sol#L236-L280),唯一检查是 `fW + xW != 0` 及供应为 0 时权重须为 0)。实测传 `(fW = 1, xW = 0)` 直接成功,xezETH 持有人分到 0。
@@ -287,14 +331,14 @@ finalize 后 adminClaim 扫走的额度精确等于未赎回持有人的应得�
 4. `initializeWindDown` 的权重取值与快照区块须经治理书面确认并记入执行记录。
 5. weETH Treasury `baseTokenCap` 当前为 `0`,须先抬高。该函数是绝对赋值而非只升不降,须按执行时的实时 `totalBaseToken` 重算,并留出独立于 weETH 输入缓冲的余量。
 6. Safe 须持有本次 mint 所需的 weETH(当前余额 `0.05965785976727296`)。
-7. **每个 `windDown` 之前,对该池全部存款人各调一次 `checkpoint(address)`**,地址清单以生成批次当时的链上读数为准。
+7. **每个 `windDown` 之前,对该池全部存款人各调一次 `checkpoint(address)`**。地址清单必须在升级批次执行完成、`deposit` 被禁用之后枚举。
 8. `expectedAssetBalance` 取执行时各池实际 fezETH 余额;`minBaseOut` 取 `windDownPreviewRedeem` 值,实测可取等。
-9. `B` 在签名前最后一刻重读,并预置重新生成批次的路径。
+9. **批次最后一步把 weETH Treasury 的 `baseTokenCap` 改回原值**(当前为 `0`)。
+10. `B` 在签名前最后一刻重读,并预置重新生成批次的路径。
 
 **持续要求**
 
-10. `xTokenRedeemPausedInStabilityMode` 全程保持 `false`。该开关归 `EMERGENCY_DAO_ROLE`,一旦开启 `redeemXToken` 会调用仍依赖失效预言机的 `collateralRatio()`。
-11. 迁移完成后恢复 weETH Treasury 的 `baseTokenCap`。
+11. `xTokenRedeemPausedInStabilityMode` 全程保持 `false`。该开关归 `EMERGENCY_DAO_ROLE`,一旦开启 `redeemXToken` 会调用仍依赖失效预言机的 `collateralRatio()`。
 12. `removeMarket` 后 `autoRedeem` 的 `_minOuts` 长度由 `2` 变为 `1`,须通知集成方。
 13. 与 Convex 确认 pid 23 / 24 的 ezETH 领取路径在其前端可用。
 
@@ -445,9 +489,9 @@ payloads[3] ProxyAdmin.upgrade(xezPool,        0xff0aEa08…5BB5)
 }
 ```
 
-### 7.3 批次三:22 步 operations
+### 7.3 批次三:23 步 operations
 
-第 11–16 与第 18–21 步是本次复核新增的 `checkpoint`,缺了这 10 笔就会出现第 3 节的问题。
+第 11–16 与第 18–21 步是本次复核新增的 `checkpoint`,缺了这 10 笔就会出现第 3.1 节的问题;第 23 步把 weETH 的 `baseTokenCap` 改回原值(第 3.6 节)。
 
 | 序 | Target | Method | 参数 |
 |---|---|---|---|
@@ -465,6 +509,7 @@ payloads[3] ProxyAdmin.upgrade(xezPool,        0xff0aEa08…5BB5)
 | 17 | ezPool | `windDown` | `715048379107106908888, 244520845535960275` |
 | 18–21 | xezPool | `checkpoint` × 4 | 4 个 xezPool 存款人 |
 | 22 | xezPool | `windDown` | `3121801949478423314608, 1067544063571580889` |
+| 23 | weETH Treasury | `updateBaseTokenCap` | `0`(改回执行前的原值) |
 
 关键 calldata:
 
@@ -488,6 +533,7 @@ payloads[3] ProxyAdmin.upgrade(xezPool,        0xff0aEa08…5BB5)
 20  0xa972985e0000000000000000000000009af69159d25e213a35a2b6e7274023da2d2bdac6
 21  0xa972985e0000000000000000000000001090988cf5569cc811756220ac3160aa028988aa
 22  0x387710ae0000000000000000000000000000000000000000000000a93bb47d08f75f40b00000000000000000000000000000000000000000000000ed0adab7342d7d9
+23  0x876d20de0000000000000000000000000000000000000000000000000000000000000000
 ```
 
 完整 JSON 见仓库 [`docs/safe/safe-3-operations.json`](../docs/safe/safe-3-operations.json)。`checkpoint` 的 10 笔结构一致,示例:
@@ -532,14 +578,33 @@ payloads[3] ProxyAdmin.upgrade(xezPool,        0xff0aEa08…5BB5)
 
 ```plain text
 批次一   safeTxHash 0x0d495d9852e46e6d07462ed28f4df55ca5f58dc3020d34721207823b3718939d
-         nonce 739   1 步    gas 136,896
+         nonce 739   1 步    gas 136,896      calldata 1,188 bytes
 批次二   safeTxHash 0xc74f39c974fb02ae958e8d81039bda60415b550811a37c271d58cca7e333870e
-         nonce 740   3 步    gas 205,663
-批次三   safeTxHash 0xfba77c46530dc9b802927ae5105a659ff6c67c4ce4635cc723c9280a99b72819
-         nonce 740   22 步   gas 10,398,809   calldata 3,396 bytes
+         nonce 740   3 步    gas 205,663      calldata 1,572 bytes
+批次三   safeTxHash 0x90c3640afa47c9077e36ae8fb340cbcc4060a0f89b8f30cb37d5d098a81d5cfc
+         nonce 740   23 步   gas 10,383,879   calldata 3,492 bytes
 
 三个 safeTxHash 均与按 EIP-712 独立复算的值一致
-31 项断言全部通过
+63 项断言全部通过(含 weETH 侧全量回归与 rUSD 全局偿付不变量)
+```
+
+批次三 gas 约 1,038 万,单笔交易可容纳(主网区块上限 3,000 万)。
+
+同一轮验证覆盖的 weETH 侧回归:
+
+```plain text
+rUSD totalSupply == sum(managed)            升级前后均精确成立
+rUSD feETH 余额 == weETH managed             成立;原有 feETH 一分未转出
+feETH 增量 == rUSD feETH 增量                没有多铸给任何人
+xeETH totalSupply 与 rUSD 持仓               未变
+weETH Treasury / Market / 两个 weETH Pool 的 implementation   未变
+weETH Treasury strategy / oracle / rateProvider / platform / splitter   未变
+weETH Treasury rebalancePool 与 harvester 分成比例             未变
+weETH Market 四组费率 / stabilityRatio / 暂停状态               未变
+weETH 两个 Pool totalSupply                                   未变
+ezETH Market reservePool / registry                          未变
+weETH baseTokenCap                                           0 -> 0(批次第 23 步改回)
+weETH 两个 Pool 各 5 个存款人(含共享同一 vote owner 的)        claim 与 withdraw 均正常
 ```
 
 执行后逐个领取,10 个存款人全部实收等于各自 `claimable`:
@@ -568,6 +633,19 @@ xezPool  0xC68A2AE2  1.036035343116095415      0x3b0c2E02  0.046092652846276886
 第 17、22 步 expectedAssetBalance / minBaseOut   按执行时两池实际 fezETH 余额
 ```
 
+### 7.6 多签协调次数
+
+| 轮次 | 内容 | 时点 | 签名 |
+|---|---|---|---|
+| 1 | `Timelock.scheduleBatch`,排队四个升级 | 任意 | 6/9 |
+| 2 | 暂停 mint + redeem,`Timelock.executeBatch` | 第 1 轮之后 **≥ 3 天** | 6/9 |
+| 3 | 23 步 operations | 第 2 轮成功、读完冻结快照之后 | 6/9 |
+| 4 | `finalizeWindDown` + Treasury 与两个 Pool 的 `adminClaim` | 公示期满、逐地址确认 `claimable` 归零之后 | 6/9 |
+
+共 **4 轮 24 个签名**。前三轮之间有硬依赖:第 2 轮必须等满 Timelock 的 `259,200` 秒;第 3 轮的 `B/F/X`、权重与存款人名单只有在第 2 轮冻结之后才能确定,其 JSON 必须等第 2 轮上链后才能生成。
+
+第 3 轮之前 Safe 需持有约 `1.03` weETH(当前 `0.05965785976727296`)。该转账不需要多签签名,任何地址转入即可,但需指定责任人。
+
 ## 附:复现命令
 
 ```bash
@@ -594,8 +672,11 @@ npx hardhat run test/fork/ezwd/11-durability.ts
 # 生成三份 Safe JSON
 npx hardhat run test/fork/ezwd/18-safejson.ts
 
-# 用真实 6/9 多签流程执行三份 JSON 并验证领取
-npx hardhat run test/fork/ezwd/19-safeverify.ts
+# 用真实 6/9 多签流程执行三份 JSON,并做 weETH 侧全量回归(63 项)
+npx hardhat run test/fork/ezwd/21-final.ts
+
+# weETH 侧与 rUSD 全局不变量单独回归
+npx hardhat run test/fork/ezwd/20-regression.ts
 
 # 影响面全量枚举(只读链上)
 node test/fork/ezwd/16-impact.mjs

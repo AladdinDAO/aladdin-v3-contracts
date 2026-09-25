@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "chainId": "1",
-  "createdAt": 1790294861986,
+  "createdAt": 1790299439131,
   "meta": {
     "name": "ezETH wind-down 3/3 operations",
     "description": "Fees to zero, initializeWindDown, rUSD migration, market/pool removal, checkpoints + windDown",
@@ -97,7 +97,7 @@
         "_expectedFSupply": "7760089386975109717094",
         "_expectedXSupply": "97670663336056174849810",
         "_fWeight": "7760089386975109717094",
-        "_xWeight": "50669591946813638029475"
+        "_xWeight": "50663221743116739180475"
       }
     },
     {
@@ -114,7 +114,7 @@
         "payable": false
       },
       "contractInputsValues": {
-        "_baseTokenCap": "192892147840252629582"
+        "_baseTokenCap": "192892297187551765038"
       }
     },
     {
@@ -136,7 +136,7 @@
       },
       "contractInputsValues": {
         "spender": "0x65D72AA8DA931F047169112fcf34f52DbaAE7D18",
-        "amount": "1033419732857877241"
+        "amount": "1033532412096273039"
       }
     },
     {
@@ -166,7 +166,7 @@
       },
       "contractInputsValues": {
         "_baseToken": "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
-        "_amountIn": "1033419732857877241",
+        "_amountIn": "1033532412096273039",
         "_receiver": "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
         "_minOut": "2925010571359938194510"
       }
@@ -217,7 +217,7 @@
         "_baseToken": "0xbf5495Efe5DB9ce00f80364C8B423567e58d2110",
         "_amountIn": "3923239058389579493598",
         "_receiver": "0x26B2ec4E02ebe2F54583af25b647b1D619e67BbF",
-        "_minOut": "1341606749734942411"
+        "_minOut": "1341753032239504944"
       }
     },
     {
@@ -375,7 +375,7 @@
       },
       "contractInputsValues": {
         "_expectedAssetBalance": "715048379107106908888",
-        "_minBaseOut": "244520845535960275"
+        "_minBaseOut": "244547506941554586"
       }
     },
     {
@@ -465,7 +465,24 @@
       },
       "contractInputsValues": {
         "_expectedAssetBalance": "3121801949478423314608",
-        "_minBaseOut": "1067544063571580889"
+        "_minBaseOut": "1067660463566870841"
+      }
+    },
+    {
+      "to": "0x781BA968d5cc0b40EB592D5c8a9a3A4000063885",
+      "value": "0",
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "_baseTokenCap",
+            "type": "uint256"
+          }
+        ],
+        "name": "updateBaseTokenCap",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_baseTokenCap": "0"
       }
     }
   ]

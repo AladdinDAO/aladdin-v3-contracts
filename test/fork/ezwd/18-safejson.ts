@@ -85,7 +85,7 @@ async function main() {
   const fez = new ethers.Contract(A.FEZETH, ["function totalSupply() view returns (uint256)", "function balanceOf(address) view returns (uint256)"], ethers.provider);
   const xez = new ethers.Contract(A.XEZETH, ["function totalSupply() view returns (uint256)"], ethers.provider);
   const R = new ethers.Contract(A.RUSD, ["function markets(address) view returns (address,address,address,uint256,uint256)", "function balanceOf(address) view returns (uint256)"], ethers.provider);
-  const WT = new ethers.Contract(A.WEETH_TREASURY, ["function totalBaseToken() view returns (uint256)", "function getUnderlyingValue(uint256) view returns (uint256)", "function currentBaseTokenPrice() view returns (uint256)"], ethers.provider);
+  const WT = new ethers.Contract(A.WEETH_TREASURY, ["function totalBaseToken() view returns (uint256)", "function getUnderlyingValue(uint256) view returns (uint256)", "function currentBaseTokenPrice() view returns (uint256)", "function baseTokenCap() view returns (uint256)"], ethers.provider);
   const rp = new ethers.Contract("0xE3fF08070aB3aD7eeE7a1cab35105F27DF8EfF10", ["function getRate() view returns (uint256)"], ethers.provider);
   const cl = new ethers.Contract("0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419", ["function latestRoundData() view returns (uint80,int256,uint256,uint256,uint80)"], ethers.provider);
 
@@ -144,6 +144,8 @@ async function main() {
   b3.push(tx(A.EZ_POOL, M.windDown, { _expectedAssetBalance: ezPoolAsset.toString(), _minBaseOut: ezPoolMinOut.toString() }));
   for (const v of XEZ_VAULTS) b3.push(tx(A.XEZ_POOL, M.checkpoint, { _account: v }));
   b3.push(tx(A.XEZ_POOL, M.windDown, { _expectedAssetBalance: xezPoolAsset.toString(), _minBaseOut: xezPoolMinOut.toString() }));
+  // 23: restore the weETH treasury cap to its pre-execution value so the batch leaves no open mint capacity
+  b3.push(tx(A.WEETH_TREASURY, M.updateBaseTokenCap, { _baseTokenCap: (await WT.baseTokenCap()).toString() }));
 
   const mk = (name: string, desc: string, txs: any[]) => ({ version: "1.0", chainId: "1", createdAt: Date.now(), meta: { name, description: desc, txBuilderVersion: "1.18.0", createdFromSafeAddress: A.SAFE }, transactions: txs });
   fs.mkdirSync(OUT, { recursive: true });
