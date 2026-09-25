@@ -8,23 +8,49 @@
 > [`0xff0aEa082D2F59F73416cF868cAef4BE898f5BB5`](https://etherscan.io/address/0xff0aEa082D2F59F73416cF868cAef4BE898f5BB5) `FxUSDShareableRebalancePoolWindDown`
 > 对应源码:[PR #275](https://github.com/AladdinDAO/aladdin-v3-contracts/pull/275) @ [`2c0b9e5`](https://github.com/AladdinDAO/aladdin-v3-contracts/commit/2c0b9e589063524cf127b1e95f3d6e04cd3b9e38)
 
-## 结论:三个 implementation 与审计对象逐字节相同,可以升级;上线批次必须在每个 `windDown()` 之前补 10 笔 `checkpoint`,否则两个 Rebalance Pool 的 10 个存款人中将有 8 个无法领取
+## 结论
 
-三个地址的 deployed bytecode 与 `2c0b9e5` 的本地编译产物 keccak 完全相同(含 metadata 尾部),constructor immutable 与目标 market 逐项吻合,四个代理升级后 640 个存储槽零差异。升级路径、固定比例赎回、rUSD 迁移、市场与池移除、赎回压力、模糊与不变量测试全部通过。
+**代码可以上线。** 三个 implementation 与审计对象逐字节相同,升级路径、固定比例赎回、rUSD 迁移、市场与池移除、赎回压力、模糊与不变量测试全部通过。
 
-**有一个真实缺陷,必须在上线批次里规避(第 3 节)。** 两个 Pool 执行 `windDown()` 后,每池只有第一个被 checkpoint 的账户能领取,其余以 `panic 0x12` 除零回滚,公开 view `claimable()` 同样回滚。实测滞留 `0.491089056498529122` ezETH + `0.116218067037616642` FXN。资金不会灭失,可由 `Pool.adminClaim()` 全额回收后线下退款。
+**但上线批次必须补三处,否则会出问题。** 补齐后操作批次为 23 步,已用真实 6/9 多签流程在主网分叉上逐笔跑通,63 项断言全部通过。
 
-**规避办法:在每个 `windDown()` 之前,对该池的全部存款人各调用一次 `checkpoint(address)`。** 该函数无权限,可与 `windDown` 放进同一笔 MultiSend。
+### 必须补进批次的三处
 
-另有两处需要补进批次(第 3.6 节):**批次末尾把 weETH Treasury 的 `baseTokenCap` 改回原值**,以及**存款人名单必须在第二轮签名执行之后才枚举**。
+| | 补什么 | 不补的后果 | 详见 |
+|---|---|---|---|
+| 1 | 每个 `windDown` 之前,对该池全部存款人各调一次 `checkpoint`,共 10 笔 | 10 个存款人只有 2 个能领到钱,`0.49` ezETH + `0.12` FXN 滞留在池里 | 3.1 |
+| 2 | 批次末尾把 weETH Treasury 的 `baseTokenCap` 改回 `0` | 一个原本完全关闭的市场被留下 mint 额度 | 3.6 |
+| 3 | 存款人名单在第二轮签名上链之后才枚举 | 中间新增的存款人会被漏掉,而漏掉的那个恰好会中招 | 3.6 |
 
-补齐后的操作批次为 **23 步**,完整参数与 JSON 见第 7 节。三笔批次已用真实 6/9 多签流程在主网分叉上逐笔执行,**63 项断言全部通过**:10 个 ezETH 侧存款人全部足额领取,weETH 侧 13 组配置逐项未变,rUSD 全局偿付不变量前后成立。
+23 步 = 原有 12 步 + 10 笔 `checkpoint` + 1 笔 `baseTokenCap` 归零。
 
-**上线需要 3 轮多签签名,收尾再 1 轮,共 4 轮 24 个签名(第 7.6 节)。**
+### 需要治理先定的一项
 
-**分配权重是唯一不被合约校验的参数,须由治理在 `initializeWindDown` 之前书面确认取值与快照区块(第 4 节)。** ezETH 预言机已于 `2026-08-19T09:41:11Z`(区块 `25788322`)失效,`fezETH.nav()` / `xezETH.nav()` 已无法读取,权重只能外部给定;不同口径之间相差约 `1.6` ezETH。
+分配权重 `fWeight` / `xWeight` 是**唯一不被合约校验**的参数。ezETH 预言机已于 `2026-08-19T09:41:11Z`(区块 `25788322`)失效,`fezETH.nav()` 与 `xezETH.nav()` 都已读不出来,权重只能外部给定。不同价格口径之间相差约 `1.6` ezETH,须在 `initializeWindDown` 之前书面确认取值与快照区块。详见第 4 节。
 
-上线批次另有 5 项前置条件(第 6 节),漏掉任意一项会导致整批回滚。
+### 需要外部确认的一项
+
+xezETH 的 `99.993%`(对应约 `17.33` ezETH)在 [`0xC01Ac934…1483A2`](https://etherscan.io/address/0xC01Ac9349396935f60d39737EBe352572d1483A2)。该地址是一个**从未发出过任何交易**的 EOA(nonce 为 `0`),**既不是 f(x) 多签,也不在多签的 9 个 owner 之列**——它是一个外部大户,2026-08-07 从 `0x86cCF049…07fB8` 一次性收到全部 xezETH,而后者是 2024 年 8–9 月直接调 ezETH Market 铸造的普通用户。清盘后它需要自己发交易才能取走这笔资产。
+
+这不影响前三轮签名,但在考虑第四轮的 `finalizeWindDown` 之前必须确认其控制人能够签名——否则这笔资产会被 `adminClaim` 收走。详见第 4 节。
+
+### 执行节奏
+
+4 轮多签、24 个签名。第 2 轮须等满 Timelock 的 3 天延时;第 3 轮的参数只有第 2 轮上链后才能确定。详见第 7.6 节。
+
+### 已验证的范围
+
+| 项目 | 结果 |
+|---|---|
+| 三个 implementation 字节码 | 与 `2c0b9e5` 本地编译产物 keccak 完全相同(含 metadata 尾部) |
+| constructor immutable | 与目标 market 逐项吻合 |
+| 存储布局 | 四个代理共 640 槽,升级前后零差异 |
+| 升级路径 | 真实 Timelock 3 天延时 + ProxyAdmin;延时未到 `executeBatch` 回滚 |
+| 三笔 Safe 批次 | 真实 6/9 `approveHash` + `execTransaction`;`safeTxHash` 与 EIP-712 独立复算一致 |
+| ezETH 侧 10 个存款人 | 补齐 `checkpoint` 后全部实收等于各自 `claimable` |
+| weETH 侧 | 13 组配置逐项未变;两池各 5 个存款人 `claim` 与 `withdraw` 正常 |
+| rUSD | 全局偿付不变量 `totalSupply == sum(managed)` 前后成立 |
+| 模糊与不变量 | 300 次随机赎回:固定比例、顺序无关、上限约束全部成立 |
 
 ## 1. 部署产物核对
 
@@ -282,7 +308,29 @@ ezETH 预言机自区块 `25788322`(`2026-08-19T09:41:11Z`)返回 `isValid = fal
 | 执行当日 Chainlink ETH/USD × Renzo rate | 13.1%–13.4%(随价格变动) | ~2.60–2.68 | ~17.30–17.38 |
 | 上一次 settle 的 `referenceBaseTokenPrice` `3,374.553159` | 10.6168% | 2.121340205876323545 | 17.859510742944095446 |
 
-两端相差约 `1.6` ezETH。fezETH 侧按 `rUSD 50.56% / xezPool 40.22% / ezPool 9.21%` 分配;xezETH 侧 `99.993%` 归单一地址 [`0xC01Ac9349396935f60d39737EBe352572d1483A2`](https://etherscan.io/address/0xC01Ac9349396935f60d39737EBe352572d1483A2),**该地址 nonce 为 `0`,从未发起过任何交易**。
+两端相差约 `1.6` ezETH。fezETH 侧按 `rUSD 50.56% / xezPool 40.22% / ezPool 9.21%` 分配。
+
+### xezETH 侧 99.993% 的归属
+
+xezETH 几乎全部集中在一个地址,链上溯源如下:
+
+```
+0xC01Ac9349396935f60d39737EBe352572d1483A2   当前持有人
+  类型 EOA   nonce 0(从未发出过任何交易)   ETH 0.005
+  持仓 xezETH 97,664.27(占总供应 99.993%),无其他资产
+  不是 f(x) 多签 0x26B2ec4E…BbF,也不在其 9 个 owner 之列
+  2026-08-07 由下方地址一次性转入
+
+0x86cCF0491FF9Cb7DEe93b5061a946eC714407fB8   原始铸造人
+  类型 EOA   nonce 212   ETH 25.486253826798232283
+  当前仅剩 FXN 0.06436688937548462 与 ezETH 0.009366428378529811
+  三笔 mint 均直接调用 ezETH Market 0x69518D1D…40dE:
+    0x69f8ee23…  2024-08-26   45,240.304440443399286283
+    0x753b87a7…  2024-08-27   22,878.933033160389509062
+    0x664e258a…  2024-09-04   29,545.035115014897998407
+```
+
+**结论:这是一个外部大户的仓位,不是本方地址。** 铸造方式是直接调 Market 的普通用户路径,两个地址都不在仓库的任何部署记录里。因此不能假定「是我们的就一定能签名」——第四轮 `finalizeWindDown` 之前必须联系到其控制人,否则这 `17.3` ezETH 会被 `adminClaim` 收走。
 
 `fBase + xBase == B` 在任意权重下精确成立(50/50 权重实测 `9990425474410209495 + 9990425474410209496`,一 wei 不差)。
 
